@@ -600,88 +600,86 @@ const AdminUsers: React.FC = () => {
       {/* Table */}
       <div className="card bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full min-w-[820px]">
             <thead>
               <tr className="border-b-2 border-black dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">User</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Device / Location</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Level</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Points</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Status</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Plan</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Risk</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">2FA</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Actions</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">User</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs hidden md:table-cell">Device / Location</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">Lv</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">Points</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">Status</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs hidden sm:table-cell">Plan</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">Risk</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs hidden sm:table-cell">2FA</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.map((user) => (
                 <tr key={user.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7B6EF6] to-[#4F8EF7] flex items-center justify-center text-white font-black">
+                  <td className="py-2 px-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7B6EF6] to-[#4F8EF7] flex items-center justify-center text-white font-black text-xs flex-shrink-0">
                         {user.username.charAt(0)}
                       </div>
-                      <div>
-                        <p className="font-bold text-gray-900 dark:text-white">{user.username}</p>
-                        <p className="text-xs text-gray-500">{user.email}</p>
-                        {user.phone && <p className="text-xs text-gray-400">{user.phone}</p>}
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 dark:text-white text-xs truncate">{user.username}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      {user.deviceType === 'mobile' ? <Smartphone size={14} className="text-gray-400" /> : user.deviceType === 'tablet' ? <Monitor size={14} className="text-gray-400" /> : <Monitor size={14} className="text-gray-400" />}
-                      <div>
-                        <p className="text-sm text-gray-900 dark:text-white">{user.device}</p>
-                        <p className="text-xs text-gray-500">{user.city}, {user.country}</p>
+                  <td className="py-2 px-2 hidden md:table-cell">
+                    <div className="flex items-center gap-1">
+                      {user.deviceType === 'mobile' ? <Smartphone size={12} className="text-gray-400 flex-shrink-0" /> : <Monitor size={12} className="text-gray-400 flex-shrink-0" />}
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-900 dark:text-white truncate">{user.device}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.city}</p>
                       </div>
                     </div>
-                    <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">{user.lastIP}</code>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="font-bold text-[#7B6EF6]">Lv.{user.level}</span>
+                  <td className="py-2 px-2">
+                    <span className="font-bold text-[#7B6EF6] text-xs">Lv.{user.level}</span>
                   </td>
-                  <td className="py-3 px-4">
-                    <p className="font-bold text-amber-600">{user.totalPoints.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">spent: {user.spentPoints.toLocaleString()}</p>
+                  <td className="py-2 px-2">
+                    <p className="font-bold text-amber-600 text-xs">{user.totalPoints.toLocaleString()}</p>
+                    <p className="text-xs text-gray-400">{user.spentPoints.toLocaleString()}</p>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${getStatusColor(user.status)}`}>
+                  <td className="py-2 px-2">
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${getStatusColor(user.status)}`}>
                       {user.status.toUpperCase()}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${user.subscription === 'enterprise' ? 'bg-purple-100 text-purple-700' : user.subscription === 'premium' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {user.subscription.toUpperCase()}
+                  <td className="py-2 px-2 hidden sm:table-cell">
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${user.subscription === 'enterprise' ? 'bg-purple-100 text-purple-700' : user.subscription === 'premium' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+                      {user.subscription.slice(0, 3).toUpperCase()}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold w-fit ${getRiskLevel(user.riskScore).bg}`}>
-                      <AlertTriangle size={12} className={getRiskLevel(user.riskScore).color} />
+                  <td className="py-2 px-2">
+                    <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-bold w-fit ${getRiskLevel(user.riskScore).bg}`}>
+                      <AlertTriangle size={10} className={getRiskLevel(user.riskScore).color} />
                       <span className={getRiskLevel(user.riskScore).color}>{user.riskScore}</span>
                     </div>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-2 px-2 hidden sm:table-cell">
                     {user.twoFactorEnabled ? (
-                      <span className="flex items-center gap-1 text-xs text-green-600"><UserCheck size={14} /> ON</span>
+                      <span className="flex items-center gap-0.5 text-xs text-green-600"><UserCheck size={12} /> ON</span>
                     ) : (
-                      <span className="flex items-center gap-1 text-xs text-red-500"><UserX size={14} /> OFF</span>
+                      <span className="flex items-center gap-0.5 text-xs text-red-500"><UserX size={12} /> OFF</span>
                     )}
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => { setSelectedUser(user); setDetailTab('overview'); setShowDetail(true); }} className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600" title="Full Details">
-                        <Eye size={16} />
+                  <td className="py-2 px-2">
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => { setSelectedUser(user); setDetailTab('overview'); setShowDetail(true); }} className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600" title="Full Details">
+                        <Eye size={14} />
                       </button>
-                      <button onClick={() => resetPassword(user.id)} className="p-2 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600" title="Reset Password">
-                        <Key size={16} />
+                      <button onClick={() => resetPassword(user.id)} className="p-1.5 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600" title="Reset Password">
+                        <Key size={14} />
                       </button>
-                      <button onClick={() => changeUserStatus(user.id, user.status === 'suspended' || user.status === 'banned' ? 'active' : 'suspended')} className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600" title={user.status === 'suspended' || user.status === 'banned' ? 'Unsuspend' : 'Suspend'}>
-                        {user.status === 'suspended' || user.status === 'banned' ? <Unlock size={16} /> : <Lock size={16} />}
+                      <button onClick={() => changeUserStatus(user.id, user.status === 'suspended' || user.status === 'banned' ? 'active' : 'suspended')} className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600" title={user.status === 'suspended' || user.status === 'banned' ? 'Unsuspend' : 'Suspend'}>
+                        {user.status === 'suspended' || user.status === 'banned' ? <Unlock size={14} /> : <Lock size={14} />}
                       </button>
-                      <button onClick={() => { if (window.confirm('Ban this user permanently?')) changeUserStatus(user.id, 'banned'); }} className="p-2 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700" title="Ban User">
-                        <Ban size={16} />
+                      <button onClick={() => { if (window.confirm('Ban this user permanently?')) changeUserStatus(user.id, 'banned'); }} className="p-1.5 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700" title="Ban User">
+                        <Ban size={14} />
                       </button>
                     </div>
                   </td>

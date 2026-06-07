@@ -84,20 +84,20 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b-2 border-black dark:border-gray-700 px-4 py-3 flex items-center gap-3">
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800">
             <Menu size={18} />
           </button>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Admin</span>
-            <p className="font-black text-gray-900 dark:text-white text-sm">{adminNavItems.find(n => n.path === location.pathname)?.label || 'Dashboard'}</p>
+            <p className="font-black text-gray-900 dark:text-white text-sm truncate">{adminNavItems.find(n => n.path === location.pathname)?.label || 'Dashboard'}</p>
           </div>
-          <button onClick={toggleTheme} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+          <button onClick={toggleTheme} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0">
             {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
           </button>
         </header>
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-auto">
           {children}
         </main>
       </div>

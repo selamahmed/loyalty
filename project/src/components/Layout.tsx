@@ -11,7 +11,6 @@ import RewardPopup from './RewardPopup';
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/shop', icon: ShoppingBag, label: 'Shop' },
-  { path: '/games', icon: Gamepad2, label: 'Games' },
   { path: '/progress', icon: BarChart2, label: 'Progress' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
@@ -267,56 +266,59 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
         {/* Bottom nav (mobile) */}
         {!hideNav && (
           <nav
-            className="fixed bottom-0 left-0 right-0 lg:hidden px-2 py-3 z-30 border-t-4"
+            className="fixed bottom-0 left-0 right-0 lg:hidden z-30 border-t-4"
             style={{
               background: 'var(--card-bg)',
               borderColor: 'var(--dark-border)',
             }}
           >
-            <div className="flex items-end justify-center gap-2 sm:gap-3">
+            <div className="flex items-end justify-around px-1 pb-2 pt-1">
+              {/* First 2 items: Home, Shop */}
               {navItems.slice(0, 2).map(item => (
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className="flex flex-col items-center gap-1 px-2 sm:px-3 py-2 rounded-button transition-all flex-1"
+                  className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-button transition-all flex-1"
                   style={{
-                    background: location.pathname === item.path ? 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)' : 'transparent',
-                    color: location.pathname === item.path ? 'white' : 'var(--text-muted)',
+                    color: location.pathname === item.path ? 'var(--gradient-start)' : 'var(--text-muted)',
                   }}
                 >
-                  <item.icon size={20} />
+                  <item.icon size={22} strokeWidth={location.pathname === item.path ? 2.5 : 1.8} />
                   <span className="text-xs font-600">{item.label}</span>
                 </button>
               ))}
 
-              {/* QR Scanner button - centered and prominent */}
-              <button
-                onClick={() => navigate('/qr')}
-                className="flex items-center justify-center rounded-button transition-all absolute bottom-16 left-1/2 -translate-x-1/2"
-                style={{
-                  background: location.pathname === '/qr' ? 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)' : 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)',
-                  color: 'white',
-                  border: '2.5px solid var(--dark-border)',
-                  boxShadow: '0px 6px 0px var(--dark-border)',
-                  width: '56px',
-                  height: '56px',
-                }}
-                title="QR Scanner"
-              >
-                <QrCode size={24} />
-              </button>
+              {/* QR Scanner — raised center button */}
+              <div className="flex flex-col items-center flex-1" style={{ marginTop: '-20px' }}>
+                <button
+                  onClick={() => navigate('/qr')}
+                  className="flex items-center justify-center rounded-button transition-all active:scale-95"
+                  style={{
+                    background: 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)',
+                    color: 'white',
+                    border: '2.5px solid var(--dark-border)',
+                    boxShadow: '0px 5px 0px var(--dark-border)',
+                    width: '54px',
+                    height: '54px',
+                  }}
+                  title="QR Scanner"
+                >
+                  <QrCode size={24} />
+                </button>
+                <span className="text-xs font-600 mt-1" style={{ color: 'var(--text-muted)' }}>Scan</span>
+              </div>
 
+              {/* Last 2 items: Progress, Profile */}
               {navItems.slice(2).map(item => (
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className="flex flex-col items-center gap-1 px-2 sm:px-3 py-2 rounded-button transition-all flex-1"
+                  className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-button transition-all flex-1"
                   style={{
-                    background: location.pathname === item.path ? 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)' : 'transparent',
-                    color: location.pathname === item.path ? 'white' : 'var(--text-muted)',
+                    color: location.pathname === item.path ? 'var(--gradient-start)' : 'var(--text-muted)',
                   }}
                 >
-                  <item.icon size={20} />
+                  <item.icon size={22} strokeWidth={location.pathname === item.path ? 2.5 : 1.8} />
                   <span className="text-xs font-600">{item.label}</span>
                 </button>
               ))}
