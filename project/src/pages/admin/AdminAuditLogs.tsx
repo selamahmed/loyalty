@@ -282,91 +282,90 @@ const AdminAuditLogs: React.FC = () => {
       {/* Logs Table */}
       <div className="card bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px]">
+          <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b-2 border-black dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Date & Time</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">User</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Action</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Device</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Location</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">IP Address</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Risk</th>
-                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">View</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">Date & Time</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">User</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">Action</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs hidden lg:table-cell">Device</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs hidden md:table-cell">Location</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">IP</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs">Risk</th>
+                <th className="text-left py-2 px-2 font-black text-gray-900 dark:text-white text-xs"></th>
               </tr>
             </thead>
             <tbody>
               {filteredLogs.map((log, idx) => (
                 <tr key={log.id || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <Clock size={14} className="text-gray-400" />
-                      <span className="text-sm font-mono">
-                        {new Date(log.createdAt).toLocaleDateString()} {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <td className="py-2 px-2">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-mono text-gray-900 dark:text-white whitespace-nowrap">
+                        {new Date(log.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="text-xs font-mono text-gray-400">
+                        {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7B6EF6] to-[#4F8EF7] flex items-center justify-center text-white font-bold text-sm">
+                  <td className="py-2 px-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7B6EF6] to-[#4F8EF7] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                         {log.username.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <p className="font-bold text-gray-900 dark:text-white text-sm">{log.username}</p>
-                        <p className="text-xs text-gray-500">{log.email}</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 dark:text-white text-xs truncate max-w-[90px]">{log.username}</p>
+                        <p className="text-xs text-gray-400 truncate max-w-[90px] hidden sm:block">{log.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex flex-col gap-1">
-                      <span className={`px-2 py-1 rounded text-xs font-bold w-fit ${getActionColor(log.actionType)}`}>
-                        {log.actionType.replace('_', ' ').toUpperCase()}
+                  <td className="py-2 px-2">
+                    <div className="flex flex-col gap-0.5">
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-bold w-fit whitespace-nowrap ${getActionColor(log.actionType)}`}>
+                        {log.actionType.replace(/_/g, ' ').toUpperCase()}
                       </span>
                       {log.amount && (
                         <span className="text-xs font-bold text-amber-600 dark:text-amber-400">+{log.amount} pts</span>
                       )}
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      {log.deviceType === 'mobile' ? <Smartphone size={14} className="text-gray-400" /> : <Monitor size={14} className="text-gray-400" />}
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">{log.deviceName || 'Unknown'}</p>
-                        <p className="text-xs text-gray-500">{log.browser} • {log.os}</p>
+                  <td className="py-2 px-2 hidden lg:table-cell">
+                    <div className="flex items-center gap-1">
+                      {log.deviceType === 'mobile' ? <Smartphone size={12} className="text-gray-400 flex-shrink-0" /> : <Monitor size={12} className="text-gray-400 flex-shrink-0" />}
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-[100px]">{log.deviceName || 'Unknown'}</p>
+                        <p className="text-xs text-gray-400 truncate max-w-[100px]">{log.browser}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <MapPin size={14} className="text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-900 dark:text-white">{log.city}, {log.country}</p>
-                        <p className="text-xs text-gray-500">{log.isp}</p>
-                      </div>
+                  <td className="py-2 px-2 hidden md:table-cell">
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-900 dark:text-white truncate max-w-[110px]">{log.city}, {log.country}</p>
+                      <p className="text-xs text-gray-400 truncate max-w-[110px]">{log.isp}</p>
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono">
+                  <td className="py-2 px-2">
+                    <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
                       {log.ipAddress || 'N/A'}
                     </code>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-2 px-2">
                     {log.riskLevel && (
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit ${getRiskBadge(log.riskLevel)}`}>
-                        {log.riskLevel === 'high' && <AlertTriangle size={12} />}
+                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-0.5 w-fit ${getRiskBadge(log.riskLevel)}`}>
+                        {log.riskLevel === 'high' && <AlertTriangle size={10} />}
                         {log.riskLevel.toUpperCase()}
                       </span>
                     )}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-2 px-2">
                     <button
                       onClick={() => {
                         setSelectedLog(log);
                         setShowDetail(true);
                       }}
-                      className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
                     >
-                      <Eye size={18} />
+                      <Eye size={15} />
                     </button>
                   </td>
                 </tr>
