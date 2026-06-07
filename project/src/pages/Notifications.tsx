@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Check, Trash2, Gift, Trophy, Star, Megaphone, Activity, Sparkles } from 'lucide-react';
+import { Check, Trash2, Sparkles } from 'lucide-react';
 import { notifications as initialNotifs } from '../data/mockData';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
@@ -42,54 +42,65 @@ const Notifications: React.FC = () => {
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{
           position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
-          fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
+          fontSize: 'clamp(40px,12vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
           opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
         }}>BİLDİRİMLER</div>
       </div>
 
-      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
+      <div className="p-3 sm:p-4 lg:p-6 space-y-4 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ── Page header ── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: 16,
-                background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
-                border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-                animation: unreadCount > 0 ? 'bellRing 2s ease-in-out infinite' : 'none',
-              }}>🔔</div>
-              {unreadCount > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Top row: icon + title + unread count */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <div style={{ position: 'relative', flexShrink: 0 }}>
                 <div style={{
-                  position: 'absolute', top: -6, right: -6, width: 22, height: 22,
-                  borderRadius: '50%', background: '#ef4444', border: '2px solid var(--card-bg)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 900, color: 'white',
-                }}>{unreadCount}</div>
-              )}
+                  width: 46, height: 46, borderRadius: 14,
+                  background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
+                  border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+                  animation: unreadCount > 0 ? 'bellRing 2s ease-in-out infinite' : 'none',
+                }}>🔔</div>
+                {unreadCount > 0 && (
+                  <div style={{
+                    position: 'absolute', top: -6, right: -6, width: 20, height: 20,
+                    borderRadius: '50%', background: '#ef4444', border: '2px solid var(--card-bg)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, fontWeight: 900, color: 'white',
+                  }}>{unreadCount}</div>
+                )}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(20px,5vw,28px)', margin: 0, lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr.notifications.title}</h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>{unreadCount} okunmamış bildirim</p>
+              </div>
             </div>
-            <div>
-              <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>{tr.notifications.title}</h1>
-              <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>{unreadCount} okunmamış bildirim</p>
-            </div>
+
+            {/* Mark all read — icon-only on very small screens, text on larger */}
+            {unreadCount > 0 && (
+              <button onClick={markAllRead} style={{
+                display: 'flex', alignItems: 'center', gap: 5, borderRadius: 12, fontWeight: 900,
+                background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
+                border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+                cursor: 'pointer', flexShrink: 0, padding: '9px 12px',
+              }}>
+                <Check size={14} />
+                <span className="hidden sm:inline" style={{ fontSize: 12 }}>Tümünü Okundu İşaretle</span>
+                <span className="sm:hidden" style={{ fontSize: 11 }}>Okundu</span>
+              </button>
+            )}
           </div>
-          {unreadCount > 0 && (
-            <button onClick={markAllRead} style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 12, fontWeight: 900, fontSize: 12,
-              background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
-              border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', flexShrink: 0,
-            }}>
-              <Check size={13} /> Tümünü Okundu İşaretle
-            </button>
-          )}
         </div>
 
         {/* ── Filter pills ── */}
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+        <div style={{
+          display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 6,
+          WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none',
+        }}>
           {Object.keys(filterLabels).map(f => (
             <button key={f} onClick={() => { playSound('click'); setFilter(f); }} style={{
-              padding: '8px 14px', borderRadius: 999, fontWeight: 900, fontSize: 11,
+              padding: '7px 13px', borderRadius: 999, fontWeight: 900, fontSize: 11,
               cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', transition: 'all 0.1s',
               background: filter === f ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
               color: filter === f ? 'white' : 'var(--text-dark)',
@@ -101,13 +112,13 @@ const Notifications: React.FC = () => {
 
         {/* ── Notification list ── */}
         {filtered.length === 0 ? (
-          <div style={{ ...card, border: '3px dashed var(--dark-border)', padding: 48, textAlign: 'center' }}>
-            <p style={{ fontSize: 48, margin: '0 0 12px' }}>🔔</p>
-            <p style={{ fontWeight: 900, fontSize: 18, color: 'var(--text-dark)', margin: '0 0 6px' }}>{tr.notifications.empty}</p>
+          <div style={{ ...card, border: '3px dashed var(--dark-border)', padding: '36px 24px', textAlign: 'center' }}>
+            <p style={{ fontSize: 44, margin: '0 0 12px' }}>🔔</p>
+            <p style={{ fontWeight: 900, fontSize: 17, color: 'var(--text-dark)', margin: '0 0 6px' }}>{tr.notifications.empty}</p>
             <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Şimdilik hepsi bu kadar!</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             {filtered.map((notif, index) => {
               const cfg = typeConfig[notif.type] || typeConfig.system;
               const isPriority = notif.type === 'achievement' || notif.type === 'reward';
@@ -120,9 +131,10 @@ const Notifications: React.FC = () => {
                     border: !notif.read ? `3px solid ${cfg.border}` : '3px solid var(--dark-border)',
                     boxShadow: !notif.read ? `0 6px 0 ${cfg.border}88` : '0 6px 0 var(--dark-border)',
                     background: !notif.read ? cfg.accent : 'var(--card-bg)',
-                    padding: '14px 16px', cursor: 'pointer',
+                    padding: '12px 12px',
+                    cursor: 'pointer',
                     animation: `notifSlideIn 0.3s ease-out ${index * 0.05}s both`,
-                    display: 'flex', alignItems: 'flex-start', gap: 14, position: 'relative', overflow: 'hidden',
+                    display: 'flex', alignItems: 'flex-start', gap: 10, position: 'relative', overflow: 'hidden',
                     transition: 'transform 0.1s',
                   }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
@@ -130,41 +142,48 @@ const Notifications: React.FC = () => {
                 >
                   {/* Icon */}
                   <div style={{
-                    width: 50, height: 50, borderRadius: 14, flexShrink: 0,
+                    width: 42, height: 42, borderRadius: 12, flexShrink: 0,
                     background: cfg.gradient, border: '2.5px solid var(--dark-border)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
                     boxShadow: '0 3px 0 var(--dark-border)', position: 'relative',
                   }}>
                     {cfg.icon}
                     {isPriority && (
-                      <Sparkles size={12} color="#fbbf24" style={{ position: 'absolute', top: -4, right: -4 }} />
+                      <Sparkles size={11} color="#fbbf24" style={{ position: 'absolute', top: -4, right: -4 }} />
                     )}
                   </div>
 
                   {/* Content */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                    {/* Title row */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, marginBottom: 3 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2, flexWrap: 'wrap' }}>
                           <p style={{
-                            fontWeight: 900, fontSize: 14, margin: 0, lineHeight: 1.2,
+                            fontWeight: 900, fontSize: 13, margin: 0, lineHeight: 1.2,
                             color: !notif.read ? 'var(--text-dark)' : 'var(--text-muted)',
+                            wordBreak: 'break-word',
                           }}>{notif.title}</p>
                           {isPriority && (
-                            <span style={{ padding: '1px 6px', borderRadius: 999, fontSize: 8, fontWeight: 900, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid #f59e0b', textTransform: 'uppercase', flexShrink: 0 }}>ÖNEMLİ</span>
+                            <span style={{ padding: '1px 5px', borderRadius: 999, fontSize: 8, fontWeight: 900, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid #f59e0b', textTransform: 'uppercase', flexShrink: 0 }}>ÖNEMLİ</span>
                           )}
                         </div>
-                        <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 5px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{notif.message}</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 4px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{notif.message}</p>
                         <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{notif.time}</span>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      {/* Actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, paddingTop: 2 }}>
                         {!notif.read && (
-                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: cfg.border, flexShrink: 0 }} />
+                          <div style={{ width: 9, height: 9, borderRadius: '50%', background: cfg.border, flexShrink: 0 }} />
                         )}
                         <button
                           onClick={e => { e.stopPropagation(); deleteNotif(notif.id); }}
-                          style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--tab-bg)', border: '1.5px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          style={{
+                            width: 30, height: 30, borderRadius: 8, background: 'var(--tab-bg)',
+                            border: '1.5px solid var(--dark-border)', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+                          }}
                         >
                           <Trash2 size={13} color="var(--text-muted)" />
                         </button>
@@ -179,19 +198,22 @@ const Notifications: React.FC = () => {
 
         {/* ── Stats summary ── */}
         {notifs.length > 0 && (
-          <div style={{ ...card, padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, textAlign: 'center' }}>
+          <div style={{ ...card, padding: '14px 12px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, textAlign: 'center' }}>
             {[
               { val: notifs.length, label: 'Toplam', color: 'var(--text-dark)' },
               { val: unreadCount, label: 'Okunmamış', color: 'var(--primary-blue)' },
               { val: notifs.filter(n => n.read).length, label: 'Okunmuş', color: '#22c55e' },
-            ].map(s => (
-              <div key={s.label} style={{ borderRight: '1.5px dashed var(--dark-border)', padding: '4px' }}>
-                <p style={{ fontWeight: 900, fontSize: 24, color: s.color, margin: '0 0 3px', lineHeight: 1 }}>{s.val}</p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>{s.label}</p>
+            ].map((s, i) => (
+              <div key={s.label} style={{ borderRight: i < 2 ? '1.5px dashed var(--dark-border)' : 'none', padding: '4px 2px' }}>
+                <p style={{ fontWeight: 900, fontSize: 'clamp(18px,5vw,24px)', color: s.color, margin: '0 0 3px', lineHeight: 1 }}>{s.val}</p>
+                <p style={{ fontSize: 'clamp(9px,2.5vw,11px)', color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>{s.label}</p>
               </div>
             ))}
           </div>
         )}
+
+        {/* Bottom spacing for mobile nav */}
+        <div style={{ height: 16 }} />
       </div>
 
       <style>{`
@@ -205,6 +227,8 @@ const Notifications: React.FC = () => {
           20%,40% { transform: rotate(15deg); }
           50% { transform: rotate(0); }
         }
+        /* hide scrollbar on filter pills */
+        div::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
