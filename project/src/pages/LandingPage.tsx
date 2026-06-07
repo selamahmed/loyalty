@@ -268,13 +268,17 @@ const LandingPage: React.FC = () => {
               border: `2px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(12,14,30,0.2)'}`,
               borderRadius: 999, padding: '5px 14px 5px 6px', flexShrink: 0,
             }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: '50%',
-                background: 'linear-gradient(180deg,#a78bfa 0%,#6d28d9 100%)',
-                border: '2px solid rgba(255,255,255,0.45)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 900, color: 'white', fontSize: 13,
-              }}>N</div>
+              <img
+                src="/logo.png"
+                alt="NexReward"
+                style={{
+                  width: 30, height: 30, borderRadius: '50%',
+                  border: '2px solid rgba(255,255,255,0.45)',
+                  objectFit: 'contain',
+                  background: isDark ? '#1a1040' : '#ede9fe',
+                  flexShrink: 0,
+                }}
+              />
               <span style={{ fontWeight: 900, fontSize: 14, color: t.textPrimary, letterSpacing: '-0.01em' }}>NexReward</span>
             </div>
 
@@ -855,13 +859,17 @@ const LandingPage: React.FC = () => {
         <footer style={{ background: t.footerBg, borderTop: `2px solid ${t.border}`, padding: 'clamp(24px, 4vw, 36px) clamp(14px, 4vw, 64px)', transition: 'background 0.3s' }}>
           <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
-                border: `2px solid ${t.border}`, boxShadow: `0 2px 0 ${t.shadow}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 900, color: 'white', fontSize: 12,
-              }}>N</div>
+              <img
+                src="/logo.png"
+                alt="NexReward"
+                style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  border: `2px solid ${t.border}`, boxShadow: `0 2px 0 ${t.shadow}`,
+                  objectFit: 'contain',
+                  background: isDark ? '#1a1040' : '#ede9fe',
+                  flexShrink: 0,
+                }}
+              />
               <span style={{ fontWeight: 900, fontSize: 15, color: t.textPrimary }}>NexReward</span>
             </div>
             <p style={{ fontSize: 12, fontWeight: 500, color: t.textMuted, margin: 0 }}>© 2026 NexReward · Daha fazla kazan, daha iyi yaşa.</p>

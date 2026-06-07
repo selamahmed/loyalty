@@ -115,17 +115,17 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
       >
         <div className="p-6 divider-dashed">
           <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-button flex items-center justify-center flex-shrink-0 font-black text-lg"
+            <img
+              src="/logo.png"
+              alt="NexReward"
+              className="w-12 h-12 rounded-button flex-shrink-0"
               style={{
-                background: 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)',
-                color: 'white',
+                objectFit: 'contain',
                 border: '2.5px solid var(--dark-border)',
                 boxShadow: '0px 5px 0px var(--dark-border)',
+                background: 'var(--gradient-start)',
               }}
-            >
-              N
-            </div>
+            />
             <div>
               <h1 style={{ color: 'var(--text-dark)' }} className="font-black text-lg">NexReward</h1>
               <p style={{ color: 'var(--text-muted)' }} className="text-xs">Loyalty Platform</p>
