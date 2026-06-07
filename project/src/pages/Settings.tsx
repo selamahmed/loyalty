@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Sun, Moon, Bell, Volume2, VolumeX, Globe, User, Shield, ChevronRight, Check, LogOut } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { Sun, Moon, Bell, Volume2, VolumeX, Globe, User, Shield, ChevronRight, Check, LogOut, Sparkles } from 'lucide-react';
+import { useApp, BgStyle } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
@@ -45,7 +45,7 @@ const SettingsRow: React.FC<{
 const languages = ['Turkish', 'English', 'Spanish', 'French', 'German'];
 
 const Settings: React.FC = () => {
-  const { theme, toggleTheme, soundEnabled, setSoundEnabled, notificationsEnabled, setNotificationsEnabled, setIsLoggedIn } = useApp();
+  const { theme, toggleTheme, soundEnabled, setSoundEnabled, notificationsEnabled, setNotificationsEnabled, setIsLoggedIn, bgStyle, setBgStyle } = useApp();
   const navigate = useNavigate();
   const [language, setLanguage] = useState(tr.settings.language);
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -79,6 +79,55 @@ const Settings: React.FC = () => {
             </div>
           }
         />
+        {/* Background Style Picker */}
+        <div className="px-4 py-3.5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+              <Sparkles size={16} className="text-violet-500" />
+            </div>
+            <span className="flex-1 font-medium text-sm text-gray-900 dark:text-white">Background Style</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {([
+              { value: 'none', label: 'None', preview: 'bg-gray-100 dark:bg-gray-700' },
+              { value: 'dots', label: 'Dots', preview: null },
+              { value: 'shapes', label: 'Shapes', preview: null },
+              { value: 'stripes', label: 'Stripes', preview: null },
+            ] as { value: BgStyle; label: string; preview: string | null }[]).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => { playSound('click'); setBgStyle(opt.value); }}
+                className={`relative flex flex-col items-center gap-1.5 p-2 rounded-xl border-2 transition-all active:scale-95 ${bgStyle === opt.value ? 'border-[#7B6EF6] shadow-md' : 'border-gray-200 dark:border-gray-600 hover:border-violet-300'}`}
+              >
+                <div className="w-full h-10 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                  {opt.value === 'none' && (
+                    <div className="w-full h-full bg-gray-50 dark:bg-gray-800" />
+                  )}
+                  {opt.value === 'dots' && (
+                    <div className="w-full h-full bg-[#f5f3ff]" style={{ backgroundImage: 'radial-gradient(#7c3aed 1px, transparent 1px)', backgroundSize: '8px 8px' }} />
+                  )}
+                  {opt.value === 'shapes' && (
+                    <div className="w-full h-full bg-[#f5f3ff] relative overflow-hidden">
+                      <div style={{ position: 'absolute', top: 2, left: 2, width: 14, height: 14, background: '#FDE68A', border: '1.5px solid #1e1b4b', borderRadius: 3, transform: 'rotate(15deg)' }} />
+                      <div style={{ position: 'absolute', bottom: 3, right: 3, width: 12, height: 12, background: '#FF6B6B', border: '1.5px solid #1e1b4b', borderRadius: '50%' }} />
+                      <div style={{ position: 'absolute', top: 6, right: 8, width: 10, height: 10, background: '#6EE7B7', border: '1.5px solid #1e1b4b', borderRadius: 2 }} />
+                      <div style={{ position: 'absolute', bottom: 8, left: 8, width: 10, height: 10, border: '1.5px solid #C4B5FD', borderRadius: '50%' }} />
+                    </div>
+                  )}
+                  {opt.value === 'stripes' && (
+                    <div className="w-full h-full" style={{ backgroundColor: '#f5f3ff', backgroundImage: 'repeating-linear-gradient(45deg, rgba(124,58,237,0.1), rgba(124,58,237,0.1) 4px, transparent 4px, transparent 10px)' }} />
+                  )}
+                </div>
+                <span className={`text-xs font-bold ${bgStyle === opt.value ? 'text-[#7B6EF6]' : 'text-gray-500 dark:text-gray-400'}`}>{opt.label}</span>
+                {bgStyle === opt.value && (
+                  <div className="absolute top-1 right-1 w-4 h-4 bg-[#7B6EF6] rounded-full flex items-center justify-center">
+                    <Check size={10} className="text-white" />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </SettingsSection>
 
       <SettingsSection title={tr.settings.languageRegion || 'Language & Region'}>
