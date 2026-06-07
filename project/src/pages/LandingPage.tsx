@@ -262,25 +262,11 @@ const LandingPage: React.FC = () => {
         }}>
           <div style={{ maxWidth: 1280, margin: '0 auto', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             {/* Pill logo */}
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(12,14,30,0.07)',
-              border: `2px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(12,14,30,0.2)'}`,
-              borderRadius: 999, padding: '5px 14px 5px 6px', flexShrink: 0,
-            }}>
-              <img
-                src="/logo.png"
-                alt="NexReward"
-                style={{
-                  width: 30, height: 30, borderRadius: '50%',
-                  border: '2px solid rgba(255,255,255,0.45)',
-                  objectFit: 'contain',
-                  background: isDark ? '#1a1040' : '#ede9fe',
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ fontWeight: 900, fontSize: 14, color: t.textPrimary, letterSpacing: '-0.01em' }}>NexReward</span>
-            </div>
+            <img
+              src="/logo.png"
+              alt="NexReward"
+              style={{ height: 40, width: 'auto', objectFit: 'contain', flexShrink: 0 }}
+            />
 
             {/* Desktop nav links */}
             <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
@@ -858,19 +844,12 @@ const LandingPage: React.FC = () => {
         {/* ══ FOOTER ══ */}
         <footer style={{ background: t.footerBg, borderTop: `2px solid ${t.border}`, padding: 'clamp(24px, 4vw, 36px) clamp(14px, 4vw, 64px)', transition: 'background 0.3s' }}>
           <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
               <img
                 src="/logo.png"
                 alt="NexReward"
-                style={{
-                  width: 32, height: 32, borderRadius: '50%',
-                  border: `2px solid ${t.border}`, boxShadow: `0 2px 0 ${t.shadow}`,
-                  objectFit: 'contain',
-                  background: isDark ? '#1a1040' : '#ede9fe',
-                  flexShrink: 0,
-                }}
+                style={{ height: 36, width: 'auto', objectFit: 'contain' }}
               />
-              <span style={{ fontWeight: 900, fontSize: 15, color: t.textPrimary }}>NexReward</span>
             </div>
             <p style={{ fontSize: 12, fontWeight: 500, color: t.textMuted, margin: 0 }}>© 2026 NexReward · Daha fazla kazan, daha iyi yaşa.</p>
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>

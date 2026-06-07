@@ -114,22 +114,12 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
         }}
       >
         <div className="p-6 divider-dashed">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <img
               src="/logo.png"
               alt="NexReward"
-              className="w-12 h-12 rounded-button flex-shrink-0"
-              style={{
-                objectFit: 'contain',
-                border: '2.5px solid var(--dark-border)',
-                boxShadow: '0px 5px 0px var(--dark-border)',
-                background: 'var(--gradient-start)',
-              }}
+              style={{ height: 48, width: 'auto', objectFit: 'contain' }}
             />
-            <div>
-              <h1 style={{ color: 'var(--text-dark)' }} className="font-black text-lg">NexReward</h1>
-              <p style={{ color: 'var(--text-muted)' }} className="text-xs">Loyalty Platform</p>
-            </div>
             <button
               onClick={() => setSidebarOpen(false)}
               className="ml-auto p-2 rounded-button lg:hidden btn-secondary"
