@@ -63,7 +63,7 @@ const History: React.FC = () => {
 
         {/* ── Summary ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div style={{ ...card, border: '3px solid #22c55e', boxShadow: '0 6px 0 #16a34a', padding: '16px 18px', background: 'rgba(34,197,94,0.06)' }}>
+          <div className="ns-diamond" style={{ ...card, border: '3px solid #22c55e', boxShadow: '0 6px 0 #16a34a', padding: '16px 18px', background: 'rgba(34,197,94,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
               <TrendingUp size={16} color="#22c55e" />
               <span style={{ fontSize: 11, fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Kazanılan</span>
@@ -73,7 +73,7 @@ const History: React.FC = () => {
               <span style={{ fontWeight: 900, fontSize: 22, color: '#16a34a' }}>+{totalEarned.toLocaleString()}</span>
             </div>
           </div>
-          <div style={{ ...card, border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626', padding: '16px 18px', background: 'rgba(239,68,68,0.06)' }}>
+          <div className="ns-diamond" style={{ ...card, border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626', padding: '16px 18px', background: 'rgba(239,68,68,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
               <TrendingDown size={16} color="#ef4444" />
               <span style={{ fontSize: 11, fontWeight: 900, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Harcanan</span>
@@ -123,7 +123,7 @@ const History: React.FC = () => {
                     const IconComp = cat.icon;
                     const isEarned = item.type === 'earned';
                     return (
-                      <div key={item.id} style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div key={item.id} className="ns-diamond" style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{
                           width: 44, height: 44, borderRadius: 12, flexShrink: 0,
                           background: cat.bg, border: `2.5px solid ${cat.color}`,

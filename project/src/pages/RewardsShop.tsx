@@ -142,7 +142,7 @@ const RewardsShop: React.FC = () => {
         </div>
 
         {/* ── Points balance banner ── */}
-        <div style={{
+        <div className="ns-heart" style={{
           ...card,
           background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)',
           padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden',
@@ -236,6 +236,7 @@ const RewardsShop: React.FC = () => {
                 <div
                   key={reward.id}
                   onClick={() => { playSound('click'); setSelectedReward(reward); }}
+                  className="ns-heart"
                   style={{
                     ...card, overflow: 'hidden', cursor: 'pointer',
                     transition: 'transform 0.1s, box-shadow 0.1s',

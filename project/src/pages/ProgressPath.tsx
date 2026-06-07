@@ -60,7 +60,7 @@ const ProgressPath: React.FC = () => {
         </div>
 
         {/* ── Current level hero ── */}
-        <div style={{
+        <div className="ns-burst" style={{
           ...card,
           background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)',
           padding: 'clamp(16px,4vw,28px)', position: 'relative', overflow: 'hidden',
@@ -102,7 +102,7 @@ const ProgressPath: React.FC = () => {
             { emoji: '⭐', value: points.toLocaleString(), label: 'Puanlar', color: '#7B6EF6' },
             { emoji: '🏆', value: unlockedCount, label: 'Seviye Geçildi', color: '#22c55e' },
           ].map(s => (
-            <div key={s.label} style={{ ...card, padding: '14px 10px', textAlign: 'center' }}>
+            <div key={s.label} className="ns-burst" style={{ ...card, padding: '14px 10px', textAlign: 'center' }}>
               <div style={{ fontSize: 22, marginBottom: 4 }}>{s.emoji}</div>
               <p style={{ fontWeight: 900, fontSize: 16, color: s.color, margin: '0 0 2px', lineHeight: 1 }}>{s.value}</p>
               <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</p>

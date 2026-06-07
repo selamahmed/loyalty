@@ -101,7 +101,7 @@ const SeasonalEvents: React.FC = () => {
         {/* ── Selected event hero ── */}
         {selectedEvent && (
           <>
-            <div className={`bg-gradient-to-br ${selectedEvent.color}`} style={{ ...card, padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden' }}>
+            <div className={`bg-gradient-to-br ${selectedEvent.color} ns-heart`} style={{ ...card, padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>

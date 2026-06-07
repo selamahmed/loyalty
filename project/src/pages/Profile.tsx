@@ -131,7 +131,7 @@ const Profile: React.FC = () => {
         {/* ── Stats grid ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
           {stats.map(stat => (
-            <div key={stat.label} style={{ ...card, padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div key={stat.label} className="ns-diamond" style={{ ...card, padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
                 width: 46, height: 46, borderRadius: 14, background: stat.bg,
                 border: `2.5px solid ${stat.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -146,7 +146,7 @@ const Profile: React.FC = () => {
         </div>
 
         {/* ── Points card ── */}
-        <div style={{
+        <div className="ns-diamond" style={{
           ...card,
           background: 'linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(217,119,6,0.1) 100%)',
           border: '3px solid #f59e0b', boxShadow: '0 6px 0 #d97706',
@@ -180,7 +180,7 @@ const Profile: React.FC = () => {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
             {recentAchievements.map(ach => (
-              <div key={ach.id} style={{ ...card, padding: '14px 8px', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }}
+              <div key={ach.id} className="ns-star" style={{ ...card, padding: '14px 8px', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}>
                 <div style={{ fontSize: 26, marginBottom: 5 }}>{ach.icon}</div>
@@ -209,7 +209,7 @@ const Profile: React.FC = () => {
                 const IconComp = config.icon;
                 const expired = isExpired(item.expires);
                 return (
-                  <div key={item.id} style={{ ...card, padding: '16px 18px', opacity: expired ? 0.6 : 1 }}>
+                  <div key={item.id} className="ns-heart" style={{ ...card, padding: '16px 18px', opacity: expired ? 0.6 : 1 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                       <div style={{
                         width: 50, height: 50, borderRadius: 14, background: config.bg,
@@ -254,7 +254,7 @@ const Profile: React.FC = () => {
         )}
 
         {/* ── Activity summary ── */}
-        <div style={{ ...card, padding: '18px 20px' }}>
+        <div className="ns-diamond" style={{ ...card, padding: '18px 20px' }}>
           <h2 style={{ fontWeight: 900, fontSize: 17, color: 'var(--text-dark)', margin: '0 0 14px' }}>{tr.profile.activitySummary}</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {[

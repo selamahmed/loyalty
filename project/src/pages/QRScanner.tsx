@@ -88,7 +88,7 @@ const QRScanner: React.FC = () => {
         </div>
 
         {/* ── Scanner viewport ── */}
-        <div style={{ ...card, padding: 20 }}>
+        <div className="ns-bolt" style={{ ...card, padding: 20 }}>
           {/* Camera area */}
           <div style={{
             aspectRatio: '1/1', width: '100%', maxWidth: 300, margin: '0 auto 16px',
@@ -204,7 +204,7 @@ const QRScanner: React.FC = () => {
         </div>
 
         {/* ── Manual code entry ── */}
-        <div style={{ ...card, padding: '18px 20px' }}>
+        <div className="ns-bolt" style={{ ...card, padding: '18px 20px' }}>
           <h3 style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 12px' }}>Kodu Manuel Gir</h3>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
@@ -237,7 +237,7 @@ const QRScanner: React.FC = () => {
             <h3 style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 12px' }}>Son Taramalar</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {history.map((h, i) => (
-                <div key={i} style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div key={i} className="ns-bolt" style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(34,197,94,0.12)', border: '2px solid #22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Check size={18} color="#22c55e" />
                   </div>

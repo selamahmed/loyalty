@@ -148,6 +148,7 @@ const Achievements: React.FC = () => {
               return (
                 <div
                   key={ach.id}
+                  className="ns-star"
                   style={{
                     ...card,
                     padding: '16px 18px',

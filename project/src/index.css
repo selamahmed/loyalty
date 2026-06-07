@@ -283,3 +283,69 @@
 .tab-indicator {
   transition: transform 0.2s ease;
 }
+
+/* ══ Neo-Brutalism card shapes ══
+   Add one of these classes to any card div to get a decorative
+   SVG shape peeking from the top-right corner, exactly like the
+   landing page feature cards. The card must have position:relative
+   (set automatically by these classes) and ideally overflow:hidden. */
+
+.ns-star,
+.ns-bolt,
+.ns-diamond,
+.ns-heart,
+.ns-burst,
+.ns-star4 {
+  position: relative !important;
+  overflow: hidden;
+}
+
+/* shared ::after base */
+.ns-star::after,
+.ns-bolt::after,
+.ns-diamond::after,
+.ns-heart::after,
+.ns-burst::after,
+.ns-star4::after {
+  content: '';
+  position: absolute;
+  top: -18px;
+  right: -18px;
+  width: 88px;
+  height: 88px;
+  pointer-events: none;
+  opacity: 0.2;
+  z-index: 0;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* 5-point star — purple */
+.ns-star::after {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 56'><polygon points='28,3 33,21 52,21 37,33 43,51 28,40 13,51 19,33 4,21 23,21' fill='%237B6EF6' stroke='%23000' stroke-width='3' stroke-linejoin='round'/></svg>");
+}
+
+/* lightning bolt — green */
+.ns-bolt::after {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><polygon points='28,2 15,26 24,26 19,46 36,22 27,22' fill='%2322c55e' stroke='%23000' stroke-width='3' stroke-linejoin='round'/></svg>");
+}
+
+/* diamond — amber */
+.ns-diamond::after {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'><polygon points='25,3 46,18 25,47 4,18' fill='%23f59e0b' stroke='%23000' stroke-width='3' stroke-linejoin='round'/></svg>");
+}
+
+/* heart — red */
+.ns-heart::after {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'><path d='M26 45C26 45 5 32 5 17C5 10 11 4 19 6C22 7 26 12 26 12C26 12 30 7 33 6C41 4 47 10 47 17C47 32 26 45 26 45Z' fill='%23ef4444' stroke='%23000' stroke-width='3' stroke-linejoin='round'/></svg>");
+}
+
+/* sunburst — cyan */
+.ns-burst::after {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 54 54'><polygon points='27,1 31,19 47,11 39,26 52,36 34,34 31,51 23,34 5,40 15,27 2,15 20,19' fill='%2306b6d4' stroke='%23000' stroke-width='2.5' stroke-linejoin='round'/></svg>");
+}
+
+/* 4-point star — pink */
+.ns-star4::after {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path d='M24 3 L28 20 L45 24 L28 28 L24 45 L20 28 L3 24 L20 20 Z' fill='%23ec4899' stroke='%23000' stroke-width='3' stroke-linejoin='round'/></svg>");
+}

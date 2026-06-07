@@ -99,7 +99,7 @@ const Support: React.FC = () => {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {faqs.map((faq, i) => (
-              <div key={i} style={{ ...card, overflow: 'hidden' }}>
+              <div key={i} className="ns-bolt" style={{ ...card, overflow: 'hidden' }}>
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   style={{
@@ -137,7 +137,7 @@ const Support: React.FC = () => {
               <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>En kısa sürede sana geri döneceğiz.</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} style={{ ...card, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <form onSubmit={handleSubmit} className="ns-bolt" style={{ ...card, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 6 }}>Ad Soyad</label>

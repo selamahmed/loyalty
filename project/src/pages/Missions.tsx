@@ -75,7 +75,7 @@ const Missions: React.FC = () => {
         </div>
 
         {/* ── Banner illustration ── */}
-        <div style={{ ...card, overflow: 'hidden', position: 'relative', height: 140 }}>
+        <div className="ns-bolt" style={{ ...card, overflow: 'hidden', position: 'relative', height: 140 }}>
           <img src={categoryImages[tab]} alt="missions" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)' }} />
           <div style={{ position: 'absolute', inset: 0, padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
@@ -115,7 +115,7 @@ const Missions: React.FC = () => {
         </div>
 
         {/* ── Progress summary ── */}
-        <div style={{ ...card, padding: '18px 20px' }}>
+        <div className="ns-bolt" style={{ ...card, padding: '18px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
             <div>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>{tr.missions.progress}</p>
@@ -212,7 +212,7 @@ const Missions: React.FC = () => {
         </div>
 
         {/* ── Reset notice ── */}
-        <div style={{ ...card, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="ns-bolt" style={{ ...card, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <Clock size={16} color="var(--text-muted)" />
           <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0, fontWeight: 600 }}>
             {tab === 'daily' ? tr.missions.dailyReset : tr.missions.weeklyReset}

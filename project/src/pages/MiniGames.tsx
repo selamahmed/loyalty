@@ -946,7 +946,7 @@ const MiniGames: React.FC = () => {
               <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>En fazla {game.points} puan kazan</p>
             </div>
           </div>
-          <div style={{ ...cardStyle, padding: 24 }}>
+          <div className="ns-burst" style={{ ...cardStyle, padding: 24 }}>
             {activeGame === 'spin' && <SpinWheel onWin={handleWin} />}
             {activeGame === 'memory' && <MemoryGame onWin={handleWin} />}
             {activeGame === 'quiz' && <QuizGame onWin={handleWin} />}
@@ -980,7 +980,7 @@ const MiniGames: React.FC = () => {
         </div>
 
         {/* Hero */}
-        <div style={{ ...cardStyle, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden', color: 'white' }}>
+        <div className="ns-burst" style={{ ...cardStyle, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden', color: 'white' }}>
           <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 16 }}>
             <span style={{ fontSize: 52 }}>🎮</span>
@@ -997,6 +997,7 @@ const MiniGames: React.FC = () => {
             <button
               key={game.id}
               onClick={() => setActiveGame(game.id)}
+              className="ns-burst"
               style={{
                 ...cardStyle, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14,
                 cursor: 'pointer', textAlign: 'left', transition: 'transform 0.1s, box-shadow 0.1s',
