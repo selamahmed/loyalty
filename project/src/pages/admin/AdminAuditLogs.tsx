@@ -158,7 +158,7 @@ const AdminAuditLogs: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-[#7B6EF6] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -171,22 +171,22 @@ const AdminAuditLogs: React.FC = () => {
 
   return (
     <AdminLayout>
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-            <Shield className="text-[#7B6EF6]" size={32} />
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
+            <Shield className="text-[#7B6EF6] flex-shrink-0" size={24} />
             Security & Activity Logs
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Complete user activity monitoring and security audit trail</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Complete user activity monitoring and security audit trail</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-shrink-0">
           <button
             onClick={exportLogs}
-            className="flex items-center gap-2 px-6 py-3 bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white font-bold rounded-2xl border-2 border-black hover:shadow-lg transition-all"
+            className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white font-bold rounded-2xl border-2 border-black hover:shadow-lg transition-all text-sm sm:text-base"
           >
-            <Download size={20} />
+            <Download size={18} />
             Export CSV
           </button>
         </div>
@@ -282,7 +282,7 @@ const AdminAuditLogs: React.FC = () => {
       {/* Logs Table */}
       <div className="card bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[800px]">
             <thead>
               <tr className="border-b-2 border-black dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                 <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Date & Time</th>
@@ -385,18 +385,18 @@ const AdminAuditLogs: React.FC = () => {
 
       {/* Detail Modal */}
       {showDetail && selectedLog && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl border-2 border-black dark:border-gray-700 p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border-2 border-black dark:border-gray-700 p-4 sm:p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto space-y-4 sm:space-y-6">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
                 {selectedLog.riskLevel === 'high' ? (
-                  <AlertTriangle className="text-red-500" size={28} />
+                  <AlertTriangle className="text-red-500 flex-shrink-0" size={22} />
                 ) : (
-                  <Shield className="text-[#7B6EF6]" size={28} />
+                  <Shield className="text-[#7B6EF6] flex-shrink-0" size={22} />
                 )}
                 Activity Details
               </h2>
-              <button onClick={() => setShowDetail(false)} className="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+              <button onClick={() => setShowDetail(false)} className="text-2xl text-gray-400 hover:text-gray-600 flex-shrink-0">&times;</button>
             </div>
 
             {/* Risk Alert */}

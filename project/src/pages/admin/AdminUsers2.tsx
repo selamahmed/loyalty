@@ -506,7 +506,7 @@ const AdminUsers: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-[#7B6EF6] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -519,23 +519,23 @@ const AdminUsers: React.FC = () => {
 
   return (
     <AdminLayout>
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-            <Shield className="text-[#7B6EF6]" size={32} />
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
+            <Shield className="text-[#7B6EF6] flex-shrink-0" size={24} />
             User Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Complete SaaS admin control panel - manage all users, sessions, and data</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Complete SaaS admin control panel - manage all users, sessions, and data</p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={exportUsers} className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-2xl border-2 border-gray-300 dark:border-gray-600 font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
-            <Download size={18} />
+        <div className="flex gap-2 sm:gap-3 flex-shrink-0">
+          <button onClick={exportUsers} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-2xl border-2 border-gray-300 dark:border-gray-600 font-bold text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+            <Download size={16} />
             Export
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white rounded-2xl border-2 border-black font-bold hover:shadow-lg transition-all">
-            <RefreshCw size={18} />
+          <button className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white rounded-2xl border-2 border-black font-bold text-sm hover:shadow-lg transition-all">
+            <RefreshCw size={16} />
             Refresh
           </button>
         </div>
@@ -562,43 +562,45 @@ const AdminUsers: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+      <div className="flex flex-col gap-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
             placeholder="Search by username, email, phone, or IP..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500"
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 text-sm"
           />
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-bold">
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-          <option value="banned">Banned</option>
-          <option value="inactive">Inactive</option>
-        </select>
-        <select value={filterSubscription} onChange={(e) => setFilterSubscription(e.target.value)} className="px-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-bold">
-          <option value="all">All Plans</option>
-          <option value="free">Free</option>
-          <option value="premium">Premium</option>
-          <option value="enterprise">Enterprise</option>
-        </select>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-bold">
-          <option value="lastActive">Last Active</option>
-          <option value="points">Points</option>
-          <option value="level">Level</option>
-          <option value="riskScore">Risk Score</option>
-          <option value="joinDate">Join Date</option>
-        </select>
+        <div className="flex flex-wrap gap-2 sm:gap-3">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="flex-1 min-w-[120px] px-3 py-2.5 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-bold text-sm">
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+            <option value="banned">Banned</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <select value={filterSubscription} onChange={(e) => setFilterSubscription(e.target.value)} className="flex-1 min-w-[120px] px-3 py-2.5 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-bold text-sm">
+            <option value="all">All Plans</option>
+            <option value="free">Free</option>
+            <option value="premium">Premium</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="flex-1 min-w-[130px] px-3 py-2.5 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-bold text-sm">
+            <option value="lastActive">Last Active</option>
+            <option value="points">Points</option>
+            <option value="level">Level</option>
+            <option value="riskScore">Risk Score</option>
+            <option value="joinDate">Join Date</option>
+          </select>
+        </div>
       </div>
 
       {/* Table */}
       <div className="card bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b-2 border-black dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                 <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">User</th>
@@ -696,18 +698,18 @@ const AdminUsers: React.FC = () => {
 
       {/* User Detail Modal */}
       {showDetail && selectedUser && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-3xl border-2 border-black dark:border-gray-700 p-0 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#7B6EF6] to-[#4F8EF7] flex items-center justify-center text-white font-black text-2xl">
+            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#7B6EF6] to-[#4F8EF7] flex items-center justify-center text-white font-black text-xl sm:text-2xl flex-shrink-0">
                   {selectedUser.username.charAt(0)}
                 </div>
-                <div>
-                  <h2 className="text-2xl font-black text-gray-900 dark:text-white">{selectedUser.username}</h2>
-                  <p className="text-sm text-gray-500">{selectedUser.email}</p>
-                  <div className="flex items-center gap-2 mt-1">
+                <div className="min-w-0">
+                  <h2 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white truncate">{selectedUser.username}</h2>
+                  <p className="text-xs sm:text-sm text-gray-500 truncate">{selectedUser.email}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${getStatusColor(selectedUser.status)}`}>
                       {selectedUser.status.toUpperCase()}
                     </span>
@@ -731,7 +733,7 @@ const AdminUsers: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
               {detailTab === 'overview' && (
                 <>
                   {/* Security Alert */}

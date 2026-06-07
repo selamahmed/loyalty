@@ -125,7 +125,7 @@ const AdminPointsEconomy: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-[#7B6EF6] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -138,19 +138,19 @@ const AdminPointsEconomy: React.FC = () => {
 
   return (
     <AdminLayout>
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-black text-gray-900 dark:text-white">Points Economy</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Manage all points transactions and earning rules</p>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white">Points Economy</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage all points transactions and earning rules</p>
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div className="card p-4 sm:p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-green-100 dark:bg-green-900/30">
-              <TrendingUp size={24} className="text-green-600 dark:text-green-400" />
+            <div className="p-2 sm:p-3 rounded-2xl bg-green-100 dark:bg-green-900/30">
+              <TrendingUp size={22} className="text-green-600 dark:text-green-400" />
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Earned</p>
@@ -161,10 +161,10 @@ const AdminPointsEconomy: React.FC = () => {
           </div>
         </div>
 
-        <div className="card p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
+        <div className="card p-4 sm:p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-red-100 dark:bg-red-900/30">
-              <TrendingDown size={24} className="text-red-600 dark:text-red-400" />
+            <div className="p-2 sm:p-3 rounded-2xl bg-red-100 dark:bg-red-900/30">
+              <TrendingDown size={22} className="text-red-600 dark:text-red-400" />
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Spent</p>
@@ -175,10 +175,10 @@ const AdminPointsEconomy: React.FC = () => {
           </div>
         </div>
 
-        <div className="card p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
+        <div className="card p-4 sm:p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-blue-100 dark:bg-blue-900/30">
-              <Activity size={24} className="text-blue-600 dark:text-blue-400" />
+            <div className="p-2 sm:p-3 rounded-2xl bg-blue-100 dark:bg-blue-900/30">
+              <Activity size={22} className="text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Active Rules</p>
@@ -191,10 +191,10 @@ const AdminPointsEconomy: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b-2 border-black dark:border-gray-700">
+      <div className="flex gap-1 sm:gap-2 border-b-2 border-black dark:border-gray-700 overflow-x-auto">
         <button
           onClick={() => setActiveTab('transactions')}
-          className={`px-6 py-3 font-bold border-b-4 transition-all ${
+          className={`px-3 sm:px-6 py-2 sm:py-3 font-bold text-sm whitespace-nowrap border-b-4 transition-all ${
             activeTab === 'transactions'
               ? 'border-[#7B6EF6] text-[#7B6EF6] dark:text-[#4F8EF7]'
               : 'border-transparent text-gray-600 dark:text-gray-400'
@@ -204,7 +204,7 @@ const AdminPointsEconomy: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('rules')}
-          className={`px-6 py-3 font-bold border-b-4 transition-all ${
+          className={`px-3 sm:px-6 py-2 sm:py-3 font-bold text-sm whitespace-nowrap border-b-4 transition-all ${
             activeTab === 'rules'
               ? 'border-[#7B6EF6] text-[#7B6EF6] dark:text-[#4F8EF7]'
               : 'border-transparent text-gray-600 dark:text-gray-400'
@@ -214,7 +214,7 @@ const AdminPointsEconomy: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('campaigns')}
-          className={`px-6 py-3 font-bold border-b-4 transition-all ${
+          className={`px-3 sm:px-6 py-2 sm:py-3 font-bold text-sm whitespace-nowrap border-b-4 transition-all ${
             activeTab === 'campaigns'
               ? 'border-[#7B6EF6] text-[#7B6EF6] dark:text-[#4F8EF7]'
               : 'border-transparent text-gray-600 dark:text-gray-400'
@@ -226,8 +226,9 @@ const AdminPointsEconomy: React.FC = () => {
 
       {/* Transactions Tab */}
       {activeTab === 'transactions' && (
-        <div className="card p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700 overflow-x-auto">
-          <table className="w-full">
+        <div className="card bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px]">
             <thead>
               <tr className="border-b-2 border-black dark:border-gray-700">
                 <th className="text-left py-3 px-4 font-black">User ID</th>
@@ -255,6 +256,7 @@ const AdminPointsEconomy: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -392,9 +394,9 @@ const AdminPointsEconomy: React.FC = () => {
                   <div className="flex-1">
                     <p className="font-bold text-gray-900 dark:text-white">{campaign.name}</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{campaign.description}</p>
-                    <div className="flex gap-4 mt-2 text-xs">
+                    <div className="flex flex-wrap gap-2 sm:gap-4 mt-2 text-xs">
                       <span className="text-amber-600 font-bold">Multiplier: {campaign.bonusMultiplier}x</span>
-                      <span className="text-gray-600">{campaign.startDate} to {campaign.endDate}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{campaign.startDate} to {campaign.endDate}</span>
                       <span className={campaign.isActive ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
                         {campaign.isActive ? 'Active' : 'Inactive'}
                       </span>
