@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { QrCode, Camera, Check, Zap, RotateCcw, MapPin } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { QrCode, Camera, Check, Zap, RotateCcw, MapPin, X, FlipHorizontal, Keyboard } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { tr } from '../lib/tr';
+import { inventory } from '../data/mockData';
 
 const card = {
   background: 'var(--card-bg)',
@@ -11,26 +11,172 @@ const card = {
 };
 
 const fakeQRResults = [
-  { code: 'STORE42-BONUS',    title: 'Mağaza Ziyaret Bonusu!', points: 75,  location: 'Mağaza #42 - Ana Cad.' },
-  { code: 'EVENT2026-SPECIAL',title: 'Etkinlik Özel Kodu!',    points: 150, location: 'Yaz Etkinliği Standı' },
-  { code: 'PARTNER-CAFE',     title: 'Partner Kafe Ziyareti!', points: 50,  location: 'Coffee Corner' },
-  { code: 'PROMO-SALE',       title: 'İndirim Promosyonu!',    points: 100, location: 'Online Özel' },
+  { code: 'STORE42-BONUS',     title: 'Mağaza Ziyaret Bonusu!', points: 75,  location: 'Mağaza #42 - Ana Cad.' },
+  { code: 'EVENT2026-SPECIAL', title: 'Etkinlik Özel Kodu!',    points: 150, location: 'Yaz Etkinliği Standı' },
+  { code: 'PARTNER-CAFE',      title: 'Partner Kafe Ziyareti!', points: 50,  location: 'Coffee Corner' },
+  { code: 'PROMO-SALE',        title: 'İndirim Promosyonu!',    points: 100, location: 'Online Özel' },
 ];
 
+/* ── Inventory item QR popup ── */
+const InventoryQRModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const [selected, setSelected] = useState<string | null>(null);
+  const activeItems = inventory.filter(i => !i.used);
+  const typeColors: Record<string, string> = { coupon: '#3b82f6', ticket: '#f59e0b', reward: '#22c55e' };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', padding: 0 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ ...card, width: '100%', maxWidth: 480, maxHeight: '88vh', overflowY: 'auto', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: 'none', animation: 'slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}>
+        <div style={{ padding: '20px 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h2 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 18, margin: 0 }}>Envanter QR Kodları</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '3px 0 0' }}>Bir ürün seç, QR kodunu göster</p>
+          </div>
+          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <X size={16} color="var(--text-muted)" />
+          </button>
+        </div>
+
+        <div style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Item list */}
+          {!selected && activeItems.map(item => (
+            <button key={item.id} onClick={() => setSelected(item.code)}
+              style={{ ...card, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'transform 0.1s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}>
+              <img src={item.image} alt={item.title} style={{ width: 46, height: 46, borderRadius: 12, objectFit: 'cover', flexShrink: 0, border: '2px solid var(--dark-border)' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</p>
+                <span style={{ fontFamily: 'monospace', fontSize: 11, color: typeColors[item.type] || '#7B6EF6', fontWeight: 700 }}>{item.code}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <QrCode size={16} color="var(--text-muted)" />
+              </div>
+            </button>
+          ))}
+
+          {/* QR display */}
+          {selected && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+              <div style={{ background: 'white', padding: 14, borderRadius: 20, border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)' }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(selected)}&size=240x240&margin=10`}
+                  alt={`QR: ${selected}`}
+                  style={{ width: 230, height: 230, display: 'block', borderRadius: 10 }}
+                />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 900, color: 'var(--text-dark)', margin: '0 0 6px', letterSpacing: '0.1em' }}>{selected}</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Kasada bu QR kodu tarat</p>
+              </div>
+              <button onClick={() => setSelected(null)} style={{ padding: '10px 24px', borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-dark)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <RotateCcw size={13} /> Geri Dön
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity:0; } to { transform: translateY(0); opacity:1; } }`}</style>
+    </div>
+  );
+};
+
+/* ── Main Scanner ── */
 const QRScanner: React.FC = () => {
   const { addPoints, showRewardPopup } = useApp();
-  const [scanning, setScanning] = useState(false);
+
+  const [mode, setMode]         = useState<'idle' | 'camera' | 'fake' | 'manual'>('idle');
+  const [result, setResult]     = useState<typeof fakeQRResults[0] | null>(null);
   const [scanProgress, setScanProgress] = useState(0);
-  const [result, setResult] = useState<typeof fakeQRResults[0] | null>(null);
-  const [manualCode, setManualCode] = useState('');
-  const [error, setError] = useState('');
-  const [history, setHistory] = useState<{ code: string; points: number; time: string; location: string }[]>([
+  const [manualCode, setManualCode]     = useState('');
+  const [error, setError]       = useState('');
+  const [camError, setCamError] = useState('');
+  const [facingMode, setFacingMode]     = useState<'environment' | 'user'>('environment');
+  const [showInventoryQR, setShowInventoryQR] = useState(false);
+  const [history, setHistory]   = useState([
     { code: 'STORE18-DAILY', points: 75,  time: '2 gün önce', location: 'Mağaza #18' },
     { code: 'EVENT2025-X',   points: 100, time: '5 gün önce', location: 'Özel Etkinlik' },
   ]);
 
-  const startScan = () => {
-    setScanning(true); setResult(null); setError(''); setScanProgress(0);
+  const videoRef      = useRef<HTMLVideoElement>(null);
+  const canvasRef     = useRef<HTMLCanvasElement>(null);
+  const streamRef     = useRef<MediaStream | null>(null);
+  const rafRef        = useRef<number>(0);
+  const scanningRef   = useRef(false);
+
+  /* ── Start real camera ── */
+  const startCamera = useCallback(async () => {
+    setCamError(''); setResult(null); setError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setMode('camera');
+      scanningRef.current = true;
+      tickScan();
+    } catch (err) {
+      setCamError('Kamera erişimi reddedildi. Lütfen tarayıcı izinlerini kontrol et.');
+      setMode('idle');
+    }
+  }, [facingMode]);
+
+  /* ── Per-frame QR decode ── */
+  const tickScan = useCallback(() => {
+    if (!scanningRef.current) return;
+    const video  = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState < 2) { rafRef.current = requestAnimationFrame(tickScan); return; }
+
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { rafRef.current = requestAnimationFrame(tickScan); return; }
+    ctx.drawImage(video, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    import('jsqr').then(({ default: jsQR }) => {
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+      if (code && code.data) {
+        stopCamera();
+        const known = fakeQRResults.find(r => r.code === code.data.trim().toUpperCase());
+        if (known) {
+          setResult(known);
+        } else {
+          setResult({ code: code.data, title: 'QR Kodu Okundu', points: 0, location: 'Bilinmeyen' });
+        }
+        return;
+      }
+      if (scanningRef.current) rafRef.current = requestAnimationFrame(tickScan);
+    });
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    scanningRef.current = false;
+    cancelAnimationFrame(rafRef.current);
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    setMode('idle');
+  }, []);
+
+  useEffect(() => () => stopCamera(), []);
+
+  /* ── Flip camera ── */
+  const flipCamera = async () => {
+    stopCamera();
+    const next = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(next);
+    setTimeout(() => startCamera(), 200);
+  };
+
+  /* ── Fake scan (fallback demo) ── */
+  const startFakeScan = () => {
+    setMode('fake'); setResult(null); setError(''); setScanProgress(0);
     let prog = 0;
     const interval = setInterval(() => {
       prog += Math.random() * 15 + 5;
@@ -39,15 +185,15 @@ const QRScanner: React.FC = () => {
         clearInterval(interval);
         setTimeout(() => {
           setScanProgress(100);
-          const r = fakeQRResults[Math.floor(Math.random() * fakeQRResults.length)];
-          setResult(r); setScanning(false);
+          setResult(fakeQRResults[Math.floor(Math.random() * fakeQRResults.length)]);
+          setMode('idle');
         }, 500);
       }
     }, 150);
   };
 
   const claimReward = () => {
-    if (!result) return;
+    if (!result || result.points === 0) return;
     addPoints(result.points);
     showRewardPopup({ type: 'reward', title: result.title, subtitle: `${result.location} adresinde QR kod taradın`, points: result.points });
     setHistory(prev => [{ code: result.code, points: result.points, time: 'Az önce', location: result.location }, ...prev]);
@@ -56,71 +202,76 @@ const QRScanner: React.FC = () => {
 
   const handleManualSubmit = () => {
     const found = fakeQRResults.find(r => r.code === manualCode.trim().toUpperCase());
-    if (found) { setResult(found); setError(''); }
+    if (found) { setResult(found); setError(''); setMode('idle'); }
     else setError('Geçersiz kod. Lütfen tekrar dene.');
   };
 
+  const reset = () => { setResult(null); setScanProgress(0); setError(''); setMode('idle'); };
+
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {showInventoryQR && <InventoryQRModal onClose={() => setShowInventoryQR(false)} />}
+
       {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
-        <div style={{
-          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
-          fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)',
-          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
-        }}>QR TARA</div>
+        <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>QR TARA</div>
       </div>
 
-      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-lg mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
+      <div className="p-3 sm:p-4 lg:p-6 max-w-lg mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* ── Page header ── */}
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-            background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
-            border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-          }}>📱</div>
+          <div style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📱</div>
           <div>
             <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>QR Tarayıcı</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Kod tara, anında puan kazan</p>
           </div>
         </div>
 
-        {/* ── Scanner viewport ── */}
-        <div style={{ ...card, padding: 20 }}>
-          {/* Camera area */}
-          <div style={{
-            aspectRatio: '1/1', width: '100%', maxWidth: 300, margin: '0 auto 16px',
-            background: '#0f172a', borderRadius: 20, overflow: 'hidden', position: 'relative',
-            border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)',
-          }}>
-            {scanning && (
+        {/* ── Camera viewport ── */}
+        <div style={{ ...card, padding: 16 }}>
+          {/* Video / placeholder area */}
+          <div style={{ aspectRatio: '4/3', width: '100%', maxWidth: 360, margin: '0 auto 14px', background: '#0f172a', borderRadius: 18, overflow: 'hidden', position: 'relative', border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)' }}>
+
+            {/* Live camera video */}
+            <video ref={videoRef} playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: mode === 'camera' ? 'block' : 'none' }} />
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+            {/* Camera scanning overlay */}
+            {mode === 'camera' && (
               <>
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent,rgba(123,110,246,0.18),transparent)', animation: 'qrPulse 1.5s ease-in-out infinite' }} />
                 {/* Corner guides */}
-                {[{ top: 24, left: 24 }, { top: 24, right: 24 }, { bottom: 24, left: 24 }, { bottom: 24, right: 24 }].map((pos, i) => (
-                  <div key={i} style={{
-                    position: 'absolute', width: 28, height: 28,
-                    borderTop: i < 2 ? '4px solid #a78bfa' : 'none',
-                    borderBottom: i >= 2 ? '4px solid #a78bfa' : 'none',
-                    borderLeft: i % 2 === 0 ? '4px solid #a78bfa' : 'none',
-                    borderRight: i % 2 !== 0 ? '4px solid #a78bfa' : 'none',
-                    ...pos,
-                  }} />
+                {[{ top: 20, left: 20 }, { top: 20, right: 20 }, { bottom: 20, left: 20 }, { bottom: 20, right: 20 }].map((pos, i) => (
+                  <div key={i} style={{ position: 'absolute', width: 30, height: 30, borderTop: i < 2 ? '4px solid #a78bfa' : 'none', borderBottom: i >= 2 ? '4px solid #a78bfa' : 'none', borderLeft: i % 2 === 0 ? '4px solid #a78bfa' : 'none', borderRight: i % 2 !== 0 ? '4px solid #a78bfa' : 'none', ...pos }} />
                 ))}
-                {/* Scan line */}
-                <div style={{
-                  position: 'absolute', left: 0, right: 0, height: 2,
-                  background: 'linear-gradient(90deg,transparent,#a78bfa,transparent)',
-                  boxShadow: '0 0 10px #a78bfa',
-                  top: `${scanProgress}%`, transition: 'top 0.15s linear',
-                }} />
-                <p style={{ position: 'absolute', bottom: 14, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 700 }}>Taranıyor...</p>
+                {/* Animated scan line */}
+                <div style={{ position: 'absolute', left: '10%', right: '10%', height: 3, background: 'linear-gradient(90deg,transparent,#a78bfa,transparent)', boxShadow: '0 0 14px #a78bfa', animation: 'scanLine 2s ease-in-out infinite' }} />
+                <p style={{ position: 'absolute', bottom: 14, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 800 }}>QR kodu kareye hizala</p>
+                {/* Flip camera button */}
+                <button onClick={flipCamera} style={{ position: 'absolute', top: 12, right: 12, width: 36, height: 36, borderRadius: 10, background: 'rgba(0,0,0,0.5)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                  <FlipHorizontal size={18} color="white" />
+                </button>
+                {/* Stop camera */}
+                <button onClick={stopCamera} style={{ position: 'absolute', top: 12, left: 12, width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.7)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                  <X size={18} color="white" />
+                </button>
               </>
             )}
 
-            {result && !scanning && (
+            {/* Fake scan progress overlay */}
+            {mode === 'fake' && (
+              <>
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent,rgba(123,110,246,0.18),transparent)', animation: 'qrPulse 1.5s ease-in-out infinite' }} />
+                {[{ top: 24, left: 24 }, { top: 24, right: 24 }, { bottom: 24, left: 24 }, { bottom: 24, right: 24 }].map((pos, i) => (
+                  <div key={i} style={{ position: 'absolute', width: 28, height: 28, borderTop: i < 2 ? '4px solid #a78bfa' : 'none', borderBottom: i >= 2 ? '4px solid #a78bfa' : 'none', borderLeft: i % 2 === 0 ? '4px solid #a78bfa' : 'none', borderRight: i % 2 !== 0 ? '4px solid #a78bfa' : 'none', ...pos }} />
+                ))}
+                <div style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,#a78bfa,transparent)', boxShadow: '0 0 10px #a78bfa', top: `${scanProgress}%`, transition: 'top 0.15s linear' }} />
+                <p style={{ position: 'absolute', bottom: 14, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 700 }}>Demo tarama...</p>
+              </>
+            )}
+
+            {/* Result found */}
+            {result && mode === 'idle' && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, padding: 20 }}>
                 <div style={{ width: 70, height: 70, borderRadius: '50%', background: '#22c55e', border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 24px rgba(34,197,94,0.5)' }}>
                   <Check size={34} color="white" />
@@ -129,17 +280,23 @@ const QRScanner: React.FC = () => {
               </div>
             )}
 
-            {!scanning && !result && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, color: 'rgba(255,255,255,0.4)' }}>
-                <Camera size={52} />
-                <p style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', margin: 0 }}>Taramayı başlatmak için dokun</p>
+            {/* Idle placeholder */}
+            {mode === 'idle' && !result && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, color: 'rgba(255,255,255,0.35)' }}>
+                <QrCode size={52} />
+                <p style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', margin: 0, padding: '0 20px' }}>Kamerayı başlatmak için aşağıdaki butona bas</p>
               </div>
             )}
           </div>
 
-          {/* Progress bar while scanning */}
-          {scanning && (
-            <div style={{ marginBottom: 14 }}>
+          {/* Camera error */}
+          {camError && (
+            <div style={{ marginBottom: 12, padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '2px solid #ef4444', borderRadius: 12, fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{camError}</div>
+          )}
+
+          {/* Progress bar (fake scan) */}
+          {mode === 'fake' && (
+            <div style={{ marginBottom: 12 }}>
               <div style={{ height: 10, background: 'var(--tab-bg)', borderRadius: 999, border: '2px solid var(--dark-border)', overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${scanProgress}%`, background: 'linear-gradient(90deg,var(--gradient-start),var(--gradient-end))', borderRadius: 999, transition: 'width 0.15s linear' }} />
               </div>
@@ -149,7 +306,7 @@ const QRScanner: React.FC = () => {
 
           {/* Result card */}
           {result && (
-            <div style={{ padding: '16px', background: 'rgba(34,197,94,0.08)', borderRadius: 14, border: '2.5px solid #22c55e', boxShadow: '0 4px 0 #16a34a', marginBottom: 12 }}>
+            <div style={{ padding: 14, background: 'rgba(34,197,94,0.08)', borderRadius: 14, border: '2.5px solid #22c55e', boxShadow: '0 4px 0 #16a34a', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid var(--dark-border)' }}>
                   <Check size={22} color="white" />
@@ -160,72 +317,83 @@ const QRScanner: React.FC = () => {
                     <MapPin size={11} color="var(--text-muted)" />
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>{result.location}</span>
                   </div>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', border: '2px solid #f59e0b' }}>
-                    <Zap size={13} color="#f59e0b" />
-                    <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>+{result.points} Puan</span>
-                  </div>
+                  {result.points > 0 && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', border: '2px solid #f59e0b' }}>
+                      <Zap size={13} color="#f59e0b" />
+                      <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>+{result.points} Puan</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button onClick={() => { setResult(null); setScanProgress(0); }} style={{
-                  flex: 1, padding: '11px', borderRadius: 12, fontWeight: 900, fontSize: 13,
-                  background: 'var(--card-bg)', color: 'var(--text-dark)',
-                  border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}>
+                <button onClick={reset} style={{ flex: 1, padding: 11, borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'var(--card-bg)', color: 'var(--text-dark)', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   <RotateCcw size={14} /> Tekrar Tara
                 </button>
-                <button onClick={claimReward} style={{
-                  flex: 1, padding: '11px', borderRadius: 12, fontWeight: 900, fontSize: 13,
-                  background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
-                  border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
-                  cursor: 'pointer',
-                }}>
-                  Talep Et +{result.points}
-                </button>
+                {result.points > 0 && (
+                  <button onClick={claimReward} style={{ flex: 1, padding: 11, borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer' }}>
+                    Talep Et +{result.points}
+                  </button>
+                )}
               </div>
             </div>
           )}
 
-          {!scanning && !result && (
-            <button onClick={startScan} style={{
-              width: '100%', padding: '14px', borderRadius: 14, fontWeight: 900, fontSize: 15,
-              background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
-              border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              transition: 'transform 0.1s, box-shadow 0.1s',
-            }}
-              onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 var(--dark-border)'; }}
-              onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}
-            >
-              <QrCode size={20} /> Taramayı Başlat
-            </button>
+          {/* Action buttons */}
+          {mode === 'idle' && !result && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Primary: real camera */}
+              <button onClick={startCamera} style={{
+                width: '100%', padding: 14, borderRadius: 14, fontWeight: 900, fontSize: 15,
+                background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
+                border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                transition: 'transform 0.1s, box-shadow 0.1s',
+              }}
+                onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 var(--dark-border)'; }}
+                onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}
+              >
+                <Camera size={20} /> Kamerayı Aç & Tara
+              </button>
+              {/* Secondary: demo scan */}
+              <button onClick={startFakeScan} style={{ width: '100%', padding: 11, borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <QrCode size={16} /> Demo Tarama
+              </button>
+            </div>
           )}
         </div>
 
+        {/* ── Inventory QR Button ── */}
+        <button onClick={() => { setShowInventoryQR(true); }} style={{
+          ...card, width: '100%', padding: '16px 20px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 14, transition: 'transform 0.1s',
+          background: 'linear-gradient(135deg,rgba(123,110,246,0.08),rgba(79,142,247,0.08))',
+        }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}>
+          <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(180deg,#7B6EF6,#4F8EF7)', border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
+            🎁
+          </div>
+          <div style={{ flex: 1, textAlign: 'left' }}>
+            <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 2px' }}>Envanter QR Kodları</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Ürün kodunu QR'a çevir, kasada göster</p>
+          </div>
+          <QrCode size={20} color="var(--text-muted)" />
+        </button>
+
         {/* ── Manual code entry ── */}
         <div style={{ ...card, padding: '18px 20px' }}>
-          <h3 style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 12px' }}>Kodu Manuel Gir</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Keyboard size={14} color="var(--text-muted)" />
+            <h3 style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: 0 }}>Manuel Kod Gir</h3>
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
-              type="text"
-              placeholder="örn. STORE42-BONUS"
-              value={manualCode}
-              onChange={e => setManualCode(e.target.value)}
+              type="text" placeholder="örn. STORE42-BONUS"
+              value={manualCode} onChange={e => setManualCode(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleManualSubmit()}
-              style={{
-                flex: 1, padding: '12px 14px', borderRadius: 12, fontWeight: 700, fontSize: 13,
-                background: 'var(--tab-bg)', color: 'var(--text-dark)',
-                border: '2.5px solid var(--dark-border)', outline: 'none',
-                fontFamily: 'monospace', letterSpacing: '0.06em',
-              }}
+              style={{ flex: 1, padding: '12px 14px', borderRadius: 12, fontWeight: 700, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-dark)', border: '2.5px solid var(--dark-border)', outline: 'none', fontFamily: 'monospace', letterSpacing: '0.06em' }}
             />
-            <button onClick={handleManualSubmit} style={{
-              padding: '12px 18px', borderRadius: 12, fontWeight: 900, fontSize: 13,
-              background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
-              border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
-              cursor: 'pointer',
-            }}>Gir</button>
+            <button onClick={handleManualSubmit} style={{ padding: '12px 18px', borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer' }}>Gir</button>
           </div>
           {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 8, fontWeight: 700 }}>{error}</p>}
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, fontWeight: 600 }}>Dene: STORE42-BONUS, EVENT2026-SPECIAL</p>
@@ -237,32 +405,35 @@ const QRScanner: React.FC = () => {
             <h3 style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 12px' }}>Son Taramalar</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {history.map((h, i) => (
-                <div key={i} style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div key={i} style={{ ...card, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(34,197,94,0.12)', border: '2px solid #22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Check size={18} color="#22c55e" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: 'var(--text-dark)', margin: '0 0 2px' }}>{h.code}</p>
+                    <p style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: 'var(--text-dark)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.code}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <MapPin size={10} color="var(--text-muted)" />
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>{h.location} • {h.time}</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                    <Zap size={12} color="#f59e0b" />
-                    <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>+{h.points}</span>
-                  </div>
+                  {h.points > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      <Zap size={12} color="#f59e0b" />
+                      <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>+{h.points}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        <div style={{ height: 16 }} />
       </div>
 
       <style>{`
-        @keyframes qrPulse {
-          0%,100% { opacity:0.4; } 50% { opacity:1; }
-        }
+        @keyframes qrPulse { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
+        @keyframes scanLine { 0% { top:15%; } 50% { top:75%; } 100% { top:15%; } }
       `}</style>
     </div>
   );
