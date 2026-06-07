@@ -129,12 +129,12 @@ const BannerBurst = ({ color = '#000', opacity = 0.12 }) => (
    DATA
 ═══════════════════════════════════════════════════════════════ */
 const features = [
-  { emoji: '⚡', title: 'Anında Ödüller',    desc: 'Her etkileşimde anında puan kazan.',             color: '#7B6EF6', Shape: NBolt,    sOpacity: 0.2, sRotate: 15 },
-  { emoji: '🎮', title: 'Eğlenceli Oyunlar', desc: 'Oyunlar oyna, görevleri tamamla, bonus kazan.',  color: '#22c55e', Shape: NStar5,   sOpacity: 0.2, sRotate: -10 },
-  { emoji: '🎁', title: 'Özel Ödüller',      desc: 'Puanlarını harika ödüllerle değiştir.',           color: '#f59e0b', Shape: NHeart,   sOpacity: 0.2, sRotate: 8 },
-  { emoji: '🎯', title: 'Günlük Görevler',   desc: 'Günlük zorlukları tamamla, serini koru.',         color: '#ef4444', Shape: NBurst,   sOpacity: 0.18, sRotate: -12 },
-  { emoji: '🏆', title: 'Liderlik Tablosu',  desc: 'Diğerleriyle yarış ve sıralamada yüksel.',        color: '#06b6d4', Shape: NStar4,   sOpacity: 0.2, sRotate: 20 },
-  { emoji: '💖', title: 'Sosyal Ödüller',    desc: 'Arkadaşlarınla paylaş, ekstra puan kazan.',       color: '#ec4899', Shape: NDiamond, sOpacity: 0.2, sRotate: -8 },
+  { emoji: '⚡', title: 'Anında Ödüller',    desc: 'Her etkileşimde anında puan kazan.',             color: '#7B6EF6', Shape: NBolt,    sOpacity: 0.2, sRotate: 15,  img: 'https://picsum.photos/seed/lightning99/600/240' },
+  { emoji: '🎮', title: 'Eğlenceli Oyunlar', desc: 'Oyunlar oyna, görevleri tamamla, bonus kazan.',  color: '#22c55e', Shape: NStar5,   sOpacity: 0.2, sRotate: -10, img: 'https://picsum.photos/seed/gaming44/600/240' },
+  { emoji: '🎁', title: 'Özel Ödüller',      desc: 'Puanlarını harika ödüllerle değiştir.',           color: '#f59e0b', Shape: NHeart,   sOpacity: 0.2, sRotate: 8,   img: 'https://picsum.photos/seed/gifts77/600/240' },
+  { emoji: '🎯', title: 'Günlük Görevler',   desc: 'Günlük zorlukları tamamla, serini koru.',         color: '#ef4444', Shape: NBurst,   sOpacity: 0.18, sRotate: -12, img: 'https://picsum.photos/seed/target55/600/240' },
+  { emoji: '🏆', title: 'Liderlik Tablosu',  desc: 'Diğerleriyle yarış ve sıralamada yüksel.',        color: '#06b6d4', Shape: NStar4,   sOpacity: 0.2, sRotate: 20,  img: 'https://picsum.photos/seed/trophy22/600/240' },
+  { emoji: '💖', title: 'Sosyal Ödüller',    desc: 'Arkadaşlarınla paylaş, ekstra puan kazan.',       color: '#ec4899', Shape: NDiamond, sOpacity: 0.2, sRotate: -8,  img: 'https://picsum.photos/seed/social88/600/240' },
 ];
 
 const tickerHero: TickerItem[] = [
@@ -192,9 +192,9 @@ const banners = [
 ];
 
 const testimonials = [
-  { name: 'Ayşe K.',   role: 'Alışveriş Meraklısı', text: 'NexReward sayesinde her alışverişte ekstra kazanıyorum. Harika bir platform!', avatar: 'A', stars: 5 },
-  { name: 'Mehmet T.', role: 'Sadık Üye',            text: 'Günlük görevler çok eğlenceli, ödüller gerçekten değerli. Kesinlikle tavsiye ederim.',        avatar: 'M', stars: 5 },
-  { name: 'Zeynep A.', role: 'Premium Üye',          text: 'Arkadaşlarımla liderlik tablosunda yarışmak çok keyifli! Her gün giriş yapıyorum.',          avatar: 'Z', stars: 5 },
+  { name: 'Ayşe K.',   role: 'Alışveriş Meraklısı', text: 'NexReward sayesinde her alışverişte ekstra kazanıyorum. Harika bir platform!', avatar: 'A', stars: 5, photo: 'https://i.pravatar.cc/80?img=47' },
+  { name: 'Mehmet T.', role: 'Sadık Üye',            text: 'Günlük görevler çok eğlenceli, ödüller gerçekten değerli. Kesinlikle tavsiye ederim.',       avatar: 'M', stars: 5, photo: 'https://i.pravatar.cc/80?img=12' },
+  { name: 'Zeynep A.', role: 'Premium Üye',          text: 'Arkadaşlarımla liderlik tablosunda yarışmak çok keyifli! Her gün giriş yapıyorum.',           avatar: 'Z', stars: 5, photo: 'https://i.pravatar.cc/80?img=23' },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
@@ -408,6 +408,77 @@ const LandingPage: React.FC = () => {
           borderBottom={`2px solid ${t.border}`} speed={22}
         />
 
+        {/* ══ APP PREVIEW ══ */}
+        <section style={{ padding: '80px clamp(14px, 4vw, 64px)', maxWidth: 1280, margin: '0 auto', overflow: 'hidden' }}>
+          <div style={{ textAlign: 'center', marginBottom: 52 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: t.pillBg, color: '#a78bfa',
+              border: `2px solid ${t.border}`,
+              borderRadius: 999, padding: '5px 16px',
+              fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 14,
+            }}>✦ UYGULAMA</div>
+            <h2 style={{ fontSize: 'clamp(26px, 5vw, 58px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
+              GÖRSELİN ÖTESİNDE{' '}
+              <span style={{ background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>DENEYİM</span>
+            </h2>
+            <p style={{ color: t.textSecondary, fontWeight: 600, fontSize: 15, marginTop: 12, marginBottom: 0, maxWidth: 460, marginInline: 'auto' }}>
+              Sezgisel tasarım, hızlı ödüller ve sürekli eğlence — tek uygulamada.
+            </p>
+          </div>
+
+          {/* Phone frames */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 'clamp(12px, 3vw, 32px)', flexWrap: 'wrap' }}>
+            {[
+              { img: 'https://picsum.photos/seed/appview1/390/760', label: 'Puan Paneli', color: '#7B6EF6', rotate: -4, scale: 0.88 },
+              { img: 'https://picsum.photos/seed/appview2/390/760', label: 'Ödül Mağazası', color: '#22c55e', rotate: 0, scale: 1 },
+              { img: 'https://picsum.photos/seed/appview3/390/760', label: 'Liderlik Tablosu', color: '#f59e0b', rotate: 4, scale: 0.88 },
+            ].map((ph, i) => (
+              <div key={i} style={{ flexShrink: 0, transform: `rotate(${ph.rotate}deg) scale(${ph.scale})`, transformOrigin: 'bottom center' }}>
+                {/* Phone shell */}
+                <div style={{
+                  width: 'clamp(140px, 20vw, 210px)',
+                  borderRadius: 28,
+                  border: `3px solid #000`,
+                  boxShadow: `0 8px 0 #000, 0 16px 40px rgba(0,0,0,0.35)`,
+                  overflow: 'hidden',
+                  background: '#111',
+                  position: 'relative',
+                }}>
+                  {/* Notch */}
+                  <div style={{ height: 26, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 56, height: 10, background: '#1a1a1a', borderRadius: 99 }} />
+                  </div>
+                  {/* Screenshot */}
+                  <img src={ph.img} alt={ph.label}
+                    style={{ width: '100%', aspectRatio: '9/18', objectFit: 'cover', display: 'block',
+                      filter: isDark ? 'brightness(0.88) saturate(1.1)' : 'brightness(0.94)' }} />
+                  {/* Color overlay accent */}
+                  <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, ${ph.color}18 0%, transparent 35%)`, pointerEvents: 'none' }} />
+                  {/* Bottom bar */}
+                  <div style={{ height: 20, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 36, height: 5, background: '#333', borderRadius: 99 }} />
+                  </div>
+                </div>
+                {/* Label */}
+                <div style={{ textAlign: 'center', marginTop: 14 }}>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    background: t.cardBg, color: t.textPrimary,
+                    border: `2px solid ${t.border}`,
+                    borderRadius: 999, padding: '4px 12px',
+                    fontSize: 11, fontWeight: 900,
+                    boxShadow: `0 3px 0 ${t.shadow}`,
+                  }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: ph.color }} />
+                    {ph.label}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ══ STACKING BANNERS ══ */}
         <section id="banners" style={{ position: 'relative' }}>
           {banners.map((b, i) => (
@@ -512,26 +583,38 @@ const LandingPage: React.FC = () => {
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
                 style={{
-                  position: 'relative', padding: '28px 24px 24px', borderRadius: 20, overflow: 'hidden',
+                  position: 'relative', padding: 0, borderRadius: 20, overflow: 'hidden',
                   background: t.cardBg,
                   border: `2.5px solid ${t.border}`,
                   boxShadow: hovered === i ? `0 8px 0 ${t.shadow}` : `0 4px 0 ${t.shadow}`,
                   transform: hovered === i ? 'translateY(-4px)' : 'none',
                   transition: 'all 0.15s ease', cursor: 'pointer',
                 }}>
-                {/* Large neo-brutalist shape in corner */}
-                <f.Shape color={f.color} size={100} opacity={t.decoOp} rotate={f.sRotate} />
-                <div style={{ position: 'relative', zIndex: 1 }}>
+                {/* Cover image */}
+                <div style={{ position: 'relative', height: 148, overflow: 'hidden' }}>
+                  <img src={f.img} alt={f.title}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                      filter: isDark ? 'brightness(0.78) saturate(1.15)' : 'brightness(0.92) saturate(1.1)',
+                      transition: 'transform 0.3s',
+                      transform: hovered === i ? 'scale(1.05)' : 'scale(1)',
+                    }} />
+                  <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, transparent 35%, ${t.cardBg} 100%)` }} />
+                  {/* Color accent stripe on left */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', background: f.color }} />
+                  {/* Emoji badge floating at bottom of image */}
                   <div style={{
-                    width: 54, height: 54, borderRadius: 16, fontSize: 24,
-                    background: `${f.color}22`, border: `2.5px solid ${f.color}`,
-                    boxShadow: `0 3px 0 ${f.color}70`,
+                    position: 'absolute', bottom: -20, left: 20, zIndex: 2,
+                    width: 44, height: 44, borderRadius: 13, fontSize: 20,
+                    background: t.cardBg, border: `2.5px solid ${f.color}`,
+                    boxShadow: `0 3px 0 ${f.color}80`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    marginBottom: 14, transition: 'transform 0.15s',
-                    transform: hovered === i ? 'scale(1.1) rotate(-5deg)' : 'scale(1)',
-                  }}>
-                    {f.emoji}
-                  </div>
+                    transition: 'transform 0.15s',
+                    transform: hovered === i ? 'scale(1.15) rotate(-6deg)' : 'scale(1)',
+                  }}>{f.emoji}</div>
+                </div>
+                {/* Content */}
+                <div style={{ position: 'relative', padding: '32px 22px 22px', zIndex: 1 }}>
+                  <f.Shape color={f.color} size={96} opacity={t.decoOp} rotate={f.sRotate} />
                   <h3 style={{ fontWeight: 900, fontSize: 16, color: t.textPrimary, margin: '0 0 6px' }}>{f.title}</h3>
                   <p style={{ fontSize: 13, fontWeight: 500, color: t.textMuted, margin: '0 0 14px', lineHeight: 1.5 }}>{f.desc}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 900, fontSize: 12, color: f.color }}>
@@ -639,13 +722,8 @@ const LandingPage: React.FC = () => {
                     </div>
                     <p style={{ fontSize: 14, fontWeight: 500, color: t.textSecondary, lineHeight: 1.65, marginBottom: 18 }}>"{t2.text}"</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 14, borderTop: `2px dashed ${isDark ? '#2a2d50' : '#c4b5fd'}` }}>
-                      <div style={{
-                        width: 38, height: 38, borderRadius: '50%',
-                        background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
-                        border: `2.5px solid ${t.border}`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontWeight: 900, color: 'white', fontSize: 13,
-                      }}>{t2.avatar}</div>
+                      <img src={t2.photo} alt={t2.name}
+                        style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: `2.5px solid ${t.border}`, flexShrink: 0, boxShadow: `0 2px 0 ${t.shadow}` }} />
                       <div>
                         <p style={{ fontWeight: 900, fontSize: 13, color: t.textPrimary, margin: 0 }}>{t2.name}</p>
                         <p style={{ fontSize: 11, fontWeight: 500, color: t.textMuted, margin: 0 }}>{t2.role}</p>
@@ -655,6 +733,70 @@ const LandingPage: React.FC = () => {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        {/* ══ LIFESTYLE GALLERY ══ */}
+        <section style={{ padding: '0 clamp(14px, 4vw, 64px) 80px', maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 44 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: t.pillBg, color: '#a78bfa',
+              border: `2px solid ${t.border}`,
+              borderRadius: 999, padding: '5px 16px',
+              fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 14,
+            }}>✦ YAŞAM TARZI</div>
+            <h2 style={{ fontSize: 'clamp(24px, 4.5vw, 54px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase' }}>
+              KAZANMAK BİR{' '}
+              <span style={{ background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>YAŞAM BİÇİMİ</span>
+            </h2>
+          </div>
+
+          {/* Masonry-style photo grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gridTemplateRows: 'auto', gap: 14 }}>
+            {/* Big left photo */}
+            <div style={{ gridColumn: '1 / 6', gridRow: '1 / 3', position: 'relative', borderRadius: 20, overflow: 'hidden', border: `2.5px solid ${t.border}`, boxShadow: `0 6px 0 ${t.shadow}`, minHeight: 280 }}>
+              <img src="https://picsum.photos/seed/lifestyle11/700/520" alt="Alışveriş keyfi"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: isDark ? 'brightness(0.72)' : 'brightness(0.82)' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%)' }} />
+              <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#FFE500', color: '#000', borderRadius: 999, padding: '3px 10px', fontSize: 10, fontWeight: 900, marginBottom: 8 }}>⭐ ALIŞVERIŞ</div>
+                <p style={{ color: 'white', fontWeight: 800, fontSize: 'clamp(14px, 1.8vw, 18px)', margin: 0, lineHeight: 1.35 }}>Her alışverişte puan kazan, ödüllerle zenginleş.</p>
+              </div>
+            </div>
+
+            {/* Top right photo */}
+            <div style={{ gridColumn: '6 / 10', gridRow: '1 / 2', position: 'relative', borderRadius: 20, overflow: 'hidden', border: `2.5px solid ${t.border}`, boxShadow: `0 6px 0 ${t.shadow}`, minHeight: 140 }}>
+              <img src="https://picsum.photos/seed/lifestyle22/600/320" alt="Ödül kazanma"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: isDark ? 'brightness(0.72)' : 'brightness(0.82)' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)' }} />
+              <div style={{ position: 'absolute', bottom: 14, left: 16 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#BFFF00', color: '#000', borderRadius: 999, padding: '3px 10px', fontSize: 10, fontWeight: 900, marginBottom: 6 }}>⚡ ANINDA</div>
+                <p style={{ color: 'white', fontWeight: 800, fontSize: 14, margin: 0 }}>Ödülünü saniyeler içinde al.</p>
+              </div>
+            </div>
+
+            {/* Top far-right photo */}
+            <div style={{ gridColumn: '10 / 13', gridRow: '1 / 2', position: 'relative', borderRadius: 20, overflow: 'hidden', border: `2.5px solid ${t.border}`, boxShadow: `0 6px 0 ${t.shadow}`, minHeight: 140 }}>
+              <img src="https://picsum.photos/seed/lifestyle33/400/320" alt="Oyun oyna"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: isDark ? 'brightness(0.72)' : 'brightness(0.82)' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 60%)' }} />
+              <div style={{ position: 'absolute', bottom: 14, left: 16 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#FF3E9D', color: '#fff', borderRadius: 999, padding: '3px 10px', fontSize: 10, fontWeight: 900, marginBottom: 6 }}>🎮 OYUN</div>
+                <p style={{ color: 'white', fontWeight: 800, fontSize: 14, margin: 0 }}>Eğlenerek kazan.</p>
+              </div>
+            </div>
+
+            {/* Bottom right wide photo */}
+            <div style={{ gridColumn: '6 / 13', gridRow: '2 / 3', position: 'relative', borderRadius: 20, overflow: 'hidden', border: `2.5px solid ${t.border}`, boxShadow: `0 6px 0 ${t.shadow}`, minHeight: 140 }}>
+              <img src="https://picsum.photos/seed/lifestyle44/900/340" alt="Topluluk"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: isDark ? 'brightness(0.72)' : 'brightness(0.82)' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 55%)' }} />
+              <div style={{ position: 'absolute', bottom: 14, left: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#FF6B35', color: '#fff', borderRadius: 999, padding: '3px 10px', fontSize: 10, fontWeight: 900 }}>👥 TOPLULUK</div>
+                <p style={{ color: 'white', fontWeight: 800, fontSize: 14, margin: 0 }}>50.000+ mutlu kullanıcıyla birlikte büyüyoruz.</p>
+              </div>
+            </div>
           </div>
         </section>
 
