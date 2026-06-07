@@ -472,7 +472,7 @@ const LandingPage: React.FC = () => {
         {/* ══ STACKING BANNERS ══ */}
         <section id="banners" style={{ position: 'relative' }}>
           {banners.map((b, i) => (
-            <div key={i} style={{ height: 'clamp(280px, 52vh, 520px)', position: 'relative' }}>
+            <div key={i} style={{ height: 'clamp(150px, 22vh, 240px)', position: 'relative' }}>
               <div style={{
                 position: 'sticky',
                 top: `${62 + i * 8}px`,
