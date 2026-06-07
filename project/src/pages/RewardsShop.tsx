@@ -165,28 +165,29 @@ const RewardsShop: React.FC = () => {
 
       {/* Featured Rewards Showcase */}
       {featuredRewards.length > 0 && category === 'all' && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl border-2 border-amber-200 dark:border-amber-700 p-4 sm:p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center gap-2 mb-4">
-            <Zap size={18} className="text-amber-500" fill="currentColor" />
-            <h2 className="font-black text-base sm:text-lg text-gray-900 dark:text-white">{tr.shop.featured || 'Featured Rewards'}</h2>
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl border-2 border-amber-200 dark:border-amber-700 p-3 sm:p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center gap-2 mb-3">
+            <Zap size={16} className="text-amber-500" fill="currentColor" />
+            <h2 className="font-black text-sm sm:text-lg text-gray-900 dark:text-white">{tr.shop.featured || 'Featured Rewards'}</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          {/* Horizontal scroll on mobile, grid on sm+ */}
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
             {featuredRewards.map(reward => (
               <div
                 key={reward.id}
-                className="card p-3 sm:p-4 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer transform active:scale-95"
+                className="card p-3 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer transform active:scale-95 flex-shrink-0 w-44 sm:w-auto"
                 onClick={() => { playSound('click'); setSelectedReward(reward); }}
               >
-                <div className="h-20 sm:h-24 rounded-xl overflow-hidden border-2 border-black dark:border-gray-700 mb-2 hover:scale-105 transition-transform">
+                <div className="h-28 rounded-xl overflow-hidden border-2 border-black dark:border-gray-700 mb-2">
                   <img src={reward.image} alt={reward.title} className="w-full h-full object-cover" />
                 </div>
-                <p className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white line-clamp-1">{reward.title}</p>
+                <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-1">{reward.title}</p>
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-0.5">
                     <Star size={12} className="text-amber-500" fill="currentColor" />
                     <span className="font-black text-xs text-amber-600 dark:text-amber-400">{reward.points}</span>
                   </div>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
                     points >= reward.points
                       ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
@@ -203,37 +204,37 @@ const RewardsShop: React.FC = () => {
       {/* Limited time */}
       {limitedRewards.length > 0 && (
         <div>
-          <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-            <Flame size={14} className="sm:w-[18px] sm:h-[18px] text-red-500 animate-pulse" />
+          <div className="flex items-center gap-1.5 mb-3">
+            <Flame size={16} className="text-red-500 animate-pulse" />
             <h2 className="font-black text-base sm:text-lg text-gray-900 dark:text-white">{tr.shop.limitedTime}</h2>
             <span className="badge bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs ml-1 font-bold">HOT</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {limitedRewards.map(reward => (
               <div
                 key={reward.id}
-                className="card w-full min-w-0 relative overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all active:scale-95 cursor-pointer transform"
+                className="card flex overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 cursor-pointer transform relative"
                 onClick={() => { playSound('click'); setSelectedReward(reward); }}
               >
-                <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10">
+                <div className="absolute top-2 left-2 z-10">
                   <span className="badge bg-red-500 text-white border-red-700 text-xs font-bold animate-pulse">{tr.shop.limited}</span>
                 </div>
-                <div className="h-24 sm:h-28 lg:h-36 overflow-hidden border-b-2 border-black dark:border-gray-700 hover:scale-110 transition-transform">
+                <div className="w-28 flex-shrink-0 border-r-2 border-black dark:border-gray-700 overflow-hidden">
                   <img src={reward.image} alt={reward.title} className="w-full h-full object-cover" />
                 </div>
-                <div className="p-2 sm:p-3">
-                  <p className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white line-clamp-1">{reward.title}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 line-clamp-2">{reward.description}</p>
-                  <div className="flex items-center justify-between mt-2 sm:mt-3">
-                    <div className="flex items-center gap-0.5 sm:gap-1">
-                      <Star size={10} className="sm:w-3 sm:h-3 text-amber-500" fill="currentColor" />
-                      <span className="font-black text-xs sm:text-sm text-amber-600 dark:text-amber-400">{reward.points.toLocaleString()}</span>
+                <div className="flex-1 p-3 flex flex-col min-w-0">
+                  <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-1 mt-4">{reward.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{reward.description}</p>
+                  <div className="flex items-center justify-between mt-auto pt-2">
+                    <div className="flex items-center gap-1">
+                      <Star size={12} className="text-amber-500" fill="currentColor" />
+                      <span className="font-black text-sm text-amber-600 dark:text-amber-400">{reward.points.toLocaleString()}</span>
                     </div>
                     <button
                       onClick={e => { e.stopPropagation(); playSound('click'); setSelectedReward(reward); }}
-                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl font-bold text-xs border-2 transition-all active:scale-90 hover:shadow-md ${
+                      className={`px-3 py-1.5 rounded-xl font-bold text-xs border-2 transition-all active:scale-90 ${
                         points >= reward.points
-                          ? 'bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white border-black dark:border-gray-600 hover:opacity-90'
+                          ? 'bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white border-black dark:border-gray-600'
                           : 'bg-gray-100 dark:bg-gray-700 text-gray-400 border-gray-300 dark:border-gray-600 cursor-not-allowed'
                       }`}
                     >
@@ -252,39 +253,39 @@ const RewardsShop: React.FC = () => {
 
       {/* All rewards */}
       <div>
-        <h2 className="font-black text-base sm:text-lg text-gray-900 dark:text-white mb-2 sm:mb-3">
+        <h2 className="font-black text-base sm:text-lg text-gray-900 dark:text-white mb-3">
           {category === 'all' ? tr.shop.allRewards : categories.find(c => c.id === category)?.label}
-          <span className="ml-2 text-xs sm:text-sm font-medium text-gray-500">({regularRewards.length})</span>
+          <span className="ml-2 text-xs font-medium text-gray-500">({regularRewards.length})</span>
         </h2>
         {regularRewards.length === 0 ? (
-          <div className="card p-8 sm:p-12 text-center hover:shadow-md transition-shadow">
-            <Gift size={36} className="sm:w-12 sm:h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <div className="card p-8 text-center">
+            <Gift size={36} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
             <p className="font-bold text-gray-500">{tr.shop.noRewardsFound}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="space-y-3">
             {regularRewards.map(reward => (
               <div
                 key={reward.id}
                 className="card flex overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 transform cursor-pointer"
                 onClick={() => { playSound('click'); setSelectedReward(reward); }}
               >
-                <div className="w-24 sm:w-28 flex-shrink-0 border-r-2 border-black dark:border-gray-700 overflow-hidden hover:scale-110 transition-transform">
+                <div className="w-24 flex-shrink-0 border-r-2 border-black dark:border-gray-700 overflow-hidden">
                   <img src={reward.image} alt={reward.title} className="w-full h-full object-cover" />
                 </div>
-                <div className="flex-1 p-3 sm:p-4 flex flex-col">
-                  <p className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">{reward.title}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 line-clamp-2">{reward.description}</p>
-                  <div className="flex items-center justify-between mt-auto pt-2 sm:pt-3">
-                    <div className="flex items-center gap-0.5 sm:gap-1">
+                <div className="flex-1 p-3 flex flex-col min-w-0">
+                  <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-1">{reward.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{reward.description}</p>
+                  <div className="flex items-center justify-between mt-auto pt-2">
+                    <div className="flex items-center gap-1">
                       <Star size={12} className="text-amber-500" fill="currentColor" />
-                      <span className="font-black text-xs sm:text-sm text-amber-600 dark:text-amber-400">{reward.points.toLocaleString()}</span>
+                      <span className="font-black text-sm text-amber-600 dark:text-amber-400">{reward.points.toLocaleString()}</span>
                     </div>
                     <button
                       onClick={e => { e.stopPropagation(); playSound('click'); setSelectedReward(reward); }}
-                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl font-bold text-xs border-2 transition-all active:scale-90 hover:shadow-md ${
+                      className={`px-3 py-1.5 rounded-xl font-bold text-xs border-2 transition-all active:scale-90 flex-shrink-0 ${
                         points >= reward.points
-                          ? 'bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white border-black dark:border-gray-600 hover:opacity-90'
+                          ? 'bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white border-black dark:border-gray-600'
                           : 'bg-gray-100 dark:bg-gray-700 text-gray-400 border-gray-300 dark:border-gray-600'
                       }`}
                     >

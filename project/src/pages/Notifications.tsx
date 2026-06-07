@@ -76,8 +76,8 @@ const Notifications: React.FC = () => {
 
       {/* Notification list */}
       {filtered.length === 0 ? (
-        <div className="card p-8 sm:p-12 text-center hover:shadow-md transition-shadow">
-          <Bell size={36} className="sm:w-12 sm:h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+        <div className="card p-10 text-center">
+          <Bell size={40} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
           <p className="font-bold text-gray-500">{tr.notifications.empty}</p>
         </div>
       ) : (
@@ -89,36 +89,36 @@ const Notifications: React.FC = () => {
             return (
               <div
                 key={notif.id}
-                className={`card p-3 sm:p-4 flex items-start gap-2 sm:gap-3 transition-all cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transform active:scale-95 ${
+                className={`card p-3 transition-all cursor-pointer hover:shadow-lg active:scale-95 ${
                   !notif.read ? 'border-l-4 border-[#7B6EF6] dark:border-[#4F8EF7] bg-gradient-to-r from-[#7B6EF6]/5 dark:from-[#4F8EF7]/5 to-transparent' : ''
                 } ${isPriority ? 'ring-2 ring-amber-300 dark:ring-amber-600' : ''}`}
-                style={{
-                  animation: `slideIn 0.3s ease-out ${index * 0.05}s both`,
-                }}
+                style={{ animation: `slideIn 0.3s ease-out ${index * 0.05}s both` }}
                 onClick={() => markRead(notif.id)}
               >
-                <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl ${colorClass} flex items-center justify-center flex-shrink-0 hover:scale-110 transition-transform`}>
-                  <IconComp size={16} className="sm:w-[18px] sm:h-[18px]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className={`font-bold text-xs sm:text-sm ${!notif.read ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
-                      {notif.title}
-                    </p>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {isPriority && <AlertCircle size={14} className="text-amber-500 animate-pulse" />}
-                      {!notif.read && <div className="w-2 h-2 rounded-full bg-[#7B6EF6] dark:bg-[#4F8EF7] animate-pulse" />}
-                    </div>
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-2xl ${colorClass} flex items-center justify-center flex-shrink-0`}>
+                    <IconComp size={18} />
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{notif.message}</p>
-                  <p className="text-xs text-gray-400 mt-1">{notif.time}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className={`font-bold text-sm leading-tight ${!notif.read ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                        {notif.title}
+                      </p>
+                      <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                        {isPriority && <AlertCircle size={13} className="text-amber-500" />}
+                        {!notif.read && <div className="w-2 h-2 rounded-full bg-[#7B6EF6] dark:bg-[#4F8EF7]" />}
+                        <button
+                          onClick={e => { e.stopPropagation(); deleteNotif(notif.id); playSound('click'); }}
+                          className="p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-all active:scale-90"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{notif.message}</p>
+                    <p className="text-xs text-gray-400 mt-1.5">{notif.time}</p>
+                  </div>
                 </div>
-                <button
-                  onClick={e => { e.stopPropagation(); deleteNotif(notif.id); playSound('click'); }}
-                  className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-all active:scale-90 flex-shrink-0"
-                >
-                  <Trash2 size={14} />
-                </button>
               </div>
             );
           })}

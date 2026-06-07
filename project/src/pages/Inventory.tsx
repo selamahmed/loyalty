@@ -59,46 +59,47 @@ const Inventory: React.FC = () => {
       {/* Active items */}
       {active.length > 0 ? (
         <div>
-          <h2 className="font-bold text-gray-700 dark:text-gray-300 text-xs sm:text-sm mb-2 sm:mb-3">Aktif ({active.length})</h2>
-          <div className="space-y-2 sm:space-y-3">
+          <h2 className="font-bold text-gray-700 dark:text-gray-300 text-sm mb-3">Aktif ({active.length})</h2>
+          <div className="space-y-3">
             {active.map(item => {
               const config = typeConfig[item.type];
               const IconComp = config.icon;
               const expired = isExpired(item.expires);
 
               return (
-                <div key={item.id} className={`card p-3 sm:p-4 flex items-start gap-3 sm:gap-4 ${expired ? 'opacity-60' : ''}`}>
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${config.bg} flex items-center justify-center flex-shrink-0`}>
-                    <IconComp size={18} className="sm:w-5 sm:h-5" />
+                <div key={item.id} className={`card p-4 ${expired ? 'opacity-60' : ''}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-11 h-11 rounded-2xl ${config.bg} flex items-center justify-center flex-shrink-0`}>
+                      <IconComp size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="font-bold text-sm text-gray-900 dark:text-white leading-tight">{item.title}</p>
+                        {expired ? (
+                          <span className="badge bg-red-100 dark:bg-red-900/30 text-red-500 text-xs flex-shrink-0">Süresi Doldu</span>
+                        ) : (
+                          <span className={`badge ${config.bg} ${config.color} text-xs flex-shrink-0 capitalize`}>{item.type}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{item.description}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">{item.title}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{item.description}</p>
-                      </div>
-                      {expired ? (
-                        <span className="badge bg-red-100 dark:bg-red-900/30 text-red-500 text-xs flex-shrink-0">Süresi Doldu</span>
-                      ) : (
-                        <span className={`badge ${config.bg} ${config.color} text-xs flex-shrink-0 capitalize`}>{item.type}</span>
-                      )}
+                  {/* Code row */}
+                  <div className="flex items-center gap-2 mt-3">
+                    <div className="flex-1 min-w-0 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
+                      <span className="font-mono text-sm font-bold text-gray-900 dark:text-white tracking-widest truncate block">{item.code}</span>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-3">
-                      <div className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 dark:bg-gray-700 rounded-lg sm:rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
-                        <span className="font-mono text-xs sm:text-sm font-bold text-gray-900 dark:text-white tracking-wider">{item.code}</span>
-                      </div>
-                      <button
-                        onClick={() => handleCopy(item.code)}
-                        disabled={expired}
-                        className="p-2 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
-                      >
-                        {copiedCode === item.code ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
-                      <Clock size={10} />
-                      <span>Expires: {new Date(item.expires).toLocaleDateString()}</span>
-                    </div>
+                    <button
+                      onClick={() => handleCopy(item.code)}
+                      disabled={expired}
+                      className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 flex-shrink-0 active:scale-90"
+                    >
+                      {copiedCode === item.code ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
+                    <Clock size={11} />
+                    <span>Expires: {new Date(item.expires).toLocaleDateString()}</span>
                   </div>
                 </div>
               );
@@ -106,28 +107,28 @@ const Inventory: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="card p-8 sm:p-12 text-center">
-          <Package size={36} className="sm:w-12 sm:h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-          <h3 className="font-black text-lg sm:text-xl text-gray-500 dark:text-gray-400">Nothing here yet</h3>
-          <p className="text-gray-400 dark:text-gray-500 mt-2 text-xs sm:text-sm">Complete missions and redeem rewards to fill your inventory.</p>
+        <div className="card p-10 text-center">
+          <Package size={40} className="text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="font-black text-lg text-gray-500 dark:text-gray-400">Nothing here yet</h3>
+          <p className="text-gray-400 dark:text-gray-500 mt-2 text-sm">Complete missions and redeem rewards to fill your inventory.</p>
         </div>
       )}
 
       {/* Used items */}
       {used.length > 0 && (
         <div>
-          <h2 className="font-bold text-gray-500 dark:text-gray-500 text-xs sm:text-sm mb-2 sm:mb-3">Kullanılan ({used.length})</h2>
+          <h2 className="font-bold text-gray-500 text-sm mb-3">Kullanılan ({used.length})</h2>
           <div className="space-y-2">
             {used.map(item => {
               const config = typeConfig[item.type];
               const IconComp = config.icon;
               return (
-                <div key={item.id} className="card p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 opacity-50">
-                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl ${config.bg} flex items-center justify-center flex-shrink-0`}>
-                    <IconComp size={14} className="sm:w-4 sm:h-4" />
+                <div key={item.id} className="card p-3 flex items-center gap-3 opacity-50">
+                  <div className={`w-9 h-9 rounded-xl ${config.bg} flex items-center justify-center flex-shrink-0`}>
+                    <IconComp size={15} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-xs sm:text-sm text-gray-700 dark:text-gray-300 line-through">{item.title}</p>
+                    <p className="font-medium text-sm text-gray-700 dark:text-gray-300 line-through">{item.title}</p>
                     <p className="text-xs text-gray-400 font-mono truncate">{item.code}</p>
                   </div>
                   <span className="badge bg-gray-100 dark:bg-gray-700 text-gray-500 text-xs flex-shrink-0">Kullanılan</span>

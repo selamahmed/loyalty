@@ -105,22 +105,20 @@ const Achievements: React.FC = () => {
 
       {/* Achievement grid */}
       {filtered.length === 0 ? (
-        <div className="card p-8 sm:p-12 text-center hover:shadow-md transition-shadow">
-          <Trophy size={36} className="sm:w-12 sm:h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+        <div className="card p-10 text-center">
+          <Trophy size={40} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
           <p className="font-bold text-gray-500">{tr.common.noData}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 animate-fadeIn">
+        <div className="space-y-2 sm:grid sm:grid-cols-2 sm:gap-3 sm:space-y-0 animate-fadeIn">
           {filtered.map((ach, index) => {
             const rarity = rarityConfig[ach.rarity as keyof typeof rarityConfig];
             const progress = Math.round((ach.progress / ach.total) * 100);
             return (
               <div
                 key={ach.id}
-                className={`card p-3 sm:p-4 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 transform active:scale-95 cursor-pointer ${ach.completed ? '' : 'opacity-70'}`}
-                style={{
-                  animation: `slideIn 0.3s ease-out ${index * 0.05}s both`,
-                }}
+                className={`card p-3 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 transform active:scale-95 cursor-pointer ${ach.completed ? '' : 'opacity-75'}`}
+                style={{ animation: `slideIn 0.3s ease-out ${index * 0.05}s both` }}
                 onClick={() => {
                   if (ach.completed) {
                     playSound('success');
@@ -129,42 +127,42 @@ const Achievements: React.FC = () => {
                   }
                 }}
               >
-                <div className="flex items-start gap-2 sm:gap-3">
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl ${rarity.bg} border-2 ${rarity.border} flex items-center justify-center flex-shrink-0 relative hover:scale-110 transition-transform`}>
-                    <span className="text-xl sm:text-2xl">{ach.icon}</span>
+                <div className="flex items-start gap-3">
+                  <div className={`w-12 h-12 rounded-2xl ${rarity.bg} border-2 ${rarity.border} flex items-center justify-center flex-shrink-0 relative`}>
+                    <span className="text-xl">{ach.icon}</span>
                     {!ach.completed && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gray-400 border border-white dark:border-gray-800 flex items-center justify-center hover:scale-110 transition-transform">
-                        <Lock size={8} className="sm:w-2.5 sm:h-2.5 text-white" />
+                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gray-400 border-2 border-white dark:border-gray-800 flex items-center justify-center">
+                        <Lock size={9} className="text-white" />
                       </div>
                     )}
                     {ach.completed && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500 border border-white dark:border-gray-800 flex items-center justify-center animate-pulse">
-                        <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none">
+                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white dark:border-gray-800 flex items-center justify-center">
+                        <svg viewBox="0 0 10 10" className="w-3 h-3" fill="none">
                           <path d="M2 5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-1">
-                      <p className="font-black text-gray-900 dark:text-white text-xs sm:text-sm leading-tight">{ach.title}</p>
-                      <span className={`badge ${rarity.bg} ${rarity.text} text-xs flex-shrink-0 ml-1`}>{rarity.label}</span>
+                    <div className="flex items-start justify-between gap-2 mb-0.5">
+                      <p className="font-black text-gray-900 dark:text-white text-sm leading-tight">{ach.title}</p>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${rarity.bg} ${rarity.text}`}>{rarity.label}</span>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{ach.description}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{ach.description}</p>
 
                     {!ach.completed && (
-                      <div className="mt-1.5 sm:mt-2">
-                        <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <div className="mt-2">
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
                           <span>{ach.progress}/{ach.total}</span>
                           <span>{progress}%</span>
                         </div>
-                        <div className="h-1 sm:h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden border border-gray-300 dark:border-gray-500">
-                          <div className="h-full bg-gradient-to-r from-[#7B6EF6] to-[#4F8EF7] dark:from-[#4F8EF7] dark:to-[#3B7FE8] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                        <div className="h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-[#7B6EF6] to-[#4F8EF7] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
                         </div>
                       </div>
                     )}
 
-                    <div className="flex items-center gap-1 mt-1.5 sm:mt-2">
+                    <div className="flex items-center gap-1 mt-2">
                       <Star size={10} className="text-amber-500" fill="currentColor" />
                       <span className="text-xs font-bold text-amber-600 dark:text-amber-400">+{ach.points} pts</span>
                     </div>
