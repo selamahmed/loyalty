@@ -63,6 +63,7 @@ function App() {
         <Routes>
 
           {/* Landing Page */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/landing" element={<LandingPage />} />
 
           {/* Auth */}
@@ -70,7 +71,7 @@ function App() {
           <Route path="/register" element={<Register />} />
 
           {/* Main Pages */}
-          <Route path="/" element={<WrappedPage><Home /></WrappedPage>} />
+          <Route path="/home" element={<WrappedPage><Home /></WrappedPage>} />
           <Route path="/profile" element={<WrappedPage><Profile /></WrappedPage>} />
           <Route path="/inventory" element={<WrappedPage><Inventory /></WrappedPage>} />
           <Route path="/shop" element={<WrappedPage><RewardsShop /></WrappedPage>} />

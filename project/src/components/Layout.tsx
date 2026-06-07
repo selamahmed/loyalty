@@ -7,10 +7,9 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import RewardPopup from './RewardPopup';
-import BackgroundLayer from './BackgroundLayer';
 
 const navItems = [
-  { path: '/', icon: Home, label: 'Home' },
+  { path: '/home', icon: Home, label: 'Home' },
   { path: '/shop', icon: ShoppingBag, label: 'Shop' },
   { path: '/progress', icon: BarChart2, label: 'Progress' },
   { path: '/profile', icon: User, label: 'Profile' },
@@ -20,7 +19,7 @@ const sidebarGroups = [
   {
     category: 'General',
     items: [
-      { path: '/', icon: Home, label: 'Home' },
+      { path: '/home', icon: Home, label: 'Home' },
       { path: '/profile', icon: User, label: 'Profile' },
       { path: '/notifications', icon: Bell, label: 'Notifications' },
     ],
@@ -92,7 +91,6 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
 
   return (
     <div className="page-container flex overflow-x-hidden">
-      <BackgroundLayer />
       {rewardPopup && <RewardPopup data={rewardPopup} onDismiss={dismissRewardPopup} />}
 
       {/* Mobile sidebar overlay */}
