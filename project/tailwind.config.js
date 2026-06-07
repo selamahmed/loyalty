@@ -28,6 +28,15 @@ export default {
         'brutal-sm': '0px 2px 0px var(--dark-border)',
         'brutal-focus': '0px 4px 0px var(--dark-border)',
       },
+      keyframes: {
+        'confetti-fall': {
+          '0%': { transform: 'translateY(-100vh) rotate(0deg)', opacity: '1' },
+          '100%': { transform: 'translateY(100vh) rotate(720deg)', opacity: '0' },
+        },
+      },
+      animation: {
+        confetti: 'confetti-fall 2.5s ease-in forwards',
+      },
     },
   },
   plugins: [],

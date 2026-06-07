@@ -1,6 +1,7 @@
 import React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
+import { RewardEventsProvider } from './context/RewardEventsContext';
 import Layout from './components/Layout';
 
 // Auth pages
@@ -42,6 +43,7 @@ import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import AdminPointsEconomy from './pages/admin/AdminPointsEconomy';
 import AdminDashboard2 from './pages/admin/AdminDashboard2';
 import AdminUsers2 from './pages/admin/AdminUsers2';
+import AdminRewardEvents from './pages/admin/AdminRewardEvents';
 
 // Error pages
 import { NotFound, NoConnection, Maintenance } from './pages/ErrorPages';
@@ -52,6 +54,7 @@ const WrappedPage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 function App() {
   return (
+    <RewardEventsProvider>
     <AppProvider>
       <HashRouter>
         <Routes>
@@ -95,6 +98,7 @@ function App() {
           <Route path="/admin/points-economy" element={<AdminPointsEconomy />} />
           <Route path="/admin/dashboard-v2" element={<AdminDashboard2 />} />
           <Route path="/admin/users-v2" element={<AdminUsers2 />} />
+          <Route path="/admin/reward-events" element={<AdminRewardEvents />} />
 
           {/* Error Pages */}
           <Route path="/no-connection" element={<NoConnection />} />
@@ -104,6 +108,7 @@ function App() {
         </Routes>
       </HashRouter>
     </AppProvider>
+    </RewardEventsProvider>
   );
 }
 

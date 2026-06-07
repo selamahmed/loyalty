@@ -1,32 +1,227 @@
-import React, { useState } from 'react';
-import { Trophy, Star, Crown, TrendingUp, Gift, Award, Sparkles, Users, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Trophy, Star, Crown, TrendingUp, Gift, Sparkles, Timer, Medal } from 'lucide-react';
 import { leaderboard } from '../data/mockData';
-import { tr } from '../lib/tr';
+import { useRewardEvents, RewardEvent, Winner } from '../context/RewardEventsContext';
 
+/* ── Countdown hook ── */
+const useCountdown = (endDate: string) => {
+  const calc = () => {
+    const diff = new Date(endDate).getTime() - Date.now();
+    if (diff <= 0) return { days: 0, hours: 0, mins: 0, secs: 0, ended: true };
+    return {
+      days: Math.floor(diff / 86400000),
+      hours: Math.floor((diff % 86400000) / 3600000),
+      mins: Math.floor((diff % 3600000) / 60000),
+      secs: Math.floor((diff % 60000) / 1000),
+      ended: false,
+    };
+  };
+  const [cd, setCd] = useState(calc);
+  useEffect(() => {
+    const t = setInterval(() => setCd(calc()), 1000);
+    return () => clearInterval(t);
+  }, [endDate]);
+  return cd;
+};
+
+/* ── Confetti burst ── */
+const Confetti: React.FC = () => {
+  const colors = ['#FFD700', '#7B6EF6', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+  const pieces = Array.from({ length: 28 }, (_, i) => ({
+    id: i,
+    color: colors[i % colors.length],
+    left: `${Math.random() * 100}%`,
+    delay: `${Math.random() * 1.2}s`,
+    duration: `${1.2 + Math.random() * 1}s`,
+    size: `${6 + Math.random() * 8}px`,
+    rotate: `${Math.random() * 360}deg`,
+  }));
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {pieces.map(p => (
+        <div
+          key={p.id}
+          className="absolute animate-confetti rounded-sm"
+          style={{
+            left: p.left,
+            top: '-10px',
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+            transform: `rotate(${p.rotate})`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+/* ── Countdown Display ── */
+const CountdownBlock: React.FC<{ endDate: string }> = ({ endDate }) => {
+  const cd = useCountdown(endDate);
+  if (cd.ended) return <span className="font-black text-red-400">Event Ended</span>;
+  const units = [
+    { label: 'D', val: cd.days },
+    { label: 'H', val: cd.hours },
+    { label: 'M', val: cd.mins },
+    { label: 'S', val: cd.secs },
+  ];
+  return (
+    <div className="flex items-center gap-1">
+      {units.map(u => (
+        <React.Fragment key={u.label}>
+          <div className="bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 text-center min-w-[36px]">
+            <p className="font-black text-white text-sm leading-none">{String(u.val).padStart(2,'0')}</p>
+            <p className="text-white/60 text-[9px] font-bold uppercase">{u.label}</p>
+          </div>
+          {u.label !== 'S' && <span className="text-white/60 font-black text-sm">:</span>}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+};
+
+/* ── Active Event Banner ── */
+const ActiveEventBanner: React.FC<{ event: RewardEvent }> = ({ event }) => {
+  const ended = new Date(event.endDate) < new Date();
+  const { getWinners } = useRewardEvents();
+  const winners: Winner[] = ended ? getWinners(event) : [];
+  const [showAll, setShowAll] = useState(false);
+
+  const medal = (rank: number) =>
+    rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `🏅`;
+
+  return (
+    <div className={`relative rounded-3xl overflow-hidden border-4 border-black dark:border-gray-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] dark:shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)]`}>
+      {ended && <Confetti />}
+
+      {/* Banner gradient bg */}
+      <div className={`relative bg-gradient-to-r ${event.banner} p-5`}>
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="relative">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black text-white mb-2 border border-white/30">
+                <Trophy size={10} fill="currentColor" />
+                {ended ? '🎉 EVENT ENDED — WINNERS!' : 'LIVE REWARD EVENT'}
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white mb-1 drop-shadow">{event.title}</h3>
+              <p className="text-white/80 text-xs sm:text-sm max-w-md line-clamp-2">{event.description}</p>
+            </div>
+            {!ended && (
+              <div className="flex-shrink-0 bg-black/30 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/20">
+                <p className="text-white/70 text-[10px] font-black uppercase tracking-widest mb-1 flex items-center gap-1"><Timer size={10} /> Ends In</p>
+                <CountdownBlock endDate={event.endDate} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Prize cards */}
+      <div className="bg-white dark:bg-gray-800 p-4 space-y-3">
+        {!ended && (
+          <>
+            <p className="font-black text-gray-700 dark:text-gray-300 text-sm flex items-center gap-2">
+              <Gift size={15} className="text-purple-500" /> Prize Pool
+              <span className="text-xs font-normal text-gray-400">— Earn the most points to win!</span>
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {event.rewards.slice(0, 3).map(r => (
+                <div key={r.rank}
+                  className={`relative rounded-2xl p-3 border-2 text-center transition-transform hover:scale-[1.02] cursor-default ${
+                    r.rank === 1
+                      ? 'border-amber-400 bg-gradient-to-b from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/20 shadow-[2px_2px_0px_0px_rgba(251,191,36,0.5)]'
+                      : r.rank === 2
+                      ? 'border-gray-300 dark:border-gray-500 bg-gradient-to-b from-gray-50 to-slate-50 dark:from-gray-800 dark:to-gray-750 shadow-[2px_2px_0px_0px_rgba(156,163,175,0.4)]'
+                      : 'border-orange-300 dark:border-orange-700 bg-gradient-to-b from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/10 shadow-[2px_2px_0px_0px_rgba(251,146,60,0.4)]'
+                  }`}>
+                  <div className="text-4xl mb-1.5 filter drop-shadow">{r.rewardImage}</div>
+                  <span className={`text-xs font-black ${r.rank === 1 ? 'text-amber-600' : r.rank === 2 ? 'text-gray-500' : 'text-orange-500'}`}>{r.label}</span>
+                  <p className="font-black text-gray-900 dark:text-white text-sm mt-0.5">{r.rewardName}</p>
+                  {r.quantity > 1 && <p className="text-[10px] text-gray-400 mt-0.5">×{r.quantity}</p>}
+                </div>
+              ))}
+            </div>
+            {event.rewards.length > 3 && (
+              <div>
+                <button onClick={() => setShowAll(v => !v)} className="text-xs font-bold text-[#7B6EF6] dark:text-[#4F8EF7] hover:underline">
+                  {showAll ? '▲ Show less' : `▼ Show all ${event.rewards.length} prizes`}
+                </button>
+                {showAll && (
+                  <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {event.rewards.slice(3).map(r => (
+                      <div key={r.rank} className="rounded-xl p-2 border border-gray-200 dark:border-gray-700 flex items-center gap-2 bg-gray-50 dark:bg-gray-750">
+                        <span className="text-xl">{r.rewardImage}</span>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold text-gray-400">{r.label}</p>
+                          <p className="text-xs font-black text-gray-900 dark:text-white truncate">{r.rewardName}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Winners display when ended */}
+        {ended && (
+          <div className="space-y-3">
+            <p className="font-black text-gray-900 dark:text-white flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-500" /> Final Winners
+            </p>
+            <div className="space-y-2">
+              {winners.map(w => (
+                <div key={w.rank}
+                  className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${
+                    w.rank === 1
+                      ? 'border-amber-400 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/10'
+                      : w.rank === 2
+                      ? 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-750'
+                      : 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10'
+                  }`}>
+                  <span className="text-2xl flex-shrink-0">{medal(w.rank)}</span>
+                  <img src={w.avatar} alt={w.username} className="w-9 h-9 rounded-full border-2 border-black dark:border-gray-600 flex-shrink-0 object-cover"
+                    onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${w.username}&background=7B6EF6&color=fff`; }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-sm text-gray-900 dark:text-white truncate">{w.username}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="flex items-center gap-0.5 text-xs text-amber-600 dark:text-amber-400 font-bold">
+                        <Star size={10} fill="currentColor" />{w.points.toLocaleString()} pts
+                      </span>
+                      <span className="text-gray-300 dark:text-gray-600">•</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{w.reward.rewardImage} {w.reward.rewardName}</span>
+                    </div>
+                  </div>
+                  {w.rank === 1 && (
+                    <span className="flex-shrink-0 bg-amber-400 text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-600 animate-pulse">
+                      CHAMPION
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ── Main Leaderboard Page ── */
 const Leaderboard: React.FC = () => {
   const [tab, setTab] = useState<'weekly' | 'monthly' | 'alltime'>('weekly');
+  const { events } = useRewardEvents();
 
   const top3 = leaderboard.slice(0, 3);
   const rest = leaderboard.slice(3);
+  const podiumOrder = [top3[1], top3[0], top3[2]];
 
-  const podiumOrder = [top3[1], top3[0], top3[2]]; // 2nd, 1st, 3rd
-
-  // Mock gift data
-  const giftLeaderboard = [
-    { rank: 1, username: 'PixelKing', avatar: 'https://i.pravatar.cc/100?img=1', giftsSent: 45, giftsReceived: 128, totalValue: 12500, streak: 15 },
-    { rank: 2, username: 'NeonGamer', avatar: 'https://i.pravatar.cc/100?img=2', giftsSent: 52, giftsReceived: 95, totalValue: 9800, streak: 12 },
-    { rank: 3, username: 'StarPlayer99', avatar: 'https://i.pravatar.cc/100?img=3', giftsSent: 38, giftsReceived: 87, totalValue: 7200, streak: 8 },
-    { rank: 4, username: 'CosmicQueen', avatar: 'https://i.pravatar.cc/100?img=4', giftsSent: 29, giftsReceived: 64, totalValue: 5400, streak: 5 },
-    { rank: 5, username: 'ThunderBlast', avatar: 'https://i.pravatar.cc/100?img=5', giftsSent: 22, giftsReceived: 45, totalValue: 3200, streak: 3 },
-  ];
-
-  const giftTypes = [
-    { emoji: '🎁', name: 'Gift Box', value: 100, sent: 234 },
-    { emoji: '🌹', name: 'Rose', value: 50, sent: 456 },
-    { emoji: '💎', name: 'Diamond', value: 500, sent: 89 },
-    { emoji: '🏆', name: 'Trophy', value: 300, sent: 123 },
-    { emoji: '🌟', name: 'Star', value: 75, sent: 312 },
-  ];
+  const publishedEvents = events.filter(e => e.published);
 
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
@@ -34,6 +229,15 @@ const Leaderboard: React.FC = () => {
         <Trophy className="text-amber-500" size={24} />
         Leaderboard
       </h1>
+
+      {/* ── Active Reward Events ── */}
+      {publishedEvents.length > 0 && (
+        <div className="space-y-4">
+          {publishedEvents.map(ev => (
+            <ActiveEventBanner key={ev.id} event={ev} />
+          ))}
+        </div>
+      )}
 
       {/* Tab */}
       <div className="flex bg-gray-100 dark:bg-gray-800 rounded-2xl border-2 border-black dark:border-gray-600 p-1">
@@ -58,7 +262,6 @@ const Leaderboard: React.FC = () => {
         </h2>
         <div className="flex items-end justify-center gap-2 lg:gap-4">
           {podiumOrder.map((player, i) => {
-            const podiumHeight = [14, 22, 10][i];
             const rankBadge = player?.rank === 1 ? '👑' : player?.rank === 2 ? '🥈' : '🥉';
             const isFirst = player?.rank === 1;
             return (
@@ -76,11 +279,9 @@ const Leaderboard: React.FC = () => {
                   <Star size={10} className="text-amber-500" fill="currentColor" />
                   <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{player?.points.toLocaleString()}</span>
                 </div>
-                <div
-                  className={`w-16 lg:w-20 rounded-t-2xl flex items-center justify-center border-2 border-black dark:border-gray-600 ${
-                    isFirst ? 'bg-amber-400 h-20 lg:h-24' : i === 0 ? 'bg-gray-300 dark:bg-gray-600 h-14 lg:h-16' : 'bg-orange-300 dark:bg-orange-700 h-10 lg:h-12'
-                  }`}
-                >
+                <div className={`w-16 lg:w-20 rounded-t-2xl flex items-center justify-center border-2 border-black dark:border-gray-600 ${
+                  isFirst ? 'bg-amber-400 h-20 lg:h-24' : i === 0 ? 'bg-gray-300 dark:bg-gray-600 h-14 lg:h-16' : 'bg-orange-300 dark:bg-orange-700 h-10 lg:h-12'
+                }`}>
                   <span className="text-xl lg:text-2xl font-black text-white">#{player?.rank}</span>
                 </div>
               </div>
@@ -135,87 +336,6 @@ const Leaderboard: React.FC = () => {
               <TrendingUp size={12} className="text-green-500" />
               <span className="text-xs text-green-500 font-bold">+2 this week</span>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Gift Leaderboard Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 pt-4 border-t-2 border-gray-200 dark:border-gray-700">
-          <Gift className="text-pink-500" size={24} />
-          <h2 className="text-xl font-black text-gray-900 dark:text-white">Gift Champions</h2>
-          <Sparkles className="text-amber-500" size={20} />
-        </div>
-
-        {/* Gift Stats */}
-        <div className="grid grid-cols-3 gap-2 lg:gap-3">
-          <div className="card p-3 lg:p-4 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 border-2 border-pink-200 dark:border-pink-700 text-center">
-            <Gift className="mx-auto text-pink-500 mb-1" size={20} />
-            <p className="text-lg lg:text-xl font-black text-gray-900 dark:text-white">1,214</p>
-            <p className="text-xs text-gray-500">Gifts Sent</p>
-          </div>
-          <div className="card p-3 lg:p-4 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 border-2 border-purple-200 dark:border-purple-700 text-center">
-            <Users className="mx-auto text-purple-500 mb-1" size={20} />
-            <p className="text-lg lg:text-xl font-black text-gray-900 dark:text-white">487</p>
-            <p className="text-xs text-gray-500">Active Givers</p>
-          </div>
-          <div className="card p-3 lg:p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-2 border-amber-200 dark:border-amber-700 text-center">
-            <Zap className="mx-auto text-amber-500 mb-1" size={20} />
-            <p className="text-lg lg:text-xl font-black text-gray-900 dark:text-white">45K</p>
-            <p className="text-xs text-gray-500">Points Value</p>
-          </div>
-        </div>
-
-        {/* Top Gift Givers */}
-        <div className="card p-4 lg:p-5 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
-          <h3 className="font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Award size={18} className="text-amber-500" />
-            Top Gift Givers
-          </h3>
-          <div className="space-y-3">
-            {giftLeaderboard.map((user, i) => (
-              <div key={user.rank} className={`flex items-center gap-3 p-2 lg:p-3 rounded-xl ${i === 0 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700' : 'bg-gray-50 dark:bg-gray-700'}`}>
-                <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center font-black text-xs ${i === 0 ? 'bg-amber-400 text-white' : i === 1 ? 'bg-gray-400 text-white' : i === 2 ? 'bg-orange-400 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'}`}>
-                  {user.rank}
-                </div>
-                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-black dark:border-gray-600 flex-shrink-0">
-                  <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{user.username}</p>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>Sent: {user.giftsSent}</span>
-                    <span>•</span>
-                    <span>Received: {user.giftsReceived}</span>
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="font-black text-sm lg:text-base text-pink-600 dark:text-pink-400">{user.totalValue.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1 justify-end">
-                    <Gift size={10} />
-                    pts
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Popular Gifts */}
-        <div className="card p-4 lg:p-5 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
-          <h3 className="font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Sparkles size={18} className="text-purple-500" />
-            Popular Gifts
-          </h3>
-          <div className="grid grid-cols-5 gap-2">
-            {giftTypes.map(gift => (
-              <div key={gift.name} className="text-center p-2 lg:p-3 rounded-xl bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                <div className="text-2xl lg:text-3xl mb-1">{gift.emoji}</div>
-                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{gift.name}</p>
-                <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">{gift.value} pts</p>
-                <p className="text-[10px] text-gray-400 mt-1">{gift.sent} sent</p>
-              </div>
-            ))}
           </div>
         </div>
       </div>

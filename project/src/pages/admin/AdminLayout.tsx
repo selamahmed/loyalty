@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Gift, QrCode, Gamepad2, BarChart2,
   Megaphone, Menu, X, Shield, Bell, Moon, Sun, ArrowLeft, Settings,
-  Activity, Zap, FileText, Database
+  Activity, Zap, FileText, Trophy
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { tr } from '../../lib/tr';
@@ -15,6 +15,7 @@ const adminNavItems = [
   { path: '/admin/users', icon: Users, label: 'Users' },
   { path: '/admin/users-v2', icon: Shield, label: 'Users V2 (Full)' },
   { path: '/admin/rewards', icon: Gift, label: 'Rewards' },
+  { path: '/admin/reward-events', icon: Trophy, label: 'Reward Events' },
   { path: '/admin/events', icon: Bell, label: 'Events' },
   { path: '/admin/notifications', icon: Megaphone, label: 'Notifications' },
   { path: '/admin/qr', icon: QrCode, label: 'QR Codes' },
