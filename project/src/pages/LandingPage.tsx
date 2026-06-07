@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Users, Sparkles, Trophy, Star, Zap, Gift, Target, Heart, Gamepad2, Shield, QrCode } from 'lucide-react';
+import { ArrowRight, Sparkles, Star, Shield, Sun, Moon } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════════════
    BRIX-STYLE SVG STICKERS — bold outlines, flat fills
@@ -120,6 +120,63 @@ const S = {
 };
 
 /* ═══════════════════════════════════════════════════════════════
+   NEO-BRUTALISM CARD SHAPE DECORATIONS
+═══════════════════════════════════════════════════════════════ */
+const CardDeco = {
+  CrossDots: ({ color = '#7B6EF6', opacity = 0.18 }) => (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ position: 'absolute', bottom: 10, right: 10, opacity, pointerEvents: 'none' }}>
+      {[8, 24, 40].map(x => [8, 24, 40].map(y => (
+        <circle key={`${x}-${y}`} cx={x} cy={y} r="3" fill={color} />
+      )))}
+    </svg>
+  ),
+  DiagStripes: ({ color = '#7B6EF6', opacity = 0.1 }) => (
+    <svg width="60" height="60" viewBox="0 0 60 60" fill="none" style={{ position: 'absolute', bottom: 0, right: 0, opacity, pointerEvents: 'none' }}>
+      {[0, 10, 20, 30, 40, 50, 60, 70, 80].map(offset => (
+        <line key={offset} x1={offset - 30} y1="0" x2={offset} y2="60" stroke={color} strokeWidth="5" />
+      ))}
+    </svg>
+  ),
+  PlusMark: ({ color = '#FBBF24', opacity = 0.25 }) => (
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ position: 'absolute', top: 12, right: 12, opacity, pointerEvents: 'none' }}>
+      <rect x="11" y="2" width="6" height="24" rx="3" fill={color} />
+      <rect x="2" y="11" width="24" height="6" rx="3" fill={color} />
+    </svg>
+  ),
+  ZigZag: ({ color = '#F472B6', opacity = 0.2 }) => (
+    <svg width="60" height="20" viewBox="0 0 60 20" fill="none" style={{ position: 'absolute', bottom: 8, left: 8, opacity, pointerEvents: 'none' }}>
+      <polyline points="0,15 10,5 20,15 30,5 40,15 50,5 60,15" stroke={color} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" fill="none" />
+    </svg>
+  ),
+  CornerBracket: ({ color = '#7B6EF6', opacity = 0.22 }) => (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style={{ position: 'absolute', bottom: 8, left: 8, opacity, pointerEvents: 'none' }}>
+      <path d="M2 20 L2 2 L20 2" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  ),
+  HalfCircle: ({ color = '#86EFAC', opacity = 0.2 }) => (
+    <svg width="44" height="22" viewBox="0 0 44 22" fill="none" style={{ position: 'absolute', bottom: 0, right: 0, opacity, pointerEvents: 'none' }}>
+      <path d="M0 22 A22 22 0 0 1 44 22 Z" fill={color} />
+    </svg>
+  ),
+  TinyDiamond: ({ color = '#FCD34D', opacity = 0.28 }) => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ position: 'absolute', top: 8, left: 8, opacity, pointerEvents: 'none' }}>
+      <polygon points="10,1 19,10 10,19 1,10" fill={color} stroke={color} strokeWidth="1" />
+    </svg>
+  ),
+  WaveLine: ({ color = '#A78BFA', opacity = 0.2 }) => (
+    <svg width="64" height="18" viewBox="0 0 64 18" fill="none" style={{ position: 'absolute', bottom: 8, left: 8, opacity, pointerEvents: 'none' }}>
+      <path d="M0 9 C8 0, 16 18, 24 9 C32 0, 40 18, 48 9 C56 0, 64 18, 72 9" stroke={color} strokeWidth="3" strokeLinecap="round" fill="none" />
+    </svg>
+  ),
+  CircleDot: ({ color = '#F472B6', opacity = 0.2 }) => (
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" style={{ position: 'absolute', bottom: 8, right: 8, opacity, pointerEvents: 'none' }}>
+      <circle cx="18" cy="18" r="15" stroke={color} strokeWidth="3" fill="none" />
+      <circle cx="18" cy="18" r="5" fill={color} />
+    </svg>
+  ),
+};
+
+/* ═══════════════════════════════════════════════════════════════
    INFINITE TICKER STRIP
 ═══════════════════════════════════════════════════════════════ */
 interface TickerItem { text: string; emoji: string; }
@@ -159,15 +216,15 @@ const TickerStrip: React.FC<{
 };
 
 /* ═══════════════════════════════════════════════════════════════
-   FEATURES
+   FEATURES DATA
 ═══════════════════════════════════════════════════════════════ */
 const features = [
-  { emoji: '⚡', title: 'Anında Ödüller',         desc: 'Her etkileşimde anında puan kazan.',               color: '#7B6EF6' },
-  { emoji: '🎮', title: 'Eğlenceli Oyunlar',       desc: 'Oyunlar oyna, görevleri tamamla, bonus kazan.',    color: '#22c55e' },
-  { emoji: '🎁', title: 'Özel Ödüller',            desc: 'Puanlarını harika ödüllerle değiştir.',             color: '#f59e0b' },
-  { emoji: '🎯', title: 'Günlük Görevler',         desc: 'Günlük zorlukları tamamla, serini koru.',           color: '#ef4444' },
-  { emoji: '🏆', title: 'Liderlik Tabloları',      desc: 'Diğerleriyle yarış ve sıralamada yüksel.',          color: '#06b6d4' },
-  { emoji: '💖', title: 'Sosyal Ödüller',          desc: 'Arkadaşlarınla paylaş, ekstra puan kazan.',         color: '#ec4899' },
+  { emoji: '⚡', title: 'Anında Ödüller',         desc: 'Her etkileşimde anında puan kazan.',               color: '#7B6EF6', deco: 'CrossDots' },
+  { emoji: '🎮', title: 'Eğlenceli Oyunlar',       desc: 'Oyunlar oyna, görevleri tamamla, bonus kazan.',    color: '#22c55e', deco: 'DiagStripes' },
+  { emoji: '🎁', title: 'Özel Ödüller',            desc: 'Puanlarını harika ödüllerle değiştir.',             color: '#f59e0b', deco: 'ZigZag' },
+  { emoji: '🎯', title: 'Günlük Görevler',         desc: 'Günlük zorlukları tamamla, serini koru.',           color: '#ef4444', deco: 'WaveLine' },
+  { emoji: '🏆', title: 'Liderlik Tabloları',      desc: 'Diğerleriyle yarış ve sıralamada yüksel.',          color: '#06b6d4', deco: 'HalfCircle' },
+  { emoji: '💖', title: 'Sosyal Ödüller',          desc: 'Arkadaşlarınla paylaş, ekstra puan kazan.',         color: '#ec4899', deco: 'CircleDot' },
 ];
 
 const tickerRow1: TickerItem[] = [
@@ -204,64 +261,99 @@ const testimonials = [
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
+  const [isDark, setIsDark] = useState(true);
+
+  /* ── Theme tokens ── */
+  const t = {
+    pageBg:        isDark ? '#0d0b1f' : '#f5f3ff',
+    cardBg:        isDark ? '#1a1733' : '#ffffff',
+    cardBg2:       isDark ? '#120f28' : '#f5f3ff',
+    navBg:         isDark ? 'rgba(13,11,31,0.92)' : 'rgba(245,243,255,0.88)',
+    border:        isDark ? '#3d3870' : '#1e1b4b',
+    shadow:        isDark ? '#000000' : '#1e1b4b',
+    textPrimary:   isDark ? '#f0edff' : '#1e1b4b',
+    textSecondary: isDark ? '#a09ac0' : '#6b7280',
+    textMuted:     isDark ? '#6b5fa0' : '#9ca3af',
+    pillBg:        isDark ? 'rgba(123,110,246,0.18)' : '#ede9fe',
+    pillText:      '#9B8FF8',
+    footerBg:      isDark ? '#0d0b1f' : '#ffffff',
+    howBg:         isDark ? '#130f2a' : '#ffffff',
+    decoOpacity:   isDark ? 0.15 : 0.18,
+  };
+
+  const cardStyle = (extra?: object) => ({
+    background: t.cardBg,
+    border: `2.5px solid ${t.border}`,
+    boxShadow: `0px 5px 0px ${t.shadow}`,
+    ...extra,
+  });
 
   return (
-    <div className="min-h-screen overflow-x-hidden" style={{ background: '#f5f3ff', color: '#1e1b4b' }}>
+    <div className="min-h-screen overflow-x-hidden" style={{ background: t.pageBg, color: t.textPrimary, transition: 'background 0.3s, color 0.3s' }}>
 
-      {/* ── Ghost background text (watermark layer) ── */}
+      {/* ── Ghost background text ── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden select-none" style={{ zIndex: 0 }}>
-        {/* Large center text */}
         <div style={{
           position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%) rotate(-8deg)',
-          fontSize: 'clamp(100px, 18vw, 220px)', fontWeight: 900, color: '#7B6EF6', opacity: 0.03,
-          whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.02em', fontFamily: 'inherit',
+          fontSize: 'clamp(100px, 18vw, 220px)', fontWeight: 900, color: '#7B6EF6',
+          opacity: isDark ? 0.05 : 0.03,
+          whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.02em',
         }}>NEXREWARD</div>
         <div style={{
           position: 'absolute', top: '52%', left: '50%', transform: 'translateX(-50%) rotate(-8deg)',
-          fontSize: 'clamp(80px, 14vw, 180px)', fontWeight: 900, color: '#7B6EF6', opacity: 0.025,
-          whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.02em', fontFamily: 'inherit',
+          fontSize: 'clamp(80px, 14vw, 180px)', fontWeight: 900, color: '#7B6EF6',
+          opacity: isDark ? 0.04 : 0.025,
+          whiteSpace: 'nowrap', lineHeight: 1,
         }}>PUAN KAZAN</div>
-        {/* Left side vertical */}
         <div style={{
           position: 'absolute', top: '30%', left: '-20px', transform: 'rotate(-90deg)', transformOrigin: 'left center',
-          fontSize: '13px', fontWeight: 900, color: '#7B6EF6', opacity: 0.12, letterSpacing: '0.3em',
-          whiteSpace: 'nowrap',
+          fontSize: '13px', fontWeight: 900, color: '#7B6EF6', opacity: isDark ? 0.18 : 0.12,
+          letterSpacing: '0.3em', whiteSpace: 'nowrap',
         }}>KAHVE ✦ ÇAY ✦ ALIŞVERIŞ ✦ PUAN ✦ ÖDÜL ✦ EĞLEN ✦ YÜKSEL ✦</div>
-        {/* Right side vertical */}
         <div style={{
           position: 'absolute', top: '30%', right: '-20px', transform: 'rotate(90deg)', transformOrigin: 'right center',
-          fontSize: '13px', fontWeight: 900, color: '#7B6EF6', opacity: 0.12, letterSpacing: '0.3em',
-          whiteSpace: 'nowrap',
+          fontSize: '13px', fontWeight: 900, color: '#7B6EF6', opacity: isDark ? 0.18 : 0.12,
+          letterSpacing: '0.3em', whiteSpace: 'nowrap',
         }}>KEŞFET ✦ KAZAN ✦ PAYLAŞ ✦ YARIŞ ✦ LIDER ✦ BAŞAR ✦ NEXREWARD ✦</div>
       </div>
 
-      {/* All real content above watermark */}
       <div className="relative" style={{ zIndex: 1 }}>
 
         {/* ══ NAV ══ */}
-        <nav className="sticky top-0 z-50 backdrop-blur-md" style={{ background: 'rgba(245,243,255,0.88)', borderBottom: '2.5px solid #1e1b4b' }}>
+        <nav className="sticky top-0 z-50 backdrop-blur-md" style={{ background: t.navBg, borderBottom: `2.5px solid ${t.border}`, transition: 'background 0.3s, border-color 0.3s' }}>
           <div className="flex items-center justify-between px-4 sm:px-8 py-3 max-w-7xl mx-auto">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-lg"
-                style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: '2.5px solid #1e1b4b', boxShadow: '0px 3px 0px #1e1b4b' }}>
+                style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: `2.5px solid ${t.border}`, boxShadow: `0px 3px 0px ${t.shadow}` }}>
                 N
               </div>
-              <span className="font-black text-xl tracking-tight" style={{ color: '#1e1b4b' }}>NexReward</span>
+              <span className="font-black text-xl tracking-tight" style={{ color: t.textPrimary }}>NexReward</span>
             </div>
-            <div className="hidden md:flex items-center gap-7 font-bold text-sm" style={{ color: '#6b7280' }}>
-              <a href="#features"      className="hover:text-[#7B6EF6] transition-colors">Özellikler</a>
-              <a href="#how"           className="hover:text-[#7B6EF6] transition-colors">Nasıl Çalışır</a>
-              <a href="#testimonials"  className="hover:text-[#7B6EF6] transition-colors">Yorumlar</a>
+            <div className="hidden md:flex items-center gap-7 font-bold text-sm" style={{ color: t.textSecondary }}>
+              <a href="#features"     className="hover:text-[#7B6EF6] transition-colors">Özellikler</a>
+              <a href="#how"          className="hover:text-[#7B6EF6] transition-colors">Nasıl Çalışır</a>
+              <a href="#testimonials" className="hover:text-[#7B6EF6] transition-colors">Yorumlar</a>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Dark mode toggle */}
+              <button
+                onClick={() => setIsDark(!isDark)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                style={{ background: t.cardBg, border: `2px solid ${t.border}`, boxShadow: `0px 2px 0px ${t.shadow}` }}
+                title={isDark ? 'Açık Mod' : 'Koyu Mod'}
+              >
+                {isDark
+                  ? <Sun size={16} style={{ color: '#FBBF24' }} />
+                  : <Moon size={16} style={{ color: '#7B6EF6' }} />}
+              </button>
               <button onClick={() => navigate('/login')}
                 className="px-4 sm:px-5 py-2 rounded-xl font-black text-sm transition-all active:translate-y-0.5 hover:scale-105"
-                style={{ border: '2px solid #1e1b4b', boxShadow: '0px 3px 0px #1e1b4b', background: 'white', color: '#1e1b4b' }}>
+                style={{ border: `2px solid ${t.border}`, boxShadow: `0px 3px 0px ${t.shadow}`, background: t.cardBg, color: t.textPrimary }}>
                 Giriş Yap
               </button>
               <button onClick={() => navigate('/home')}
                 className="px-4 sm:px-5 py-2 rounded-xl font-black text-sm text-white transition-all active:translate-y-0.5 hover:scale-105 flex items-center gap-1.5"
-                style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: '2px solid #1e1b4b', boxShadow: '0px 3px 0px #1e1b4b' }}>
+                style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: `2px solid ${t.border}`, boxShadow: `0px 3px 0px ${t.shadow}` }}>
                 Panel <ArrowRight size={14} />
               </button>
             </div>
@@ -270,35 +362,22 @@ const LandingPage: React.FC = () => {
 
         {/* ══ HERO ══ */}
         <section className="relative min-h-[92vh] flex items-center justify-center px-4 sm:px-6 py-16 overflow-hidden">
-          {/* Sticker cloud — purely decorative */}
+          {/* Sticker cloud */}
           <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-            {/* Top-left cluster */}
             <div className="absolute top-8  left-4  sm:left-12" style={{ animation: 'fl1 7s ease-in-out infinite' }}><S.Star5 s={74} f="#FBBF24" r={15} /></div>
             <div className="absolute top-28 left-0  sm:left-4"  style={{ animation: 'fl2 9s ease-in-out infinite' }}><S.Bolt  s={52} f="#FCD34D" r={-10} /></div>
             <div className="absolute top-48 left-8  sm:left-16" style={{ animation: 'fl1 11s ease-in-out infinite' }}><S.Peace s={44} f="#C4B5FD" r={20} /></div>
-
-            {/* Top-right cluster */}
             <div className="absolute top-6  right-4 sm:right-14" style={{ animation: 'fl2 8s ease-in-out infinite' }}><S.Heart  s={70} f="#F472B6" r={12} /></div>
             <div className="absolute top-28 right-0 sm:right-6"  style={{ animation: 'fl1 10s ease-in-out infinite' }}><S.Burst  s={52} f="#FDE68A" r={20} /></div>
             <div className="absolute top-52 right-6 sm:right-12" style={{ animation: 'fl2 12s ease-in-out infinite' }}><S.Flower s={48} f="#86EFAC" r={-8} /></div>
-
-            {/* Mid-left */}
             <div className="absolute top-1/2 left-1 sm:left-6 -translate-y-1/2" style={{ animation: 'fl1 13s ease-in-out infinite' }}><S.Diamond  s={56} f="#A78BFA" r={-8} /></div>
             <div className="absolute top-[45%] left-10 sm:left-20"              style={{ animation: 'fl2 8s ease-in-out infinite' }}><S.Triangle s={38} f="#FCA5A5" r={10} /></div>
-
-            {/* Mid-right */}
             <div className="absolute top-1/2 right-1 sm:right-6 -translate-y-1/2" style={{ animation: 'fl2 10s ease-in-out infinite' }}><S.Crown  s={58} f="#FCD34D" r={-5} /></div>
             <div className="absolute top-[42%] right-10 sm:right-20"             style={{ animation: 'fl1 9s ease-in-out infinite' }}><S.Smile  s={44} f="#FDE68A" r={8} /></div>
-
-            {/* Bottom-left */}
             <div className="absolute bottom-20 left-6 sm:left-16"  style={{ animation: 'fl2 8s ease-in-out infinite' }}><S.Clover  s={52} f="#86EFAC" r={15} /></div>
             <div className="absolute bottom-10 left-0 sm:left-8"   style={{ animation: 'fl1 11s ease-in-out infinite' }}><S.Arrow   s={46} f="#FCA5A5" r={-20} /></div>
-
-            {/* Bottom-right */}
             <div className="absolute bottom-18 right-6 sm:right-16" style={{ animation: 'fl1 7s ease-in-out infinite' }}><S.Bolt   s={58} f="#FCD34D" r={5} /></div>
             <div className="absolute bottom-10 right-0 sm:right-8"  style={{ animation: 'fl2 9s ease-in-out infinite' }}><S.Circle s={44} f="#6EE7B7" r={0} /></div>
-
-            {/* Scatter extras */}
             <div className="absolute top-1/3 left-1/3"  style={{ animation: 'fl1 14s ease-in-out infinite' }}><S.Star4 s={30} f="#FBBF24" r={25} /></div>
             <div className="absolute top-2/3 right-1/3" style={{ animation: 'fl2 12s ease-in-out infinite' }}><S.Pin    s={34} f="#7B6EF6" r={-10} /></div>
             <div className="absolute top-1/4 right-1/4" style={{ animation: 'fl1 10s ease-in-out infinite' }}><S.Ribbon s={38} f="#F472B6" r={15} /></div>
@@ -308,7 +387,7 @@ const LandingPage: React.FC = () => {
           <div className="relative z-10 max-w-3xl mx-auto text-center space-y-8">
             {/* Pill badge */}
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-sm"
-              style={{ background: 'white', border: '2.5px solid #1e1b4b', boxShadow: '0px 4px 0px #1e1b4b', animation: 'heroIn 0.6s ease both' }}>
+              style={{ background: t.cardBg, border: `2.5px solid ${t.border}`, boxShadow: `0px 4px 0px ${t.shadow}`, animation: 'heroIn 0.6s ease both', color: t.textPrimary }}>
               <Sparkles size={15} style={{ color: '#7B6EF6' }} />
               Türkiye'nin #1 Sadakat Platformu
               <S.Star5 s={20} f="#FBBF24" r={12} />
@@ -316,7 +395,7 @@ const LandingPage: React.FC = () => {
 
             {/* Headline */}
             <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[1.02] tracking-tight"
-              style={{ color: '#1e1b4b', animation: 'heroIn 0.6s 0.08s ease both' }}>
+              style={{ color: t.textPrimary, animation: 'heroIn 0.6s 0.08s ease both' }}>
               Alışveriş<br />
               Yaparken{' '}
               <span style={{
@@ -325,7 +404,7 @@ const LandingPage: React.FC = () => {
               }}>Puan Kazan</span>
             </h1>
 
-            <p className="text-lg sm:text-xl font-medium max-w-xl mx-auto" style={{ color: '#6b7280', animation: 'heroIn 0.6s 0.16s ease both' }}>
+            <p className="text-lg sm:text-xl font-medium max-w-xl mx-auto" style={{ color: t.textSecondary, animation: 'heroIn 0.6s 0.16s ease both' }}>
               Binlerce mutlu kullanıcıyla birlikte puan kazan, özel ödüller aç ve her gün eğlen.
             </p>
 
@@ -335,7 +414,7 @@ const LandingPage: React.FC = () => {
                 <div className="absolute -top-5 -right-5 pointer-events-none z-10"><S.Star5 s={32} f="#FBBF24" r={20} /></div>
                 <button onClick={() => navigate('/home')}
                   className="relative px-9 py-4 rounded-2xl font-black text-white text-lg transition-all active:translate-y-1 hover:scale-105 flex items-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: '2.5px solid #1e1b4b', boxShadow: '0px 6px 0px #1e1b4b' }}>
+                  style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: `2.5px solid ${t.border}`, boxShadow: `0px 6px 0px ${t.shadow}` }}>
                   Ücretsiz Başla <ArrowRight size={20} />
                 </button>
               </div>
@@ -343,14 +422,14 @@ const LandingPage: React.FC = () => {
                 <div className="absolute -top-5 -left-5 pointer-events-none z-10"><S.Bolt s={28} f="#FCD34D" r={-15} /></div>
                 <button onClick={() => navigate('/register')}
                   className="relative px-9 py-4 rounded-2xl font-black text-lg transition-all active:translate-y-1 hover:scale-105"
-                  style={{ background: 'white', color: '#1e1b4b', border: '2.5px solid #1e1b4b', boxShadow: '0px 6px 0px #1e1b4b' }}>
+                  style={{ background: t.cardBg, color: t.textPrimary, border: `2.5px solid ${t.border}`, boxShadow: `0px 6px 0px ${t.shadow}` }}>
                   Hemen Kayıt Ol
                 </button>
               </div>
             </div>
 
             {/* Trust */}
-            <div className="flex items-center justify-center gap-2 text-sm font-bold" style={{ color: '#9ca3af', animation: 'heroIn 0.6s 0.32s ease both' }}>
+            <div className="flex items-center justify-center gap-2 text-sm font-bold" style={{ color: t.textMuted, animation: 'heroIn 0.6s 0.32s ease both' }}>
               <Shield size={13} style={{ color: '#7B6EF6' }} />
               Kredi kartı gerekmez &bull; Ücretsiz &bull; 2 dakikada kurulum
             </div>
@@ -362,119 +441,133 @@ const LandingPage: React.FC = () => {
                 { value: '2M+',   label: 'Kazanılan Puan',   color: '#f59e0b', sticker: <S.Bolt  s={22} f="#FCD34D" r={-10} /> },
                 { value: '10B+',  label: 'Verilen Ödül',     color: '#22c55e', sticker: <S.Heart s={20} f="#F472B6" r={10} /> },
               ].map((s, i) => (
-                <div key={i} className="relative p-3 sm:p-5 rounded-2xl text-center"
-                  style={{ background: 'white', border: '2.5px solid #1e1b4b', boxShadow: '0px 4px 0px #1e1b4b' }}>
+                <div key={i} className="relative p-3 sm:p-5 rounded-2xl text-center overflow-hidden"
+                  style={cardStyle()}>
                   <div className="absolute -top-3 -right-3">{s.sticker}</div>
+                  <CardDeco.CrossDots color={s.color} opacity={t.decoOpacity} />
                   <p className="text-2xl sm:text-3xl font-black" style={{ color: s.color }}>{s.value}</p>
-                  <p className="text-xs sm:text-sm font-bold mt-1" style={{ color: '#9ca3af' }}>{s.label}</p>
+                  <p className="text-xs sm:text-sm font-bold mt-1" style={{ color: t.textMuted }}>{s.label}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ══ TICKER STRIP 1 — moves left (violet on white) ══ */}
-        <TickerStrip items={tickerRow1} direction="left"  bg="#7B6EF6" textColor="white" borderColor="#1e1b4b" speed={25} />
-
-        {/* ══ TICKER STRIP 2 — moves right (white on violet) ══ */}
-        <TickerStrip items={tickerRow2} direction="right" bg="white"   textColor="#7B6EF6" borderColor="#1e1b4b" speed={18} />
+        {/* ══ TICKER STRIP 1 ══ */}
+        <TickerStrip items={tickerRow1} direction="left"  bg="#7B6EF6" textColor="white" borderColor={t.border} speed={25} />
+        {/* ══ TICKER STRIP 2 ══ */}
+        <TickerStrip items={tickerRow2} direction="right" bg={isDark ? '#1a1733' : 'white'} textColor="#7B6EF6" borderColor={t.border} speed={18} />
 
         {/* ══ FEATURES ══ */}
         <section id="features" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto">
           <div className="text-center mb-14 relative">
             <div className="absolute -top-8 left-1/2 -translate-x-1/2 -ml-40 pointer-events-none"><S.Flower s={44} f="#86EFAC" r={-10} /></div>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black mb-4"
-              style={{ background: '#ede9fe', color: '#7B6EF6', border: '2px solid #1e1b4b' }}>
+              style={{ background: t.pillBg, color: t.pillText, border: `2px solid ${t.border}` }}>
               ✦ ÖZELLİKLER
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black" style={{ color: '#1e1b4b' }}>
+            <h2 className="text-4xl sm:text-5xl font-black" style={{ color: t.textPrimary }}>
               Neden Bizi{' '}
               <span style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                 Seveceksiniz
               </span>
             </h2>
-            <p className="mt-3 font-medium max-w-lg mx-auto" style={{ color: '#9ca3af' }}>
+            <p className="mt-3 font-medium max-w-lg mx-auto" style={{ color: t.textMuted }}>
               Ödülleri maksimize etmek ve deneyiminizi geliştirmek için ihtiyacınız olan her şey.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {features.map((f, i) => (
-              <div key={i}
-                onMouseEnter={() => setHoveredFeature(i)}
-                onMouseLeave={() => setHoveredFeature(null)}
-                className="group relative p-6 rounded-2xl cursor-pointer overflow-visible"
-                style={{
-                  background: 'white',
-                  border: '2.5px solid #1e1b4b',
-                  boxShadow: hoveredFeature === i ? `0px 8px 0px #1e1b4b` : '0px 4px 0px #1e1b4b',
-                  transform: hoveredFeature === i ? 'translateY(-4px)' : 'none',
-                  transition: 'all 0.15s ease',
-                }}>
-                <div className="absolute -top-5 -right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <S.Star5 s={30} f="#FBBF24" r={20} />
+            {features.map((f, i) => {
+              const DecoComponent = CardDeco[f.deco as keyof typeof CardDeco] as React.FC<{ color: string; opacity: number }>;
+              return (
+                <div key={i}
+                  onMouseEnter={() => setHoveredFeature(i)}
+                  onMouseLeave={() => setHoveredFeature(null)}
+                  className="group relative p-6 rounded-2xl cursor-pointer overflow-hidden"
+                  style={{
+                    background: t.cardBg,
+                    border: `2.5px solid ${t.border}`,
+                    boxShadow: hoveredFeature === i ? `0px 8px 0px ${t.shadow}` : `0px 4px 0px ${t.shadow}`,
+                    transform: hoveredFeature === i ? 'translateY(-4px)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}>
+                  {/* Neo-brutalism card decoration */}
+                  <DecoComponent color={f.color} opacity={t.decoOpacity} />
+                  <CardDeco.TinyDiamond color={f.color} opacity={isDark ? 0.35 : 0.28} />
+                  <CardDeco.PlusMark color={f.color} opacity={isDark ? 0.22 : 0.18} />
+
+                  <div className="absolute -top-5 -right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <S.Star5 s={30} f="#FBBF24" r={20} />
+                  </div>
+                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4 transition-transform group-hover:scale-110"
+                    style={{ background: `${f.color}22`, border: `2px solid ${f.color}`, boxShadow: `0px 3px 0px ${f.color}60` }}>
+                    {f.emoji}
+                  </div>
+                  <h3 className="font-black text-lg mb-2" style={{ color: t.textPrimary }}>{f.title}</h3>
+                  <p className="text-sm font-medium" style={{ color: t.textMuted }}>{f.desc}</p>
+                  <div className="mt-4 flex items-center gap-1 font-black text-sm" style={{ color: f.color }}>
+                    Keşfet <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </div>
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4 transition-transform group-hover:scale-110"
-                  style={{ background: `${f.color}18`, border: `2px solid ${f.color}`, boxShadow: `0px 3px 0px ${f.color}60` }}>
-                  {f.emoji}
-                </div>
-                <h3 className="font-black text-lg mb-2" style={{ color: '#1e1b4b' }}>{f.title}</h3>
-                <p className="text-sm font-medium" style={{ color: '#9ca3af' }}>{f.desc}</p>
-                <div className="mt-4 flex items-center gap-1 font-black text-sm" style={{ color: f.color }}>
-                  Keşfet <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
-        {/* ══ TICKER STRIP 3 — moves left (yellow) ══ */}
+        {/* ══ TICKER STRIP 3 ══ */}
         <TickerStrip
           items={[
-            { text: 'KAZAN',       emoji: '💰' }, { text: 'ÖDÜL',       emoji: '🎁' },
-            { text: 'EĞLEN',       emoji: '🎮' }, { text: 'PAYLAŞ',     emoji: '💜' },
-            { text: 'YÜKSEL',      emoji: '🚀' }, { text: 'KEŞFET',     emoji: '🔮' },
-            { text: 'BAŞAR',       emoji: '🏆' }, { text: 'NEXREWARD',  emoji: '⭐' },
+            { text: 'KAZAN', emoji: '💰' }, { text: 'ÖDÜL',      emoji: '🎁' },
+            { text: 'EĞLEN', emoji: '🎮' }, { text: 'PAYLAŞ',    emoji: '💜' },
+            { text: 'YÜKSEL',emoji: '🚀' }, { text: 'KEŞFET',    emoji: '🔮' },
+            { text: 'BAŞAR', emoji: '🏆' }, { text: 'NEXREWARD', emoji: '⭐' },
           ]}
-          direction="left" bg="#FBBF24" textColor="#1e1b4b" borderColor="#1e1b4b" speed={20}
+          direction="left" bg="#FBBF24" textColor="#1e1b4b" borderColor={t.border} speed={20}
         />
 
         {/* ══ HOW IT WORKS ══ */}
-        <section id="how" className="py-20 px-4 sm:px-6" style={{ background: 'white', borderTop: '2.5px solid #1e1b4b', borderBottom: '2.5px solid #1e1b4b' }}>
+        <section id="how" className="py-20 px-4 sm:px-6"
+          style={{ background: t.howBg, borderTop: `2.5px solid ${t.border}`, borderBottom: `2.5px solid ${t.border}`, transition: 'background 0.3s' }}>
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-14 relative">
               <div className="absolute -top-6 right-1/3 pointer-events-none"><S.Crown s={40} f="#FCD34D" r={10} /></div>
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black mb-4"
-                style={{ background: '#ede9fe', color: '#7B6EF6', border: '2px solid #1e1b4b' }}>
+                style={{ background: t.pillBg, color: t.pillText, border: `2px solid ${t.border}` }}>
                 ✦ NASIL ÇALIŞIR
               </div>
-              <h2 className="text-4xl sm:text-5xl font-black" style={{ color: '#1e1b4b' }}>4 Adımda Başla</h2>
+              <h2 className="text-4xl sm:text-5xl font-black" style={{ color: t.textPrimary }}>4 Adımda Başla</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {[
-                { step: 1, emoji: '📝', title: 'Kayıt Ol',          desc: 'Saniyeler içinde hesabını oluştur.',      sticker: <S.Burst    s={34} f="#FDE68A" r={10} /> },
-                { step: 2, emoji: '🛍️', title: 'Alışveriş & Kazan', desc: 'Her alışverişte puan kazan.',              sticker: <S.Star5    s={34} f="#FBBF24" r={-8} /> },
-                { step: 3, emoji: '🎮', title: 'Oyun Oyna',          desc: 'Eğlen ve bonus puan kazan.',               sticker: <S.Bolt     s={32} f="#FCD34D" r={12} /> },
-                { step: 4, emoji: '🎉', title: 'Ödülünü Al',         desc: 'Puanlarını ödüllerle değiştir.',           sticker: <S.Ribbon   s={34} f="#F472B6" r={-10} /> },
-              ].map((item, i) => (
-                <div key={i} className="relative p-6 rounded-2xl text-center transition-all hover:scale-105"
-                  style={{ background: '#f5f3ff', border: '2.5px solid #1e1b4b', boxShadow: '0px 5px 0px #1e1b4b' }}>
-                  {i < 3 && (
-                    <div className="hidden lg:flex absolute top-1/2 -right-4 -translate-y-1/2 z-10">
-                      <ArrowRight size={18} style={{ color: '#7B6EF6' }} />
+                { step: 1, emoji: '📝', title: 'Kayıt Ol',          desc: 'Saniyeler içinde hesabını oluştur.',     sticker: <S.Burst s={34} f="#FDE68A" r={10} />,  deco: 'CornerBracket', decoColor: '#7B6EF6' },
+                { step: 2, emoji: '🛍️', title: 'Alışveriş & Kazan', desc: 'Her alışverişte puan kazan.',             sticker: <S.Star5 s={34} f="#FBBF24" r={-8} />,  deco: 'ZigZag',        decoColor: '#f59e0b' },
+                { step: 3, emoji: '🎮', title: 'Oyun Oyna',          desc: 'Eğlen ve bonus puan kazan.',             sticker: <S.Bolt  s={32} f="#FCD34D" r={12} />,  deco: 'WaveLine',      decoColor: '#22c55e' },
+                { step: 4, emoji: '🎉', title: 'Ödülünü Al',         desc: 'Puanlarını ödüllerle değiştir.',         sticker: <S.Ribbon s={34} f="#F472B6" r={-10} />, deco: 'CircleDot',    decoColor: '#ec4899' },
+              ].map((item, i) => {
+                const DecoComp = CardDeco[item.deco as keyof typeof CardDeco] as React.FC<{ color: string; opacity: number }>;
+                return (
+                  <div key={i} className="relative p-6 rounded-2xl text-center transition-all hover:scale-105 overflow-hidden"
+                    style={{ background: t.cardBg2, border: `2.5px solid ${t.border}`, boxShadow: `0px 5px 0px ${t.shadow}` }}>
+                    {i < 3 && (
+                      <div className="hidden lg:flex absolute top-1/2 -right-4 -translate-y-1/2 z-10">
+                        <ArrowRight size={18} style={{ color: '#7B6EF6' }} />
+                      </div>
+                    )}
+                    <DecoComp color={item.decoColor} opacity={t.decoOpacity} />
+                    <CardDeco.TinyDiamond color={item.decoColor} opacity={isDark ? 0.35 : 0.28} />
+                    <div className="absolute -top-5 -right-3">{item.sticker}</div>
+                    <div className="w-11 h-11 rounded-full flex items-center justify-center font-black text-white text-lg mb-4 mx-auto"
+                      style={{ background: 'linear-gradient(135deg, #7B6EF6, #4F8EF7)', border: `2.5px solid ${t.border}`, boxShadow: `0px 3px 0px ${t.shadow}` }}>
+                      {item.step}
                     </div>
-                  )}
-                  <div className="absolute -top-5 -right-3">{item.sticker}</div>
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center font-black text-white text-lg mb-4 mx-auto"
-                    style={{ background: 'linear-gradient(135deg, #7B6EF6, #4F8EF7)', border: '2.5px solid #1e1b4b', boxShadow: '0px 3px 0px #1e1b4b' }}>
-                    {item.step}
+                    <div className="text-4xl mb-3">{item.emoji}</div>
+                    <h3 className="font-black text-lg mb-1" style={{ color: t.textPrimary }}>{item.title}</h3>
+                    <p className="text-sm font-medium" style={{ color: t.textMuted }}>{item.desc}</p>
                   </div>
-                  <div className="text-4xl mb-3">{item.emoji}</div>
-                  <h3 className="font-black text-lg mb-1" style={{ color: '#1e1b4b' }}>{item.title}</h3>
-                  <p className="text-sm font-medium" style={{ color: '#9ca3af' }}>{item.desc}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
@@ -483,10 +576,10 @@ const LandingPage: React.FC = () => {
         <section id="testimonials" className="py-20 px-4 sm:px-6 max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black mb-4"
-              style={{ background: '#ede9fe', color: '#7B6EF6', border: '2px solid #1e1b4b' }}>
+              style={{ background: t.pillBg, color: t.pillText, border: `2px solid ${t.border}` }}>
               ✦ KULLANICI YORUMLARI
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black" style={{ color: '#1e1b4b' }}>
+            <h2 className="text-4xl sm:text-5xl font-black" style={{ color: t.textPrimary }}>
               Kullanıcılarımız{' '}
               <span style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                 Ne Diyor?
@@ -495,24 +588,30 @@ const LandingPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {testimonials.map((t, i) => (
-              <div key={i} className="relative p-6 rounded-2xl transition-all hover:scale-105"
-                style={{ background: 'white', border: '2.5px solid #1e1b4b', boxShadow: '0px 5px 0px #1e1b4b' }}>
+            {testimonials.map((t2, i) => (
+              <div key={i} className="relative p-6 rounded-2xl transition-all hover:scale-105 overflow-hidden"
+                style={cardStyle()}>
+                {/* Neo-brutalism deco per testimonial card */}
+                {i === 0 && <CardDeco.DiagStripes color="#7B6EF6" opacity={isDark ? 0.07 : 0.06} />}
+                {i === 1 && <CardDeco.HalfCircle color="#06b6d4" opacity={isDark ? 0.18 : 0.14} />}
+                {i === 2 && <CardDeco.CrossDots color="#ec4899" opacity={t.decoOpacity} />}
+                <CardDeco.CornerBracket color="#7B6EF6" opacity={isDark ? 0.2 : 0.16} />
+
                 <div className="absolute -top-4 -right-3">
                   {i === 0 ? <S.Star5 s={28} f="#FBBF24" r={15} /> : i === 1 ? <S.Burst s={28} f="#FDE68A" r={-10} /> : <S.Heart s={26} f="#F472B6" r={8} />}
                 </div>
                 <div className="flex mb-3 gap-0.5">
-                  {[...Array(t.stars)].map((_, s) => <Star key={s} size={14} fill="#FBBF24" style={{ color: '#FBBF24' }} />)}
+                  {[...Array(t2.stars)].map((_, s) => <Star key={s} size={14} fill="#FBBF24" style={{ color: '#FBBF24' }} />)}
                 </div>
-                <p className="text-sm font-medium leading-relaxed mb-5" style={{ color: '#6b7280' }}>"{t.text}"</p>
-                <div className="flex items-center gap-2.5 pt-3" style={{ borderTop: '2px dashed #c4b5fd' }}>
+                <p className="text-sm font-medium leading-relaxed mb-5" style={{ color: t.textSecondary }}>"{t2.text}"</p>
+                <div className="flex items-center gap-2.5 pt-3" style={{ borderTop: `2px dashed ${isDark ? '#3d3870' : '#c4b5fd'}` }}>
                   <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-white"
-                    style={{ background: 'linear-gradient(135deg, #7B6EF6, #4F8EF7)', border: '2.5px solid #1e1b4b' }}>
-                    {t.avatar}
+                    style={{ background: 'linear-gradient(135deg, #7B6EF6, #4F8EF7)', border: `2.5px solid ${t.border}` }}>
+                    {t2.avatar}
                   </div>
                   <div>
-                    <p className="font-black text-sm" style={{ color: '#1e1b4b' }}>{t.name}</p>
-                    <p className="text-xs font-medium" style={{ color: '#9ca3af' }}>{t.role}</p>
+                    <p className="font-black text-sm" style={{ color: t.textPrimary }}>{t2.name}</p>
+                    <p className="text-xs font-medium" style={{ color: t.textMuted }}>{t2.role}</p>
                   </div>
                 </div>
               </div>
@@ -523,14 +622,13 @@ const LandingPage: React.FC = () => {
         {/* ══ FINAL CTA ══ */}
         <section className="py-20 px-4 sm:px-6">
           <div className="relative max-w-4xl mx-auto text-center px-8 sm:px-16 py-16 rounded-2xl overflow-visible"
-            style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: '3px solid #1e1b4b', boxShadow: '0px 10px 0px #1e1b4b' }}>
-            {/* Ghost text inside CTA */}
+            style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: `3px solid ${t.border}`, boxShadow: `0px 10px 0px ${t.shadow}` }}>
             <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 'inherit', pointerEvents: 'none' }}>
               <span style={{ position: 'absolute', top: '-10px', left: '-20px', fontSize: '160px', fontWeight: 900, color: 'white', opacity: 0.05, whiteSpace: 'nowrap', lineHeight: 1 }}>
                 KAZAN
               </span>
+              <CardDeco.DiagStripes color="white" opacity={0.06} />
             </div>
-            {/* Corner stickers */}
             <div className="absolute -top-7 -left-6  pointer-events-none"><S.Star5   s={56} f="#FBBF24" r={-15} /></div>
             <div className="absolute -top-6 -right-7 pointer-events-none"><S.Crown   s={54} f="#FCD34D" r={20}  /></div>
             <div className="absolute -bottom-6 -left-7  pointer-events-none"><S.Bolt s={50} f="#FDE68A" r={10}  /></div>
@@ -553,7 +651,7 @@ const LandingPage: React.FC = () => {
                   <div className="absolute -top-5 -right-5 pointer-events-none"><S.Star5 s={28} f="#FBBF24" r={18} /></div>
                   <button onClick={() => navigate('/home')}
                     className="relative px-9 py-4 rounded-xl font-black text-lg transition-all active:translate-y-1 hover:scale-105 flex items-center gap-2"
-                    style={{ background: '#1e1b4b', color: 'white', border: '2.5px solid white', boxShadow: '0px 5px 0px rgba(0,0,0,0.35)' }}>
+                    style={{ background: isDark ? '#0d0b1f' : '#1e1b4b', color: 'white', border: '2.5px solid white', boxShadow: '0px 5px 0px rgba(0,0,0,0.35)' }}>
                     Panele Gir <ArrowRight size={20} />
                   </button>
                 </div>
@@ -570,7 +668,7 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* ══ TICKER STRIP 4 — moves right (pink) ══ */}
+        {/* ══ TICKER STRIP 4 ══ */}
         <TickerStrip
           items={[
             { text: 'NexReward ile Kazan', emoji: '💜' }, { text: 'Her Alışverişte Puan', emoji: '🛍️' },
@@ -578,25 +676,25 @@ const LandingPage: React.FC = () => {
             { text: 'Hemen Başla',          emoji: '🚀' }, { text: 'Türkiye\'nin #1',       emoji: '🏆' },
             { text: 'Güvenli & Hızlı',      emoji: '🔒' }, { text: '2 Dakikada Kurulum',   emoji: '⏱️' },
           ]}
-          direction="right" bg="#F472B6" textColor="white" borderColor="#1e1b4b" speed={22}
+          direction="right" bg="#F472B6" textColor="white" borderColor={t.border} speed={22}
         />
 
         {/* ══ FOOTER ══ */}
-        <footer className="px-4 sm:px-8 py-10" style={{ borderTop: '2.5px solid #1e1b4b', background: 'white' }}>
+        <footer className="px-4 sm:px-8 py-10" style={{ borderTop: `2.5px solid ${t.border}`, background: t.footerBg, transition: 'background 0.3s' }}>
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-base"
-                style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: '2px solid #1e1b4b', boxShadow: '0px 2px 0px #1e1b4b' }}>
+                style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: `2px solid ${t.border}`, boxShadow: `0px 2px 0px ${t.shadow}` }}>
                 N
               </div>
-              <span className="font-black text-lg" style={{ color: '#1e1b4b' }}>NexReward</span>
+              <span className="font-black text-lg" style={{ color: t.textPrimary }}>NexReward</span>
             </div>
             <div className="flex items-center gap-3">
               <S.Star5 s={18} f="#FBBF24" r={10} />
-              <p className="text-sm font-medium" style={{ color: '#9ca3af' }}>© 2026 NexReward. Daha fazla kazan, daha iyi yaşa.</p>
+              <p className="text-sm font-medium" style={{ color: t.textMuted }}>© 2026 NexReward. Daha fazla kazan, daha iyi yaşa.</p>
               <S.Star5 s={18} f="#FBBF24" r={-10} />
             </div>
-            <div className="flex items-center gap-4 font-bold text-sm" style={{ color: '#9ca3af' }}>
+            <div className="flex items-center gap-4 font-bold text-sm" style={{ color: t.textMuted }}>
               <a href="#features" className="hover:text-[#7B6EF6] transition-colors">Özellikler</a>
               <a href="#how" className="hover:text-[#7B6EF6] transition-colors">Nasıl Çalışır</a>
               <button onClick={() => navigate('/login')} className="hover:text-[#7B6EF6] transition-colors">Giriş</button>
@@ -604,7 +702,7 @@ const LandingPage: React.FC = () => {
           </div>
         </footer>
 
-      </div>{/* /z-1 content wrapper */}
+      </div>
 
       {/* ══ GLOBAL ANIMATIONS ══ */}
       <style>{`
