@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { currentUser } from '../data/mockData';
 
+export type BgStyle = 'none' | 'dots' | 'shapes' | 'stripes';
+
 interface AppContextType {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
@@ -18,6 +20,8 @@ interface AppContextType {
   notificationsEnabled: boolean;
   setNotificationsEnabled: (val: boolean) => void;
   isDarkMode: boolean;
+  bgStyle: BgStyle;
+  setBgStyle: (style: BgStyle) => void;
 }
 
 export interface RewardPopupData {
@@ -39,7 +43,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [rewardPopup, setRewardPopup] = useState<RewardPopupData | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [bgStyle, setBgStyleState] = useState<BgStyle>(() => {
+    return (localStorage.getItem('bgStyle') as BgStyle) || 'none';
+  });
   const isDarkMode = theme === 'dark';
+
+  const setBgStyle = (style: BgStyle) => {
+    setBgStyleState(style);
+    localStorage.setItem('bgStyle', style);
+  };
 
   useEffect(() => {
     const html = document.documentElement;
@@ -91,6 +103,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       notificationsEnabled,
       setNotificationsEnabled,
       isDarkMode,
+      bgStyle,
+      setBgStyle,
     }}>
       {children}
     </AppContext.Provider>
