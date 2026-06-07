@@ -310,7 +310,7 @@ export const tr = {
     level: 'Seviye',
     yourRank: 'Sizin Sıranız',
     topPlayers: 'En İyi Oyuncular',
-    reachTop: 'En iyi 10'a ulaşmak için daha fazla puan kazanın!',
+    reachTop: "En iyi 10'a ulaşmak için daha fazla puan kazanın!",
   },
 
   // Notifications
