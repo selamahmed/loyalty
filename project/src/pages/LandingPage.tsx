@@ -842,17 +842,14 @@ const LandingPage: React.FC = () => {
         />
 
         {/* ══ FOOTER ══ */}
-        <footer style={{ background: t.footerBg, borderTop: `2px solid ${t.border}`, padding: 'clamp(24px, 4vw, 36px) clamp(14px, 4vw, 64px)', transition: 'background 0.3s' }}>
-          <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <img
-                src="/logo.png"
-                alt="NexReward"
-                style={{ height: 36, width: 'auto', objectFit: 'contain' }}
-              />
-            </div>
-            <p style={{ fontSize: 12, fontWeight: 500, color: t.textMuted, margin: 0 }}>© 2026 NexReward · Daha fazla kazan, daha iyi yaşa.</p>
-            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+        <footer style={{ background: t.footerBg, borderTop: `2px solid ${t.border}`, padding: 'clamp(32px, 5vw, 56px) clamp(14px, 4vw, 64px)', transition: 'background 0.3s' }}>
+          <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+            <img
+              src="/logo.png"
+              alt="NexReward"
+              style={{ height: 'clamp(64px, 10vw, 120px)', width: 'auto', objectFit: 'contain' }}
+            />
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center' }}>
               {[['#features','Özellikler'],['#how','Nasıl Çalışır']].map(([href,label]) => (
                 <a key={href} href={href} style={{ color: t.textMuted, fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
                   onMouseEnter={e=>(e.currentTarget.style.color='#a78bfa')}
@@ -862,6 +859,7 @@ const LandingPage: React.FC = () => {
                 onMouseEnter={e=>(e.currentTarget.style.color='#a78bfa')}
                 onMouseLeave={e=>(e.currentTarget.style.color=t.textMuted)}>Giriş</button>
             </div>
+            <p style={{ fontSize: 12, fontWeight: 500, color: t.textMuted, margin: 0 }}>© 2026 NexReward · Daha fazla kazan, daha iyi yaşa.</p>
           </div>
         </footer>
 
