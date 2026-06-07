@@ -1,0 +1,574 @@
+import React, { useState, useEffect } from 'react';
+import { activityLogService, ActivityLog } from '../../lib/activityLogger';
+import { Search, Download, Filter, Eye, MapPin, Smartphone, Monitor, Globe, Shield, AlertTriangle, Clock, User, Wifi, Trash2, Ban, Unlock, Mail, Send } from 'lucide-react';
+import AdminLayout from './AdminLayout';
+
+const AdminAuditLogs: React.FC = () => {
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [filteredLogs, setFilteredLogs] = useState<ActivityLog[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterAction, setFilterAction] = useState('all');
+  const [filterRisk, setFilterRisk] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
+
+  const actionTypes = [
+    'login', 'logout', 'points_earned', 'points_spent', 'purchase',
+    'achievement', 'mission', 'qr_scan', 'profile_update', 'settings_change',
+    'admin_action', 'security_alert', 'password_change', 'account_suspended', 'account_deleted'
+  ];
+
+  useEffect(() => {
+    loadLogs();
+  }, []);
+
+  useEffect(() => {
+    filterLogs();
+  }, [logs, searchQuery, filterAction, filterRisk]);
+
+  const loadLogs = async () => {
+    try {
+      setLoading(true);
+      let data: ActivityLog[];
+
+      if (filterAction === 'admin_action') {
+        data = await activityLogService.getAdminLogs(500);
+      } else {
+        data = await activityLogService.getActivityLogs(undefined, undefined, 500);
+      }
+
+      setLogs(data);
+    } catch (error) {
+      console.error('Failed to load logs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterLogs = () => {
+    let filtered = logs;
+
+    if (searchQuery) {
+      filtered = filtered.filter(log =>
+        log.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.ipAddress?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.deviceName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.country?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (filterAction !== 'all') {
+      filtered = filtered.filter(log => log.actionType === filterAction);
+    }
+
+    if (filterRisk !== 'all') {
+      filtered = filtered.filter(log => log.riskLevel === filterRisk);
+    }
+
+    setFilteredLogs(filtered);
+  };
+
+  const getActionColor = (actionType: string) => {
+    const colors: Record<string, string> = {
+      login: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+      logout: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+      points_earned: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
+      points_spent: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+      purchase: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+      achievement: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+      mission: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400',
+      qr_scan: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400',
+      admin_action: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400',
+      security_alert: 'bg-red-200 dark:bg-red-900/50 text-red-800 dark:text-red-300',
+      password_change: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
+      account_suspended: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
+      account_deleted: 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300',
+    };
+    return colors[actionType] || 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
+  };
+
+  const getRoleColor = (role: string) => {
+    const colors: Record<string, string> = {
+      super_admin: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700',
+      admin: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-700',
+      moderator: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700',
+      user: 'bg-gray-50 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400',
+    };
+    return colors[role] || 'bg-gray-50 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400';
+  };
+
+  const getRiskBadge = (risk?: string) => {
+    if (!risk) return null;
+    const colors: Record<string, string> = {
+      low: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+      medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
+      high: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+    };
+    return colors[risk] || '';
+  };
+
+  const exportLogs = () => {
+    const csv = [
+      ['Date', 'Username', 'Email', 'Role', 'Action', 'Action Type', 'IP Address', 'Device Name', 'Device Type', 'Browser', 'OS', 'Country', 'City', 'Region', 'ISP', 'Timezone', 'Amount', 'Risk Level', 'Session ID', 'User Agent'],
+      ...filteredLogs.map(log => [
+        log.createdAt,
+        log.username,
+        log.email,
+        log.role,
+        log.action,
+        log.actionType,
+        log.ipAddress || 'N/A',
+        log.deviceName || 'N/A',
+        log.deviceType || 'N/A',
+        log.browser || 'N/A',
+        log.os || 'N/A',
+        log.country || 'N/A',
+        log.city || 'N/A',
+        log.region || 'N/A',
+        log.isp || 'N/A',
+        log.timezone || 'N/A',
+        log.amount || '',
+        log.riskLevel || 'N/A',
+        log.sessionId || 'N/A',
+        log.userAgent || 'N/A',
+      ]),
+    ]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `activity-logs-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const stats = {
+    total: logs.length,
+    today: logs.filter(l => new Date(l.createdAt) > new Date(Date.now() - 86400000)).length,
+    highRisk: logs.filter(l => l.riskLevel === 'high').length,
+    uniqueUsers: new Set(logs.map(l => l.userId)).size,
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-[#7B6EF6] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="font-bold text-gray-600 dark:text-gray-400">Loading logs...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <AdminLayout>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+            <Shield className="text-[#7B6EF6]" size={32} />
+            Security & Activity Logs
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Complete user activity monitoring and security audit trail</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={exportLogs}
+            className="flex items-center gap-2 px-6 py-3 bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white font-bold rounded-2xl border-2 border-black hover:shadow-lg transition-all"
+          >
+            <Download size={20} />
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card p-4 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30">
+              <Clock size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.total}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Total Events</p>
+            </div>
+          </div>
+        </div>
+        <div className="card p-4 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/30">
+              <User size={20} className="text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.uniqueUsers}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Unique Users</p>
+            </div>
+          </div>
+        </div>
+        <div className="card p-4 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/30">
+              <Globe size={20} className="text-purple-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.today}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Last 24 Hours</p>
+            </div>
+          </div>
+        </div>
+        <div className="card p-4 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30">
+              <AlertTriangle size={20} className="text-red-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-red-600 dark:text-red-400">{stats.highRisk}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">High Risk Events</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* Search */}
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Search by username, email, IP, device, city, country..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500"
+          />
+        </div>
+
+        {/* Action Filter */}
+        <select
+          value={filterAction}
+          onChange={(e) => setFilterAction(e.target.value)}
+          className="px-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-bold"
+        >
+          <option value="all">All Actions</option>
+          {actionTypes.map(type => (
+            <option key={type} value={type}>{type.replace('_', ' ').toUpperCase()}</option>
+          ))}
+        </select>
+
+        {/* Risk Filter */}
+        <select
+          value={filterRisk}
+          onChange={(e) => setFilterRisk(e.target.value)}
+          className="px-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-bold"
+        >
+          <option value="all">All Risk Levels</option>
+          <option value="low">Low Risk</option>
+          <option value="medium">Medium Risk</option>
+          <option value="high">High Risk</option>
+        </select>
+      </div>
+
+      {/* Logs Table */}
+      <div className="card bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b-2 border-black dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Date & Time</th>
+                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">User</th>
+                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Action</th>
+                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Device</th>
+                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Location</th>
+                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">IP Address</th>
+                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">Risk</th>
+                <th className="text-left py-3 px-4 font-black text-gray-900 dark:text-white text-sm">View</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLogs.map((log, idx) => (
+                <tr key={log.id || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <Clock size={14} className="text-gray-400" />
+                      <span className="text-sm font-mono">
+                        {new Date(log.createdAt).toLocaleDateString()} {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7B6EF6] to-[#4F8EF7] flex items-center justify-center text-white font-bold text-sm">
+                        {log.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900 dark:text-white text-sm">{log.username}</p>
+                        <p className="text-xs text-gray-500">{log.email}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex flex-col gap-1">
+                      <span className={`px-2 py-1 rounded text-xs font-bold w-fit ${getActionColor(log.actionType)}`}>
+                        {log.actionType.replace('_', ' ').toUpperCase()}
+                      </span>
+                      {log.amount && (
+                        <span className="text-xs font-bold text-amber-600 dark:text-amber-400">+{log.amount} pts</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      {log.deviceType === 'mobile' ? <Smartphone size={14} className="text-gray-400" /> : <Monitor size={14} className="text-gray-400" />}
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">{log.deviceName || 'Unknown'}</p>
+                        <p className="text-xs text-gray-500">{log.browser} • {log.os}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <MapPin size={14} className="text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-900 dark:text-white">{log.city}, {log.country}</p>
+                        <p className="text-xs text-gray-500">{log.isp}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono">
+                      {log.ipAddress || 'N/A'}
+                    </code>
+                  </td>
+                  <td className="py-3 px-4">
+                    {log.riskLevel && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit ${getRiskBadge(log.riskLevel)}`}>
+                        {log.riskLevel === 'high' && <AlertTriangle size={12} />}
+                        {log.riskLevel.toUpperCase()}
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4">
+                    <button
+                      onClick={() => {
+                        setSelectedLog(log);
+                        setShowDetail(true);
+                      }}
+                      className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                    >
+                      <Eye size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {filteredLogs.length === 0 && (
+          <div className="text-center py-12">
+            <Search size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+            <p className="text-gray-600 dark:text-gray-400 font-bold">No logs found matching your criteria</p>
+          </div>
+        )}
+      </div>
+
+      {/* Detail Modal */}
+      {showDetail && selectedLog && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border-2 border-black dark:border-gray-700 p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                {selectedLog.riskLevel === 'high' ? (
+                  <AlertTriangle className="text-red-500" size={28} />
+                ) : (
+                  <Shield className="text-[#7B6EF6]" size={28} />
+                )}
+                Activity Details
+              </h2>
+              <button onClick={() => setShowDetail(false)} className="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+
+            {/* Risk Alert */}
+            {selectedLog.riskLevel === 'high' && (
+              <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-2xl p-4">
+                <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                  <AlertTriangle size={20} />
+                  <span className="font-bold">High Risk Activity Detected</span>
+                </div>
+                <p className="text-sm text-red-600 dark:text-red-400 mt-1">This activity was flagged as suspicious. Review the details below.</p>
+              </div>
+            )}
+
+            {/* User Info Section */}
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-4 space-y-4">
+              <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <User size={18} />
+                User Information
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Username</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.username}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Email</p>
+                  <p className="font-bold text-gray-900 dark:text-white text-sm">{selectedLog.email}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Role</p>
+                  <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${getRoleColor(selectedLog.role)}`}>
+                    {selectedLog.role.replace('_', ' ').toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">User ID</p>
+                  <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{selectedLog.userId}</code>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Session ID</p>
+                  <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{selectedLog.sessionId || 'N/A'}</code>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Date & Time</p>
+                  <p className="font-bold text-gray-900 dark:text-white text-sm">
+                    {new Date(selectedLog.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Device Info Section */}
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-4 space-y-4">
+              <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                {selectedLog.deviceType === 'mobile' ? <Smartphone size={18} /> : <Monitor size={18} />}
+                Device Information
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Device Name</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.deviceName || 'Unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Device Type</p>
+                  <p className="font-bold text-gray-900 dark:text-white capitalize">{selectedLog.deviceType || 'Unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Browser</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.browser || 'Unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Operating System</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.os || 'Unknown'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-gray-500">User Agent</p>
+                  <p className="font-mono text-xs text-gray-600 dark:text-gray-400 break-all">
+                    {selectedLog.userAgent || 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Location Info Section */}
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-4 space-y-4">
+              <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Globe size={18} />
+                Location & Network
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Country</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.country || 'Unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">City</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.city || 'Unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Region</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.region || 'Unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">IP Address</p>
+                  <code className="text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono">{selectedLog.ipAddress || 'N/A'}</code>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">ISP</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.isp || 'Unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Timezone</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.timezone || 'Unknown'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Details */}
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-4 space-y-4">
+              <h3 className="font-bold text-gray-900 dark:text-white">Action Details</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <span className={`px-3 py-1 rounded-full text-sm font-bold ${getActionColor(selectedLog.actionType)}`}>
+                  {selectedLog.actionType.replace('_', ' ').toUpperCase()}
+                </span>
+                {selectedLog.riskLevel && (
+                  <span className={`px-3 py-1 rounded-full text-sm font-bold ${getRiskBadge(selectedLog.riskLevel)}`}>
+                    Risk: {selectedLog.riskLevel.toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-900 dark:text-white">{selectedLog.action}</p>
+              {selectedLog.amount && (
+                <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                  Amount: +{selectedLog.amount} points
+                </p>
+              )}
+
+              {selectedLog.details && Object.keys(selectedLog.details).length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-bold">Additional Data</p>
+                  <pre className="bg-gray-900 dark:bg-gray-950 text-green-400 p-4 rounded-xl text-xs overflow-auto max-h-40">
+                    {JSON.stringify(selectedLog.details, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            {/* Admin Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDetail(false)}
+                className="flex-1 py-3 rounded-2xl border-2 border-black dark:border-gray-600 font-bold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+              <button className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-colors">
+                <Mail size={18} />
+                Contact User
+              </button>
+              {selectedLog.userId && (
+                <button className="flex items-center gap-2 px-4 py-3 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-colors">
+                  <Ban size={18} />
+                  Suspend
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+    </AdminLayout>
+  );
+};
+
+export default AdminAuditLogs;
