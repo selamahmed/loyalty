@@ -288,8 +288,16 @@ const LandingPage: React.FC = () => {
     ...extra,
   });
 
+  const cssVars = {
+    '--l-border':   t.border,
+    '--l-shadow':   t.shadow,
+    '--l-card-bg':  t.cardBg,
+    '--l-text':     t.textPrimary,
+    '--l-tab-bg':   isDark ? '#1e1a3a' : '#e9e5ff',
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen overflow-x-hidden" style={{ background: t.pageBg, color: t.textPrimary, transition: 'background 0.3s, color 0.3s' }}>
+    <div className="min-h-screen overflow-x-hidden" style={{ background: t.pageBg, color: t.textPrimary, transition: 'background 0.3s, color 0.3s', ...cssVars }}>
 
       {/* ── Ghost background text ── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden select-none" style={{ zIndex: 0 }}>
@@ -338,22 +346,17 @@ const LandingPage: React.FC = () => {
               {/* Dark mode toggle */}
               <button
                 onClick={() => setIsDark(!isDark)}
-                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                style={{ background: t.cardBg, border: `2px solid ${t.border}`, boxShadow: `0px 2px 0px ${t.shadow}` }}
+                className="lbtn-secondary-sm w-9 h-9 !p-0 justify-center"
                 title={isDark ? 'Açık Mod' : 'Koyu Mod'}
               >
                 {isDark
                   ? <Sun size={16} style={{ color: '#FBBF24' }} />
                   : <Moon size={16} style={{ color: '#7B6EF6' }} />}
               </button>
-              <button onClick={() => navigate('/login')}
-                className="px-4 sm:px-5 py-2 rounded-xl font-black text-sm transition-all active:translate-y-0.5 hover:scale-105"
-                style={{ border: `2px solid ${t.border}`, boxShadow: `0px 3px 0px ${t.shadow}`, background: t.cardBg, color: t.textPrimary }}>
+              <button onClick={() => navigate('/login')} className="lbtn-secondary-sm">
                 Giriş Yap
               </button>
-              <button onClick={() => navigate('/home')}
-                className="px-4 sm:px-5 py-2 rounded-xl font-black text-sm text-white transition-all active:translate-y-0.5 hover:scale-105 flex items-center gap-1.5"
-                style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: `2px solid ${t.border}`, boxShadow: `0px 3px 0px ${t.shadow}` }}>
+              <button onClick={() => navigate('/home')} className="lbtn-primary-sm">
                 Panel <ArrowRight size={14} />
               </button>
             </div>
@@ -412,17 +415,13 @@ const LandingPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2" style={{ animation: 'heroIn 0.6s 0.24s ease both' }}>
               <div className="relative inline-flex">
                 <div className="absolute -top-5 -right-5 pointer-events-none z-10"><S.Star5 s={32} f="#FBBF24" r={20} /></div>
-                <button onClick={() => navigate('/home')}
-                  className="relative px-9 py-4 rounded-2xl font-black text-white text-lg transition-all active:translate-y-1 hover:scale-105 flex items-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)', border: `2.5px solid ${t.border}`, boxShadow: `0px 6px 0px ${t.shadow}` }}>
+                <button onClick={() => navigate('/home')} className="lbtn-primary relative">
                   Ücretsiz Başla <ArrowRight size={20} />
                 </button>
               </div>
               <div className="relative inline-flex">
                 <div className="absolute -top-5 -left-5 pointer-events-none z-10"><S.Bolt s={28} f="#FCD34D" r={-15} /></div>
-                <button onClick={() => navigate('/register')}
-                  className="relative px-9 py-4 rounded-2xl font-black text-lg transition-all active:translate-y-1 hover:scale-105"
-                  style={{ background: t.cardBg, color: t.textPrimary, border: `2.5px solid ${t.border}`, boxShadow: `0px 6px 0px ${t.shadow}` }}>
+                <button onClick={() => navigate('/register')} className="lbtn-secondary relative">
                   Hemen Kayıt Ol
                 </button>
               </div>
@@ -649,15 +648,11 @@ const LandingPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <div className="relative inline-flex">
                   <div className="absolute -top-5 -right-5 pointer-events-none"><S.Star5 s={28} f="#FBBF24" r={18} /></div>
-                  <button onClick={() => navigate('/home')}
-                    className="relative px-9 py-4 rounded-xl font-black text-lg transition-all active:translate-y-1 hover:scale-105 flex items-center gap-2"
-                    style={{ background: isDark ? '#0d0b1f' : '#1e1b4b', color: 'white', border: '2.5px solid white', boxShadow: '0px 5px 0px rgba(0,0,0,0.35)' }}>
+                  <button onClick={() => navigate('/home')} className="lbtn-dark relative">
                     Panele Gir <ArrowRight size={20} />
                   </button>
                 </div>
-                <button onClick={() => navigate('/register')}
-                  className="px-9 py-4 rounded-xl font-black text-lg transition-all active:translate-y-1 hover:scale-105 text-white"
-                  style={{ background: 'rgba(255,255,255,0.18)', border: '2.5px solid white', boxShadow: '0px 5px 0px rgba(0,0,0,0.25)' }}>
+                <button onClick={() => navigate('/register')} className="lbtn-ghost">
                   Ücretsiz Kayıt Ol
                 </button>
               </div>
@@ -704,7 +699,7 @@ const LandingPage: React.FC = () => {
 
       </div>
 
-      {/* ══ GLOBAL ANIMATIONS ══ */}
+      {/* ══ GLOBAL ANIMATIONS + BUTTON CLASSES ══ */}
       <style>{`
         @keyframes heroIn {
           from { opacity: 0; transform: translateY(20px); }
@@ -726,6 +721,101 @@ const LandingPage: React.FC = () => {
           from { transform: translateX(calc(-100% / 3)); }
           to   { transform: translateX(0); }
         }
+
+        /* ── Landing primary button ── */
+        .lbtn-primary {
+          display: inline-flex; align-items: center; gap: 0.5rem;
+          background: linear-gradient(180deg, #a78bfa 0%, #6d28d9 100%);
+          color: white; font-weight: 700; font-family: inherit;
+          border: 2.5px solid var(--l-border);
+          border-radius: 16px;
+          padding: 0.875rem 2.25rem;
+          font-size: 1.125rem;
+          box-shadow: 0px 5px 0px var(--l-shadow);
+          cursor: pointer;
+          transition: opacity 0.15s ease, box-shadow 0.1s ease, transform 0.1s ease;
+        }
+        .lbtn-primary:hover  { opacity: 0.92; }
+        .lbtn-primary:active { transform: translateY(3px); box-shadow: 0px 2px 0px var(--l-shadow); }
+
+        /* ── Landing secondary button ── */
+        .lbtn-secondary {
+          display: inline-flex; align-items: center; gap: 0.5rem;
+          background: var(--l-card-bg);
+          color: var(--l-text); font-weight: 700; font-family: inherit;
+          border: 2.5px solid var(--l-border);
+          border-radius: 16px;
+          padding: 0.875rem 2.25rem;
+          font-size: 1.125rem;
+          box-shadow: 0px 5px 0px var(--l-shadow);
+          cursor: pointer;
+          transition: background 0.15s ease, box-shadow 0.1s ease, transform 0.1s ease;
+        }
+        .lbtn-secondary:hover  { background: var(--l-tab-bg); }
+        .lbtn-secondary:active { transform: translateY(3px); box-shadow: 0px 2px 0px var(--l-shadow); }
+
+        /* ── Nav-sized variants ── */
+        .lbtn-primary-sm {
+          display: inline-flex; align-items: center; gap: 0.35rem;
+          background: linear-gradient(180deg, #a78bfa 0%, #6d28d9 100%);
+          color: white; font-weight: 700; font-family: inherit;
+          border: 2.5px solid var(--l-border);
+          border-radius: 14px;
+          padding: 0.5rem 1.25rem;
+          font-size: 0.875rem;
+          box-shadow: 0px 4px 0px var(--l-shadow);
+          cursor: pointer;
+          transition: opacity 0.15s ease, box-shadow 0.1s ease, transform 0.1s ease;
+        }
+        .lbtn-primary-sm:hover  { opacity: 0.92; }
+        .lbtn-primary-sm:active { transform: translateY(3px); box-shadow: 0px 1px 0px var(--l-shadow); }
+
+        .lbtn-secondary-sm {
+          display: inline-flex; align-items: center; gap: 0.35rem;
+          background: var(--l-card-bg);
+          color: var(--l-text); font-weight: 700; font-family: inherit;
+          border: 2.5px solid var(--l-border);
+          border-radius: 14px;
+          padding: 0.5rem 1.25rem;
+          font-size: 0.875rem;
+          box-shadow: 0px 4px 0px var(--l-shadow);
+          cursor: pointer;
+          transition: background 0.15s ease, box-shadow 0.1s ease, transform 0.1s ease;
+        }
+        .lbtn-secondary-sm:hover  { background: var(--l-tab-bg); }
+        .lbtn-secondary-sm:active { transform: translateY(3px); box-shadow: 0px 1px 0px var(--l-shadow); }
+
+        /* ── CTA ghost button (on gradient bg) ── */
+        .lbtn-ghost {
+          display: inline-flex; align-items: center; gap: 0.5rem;
+          background: rgba(255,255,255,0.18);
+          color: white; font-weight: 700; font-family: inherit;
+          border: 2.5px solid white;
+          border-radius: 16px;
+          padding: 0.875rem 2.25rem;
+          font-size: 1.125rem;
+          box-shadow: 0px 5px 0px rgba(0,0,0,0.25);
+          cursor: pointer;
+          transition: background 0.15s ease, box-shadow 0.1s ease, transform 0.1s ease;
+        }
+        .lbtn-ghost:hover  { background: rgba(255,255,255,0.28); }
+        .lbtn-ghost:active { transform: translateY(3px); box-shadow: 0px 2px 0px rgba(0,0,0,0.25); }
+
+        /* ── CTA dark button (on gradient bg) ── */
+        .lbtn-dark {
+          display: inline-flex; align-items: center; gap: 0.5rem;
+          background: #1e1b4b;
+          color: white; font-weight: 700; font-family: inherit;
+          border: 2.5px solid white;
+          border-radius: 16px;
+          padding: 0.875rem 2.25rem;
+          font-size: 1.125rem;
+          box-shadow: 0px 5px 0px rgba(0,0,0,0.35);
+          cursor: pointer;
+          transition: opacity 0.15s ease, box-shadow 0.1s ease, transform 0.1s ease;
+        }
+        .lbtn-dark:hover  { opacity: 0.88; }
+        .lbtn-dark:active { transform: translateY(3px); box-shadow: 0px 2px 0px rgba(0,0,0,0.35); }
       `}</style>
     </div>
   );
