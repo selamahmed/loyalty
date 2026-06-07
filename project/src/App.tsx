@@ -8,6 +8,9 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
+// Landing page
+import LandingPage from './pages/LandingPage';
+
 // Main pages
 import Home from './pages/Home';
 import Profile from './pages/Profile';
@@ -58,6 +61,9 @@ function App() {
     <AppProvider>
       <HashRouter>
         <Routes>
+
+          {/* Landing Page */}
+          <Route path="/landing" element={<LandingPage />} />
 
           {/* Auth */}
           <Route path="/login" element={<Login />} />
