@@ -48,7 +48,7 @@ const Settings: React.FC = () => {
         <span style={{ fontSize: 14 }}>{emoji}</span>
         <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em', margin: 0 }}>{title}</p>
       </div>
-      <div className="ns-star4" style={{ ...card, overflow: 'hidden' }}>
+      <div style={{ ...card, overflow: 'hidden' }}>
         {children}
       </div>
     </div>

@@ -102,7 +102,7 @@ const Inventory: React.FC = () => {
                 const IconComp = config.icon;
                 const expired = isExpired(item.expires);
                 return (
-                  <div key={item.id} className="ns-heart" style={{ ...card, padding: '16px 18px', opacity: expired ? 0.65 : 1 }}>
+                  <div key={item.id} style={{ ...card, padding: '16px 18px', opacity: expired ? 0.65 : 1 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                       <div style={{
                         width: 50, height: 50, borderRadius: 14, background: config.bg,

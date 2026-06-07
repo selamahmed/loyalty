@@ -53,7 +53,7 @@ const UserStats: React.FC = () => {
         {/* ── Stat cards ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
           {statCards.map(s => (
-            <div key={s.label} className="ns-star" style={{ ...card, padding: '16px 14px' }}>
+            <div key={s.label} style={{ ...card, padding: '16px 14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, background: s.bg,
@@ -72,7 +72,7 @@ const UserStats: React.FC = () => {
         </div>
 
         {/* ── Points growth ── */}
-        <div className="ns-burst" style={{ ...card, padding: '18px 20px' }}>
+        <div style={{ ...card, padding: '18px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: 0 }}>Puan Büyümesi</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -92,7 +92,7 @@ const UserStats: React.FC = () => {
         </div>
 
         {/* ── Activity breakdown ── */}
-        <div className="ns-star" style={{ ...card, padding: '18px 20px' }}>
+        <div style={{ ...card, padding: '18px 20px' }}>
           <h2 style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: '0 0 16px' }}>Aktivite Dağılımı</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <ResponsiveContainer width="50%" height={180}>
@@ -118,7 +118,7 @@ const UserStats: React.FC = () => {
         </div>
 
         {/* ── Rewards redeemed ── */}
-        <div className="ns-burst" style={{ ...card, padding: '18px 20px' }}>
+        <div style={{ ...card, padding: '18px 20px' }}>
           <h2 style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: '0 0 16px' }}>Kullanılan Ödüller</h2>
           <ResponsiveContainer width="100%" height={150}>
             <BarChart data={statsData.rewardUsage}>
@@ -132,7 +132,7 @@ const UserStats: React.FC = () => {
         </div>
 
         {/* ── Achievement progress ── */}
-        <div className="ns-star" style={{ ...card, padding: '18px 20px' }}>
+        <div style={{ ...card, padding: '18px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <Trophy size={20} color="#f59e0b" />
             <h2 style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: 0 }}>Başarı İlerlemesi</h2>

@@ -87,7 +87,7 @@ const Notifications: React.FC = () => {
               return (
                 <div
                   key={notif.id}
-                  className="notif-card ns-bolt"
+                  className="notif-card"
                   onClick={() => markRead(notif.id)}
                   style={{
                     border: !notif.read ? `3px solid ${cfg.border}` : '3px solid var(--dark-border)',

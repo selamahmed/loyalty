@@ -197,7 +197,7 @@ const Leaderboard: React.FC = () => {
         </div>
 
         {/* ── Podium ── */}
-        <div className="ns-star" style={{
+        <div style={{
           ...card,
           background: 'linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
           border: '3px solid #f59e0b', boxShadow: '0 6px 0 #d97706',
@@ -247,7 +247,7 @@ const Leaderboard: React.FC = () => {
         {/* ── Rest of rankings ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {rest.map(player => (
-            <div key={player.rank} className="ns-star" style={{
+            <div key={player.rank} style={{
               ...card,
               border: player.isCurrentUser ? '3px solid var(--primary-blue)' : '3px solid var(--dark-border)',
               boxShadow: player.isCurrentUser ? '0 6px 0 var(--primary-blue)' : '0 6px 0 var(--dark-border)',
@@ -279,7 +279,7 @@ const Leaderboard: React.FC = () => {
         </div>
 
         {/* ── Your ranking ── */}
-        <div className="ns-star" style={{
+        <div style={{
           ...card,
           border: '3px solid var(--primary-blue)', boxShadow: '0 6px 0 var(--primary-blue)',
           padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14,

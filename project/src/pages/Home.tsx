@@ -52,7 +52,7 @@ const Home: React.FC = () => {
       <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-4xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ── Hero Card ── */}
-        <div className="ns-star4" style={{
+        <div style={{
           ...card,
           background: 'linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%)',
           color: 'white', position: 'relative', overflow: 'hidden',
@@ -132,7 +132,7 @@ const Home: React.FC = () => {
             { emoji: '⭐', value: user.achievements, label: tr.home.achievements, color: '#7B6EF6' },
             { emoji: '🔥', value: user.streak, label: tr.home.dayStreak, color: '#ef4444' },
           ].map(s => (
-            <div key={s.label} className="ns-star" style={{ ...card, padding: '14px 10px', textAlign: 'center' }}>
+            <div key={s.label} style={{ ...card, padding: '14px 10px', textAlign: 'center' }}>
               <div style={{ fontSize: 22, marginBottom: 4 }}>{s.emoji}</div>
               <p style={{ fontWeight: 900, fontSize: 20, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
               <p style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</p>
@@ -194,7 +194,7 @@ const Home: React.FC = () => {
             </button>
           </div>
 
-          <div className="ns-bolt" style={{ ...card, padding: '18px 20px' }}>
+          <div style={{ ...card, padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <span style={{ color: 'var(--text-dark)', fontSize: 13, fontWeight: 700 }}>
                 {completedToday}/{dailyMissions.length} {tr.home.completed}
@@ -263,7 +263,7 @@ const Home: React.FC = () => {
               <div
                 key={reward.id}
                 onClick={() => navigate('/shop')}
-                className="ns-heart" style={{ ...card, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.1s, box-shadow 0.1s' }}
+                style={{ ...card, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.1s, box-shadow 0.1s' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
               >

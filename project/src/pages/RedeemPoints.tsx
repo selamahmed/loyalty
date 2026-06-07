@@ -177,7 +177,7 @@ const RedeemPoints: React.FC = () => {
       </div>
 
       {/* Coupon code input */}
-      <div className="card ns-diamond p-5">
+      <div className="card p-5">
         <div className="flex items-center gap-2 mb-3">
           <Tag size={18} className="text-[#7B6EF6] dark:text-[#4F8EF7]" />
           <h3 className="font-black text-gray-900 dark:text-white">Redeem Coupon</h3>
