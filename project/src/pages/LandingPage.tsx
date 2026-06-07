@@ -1,66 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Star, Sun, Moon, ChevronDown } from 'lucide-react';
+import { ArrowRight, Star, Sun, Moon, ChevronDown, Menu, X } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════════════
-   INLINE CIRCULAR STICKER — sits inside headline text
+   HERO INLINE CIRCULAR STICKER — responsive via CSS class
 ═══════════════════════════════════════════════════════════════ */
-const Sticker: React.FC<{ emoji: string; bg: string; size?: number; rotate?: number }> = ({
-  emoji, bg, size = 80, rotate = 0,
-}) => (
-  <span
-    className="inline-flex items-center justify-center flex-shrink-0 align-middle"
-    style={{
-      width: size, height: size,
-      background: bg,
-      border: '3px solid #fff',
-      borderRadius: '50%',
-      margin: '0 6px',
-      transform: `rotate(${rotate}deg)`,
-      fontSize: size * 0.44,
-      verticalAlign: 'middle',
-      display: 'inline-flex',
-      boxShadow: '0 4px 0 rgba(0,0,0,0.4)',
-    }}
-  >
+const Sticker: React.FC<{ emoji: string; bg: string; rotate?: number }> = ({ emoji, bg, rotate = 0 }) => (
+  <span className="hero-sticker" style={{ background: bg, transform: `rotate(${rotate}deg)` }}>
     {emoji}
   </span>
 );
 
-/* Inline pill badge — like "CAT WORLD →" in the reference */
+/* Inline pill badge */
 const InlinePill: React.FC<{ label: string; bg?: string; color?: string; onClick?: () => void }> = ({
   label, bg = '#22c55e', color = '#000', onClick,
 }) => (
-  <button
-    onClick={onClick}
-    className="inline-flex items-center gap-2 align-middle flex-shrink-0"
-    style={{
-      background: bg,
-      color,
-      fontWeight: 800,
-      borderRadius: 999,
-      padding: '10px 24px',
-      fontSize: '0.55em',
-      letterSpacing: '0.04em',
-      border: '2.5px solid rgba(255,255,255,0.6)',
-      margin: '0 10px',
-      verticalAlign: 'middle',
-      display: 'inline-flex',
-      boxShadow: '0 4px 0 rgba(0,0,0,0.35)',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      transition: 'transform 0.1s, box-shadow 0.1s',
-    }}
-    onMouseDown={e => {
-      (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)';
-      (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 rgba(0,0,0,0.35)';
-    }}
-    onMouseUp={e => {
-      (e.currentTarget as HTMLElement).style.transform = '';
-      (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 0 rgba(0,0,0,0.35)';
-    }}
-  >
-    {label} <ArrowRight size={14} />
+  <button onClick={onClick} className="inline-pill" style={{ background: bg, color }}>
+    {label} <ArrowRight size={13} />
   </button>
 );
 
@@ -80,10 +36,10 @@ const TickerStrip: React.FC<{
         animation: `ticker${direction === 'left' ? 'Left' : 'Right'} ${speed}s linear infinite`,
       }}>
         {tripled.map((item, i) => (
-          <div key={i} className="flex items-center gap-2 px-5 whitespace-nowrap flex-shrink-0">
+          <div key={i} className="flex items-center gap-2 px-4 whitespace-nowrap flex-shrink-0">
             {item.emoji && <span style={{ fontSize: '1rem' }}>{item.emoji}</span>}
             <span className="font-black text-sm tracking-widest uppercase" style={{ color: textColor }}>{item.text}</span>
-            <span style={{ color: textColor, opacity: 0.35, margin: '0 6px', fontWeight: 900 }}>◆</span>
+            <span style={{ color: textColor, opacity: 0.35, margin: '0 4px', fontWeight: 900 }}>◆</span>
           </div>
         ))}
       </div>
@@ -92,80 +48,153 @@ const TickerStrip: React.FC<{
 };
 
 /* ═══════════════════════════════════════════════════════════════
-   CARD DECO SHAPES
+   NEO-BRUTALISM SVG SHAPES — big, bold, for card corners
 ═══════════════════════════════════════════════════════════════ */
-const Deco = {
-  CrossDots: ({ color = '#7B6EF6', opacity = 0.15 }) => (
-    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ position: 'absolute', bottom: 10, right: 10, opacity, pointerEvents: 'none' }}>
-      {[8, 24, 40].flatMap(x => [8, 24, 40].map(y => <circle key={`${x}-${y}`} cx={x} cy={y} r="3" fill={color} />))}
-    </svg>
-  ),
-  DiagLines: ({ color = '#7B6EF6', opacity = 0.07 }) => (
-    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style={{ position: 'absolute', bottom: 0, right: 0, opacity, pointerEvents: 'none', borderRadius: '0 0 18px 0' }}>
-      {[0, 12, 24, 36, 48, 60, 72, 84].map(o => <line key={o} x1={o - 32} y1="0" x2={o} y2="64" stroke={color} strokeWidth="6" />)}
-    </svg>
-  ),
-  ZigZag: ({ color = '#F472B6', opacity = 0.2 }) => (
-    <svg width="60" height="20" viewBox="0 0 60 20" fill="none" style={{ position: 'absolute', bottom: 8, left: 8, opacity, pointerEvents: 'none' }}>
-      <polyline points="0,15 10,5 20,15 30,5 40,15 50,5 60,15" stroke={color} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" fill="none" />
-    </svg>
-  ),
-  HalfCircle: ({ color = '#86EFAC', opacity = 0.2 }) => (
-    <svg width="48" height="24" viewBox="0 0 48 24" fill="none" style={{ position: 'absolute', bottom: 0, right: 0, opacity, pointerEvents: 'none' }}>
-      <path d="M0 24 A24 24 0 0 1 48 24 Z" fill={color} />
-    </svg>
-  ),
-  Plus: ({ color = '#FBBF24', opacity = 0.22 }) => (
-    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" style={{ position: 'absolute', top: 10, right: 10, opacity, pointerEvents: 'none' }}>
-      <rect x="10" y="2" width="6" height="22" rx="3" fill={color} />
-      <rect x="2" y="10" width="22" height="6" rx="3" fill={color} />
-    </svg>
-  ),
-  Corner: ({ color = '#7B6EF6', opacity = 0.2 }) => (
-    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" style={{ position: 'absolute', bottom: 8, left: 8, opacity, pointerEvents: 'none' }}>
-      <path d="M2 20 L2 2 L20 2" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    </svg>
-  ),
-  Wave: ({ color = '#A78BFA', opacity = 0.2 }) => (
-    <svg width="64" height="18" viewBox="0 0 64 18" fill="none" style={{ position: 'absolute', bottom: 8, left: 8, opacity, pointerEvents: 'none' }}>
-      <path d="M0 9 C8 0,16 18,24 9 C32 0,40 18,48 9 C56 0,64 18,72 9" stroke={color} strokeWidth="3" strokeLinecap="round" fill="none" />
-    </svg>
-  ),
-  BullsEye: ({ color = '#F472B6', opacity = 0.2 }) => (
-    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" style={{ position: 'absolute', bottom: 8, right: 8, opacity, pointerEvents: 'none' }}>
-      <circle cx="18" cy="18" r="15" stroke={color} strokeWidth="3" fill="none" />
-      <circle cx="18" cy="18" r="5" fill={color} />
-    </svg>
-  ),
-};
+type ShapeProps = { color: string; size?: number; opacity?: number; rotate?: number };
+
+const NStar5 = ({ color, size = 100, opacity = 0.22, rotate = 0 }: ShapeProps) => (
+  <svg width={size} height={size} viewBox="0 0 56 56" fill="none"
+    style={{ position: 'absolute', top: -size * 0.18, right: -size * 0.18, opacity, pointerEvents: 'none', transform: `rotate(${rotate}deg)`, zIndex: 0 }}>
+    <polygon points="28,3 33,21 52,21 37,33 43,51 28,40 13,51 19,33 4,21 23,21"
+      fill={color} stroke="#000" strokeWidth="3" strokeLinejoin="round" />
+  </svg>
+);
+const NBolt = ({ color, size = 94, opacity = 0.22, rotate = 0 }: ShapeProps) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none"
+    style={{ position: 'absolute', top: -size * 0.12, right: -size * 0.12, opacity, pointerEvents: 'none', transform: `rotate(${rotate}deg)`, zIndex: 0 }}>
+    <polygon points="28,2 15,26 24,26 19,46 36,22 27,22"
+      fill={color} stroke="#000" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+  </svg>
+);
+const NDiamond = ({ color, size = 96, opacity = 0.22, rotate = 0 }: ShapeProps) => (
+  <svg width={size} height={size} viewBox="0 0 50 50" fill="none"
+    style={{ position: 'absolute', top: -size * 0.14, right: -size * 0.14, opacity, pointerEvents: 'none', transform: `rotate(${rotate}deg)`, zIndex: 0 }}>
+    <polygon points="25,3 46,18 25,47 4,18"
+      fill={color} stroke="#000" strokeWidth="3" strokeLinejoin="round" />
+  </svg>
+);
+const NHeart = ({ color, size = 98, opacity = 0.22, rotate = 0 }: ShapeProps) => (
+  <svg width={size} height={size} viewBox="0 0 52 52" fill="none"
+    style={{ position: 'absolute', top: -size * 0.14, right: -size * 0.14, opacity, pointerEvents: 'none', transform: `rotate(${rotate}deg)`, zIndex: 0 }}>
+    <path d="M26 45C26 45 5 32 5 17C5 10 11 4 19 6C22 7 26 12 26 12C26 12 30 7 33 6C41 4 47 10 47 17C47 32 26 45 26 45Z"
+      fill={color} stroke="#000" strokeWidth="3" strokeLinejoin="round" />
+  </svg>
+);
+const NBurst = ({ color, size = 102, opacity = 0.22, rotate = 0 }: ShapeProps) => (
+  <svg width={size} height={size} viewBox="0 0 54 54" fill="none"
+    style={{ position: 'absolute', top: -size * 0.16, right: -size * 0.16, opacity, pointerEvents: 'none', transform: `rotate(${rotate}deg)`, zIndex: 0 }}>
+    <polygon points="27,1 31,19 47,11 39,26 52,36 34,34 31,51 23,34 5,40 15,27 2,15 20,19"
+      fill={color} stroke="#000" strokeWidth="2.5" strokeLinejoin="round" />
+  </svg>
+);
+const NStar4 = ({ color, size = 96, opacity = 0.22, rotate = 0 }: ShapeProps) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none"
+    style={{ position: 'absolute', top: -size * 0.14, right: -size * 0.14, opacity, pointerEvents: 'none', transform: `rotate(${rotate}deg)`, zIndex: 0 }}>
+    <path d="M24 3 L28 20 L45 24 L28 28 L24 45 L20 28 L3 24 L20 20 Z"
+      fill={color} stroke="#000" strokeWidth="3" strokeLinejoin="round" />
+  </svg>
+);
+
+/* Banner decorative shapes — large right-side SVGs */
+const BannerStar = ({ color = '#000', opacity = 0.12 }) => (
+  <svg width="220" height="220" viewBox="0 0 56 56" fill="none"
+    style={{ position: 'absolute', right: -30, top: '50%', transform: 'translateY(-50%) rotate(12deg)', opacity, pointerEvents: 'none' }}>
+    <polygon points="28,3 33,21 52,21 37,33 43,51 28,40 13,51 19,33 4,21 23,21"
+      fill={color} stroke="#000" strokeWidth="2.2" strokeLinejoin="round" />
+  </svg>
+);
+const BannerBolt = ({ color = '#000', opacity = 0.12 }) => (
+  <svg width="180" height="180" viewBox="0 0 48 48" fill="none"
+    style={{ position: 'absolute', right: -20, top: '50%', transform: 'translateY(-60%) rotate(-8deg)', opacity, pointerEvents: 'none' }}>
+    <polygon points="28,2 15,26 24,26 19,46 36,22 27,22"
+      fill={color} stroke="#000" strokeWidth="2.5" strokeLinejoin="round" />
+  </svg>
+);
+const BannerDiamond = ({ color = '#000', opacity = 0.12 }) => (
+  <svg width="200" height="200" viewBox="0 0 50 50" fill="none"
+    style={{ position: 'absolute', right: -24, top: '50%', transform: 'translateY(-50%) rotate(15deg)', opacity, pointerEvents: 'none' }}>
+    <polygon points="25,3 46,18 25,47 4,18"
+      fill={color} stroke="#000" strokeWidth="2.2" strokeLinejoin="round" />
+  </svg>
+);
+const BannerBurst = ({ color = '#000', opacity = 0.12 }) => (
+  <svg width="210" height="210" viewBox="0 0 54 54" fill="none"
+    style={{ position: 'absolute', right: -28, top: '50%', transform: 'translateY(-45%) rotate(-6deg)', opacity, pointerEvents: 'none' }}>
+    <polygon points="27,1 31,19 47,11 39,26 52,36 34,34 31,51 23,34 5,40 15,27 2,15 20,19"
+      fill={color} stroke="#000" strokeWidth="2" strokeLinejoin="round" />
+  </svg>
+);
 
 /* ═══════════════════════════════════════════════════════════════
    DATA
 ═══════════════════════════════════════════════════════════════ */
 const features = [
-  { emoji: '⚡', title: 'Anında Ödüller',       desc: 'Her etkileşimde anında puan kazan.',             color: '#7B6EF6', Deco1: Deco.CrossDots, Deco2: Deco.Plus },
-  { emoji: '🎮', title: 'Eğlenceli Oyunlar',     desc: 'Oyunlar oyna, görevleri tamamla, bonus kazan.',  color: '#22c55e', Deco1: Deco.DiagLines, Deco2: Deco.Corner },
-  { emoji: '🎁', title: 'Özel Ödüller',          desc: 'Puanlarını harika ödüllerle değiştir.',           color: '#f59e0b', Deco1: Deco.ZigZag,    Deco2: Deco.Plus },
-  { emoji: '🎯', title: 'Günlük Görevler',       desc: 'Günlük zorlukları tamamla, serini koru.',         color: '#ef4444', Deco1: Deco.Wave,      Deco2: Deco.Corner },
-  { emoji: '🏆', title: 'Liderlik Tabloları',    desc: 'Diğerleriyle yarış ve sıralamada yüksel.',        color: '#06b6d4', Deco1: Deco.HalfCircle,Deco2: Deco.Plus },
-  { emoji: '💖', title: 'Sosyal Ödüller',        desc: 'Arkadaşlarınla paylaş, ekstra puan kazan.',       color: '#ec4899', Deco1: Deco.BullsEye,  Deco2: Deco.Corner },
+  { emoji: '⚡', title: 'Anında Ödüller',    desc: 'Her etkileşimde anında puan kazan.',             color: '#7B6EF6', Shape: NBolt,    sOpacity: 0.2, sRotate: 15 },
+  { emoji: '🎮', title: 'Eğlenceli Oyunlar', desc: 'Oyunlar oyna, görevleri tamamla, bonus kazan.',  color: '#22c55e', Shape: NStar5,   sOpacity: 0.2, sRotate: -10 },
+  { emoji: '🎁', title: 'Özel Ödüller',      desc: 'Puanlarını harika ödüllerle değiştir.',           color: '#f59e0b', Shape: NHeart,   sOpacity: 0.2, sRotate: 8 },
+  { emoji: '🎯', title: 'Günlük Görevler',   desc: 'Günlük zorlukları tamamla, serini koru.',         color: '#ef4444', Shape: NBurst,   sOpacity: 0.18, sRotate: -12 },
+  { emoji: '🏆', title: 'Liderlik Tablosu',  desc: 'Diğerleriyle yarış ve sıralamada yüksel.',        color: '#06b6d4', Shape: NStar4,   sOpacity: 0.2, sRotate: 20 },
+  { emoji: '💖', title: 'Sosyal Ödüller',    desc: 'Arkadaşlarınla paylaş, ekstra puan kazan.',       color: '#ec4899', Shape: NDiamond, sOpacity: 0.2, sRotate: -8 },
 ];
 
 const tickerHero: TickerItem[] = [
-  { text: '50,000+ Aktif Kullanıcı', emoji: '👥' },
+  { text: '50.000+ Aktif Kullanıcı', emoji: '👥' },
   { text: '4 Mini Oyun',             emoji: '🎮' },
   { text: '2M+ Kazanılan Puan',      emoji: '✨' },
   { text: '8 Ödül Kategorisi',       emoji: '🎁' },
-  { text: '10,000+ Ödül Verildi',    emoji: '🏆' },
+  { text: '10.000+ Ödül Verildi',    emoji: '🏆' },
   { text: 'Günlük Görevler',         emoji: '🎯' },
   { text: 'Ücretsiz Kayıt',          emoji: '🎉' },
   { text: 'Liderlik Tablosu',        emoji: '👑' },
 ];
 
+const banners = [
+  {
+    bg: '#FFE500', textColor: '#000',
+    rotate: -1.4,
+    tag: '👥 TOPLULUK',
+    headline: '50.000+',
+    sub: 'Mutlu Kullanıcı',
+    body: 'Türkiye\'nin en hızlı büyüyen sadakat topluluğuna katılın. Her gün yeni üyeler NexReward\'la tanışıyor ve kazanmaya başlıyor.',
+    BShape: BannerStar,
+    accent: '#000',
+  },
+  {
+    bg: '#BFFF00', textColor: '#000',
+    rotate: 1.0,
+    tag: '⚡ HIZ',
+    headline: 'ANINDA',
+    sub: 'Ödül Sistemi',
+    body: 'Alışveriş yaptığınız anda puanlar hesabınıza geçer. Bekleme yok, gecikme yok — sadece anlık kazanç.',
+    BShape: BannerBolt,
+    accent: '#000',
+  },
+  {
+    bg: '#FF6B35', textColor: '#fff',
+    rotate: -0.8,
+    tag: '💰 KAZANÇ',
+    headline: '2M+',
+    sub: 'Kazanılan Puan',
+    body: 'Kullanıcılarımız 2 milyondan fazla puan kazandı. Online ve offline her alışverişiniz bir kazanç fırsatıdır.',
+    BShape: BannerDiamond,
+    accent: '#fff',
+  },
+  {
+    bg: '#FF3E9D', textColor: '#fff',
+    rotate: 1.2,
+    tag: '🏆 BAŞARI',
+    headline: '#1',
+    sub: 'Türkiye\'nin Platformu',
+    body: 'En iyi sadakat deneyimini yaşayın. Ödüller, mini oyunlar, liderlik tabloları ve çok daha fazlası — hepsi ücretsiz.',
+    BShape: BannerBurst,
+    accent: '#fff',
+  },
+];
+
 const testimonials = [
-  { name: 'Ayşe K.',   role: 'Alışveriş Meraklısı', text: 'NexReward sayesinde her alışverişte ekstra kazanıyorum. Harika!', avatar: 'A', stars: 5 },
-  { name: 'Mehmet T.', role: 'Sadık Üye',            text: 'Günlük görevler çok eğlenceli, ödüller gerçekten değerli.',        avatar: 'M', stars: 5 },
-  { name: 'Zeynep A.', role: 'Premium Üye',          text: 'Arkadaşlarımla liderlik tablosunda yarışmak çok keyifli!',          avatar: 'Z', stars: 5 },
+  { name: 'Ayşe K.',   role: 'Alışveriş Meraklısı', text: 'NexReward sayesinde her alışverişte ekstra kazanıyorum. Harika bir platform!', avatar: 'A', stars: 5 },
+  { name: 'Mehmet T.', role: 'Sadık Üye',            text: 'Günlük görevler çok eğlenceli, ödüller gerçekten değerli. Kesinlikle tavsiye ederim.',        avatar: 'M', stars: 5 },
+  { name: 'Zeynep A.', role: 'Premium Üye',          text: 'Arkadaşlarımla liderlik tablosunda yarışmak çok keyifli! Her gün giriş yapıyorum.',          avatar: 'Z', stars: 5 },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
@@ -175,12 +204,13 @@ const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [isDark, setIsDark] = useState(true);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const t = {
     pageBg:        isDark ? '#0c0e1e' : '#f0eeff',
     heroText:      isDark ? '#ffffff' : '#0c0e1e',
     sideText:      isDark ? 'rgba(255,255,255,0.28)' : 'rgba(12,14,30,0.35)',
-    navBg:         isDark ? 'rgba(12,14,30,0.85)' : 'rgba(240,238,255,0.85)',
+    navBg:         isDark ? 'rgba(12,14,30,0.92)' : 'rgba(240,238,255,0.92)',
     navBorder:     isDark ? 'rgba(255,255,255,0.1)' : 'rgba(12,14,30,0.12)',
     cardBg:        isDark ? '#131629' : '#ffffff',
     cardBg2:       isDark ? '#0f1124' : '#f0eeff',
@@ -190,11 +220,11 @@ const LandingPage: React.FC = () => {
     textSecondary: isDark ? '#8b87b8' : '#6b7280',
     textMuted:     isDark ? '#5a5680' : '#9ca3af',
     pillBg:        isDark ? 'rgba(123,110,246,0.15)' : '#ede9fe',
-    ghostColor:    isDark ? 'rgba(123,110,246,0.06)' : 'rgba(123,110,246,0.04)',
+    ghostColor:    isDark ? 'rgba(123,110,246,0.055)' : 'rgba(123,110,246,0.04)',
     footerBg:      isDark ? '#0a0c1a' : '#f0eeff',
     howBg:         isDark ? '#0f1124' : '#ffffff',
     tickerBg2:     isDark ? '#131629' : '#ffffff',
-    decoOp:        isDark ? 0.14 : 0.18,
+    decoOp:        isDark ? 0.2 : 0.24,
     cssVars: {
       '--l-border':  isDark ? '#2a2d50' : '#1e1b4b',
       '--l-shadow':  isDark ? '#000000' : '#1e1b4b',
@@ -207,16 +237,16 @@ const LandingPage: React.FC = () => {
   return (
     <div style={{ background: t.pageBg, color: t.textPrimary, minHeight: '100vh', overflowX: 'hidden', transition: 'background 0.3s', ...t.cssVars }}>
 
-      {/* ── Ghost watermark ── */}
+      {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{
-          position: 'absolute', top: '5%', left: '50%', transform: 'translateX(-50%) rotate(-6deg)',
-          fontSize: 'clamp(120px, 22vw, 280px)', fontWeight: 900, color: t.ghostColor,
+          position: 'absolute', top: '4%', left: '50%', transform: 'translateX(-50%) rotate(-6deg)',
+          fontSize: 'clamp(80px, 20vw, 260px)', fontWeight: 900, color: t.ghostColor,
           whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
         }}>NEXREWARD</div>
         <div style={{
-          position: 'absolute', bottom: '15%', left: '50%', transform: 'translateX(-50%) rotate(-6deg)',
-          fontSize: 'clamp(80px, 14vw, 200px)', fontWeight: 900, color: t.ghostColor,
+          position: 'absolute', bottom: '12%', left: '50%', transform: 'translateX(-50%) rotate(-6deg)',
+          fontSize: 'clamp(60px, 13vw, 190px)', fontWeight: 900, color: t.ghostColor,
           whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
         }}>PUAN KAZAN</div>
       </div>
@@ -230,28 +260,28 @@ const LandingPage: React.FC = () => {
           borderBottom: `1.5px solid ${t.navBorder}`,
           transition: 'background 0.3s',
         }}>
-          <div style={{ maxWidth: 1280, margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ maxWidth: 1280, margin: '0 auto', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             {/* Pill logo */}
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(12,14,30,0.07)',
               border: `2px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(12,14,30,0.2)'}`,
-              borderRadius: 999, padding: '6px 16px 6px 8px',
+              borderRadius: 999, padding: '5px 14px 5px 6px', flexShrink: 0,
             }}>
               <div style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: 'linear-gradient(180deg, #a78bfa 0%, #6d28d9 100%)',
-                border: '2px solid rgba(255,255,255,0.5)',
+                width: 30, height: 30, borderRadius: '50%',
+                background: 'linear-gradient(180deg,#a78bfa 0%,#6d28d9 100%)',
+                border: '2px solid rgba(255,255,255,0.45)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 900, color: 'white', fontSize: 14,
+                fontWeight: 900, color: 'white', fontSize: 13,
               }}>N</div>
-              <span style={{ fontWeight: 900, fontSize: 15, color: t.textPrimary, letterSpacing: '-0.01em' }}>NexReward</span>
+              <span style={{ fontWeight: 900, fontSize: 14, color: t.textPrimary, letterSpacing: '-0.01em' }}>NexReward</span>
             </div>
 
-            {/* Nav links */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 28 }} className="hidden md:flex">
-              {[['#features', 'Özellikler'], ['#how', 'Nasıl Çalışır'], ['#testimonials', 'Yorumlar']].map(([href, label]) => (
-                <a key={href} href={href} style={{ color: t.textSecondary, fontWeight: 700, fontSize: 13, textDecoration: 'none', letterSpacing: '0.05em', transition: 'color 0.2s' }}
+            {/* Desktop nav links */}
+            <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              {[['#features','Özellikler'],['#banners','Avantajlar'],['#how','Nasıl Çalışır'],['#testimonials','Yorumlar']].map(([href, label]) => (
+                <a key={href} href={href} style={{ color: t.textSecondary, fontWeight: 700, fontSize: 12, textDecoration: 'none', letterSpacing: '0.05em', transition: 'color 0.2s', whiteSpace: 'nowrap' }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')}
                   onMouseLeave={e => (e.currentTarget.style.color = t.textSecondary)}>
                   {label.toUpperCase()}
@@ -260,147 +290,215 @@ const LandingPage: React.FC = () => {
             </div>
 
             {/* Right actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button onClick={() => setIsDark(!isDark)}
                 style={{
-                  width: 36, height: 36, borderRadius: '50%', border: `2px solid ${t.border}`,
+                  width: 34, height: 34, borderRadius: '50%', border: `2px solid ${t.border}`,
                   background: t.cardBg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: `0 3px 0 ${t.shadow}`, transition: 'transform 0.1s',
+                  boxShadow: `0 3px 0 ${t.shadow}`, flexShrink: 0,
                 }}
                 onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; }}
                 onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}>
-                {isDark ? <Sun size={15} color="#FBBF24" /> : <Moon size={15} color="#7B6EF6" />}
+                {isDark ? <Sun size={14} color="#FBBF24" /> : <Moon size={14} color="#7B6EF6" />}
               </button>
-              <button onClick={() => navigate('/login')} className="lbtn-secondary-sm">Giriş Yap</button>
+              <button onClick={() => navigate('/login')} className="lbtn-secondary-sm nav-login-btn">Giriş Yap</button>
               <button onClick={() => navigate('/home')} className="lbtn-primary-sm">
-                Panele Gir <ArrowRight size={13} />
+                <span className="btn-label-full">Panele Gir</span>
+                <span className="btn-label-short">Panel</span>
+                <ArrowRight size={12} />
+              </button>
+              {/* Hamburger — mobile only */}
+              <button className="hamburger-btn"
+                onClick={() => setMenuOpen(!menuOpen)}
+                style={{
+                  width: 34, height: 34, borderRadius: 10, border: `2px solid ${t.border}`,
+                  background: t.cardBg, cursor: 'pointer', display: 'none', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 3px 0 ${t.shadow}`, flexShrink: 0,
+                }}>
+                {menuOpen ? <X size={16} color={t.textPrimary} /> : <Menu size={16} color={t.textPrimary} />}
               </button>
             </div>
           </div>
+
+          {/* Mobile menu */}
+          {menuOpen && (
+            <div style={{
+              background: t.navBg, borderTop: `1.5px solid ${t.navBorder}`, padding: '12px 20px 16px',
+            }}>
+              {[['#features','Özellikler'],['#banners','Avantajlar'],['#how','Nasıl Çalışır'],['#testimonials','Yorumlar']].map(([href, label]) => (
+                <a key={href} href={href} onClick={() => setMenuOpen(false)}
+                  style={{ display: 'block', padding: '10px 0', color: t.textPrimary, fontWeight: 700, fontSize: 15, textDecoration: 'none', borderBottom: `1px solid ${t.navBorder}` }}>
+                  {label}
+                </a>
+              ))}
+              <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
+                <button onClick={() => { navigate('/login'); setMenuOpen(false); }} className="lbtn-secondary-sm" style={{ flex: 1 }}>Giriş Yap</button>
+                <button onClick={() => { navigate('/register'); setMenuOpen(false); }} className="lbtn-primary-sm" style={{ flex: 1, justifyContent: 'center' }}>Kayıt Ol</button>
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* ══ HERO ══ */}
-        <section style={{ minHeight: '92vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', padding: '40px 0 0' }}>
-
-          {/* Side text — left */}
-          <div className="hidden lg:block" style={{
-            position: 'absolute', left: 28, top: '50%', transform: 'translateY(-50%)',
-            color: t.sideText, fontWeight: 700, fontSize: 11, letterSpacing: '0.08em',
-            lineHeight: 2.2, textTransform: 'uppercase',
-          }}>
+        <section style={{ minHeight: '90vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', padding: '40px 0 0' }}>
+          {/* Side annotations */}
+          <div className="side-text" style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', color: t.sideText, fontWeight: 700, fontSize: 10, letterSpacing: '0.09em', lineHeight: 2.4, textTransform: 'uppercase' }}>
             <div>PUAN KAZAN</div>
             <div>ÖDÜL AL</div>
             <div>SIK OYNA</div>
             <div>TEKRARLA</div>
           </div>
-
-          {/* Side text — right */}
-          <div className="hidden lg:block" style={{
-            position: 'absolute', right: 28, top: '42%', transform: 'translateY(-50%)',
-            color: t.sideText, fontWeight: 700, fontSize: 11, letterSpacing: '0.08em',
-            lineHeight: 2.2, textTransform: 'uppercase', textAlign: 'right',
-          }}>
+          <div className="side-text" style={{ position: 'absolute', right: 20, top: '42%', transform: 'translateY(-50%)', color: t.sideText, fontWeight: 700, fontSize: 10, letterSpacing: '0.09em', lineHeight: 2.4, textTransform: 'uppercase', textAlign: 'right' }}>
             <div>OYUN, GÖREV</div>
             <div>PUAN, ÖDÜL</div>
             <div>LİDERLİK</div>
           </div>
 
           {/* Massive headline */}
-          <div style={{ padding: '0 clamp(16px, 5vw, 80px)', textAlign: 'center' }}>
-            <div style={{
-              fontWeight: 900,
-              fontSize: 'clamp(44px, 9.2vw, 128px)',
-              lineHeight: 1.0,
-              letterSpacing: '-0.03em',
-              color: t.heroText,
-              textTransform: 'uppercase',
-            }}>
-              {/* Line 1 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 4px', marginBottom: '0.04em' }}>
+          <div style={{ padding: '0 clamp(14px, 4vw, 72px)', textAlign: 'center' }}>
+            <div className="hero-headline">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 2px', marginBottom: '0.04em' }}>
                 <span>ALIŞVERİŞ</span>
-                <Sticker emoji="⭐" bg="#f59e0b" size={Math.min(96, window.innerWidth * 0.08)} rotate={-8} />
+                <Sticker emoji="⭐" bg="#f59e0b" rotate={-8} />
                 <span>YAPARKEN</span>
               </div>
-
-              {/* Line 2 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 4px', marginBottom: '0.04em' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 2px', marginBottom: '0.04em' }}>
                 <span>PUAN</span>
                 <InlinePill label="HEMEN BAŞLA" bg="#22c55e" color="#000" onClick={() => navigate('/home')} />
                 <span>KAZAN</span>
               </div>
-
-              {/* Line 3 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 4px', marginBottom: '0.04em' }}>
-                <Sticker emoji="🏆" bg="#7B6EF6" size={Math.min(96, window.innerWidth * 0.08)} rotate={6} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 2px', marginBottom: '0.04em' }}>
+                <Sticker emoji="🏆" bg="#7B6EF6" rotate={6} />
                 <span>VE ÖDÜL</span>
-                <Sticker emoji="🎮" bg="#ec4899" size={Math.min(88, window.innerWidth * 0.075)} rotate={-4} />
+                <Sticker emoji="🎮" bg="#ec4899" rotate={-4} />
                 <span>AL</span>
               </div>
-
-              {/* Line 4 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 2px' }}>
                 <span>HER</span>
-                <Sticker emoji="💎" bg="#06b6d4" size={Math.min(80, window.innerWidth * 0.07)} rotate={10} />
+                <Sticker emoji="💎" bg="#06b6d4" rotate={10} />
                 <span>GÜN EĞLEN</span>
               </div>
             </div>
-
-            {/* Sub text */}
-            <p style={{
-              marginTop: 28, color: t.textSecondary, fontWeight: 600,
-              fontSize: 'clamp(13px, 1.6vw, 18px)', maxWidth: 480, marginInline: 'auto',
-            }}>
+            <p style={{ marginTop: 24, color: t.textSecondary, fontWeight: 600, fontSize: 'clamp(13px, 1.5vw, 17px)', maxWidth: 460, marginInline: 'auto', lineHeight: 1.6 }}>
               Binlerce kullanıcıyla birlikte puan kazan, özel ödüller aç ve her gün eğlen.
             </p>
           </div>
 
           {/* Scroll cue */}
-          <div style={{ textAlign: 'center', marginTop: 40, marginBottom: 8 }}>
-            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: t.sideText }}>
-              <span style={{ fontSize: 28 }}>🐾</span>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Kaydır ve keşfet</span>
-              <ChevronDown size={16} style={{ opacity: 0.5, animation: 'bounce 1.8s ease-in-out infinite' }} />
+          <div style={{ textAlign: 'center', marginTop: 36, marginBottom: 8 }}>
+            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 5, color: t.sideText }}>
+              <span style={{ fontSize: 24 }}>🐾</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Kaydır ve keşfet</span>
+              <ChevronDown size={14} style={{ opacity: 0.5, animation: 'bounce 1.8s ease-in-out infinite' }} />
             </div>
           </div>
         </section>
 
-        {/* ══ HERO TICKER ══ */}
-        <TickerStrip
-          items={tickerHero} direction="left"
-          bg={isDark ? '#7B6EF6' : '#7B6EF6'} textColor="white"
-          borderTop={`2px solid ${isDark ? '#2a2d50' : '#1e1b4b'}`}
-          borderBottom={`2px solid ${isDark ? '#2a2d50' : '#1e1b4b'}`}
-          speed={28}
-        />
+        {/* ══ HERO TICKERS ══ */}
+        <TickerStrip items={tickerHero} direction="left" bg="#7B6EF6" textColor="white"
+          borderTop={`2px solid ${t.border}`} borderBottom={`2px solid ${t.border}`} speed={30} />
         <TickerStrip
           items={[
-            { text: 'PUAN KAZAN', emoji: '⭐' }, { text: 'ÖDÜL AL',    emoji: '🎁' },
-            { text: 'OYUN OYNA', emoji: '🕹️' },  { text: 'LIDER OL',  emoji: '👑' },
-            { text: 'PAYLAŞ',    emoji: '💜' },   { text: 'KEŞFET',    emoji: '🔮' },
-            { text: 'YÜKSEL',    emoji: '🚀' },   { text: 'KAZAN',     emoji: '💰' },
+            { text:'PUAN KAZAN',emoji:'⭐' },{text:'ÖDÜL AL',emoji:'🎁' },
+            { text:'OYUN OYNA',emoji:'🕹️' },{text:'LIDER OL',emoji:'👑' },
+            { text:'PAYLAŞ',   emoji:'💜' },{text:'KEŞFET', emoji:'🔮' },
+            { text:'YÜKSEL',   emoji:'🚀' },{text:'KAZAN',  emoji:'💰' },
           ]}
-          direction="right"
-          bg={t.tickerBg2} textColor={isDark ? '#a78bfa' : '#7B6EF6'}
-          borderBottom={`2px solid ${isDark ? '#2a2d50' : '#1e1b4b'}`}
-          speed={20}
+          direction="right" bg={t.tickerBg2} textColor={isDark ? '#a78bfa' : '#7B6EF6'}
+          borderBottom={`2px solid ${t.border}`} speed={22}
         />
 
+        {/* ══ STACKING BANNERS ══ */}
+        <section id="banners" style={{ position: 'relative' }}>
+          {banners.map((b, i) => (
+            <div key={i} style={{ height: 'clamp(280px, 52vh, 520px)', position: 'relative' }}>
+              <div style={{
+                position: 'sticky',
+                top: `${62 + i * 8}px`,
+                zIndex: 10 + i,
+                padding: '0 clamp(10px, 3vw, 32px)',
+              }}>
+                <div style={{
+                  position: 'relative',
+                  background: b.bg,
+                  border: '3px solid #000',
+                  borderRadius: 20,
+                  boxShadow: '0 7px 0 #000',
+                  transform: `rotate(${b.rotate}deg)`,
+                  padding: 'clamp(24px, 4vw, 44px) clamp(20px, 5vw, 56px)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'clamp(16px, 4vw, 48px)',
+                  minHeight: 'clamp(130px, 18vh, 200px)',
+                }}>
+                  {/* Background shape */}
+                  <b.BShape color={b.accent} opacity={0.11} />
+
+                  {/* Tag */}
+                  <div style={{
+                    position: 'absolute', top: 12, right: 16,
+                    background: 'rgba(0,0,0,0.12)', color: b.textColor,
+                    borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800,
+                    letterSpacing: '0.06em', border: `1.5px solid ${b.textColor === '#000' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)'}`,
+                  }}>{b.tag}</div>
+
+                  {/* Headline number */}
+                  <div style={{ flexShrink: 0 }}>
+                    <div style={{
+                      fontWeight: 900, color: b.textColor, lineHeight: 0.9,
+                      fontSize: 'clamp(48px, 9vw, 110px)', letterSpacing: '-0.04em',
+                    }}>{b.headline}</div>
+                    <div style={{
+                      fontWeight: 900, color: b.textColor,
+                      fontSize: 'clamp(13px, 2.2vw, 22px)', letterSpacing: '-0.01em', marginTop: 2, opacity: 0.75,
+                    }}>{b.sub}</div>
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{ width: 3, alignSelf: 'stretch', background: `${b.textColor === '#000' ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.3)'}`, borderRadius: 99, flexShrink: 0 }} className="banner-divider" />
+
+                  {/* Body text */}
+                  <div className="banner-body">
+                    <p style={{
+                      fontWeight: 700, color: b.textColor,
+                      fontSize: 'clamp(13px, 1.8vw, 20px)', lineHeight: 1.5, margin: 0,
+                      opacity: 0.85, maxWidth: 520,
+                    }}>{b.body}</p>
+                    <button
+                      onClick={() => navigate('/register')}
+                      style={{
+                        marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: b.textColor === '#000' ? '#000' : '#fff',
+                        color: b.textColor === '#000' ? b.bg : '#000',
+                        border: `2.5px solid ${b.textColor === '#000' ? '#000' : '#fff'}`,
+                        borderRadius: 12, padding: '9px 20px',
+                        fontWeight: 900, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                        boxShadow: `0 3px 0 ${b.textColor === '#000' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.3)'}`,
+                        transition: 'transform 0.1s, box-shadow 0.1s',
+                      }}
+                      onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 rgba(0,0,0,0.3)'; }}
+                      onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = `0 3px 0 rgba(0,0,0,0.3)`; }}>
+                      Katıl <ArrowRight size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+
         {/* ══ FEATURES ══ */}
-        <section id="features" style={{ padding: '80px clamp(16px, 5vw, 80px)', maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 52 }}>
+        <section id="features" style={{ padding: '80px clamp(14px, 4vw, 64px)', maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               background: t.pillBg, color: '#a78bfa',
               border: `2px solid ${t.border}`,
               borderRadius: 999, padding: '5px 16px',
-              fontSize: 11, fontWeight: 900, letterSpacing: '0.1em',
-              marginBottom: 16,
+              fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 14,
             }}>✦ ÖZELLİKLER</div>
-            <h2 style={{
-              fontSize: 'clamp(32px, 5vw, 64px)', fontWeight: 900,
-              letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, lineHeight: 1.1,
-              textTransform: 'uppercase',
-            }}>
+            <h2 style={{ fontSize: 'clamp(28px, 5vw, 60px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, lineHeight: 1.1, textTransform: 'uppercase' }}>
               NEDEN BİZİ{' '}
               <span style={{ background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                 SEVECEKSİNİZ
@@ -408,150 +506,36 @@ const LandingPage: React.FC = () => {
             </h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 18 }}>
             {features.map((f, i) => (
               <div key={i}
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
                 style={{
-                  position: 'relative', padding: '28px 24px', borderRadius: 20, overflow: 'hidden',
+                  position: 'relative', padding: '28px 24px 24px', borderRadius: 20, overflow: 'hidden',
                   background: t.cardBg,
                   border: `2.5px solid ${t.border}`,
                   boxShadow: hovered === i ? `0 8px 0 ${t.shadow}` : `0 4px 0 ${t.shadow}`,
                   transform: hovered === i ? 'translateY(-4px)' : 'none',
                   transition: 'all 0.15s ease', cursor: 'pointer',
                 }}>
-                <f.Deco1 color={f.color} opacity={t.decoOp} />
-                <f.Deco2 color={f.color} opacity={isDark ? 0.3 : 0.22} />
-                <div style={{
-                  width: 56, height: 56, borderRadius: 16, fontSize: 26,
-                  background: `${f.color}20`, border: `2px solid ${f.color}`,
-                  boxShadow: `0 3px 0 ${f.color}60`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 16, transition: 'transform 0.15s',
-                  transform: hovered === i ? 'scale(1.1)' : 'scale(1)',
-                }}>
-                  {f.emoji}
-                </div>
-                <h3 style={{ fontWeight: 900, fontSize: 17, color: t.textPrimary, margin: '0 0 6px' }}>{f.title}</h3>
-                <p style={{ fontSize: 13, fontWeight: 500, color: t.textMuted, margin: '0 0 14px', lineHeight: 1.5 }}>{f.desc}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 900, fontSize: 13, color: f.color }}>
-                  Keşfet <ArrowRight size={13} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ══ TICKER 3 — yellow ══ */}
-        <TickerStrip
-          items={[
-            { text: 'KAZAN', emoji: '💰' }, { text: 'ÖDÜL',      emoji: '🎁' },
-            { text: 'EĞLEN', emoji: '🎮' }, { text: 'PAYLAŞ',    emoji: '💜' },
-            { text: 'YÜKSEL',emoji: '🚀' }, { text: 'KEŞFET',    emoji: '🔮' },
-            { text: 'BAŞAR', emoji: '🏆' }, { text: 'NEXREWARD', emoji: '⭐' },
-          ]}
-          direction="left" bg="#FBBF24" textColor="#0c0e1e"
-          borderTop={`2px solid ${isDark ? '#2a2d50' : '#1e1b4b'}`}
-          borderBottom={`2px solid ${isDark ? '#2a2d50' : '#1e1b4b'}`}
-          speed={22}
-        />
-
-        {/* ══ HOW IT WORKS ══ */}
-        <section id="how" style={{ padding: '80px clamp(16px, 5vw, 80px)', background: t.howBg, borderTop: `2px solid ${t.border}`, borderBottom: `2px solid ${t.border}`, transition: 'background 0.3s' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: 52 }}>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: t.pillBg, color: '#a78bfa',
-                border: `2px solid ${t.border}`,
-                borderRadius: 999, padding: '5px 16px',
-                fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 16,
-              }}>✦ NASIL ÇALIŞIR</div>
-              <h2 style={{ fontSize: 'clamp(28px, 4.5vw, 56px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase' }}>4 ADIMDA BAŞLA</h2>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
-              {[
-                { step: 1, emoji: '📝', title: 'Kayıt Ol',          desc: 'Saniyeler içinde hesabını oluştur.',    color: '#7B6EF6', D: Deco.Corner },
-                { step: 2, emoji: '🛍️', title: 'Alışveriş & Kazan', desc: 'Her alışverişte puan kazan.',            color: '#f59e0b', D: Deco.ZigZag },
-                { step: 3, emoji: '🎮', title: 'Oyun Oyna',          desc: 'Eğlen ve bonus puan kazan.',            color: '#22c55e', D: Deco.Wave },
-                { step: 4, emoji: '🎉', title: 'Ödülünü Al',         desc: 'Puanlarını ödüllerle değiştir.',        color: '#ec4899', D: Deco.BullsEye },
-              ].map((item, i, arr) => (
-                <div key={i} style={{
-                  position: 'relative', padding: '28px 20px 24px', borderRadius: 20,
-                  overflow: 'hidden', textAlign: 'center',
-                  background: t.cardBg2, border: `2.5px solid ${t.border}`,
-                  boxShadow: `0 5px 0 ${t.shadow}`,
-                }}>
-                  {i < arr.length - 1 && (
-                    <div className="hidden lg:flex" style={{ position: 'absolute', top: '50%', right: -14, zIndex: 10, transform: 'translateY(-50%)', color: '#a78bfa' }}>
-                      <ArrowRight size={18} />
-                    </div>
-                  )}
-                  <item.D color={item.color} opacity={t.decoOp} />
+                {/* Large neo-brutalist shape in corner */}
+                <f.Shape color={f.color} size={100} opacity={t.decoOp} rotate={f.sRotate} />
+                <div style={{ position: 'relative', zIndex: 1 }}>
                   <div style={{
-                    width: 40, height: 40, borderRadius: '50%', margin: '0 auto 14px',
-                    background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
-                    border: `2.5px solid ${t.border}`,
-                    boxShadow: `0 3px 0 ${t.shadow}`,
+                    width: 54, height: 54, borderRadius: 16, fontSize: 24,
+                    background: `${f.color}22`, border: `2.5px solid ${f.color}`,
+                    boxShadow: `0 3px 0 ${f.color}70`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 900, color: 'white', fontSize: 16,
-                  }}>{item.step}</div>
-                  <div style={{ fontSize: 36, marginBottom: 12 }}>{item.emoji}</div>
-                  <h3 style={{ fontWeight: 900, fontSize: 16, color: t.textPrimary, margin: '0 0 6px' }}>{item.title}</h3>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: t.textMuted, margin: 0, lineHeight: 1.5 }}>{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ══ TESTIMONIALS ══ */}
-        <section id="testimonials" style={{ padding: '80px clamp(16px, 5vw, 80px)', maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: t.pillBg, color: '#a78bfa',
-              border: `2px solid ${t.border}`,
-              borderRadius: 999, padding: '5px 16px',
-              fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 16,
-            }}>✦ KULLANICI YORUMLARI</div>
-            <h2 style={{ fontSize: 'clamp(28px, 4.5vw, 56px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase' }}>
-              KULLANICILARIMIZ{' '}
-              <span style={{ background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                NE DİYOR?
-              </span>
-            </h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-            {testimonials.map((t2, i) => (
-              <div key={i} style={{
-                position: 'relative', padding: '28px 24px', borderRadius: 20, overflow: 'hidden',
-                background: t.cardBg, border: `2.5px solid ${t.border}`,
-                boxShadow: `0 5px 0 ${t.shadow}`,
-                transition: 'transform 0.15s',
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}>
-                {i === 0 && <Deco.DiagLines color="#7B6EF6" opacity={isDark ? 0.05 : 0.04} />}
-                {i === 1 && <Deco.HalfCircle color="#06b6d4" opacity={isDark ? 0.15 : 0.12} />}
-                {i === 2 && <Deco.CrossDots color="#ec4899" opacity={t.decoOp} />}
-                <Deco.Corner color="#7B6EF6" opacity={isDark ? 0.18 : 0.14} />
-                <div style={{ display: 'flex', gap: 3, marginBottom: 14 }}>
-                  {[...Array(t2.stars)].map((_, s) => <Star key={s} size={14} fill="#FBBF24" color="#FBBF24" />)}
-                </div>
-                <p style={{ fontSize: 14, fontWeight: 500, color: t.textSecondary, lineHeight: 1.6, marginBottom: 20 }}>"{t2.text}"</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 16, borderTop: `2px dashed ${isDark ? '#2a2d50' : '#c4b5fd'}` }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%',
-                    background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
-                    border: `2.5px solid ${t.border}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 900, color: 'white', fontSize: 14,
-                  }}>{t2.avatar}</div>
-                  <div>
-                    <p style={{ fontWeight: 900, fontSize: 14, color: t.textPrimary, margin: 0 }}>{t2.name}</p>
-                    <p style={{ fontSize: 12, fontWeight: 500, color: t.textMuted, margin: 0 }}>{t2.role}</p>
+                    marginBottom: 14, transition: 'transform 0.15s',
+                    transform: hovered === i ? 'scale(1.1) rotate(-5deg)' : 'scale(1)',
+                  }}>
+                    {f.emoji}
+                  </div>
+                  <h3 style={{ fontWeight: 900, fontSize: 16, color: t.textPrimary, margin: '0 0 6px' }}>{f.title}</h3>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: t.textMuted, margin: '0 0 14px', lineHeight: 1.5 }}>{f.desc}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 900, fontSize: 12, color: f.color }}>
+                    Keşfet <ArrowRight size={12} />
                   </div>
                 </div>
               </div>
@@ -559,26 +543,137 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
+        {/* Yellow ticker */}
+        <TickerStrip
+          items={[
+            {text:'KAZAN',emoji:'💰'},{text:'ÖDÜL',emoji:'🎁'},{text:'EĞLEN',emoji:'🎮'},
+            {text:'PAYLAŞ',emoji:'💜'},{text:'YÜKSEL',emoji:'🚀'},{text:'KEŞFET',emoji:'🔮'},
+            {text:'BAŞAR',emoji:'🏆'},{text:'NEXREWARD',emoji:'⭐'},
+          ]}
+          direction="left" bg="#FBBF24" textColor="#0c0e1e"
+          borderTop={`2px solid #000`} borderBottom={`2px solid #000`} speed={22}
+        />
+
+        {/* ══ HOW IT WORKS ══ */}
+        <section id="how" style={{ padding: '80px clamp(14px, 4vw, 64px)', background: t.howBg, borderTop: `2px solid ${t.border}`, borderBottom: `2px solid ${t.border}`, transition: 'background 0.3s' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: t.pillBg, color: '#a78bfa',
+                border: `2px solid ${t.border}`,
+                borderRadius: 999, padding: '5px 16px',
+                fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 14,
+              }}>✦ NASIL ÇALIŞIR</div>
+              <h2 style={{ fontSize: 'clamp(24px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase' }}>4 ADIMDA BAŞLA</h2>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 18 }}>
+              {[
+                { step:1, emoji:'📝', title:'Kayıt Ol',         desc:'Saniyeler içinde hesabını oluştur.',  color:'#7B6EF6', Shape: NBolt   },
+                { step:2, emoji:'🛍️',title:'Alışveriş & Kazan',desc:'Her alışverişte puan kazan.',          color:'#f59e0b', Shape: NStar5  },
+                { step:3, emoji:'🎮', title:'Oyun Oyna',         desc:'Eğlen ve bonus puan kazan.',          color:'#22c55e', Shape: NDiamond},
+                { step:4, emoji:'🎉', title:'Ödülünü Al',        desc:'Puanlarını ödüllerle değiştir.',      color:'#ec4899', Shape: NHeart  },
+              ].map((item, i, arr) => (
+                <div key={i} style={{
+                  position: 'relative', padding: '28px 18px 22px', borderRadius: 20,
+                  overflow: 'hidden', textAlign: 'center',
+                  background: t.cardBg2, border: `2.5px solid ${t.border}`,
+                  boxShadow: `0 5px 0 ${t.shadow}`,
+                }}>
+                  {i < arr.length - 1 && (
+                    <div className="step-arrow" style={{ position: 'absolute', top: '50%', right: -12, zIndex: 10, transform: 'translateY(-50%)', color: '#a78bfa' }}>
+                      <ArrowRight size={16} />
+                    </div>
+                  )}
+                  <item.Shape color={item.color} size={88} opacity={isDark ? 0.18 : 0.22} rotate={15} />
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <div style={{
+                      width: 38, height: 38, borderRadius: '50%', margin: '0 auto 12px',
+                      background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
+                      border: `2.5px solid ${t.border}`, boxShadow: `0 3px 0 ${t.shadow}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 900, color: 'white', fontSize: 15,
+                    }}>{item.step}</div>
+                    <div style={{ fontSize: 34, marginBottom: 10 }}>{item.emoji}</div>
+                    <h3 style={{ fontWeight: 900, fontSize: 15, color: t.textPrimary, margin: '0 0 6px' }}>{item.title}</h3>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: t.textMuted, margin: 0, lineHeight: 1.5 }}>{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ══ TESTIMONIALS ══ */}
+        <section id="testimonials" style={{ padding: '80px clamp(14px, 4vw, 64px)', maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: t.pillBg, color: '#a78bfa',
+              border: `2px solid ${t.border}`,
+              borderRadius: 999, padding: '5px 16px',
+              fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 14,
+            }}>✦ KULLANICI YORUMLARI</div>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase' }}>
+              KULLANICILARIMIZ{' '}
+              <span style={{ background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>NE DİYOR?</span>
+            </h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 18 }}>
+            {testimonials.map((t2, i) => {
+              const Shapes = [NBolt, NStar4, NDiamond];
+              const colors = ['#7B6EF6', '#06b6d4', '#ec4899'];
+              const TestShape = Shapes[i];
+              return (
+                <div key={i} style={{
+                  position: 'relative', padding: '28px 22px 24px', borderRadius: 20, overflow: 'hidden',
+                  background: t.cardBg, border: `2.5px solid ${t.border}`,
+                  boxShadow: `0 5px 0 ${t.shadow}`, transition: 'transform 0.15s',
+                }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}>
+                  <TestShape color={colors[i]} size={92} opacity={isDark ? 0.16 : 0.2} rotate={i * 12} />
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <div style={{ display: 'flex', gap: 3, marginBottom: 12 }}>
+                      {[...Array(t2.stars)].map((_,s) => <Star key={s} size={13} fill="#FBBF24" color="#FBBF24" />)}
+                    </div>
+                    <p style={{ fontSize: 14, fontWeight: 500, color: t.textSecondary, lineHeight: 1.65, marginBottom: 18 }}>"{t2.text}"</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 14, borderTop: `2px dashed ${isDark ? '#2a2d50' : '#c4b5fd'}` }}>
+                      <div style={{
+                        width: 38, height: 38, borderRadius: '50%',
+                        background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
+                        border: `2.5px solid ${t.border}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 900, color: 'white', fontSize: 13,
+                      }}>{t2.avatar}</div>
+                      <div>
+                        <p style={{ fontWeight: 900, fontSize: 13, color: t.textPrimary, margin: 0 }}>{t2.name}</p>
+                        <p style={{ fontSize: 11, fontWeight: 500, color: t.textMuted, margin: 0 }}>{t2.role}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         {/* ══ FINAL CTA ══ */}
-        <section style={{ padding: '20px clamp(16px, 5vw, 80px) 80px' }}>
+        <section style={{ padding: '10px clamp(14px, 4vw, 64px) 80px' }}>
           <div style={{
             position: 'relative', maxWidth: 960, margin: '0 auto', textAlign: 'center',
-            padding: '72px clamp(24px, 6vw, 80px)',
+            padding: 'clamp(40px, 7vw, 72px) clamp(20px, 5vw, 72px)',
             borderRadius: 24, overflow: 'hidden',
-            background: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)',
-            border: `3px solid ${isDark ? '#000' : '#1e1b4b'}`,
-            boxShadow: `0 10px 0 ${isDark ? '#000' : '#1e1b4b'}`,
+            background: 'linear-gradient(135deg,#7B6EF6 0%,#4F8EF7 100%)',
+            border: '3px solid #000', boxShadow: '0 10px 0 #000',
           }}>
-            {/* Ghost text inside CTA */}
             <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', borderRadius: 'inherit' }}>
-              <span style={{ position: 'absolute', top: -10, left: -20, fontSize: 180, fontWeight: 900, color: 'white', opacity: 0.05, whiteSpace: 'nowrap', lineHeight: 1 }}>KAZAN</span>
-              <Deco.DiagLines color="white" opacity={0.05} />
+              <span style={{ position: 'absolute', top: -20, left: -30, fontSize: 200, fontWeight: 900, color: 'white', opacity: 0.05, whiteSpace: 'nowrap', lineHeight: 1 }}>KAZAN</span>
             </div>
-            {/* Floating stickers on corners */}
-            <div style={{ position: 'absolute', top: -20, left: -16 }}><Sticker emoji="⭐" bg="#f59e0b" size={56} rotate={-15} /></div>
-            <div style={{ position: 'absolute', top: -18, right: -14 }}><Sticker emoji="👑" bg="#FCD34D" size={54} rotate={18} /></div>
-            <div style={{ position: 'absolute', bottom: -18, left: -14 }}><Sticker emoji="⚡" bg="#FDE68A" size={52} rotate={10} /></div>
-            <div style={{ position: 'absolute', bottom: -20, right: -16 }}><Sticker emoji="💖" bg="#F472B6" size={54} rotate={-18} /></div>
+            <div style={{ position: 'absolute', top: -18, left: -14 }}><span className="cta-corner-sticker" style={{ background: '#f59e0b' }}>⭐</span></div>
+            <div style={{ position: 'absolute', top: -16, right: -12 }}><span className="cta-corner-sticker" style={{ background: '#FCD34D' }}>👑</span></div>
+            <div style={{ position: 'absolute', bottom: -16, left: -12 }}><span className="cta-corner-sticker" style={{ background: '#FDE68A' }}>⚡</span></div>
+            <div style={{ position: 'absolute', bottom: -18, right: -14 }}><span className="cta-corner-sticker" style={{ background: '#F472B6' }}>💖</span></div>
 
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div style={{
@@ -586,139 +681,216 @@ const LandingPage: React.FC = () => {
                 background: 'rgba(255,255,255,0.2)', color: 'white',
                 border: '2px solid rgba(255,255,255,0.35)',
                 borderRadius: 999, padding: '5px 16px',
-                fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 20,
+                fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 18,
               }}>✦ HEMEN BAŞLA</div>
-              <h2 style={{
-                fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 900,
-                color: 'white', margin: '0 0 12px', letterSpacing: '-0.03em', lineHeight: 1.1,
-                textTransform: 'uppercase',
-              }}>KAZANMAYA HAZIR<br />MISINIZ?</h2>
-              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16, fontWeight: 500, marginBottom: 32, maxWidth: 420, marginInline: 'auto' }}>
-                Sadakat programımıza katılın ve bugün ödül toplamaya başlayın.
+              <h2 style={{ fontSize: 'clamp(26px, 5vw, 54px)', fontWeight: 900, color: 'white', margin: '0 0 12px', letterSpacing: '-0.03em', lineHeight: 1.1, textTransform: 'uppercase' }}>
+                KAZANMAYA HAZIR<br />MISINIZ?
+              </h2>
+              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 'clamp(14px, 2vw, 17px)', fontWeight: 500, marginBottom: 28, maxWidth: 400, marginInline: 'auto' }}>
+                Sadakat programımıza katılın ve bugün ödül toplamaya başlayın. Ücretsiz!
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center' }}>
-                <button onClick={() => navigate('/home')} className="lbtn-dark">
-                  Panele Gir <ArrowRight size={18} />
-                </button>
-                <button onClick={() => navigate('/register')} className="lbtn-ghost">
-                  Ücretsiz Kayıt Ol
-                </button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
+                <button onClick={() => navigate('/home')} className="lbtn-dark">Panele Gir <ArrowRight size={16} /></button>
+                <button onClick={() => navigate('/register')} className="lbtn-ghost">Ücretsiz Kayıt Ol</button>
               </div>
-              <p style={{ marginTop: 20, color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: 500 }}>
-                Kredi kartı gerekmez &bull; İstediğin zaman iptal et
-              </p>
+              <p style={{ marginTop: 18, color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 500 }}>Kredi kartı gerekmez &bull; İstediğin zaman iptal et</p>
             </div>
           </div>
         </section>
 
-        {/* ══ TICKER 4 — pink ══ */}
+        {/* Pink ticker */}
         <TickerStrip
           items={[
-            { text: 'NexReward ile Kazan', emoji: '💜' }, { text: 'Her Alışverişte Puan', emoji: '🛍️' },
-            { text: 'Ücretsiz Üyelik',      emoji: '🎉' }, { text: 'Anında Ödül',          emoji: '⚡' },
-            { text: 'Hemen Başla',          emoji: '🚀' }, { text: 'Türkiye\'nin #1',       emoji: '🏆' },
+            {text:'NexReward ile Kazan',emoji:'💜'},{text:'Her Alışverişte Puan',emoji:'🛍️'},
+            {text:'Ücretsiz Üyelik',emoji:'🎉'},{text:'Anında Ödül',emoji:'⚡'},
+            {text:'Hemen Başla',emoji:'🚀'},{text:"Türkiye'nin #1",emoji:'🏆'},
           ]}
-          direction="right" bg="#F472B6" textColor="white"
-          borderTop={`2px solid ${isDark ? '#2a2d50' : '#1e1b4b'}`}
-          speed={24}
+          direction="right" bg="#FF3E9D" textColor="white"
+          borderTop={`2px solid #000`} speed={24}
         />
 
         {/* ══ FOOTER ══ */}
-        <footer style={{ background: t.footerBg, borderTop: `2px solid ${t.border}`, padding: '36px clamp(16px, 5vw, 80px)', transition: 'background 0.3s' }}>
-          <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <footer style={{ background: t.footerBg, borderTop: `2px solid ${t.border}`, padding: 'clamp(24px, 4vw, 36px) clamp(14px, 4vw, 64px)', transition: 'background 0.3s' }}>
+          <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{
-                width: 34, height: 34, borderRadius: '50%',
+                width: 32, height: 32, borderRadius: '50%',
                 background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
                 border: `2px solid ${t.border}`, boxShadow: `0 2px 0 ${t.shadow}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 900, color: 'white', fontSize: 13,
+                fontWeight: 900, color: 'white', fontSize: 12,
               }}>N</div>
-              <span style={{ fontWeight: 900, fontSize: 16, color: t.textPrimary }}>NexReward</span>
+              <span style={{ fontWeight: 900, fontSize: 15, color: t.textPrimary }}>NexReward</span>
             </div>
-            <p style={{ fontSize: 13, fontWeight: 500, color: t.textMuted, margin: 0 }}>© 2026 NexReward · Daha fazla kazan, daha iyi yaşa.</p>
-            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-              {[['#features', 'Özellikler'], ['#how', 'Nasıl Çalışır']].map(([href, label]) => (
-                <a key={href} href={href} style={{ color: t.textMuted, fontWeight: 700, fontSize: 13, textDecoration: 'none', transition: 'color 0.2s' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')}
-                  onMouseLeave={e => (e.currentTarget.style.color = t.textMuted)}>
-                  {label}
-                </a>
+            <p style={{ fontSize: 12, fontWeight: 500, color: t.textMuted, margin: 0 }}>© 2026 NexReward · Daha fazla kazan, daha iyi yaşa.</p>
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+              {[['#features','Özellikler'],['#how','Nasıl Çalışır']].map(([href,label]) => (
+                <a key={href} href={href} style={{ color: t.textMuted, fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
+                  onMouseEnter={e=>(e.currentTarget.style.color='#a78bfa')}
+                  onMouseLeave={e=>(e.currentTarget.style.color=t.textMuted)}>{label}</a>
               ))}
-              <button onClick={() => navigate('/login')} style={{ background: 'none', border: 'none', color: t.textMuted, fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: 0, fontFamily: 'inherit', transition: 'color 0.2s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')}
-                onMouseLeave={e => (e.currentTarget.style.color = t.textMuted)}>
-                Giriş
-              </button>
+              <button onClick={()=>navigate('/login')} style={{ background:'none',border:'none',color:t.textMuted,fontWeight:700,fontSize:12,cursor:'pointer',padding:0,fontFamily:'inherit' }}
+                onMouseEnter={e=>(e.currentTarget.style.color='#a78bfa')}
+                onMouseLeave={e=>(e.currentTarget.style.color=t.textMuted)}>Giriş</button>
             </div>
           </div>
         </footer>
 
       </div>
 
-      {/* ══ STYLES ══ */}
+      {/* ══ GLOBAL STYLES ══ */}
       <style>{`
+        /* ── Animations ── */
         @keyframes bounce {
-          0%,100% { transform: translateY(0); }
-          50%      { transform: translateY(6px); }
+          0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)}
         }
         @keyframes tickerLeft {
-          from { transform: translateX(0); }
-          to   { transform: translateX(calc(-100% / 3)); }
+          from{transform:translateX(0)} to{transform:translateX(calc(-100% / 3))}
         }
         @keyframes tickerRight {
-          from { transform: translateX(calc(-100% / 3)); }
-          to   { transform: translateX(0); }
-        }
-        @keyframes heroIn {
-          from { opacity: 0; transform: translateY(24px); }
-          to   { opacity: 1; transform: translateY(0); }
+          from{transform:translateX(calc(-100% / 3))} to{transform:translateX(0)}
         }
 
-        /* ── Nav button classes ── */
+        /* ── Hero headline ── */
+        .hero-headline {
+          font-weight: 900;
+          font-size: clamp(38px, 9vw, 122px);
+          line-height: 1.0;
+          letter-spacing: -0.03em;
+          color: ${t.heroText};
+          text-transform: uppercase;
+        }
+
+        /* ── Hero sticker (responsive) ── */
+        .hero-sticker {
+          width: clamp(42px, 7.5vw, 94px);
+          height: clamp(42px, 7.5vw, 94px);
+          font-size: clamp(18px, 3.2vw, 40px);
+          border: 3px solid rgba(255,255,255,0.88);
+          border-radius: 50%;
+          margin: 0 clamp(3px, 0.6vw, 9px);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          vertical-align: middle;
+          box-shadow: 0 4px 0 rgba(0,0,0,0.38);
+        }
+
+        /* ── Inline pill ── */
+        .inline-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 800;
+          border-radius: 999px;
+          padding: clamp(7px, 1.2vw, 12px) clamp(14px, 2.5vw, 26px);
+          font-size: clamp(0.38em, 1.2vw, 0.54em);
+          letter-spacing: 0.04em;
+          border: 2.5px solid rgba(255,255,255,0.55);
+          margin: 0 clamp(6px, 1vw, 12px);
+          vertical-align: middle;
+          box-shadow: 0 4px 0 rgba(0,0,0,0.32);
+          cursor: pointer;
+          font-family: inherit;
+          transition: transform 0.1s, box-shadow 0.1s;
+          white-space: nowrap;
+        }
+        .inline-pill:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.32); }
+
+        /* ── CTA corner stickers ── */
+        .cta-corner-sticker {
+          width: clamp(40px, 6vw, 56px);
+          height: clamp(40px, 6vw, 56px);
+          font-size: clamp(16px, 2.5vw, 24px);
+          border-radius: 50%;
+          border: 2.5px solid #fff;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 3px 0 rgba(0,0,0,0.35);
+        }
+
+        /* ── Side text ── */
+        .side-text { display: none; }
+        @media (min-width: 1024px) { .side-text { display: block; } }
+
+        /* ── Nav links ── */
+        .nav-links { display: none; }
+        @media (min-width: 768px) { .nav-links { display: flex; } }
+
+        /* ── Hamburger ── */
+        .hamburger-btn { display: none !important; }
+        @media (max-width: 767px) { .hamburger-btn { display: flex !important; } }
+
+        /* ── Nav login ── */
+        .nav-login-btn { display: none; }
+        @media (min-width: 640px) { .nav-login-btn { display: inline-flex; } }
+
+        /* ── Button label ── */
+        .btn-label-short { display: none; }
+        .btn-label-full  { display: inline; }
+        @media (max-width: 400px) {
+          .btn-label-short { display: inline; }
+          .btn-label-full  { display: none; }
+        }
+
+        /* ── Banner body ── */
+        .banner-body { flex: 1; min-width: 0; }
+        .banner-divider {}
+        @media (max-width: 520px) {
+          .banner-body p { font-size: 13px !important; }
+          .banner-body button { margin-top: 10px !important; }
+          .banner-divider { display: none; }
+        }
+
+        /* ── Step arrows ── */
+        .step-arrow { display: none; }
+        @media (min-width: 768px) { .step-arrow { display: flex; } }
+
+        /* ── Nav buttons ── */
         .lbtn-primary-sm {
-          display: inline-flex; align-items: center; gap: 6px;
-          background: linear-gradient(180deg, #a78bfa 0%, #6d28d9 100%);
+          display: inline-flex; align-items: center; gap: 5px;
+          background: linear-gradient(180deg,#a78bfa 0%,#6d28d9 100%);
           color: white; font-weight: 700; font-family: inherit;
-          border: 2.5px solid var(--l-border, #2a2d50);
-          border-radius: 14px; padding: 8px 18px; font-size: 13px;
-          box-shadow: 0 4px 0 var(--l-shadow, #000);
+          border: 2.5px solid var(--l-border,#2a2d50);
+          border-radius: 13px; padding: 8px 15px; font-size: 12px;
+          box-shadow: 0 4px 0 var(--l-shadow,#000);
           cursor: pointer; transition: opacity 0.15s, box-shadow 0.1s, transform 0.1s;
-          letter-spacing: 0.01em;
+          white-space: nowrap;
         }
         .lbtn-primary-sm:hover  { opacity: 0.9; }
-        .lbtn-primary-sm:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--l-shadow, #000); }
+        .lbtn-primary-sm:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--l-shadow,#000); }
 
         .lbtn-secondary-sm {
-          display: inline-flex; align-items: center; gap: 6px;
-          background: var(--l-card-bg, #131629);
-          color: var(--l-text, #f0edff); font-weight: 700; font-family: inherit;
-          border: 2.5px solid var(--l-border, #2a2d50);
-          border-radius: 14px; padding: 8px 18px; font-size: 13px;
-          box-shadow: 0 4px 0 var(--l-shadow, #000);
+          display: inline-flex; align-items: center; gap: 5px;
+          background: var(--l-card-bg,#131629);
+          color: var(--l-text,#f0edff); font-weight: 700; font-family: inherit;
+          border: 2.5px solid var(--l-border,#2a2d50);
+          border-radius: 13px; padding: 8px 15px; font-size: 12px;
+          box-shadow: 0 4px 0 var(--l-shadow,#000);
           cursor: pointer; transition: background 0.15s, box-shadow 0.1s, transform 0.1s;
-          letter-spacing: 0.01em;
+          white-space: nowrap;
         }
-        .lbtn-secondary-sm:hover  { background: var(--l-tab-bg, #1e1a3a); }
-        .lbtn-secondary-sm:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--l-shadow, #000); }
+        .lbtn-secondary-sm:hover  { background: var(--l-tab-bg,#1e1a3a); }
+        .lbtn-secondary-sm:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--l-shadow,#000); }
 
-        /* ── CTA section buttons ── */
         .lbtn-dark {
           display: inline-flex; align-items: center; gap: 8px;
-          background: #1e1b4b; color: white; font-weight: 700; font-family: inherit;
+          background: #1e1b4b; color: white; font-weight: 800; font-family: inherit;
           border: 2.5px solid white; border-radius: 16px;
-          padding: 14px 32px; font-size: 17px;
-          box-shadow: 0 5px 0 rgba(0,0,0,0.35);
+          padding: clamp(11px,2vw,15px) clamp(22px,4vw,32px); font-size: clamp(14px,2vw,17px);
+          box-shadow: 0 5px 0 rgba(0,0,0,0.4);
           cursor: pointer; transition: opacity 0.15s, transform 0.1s, box-shadow 0.1s;
         }
         .lbtn-dark:hover  { opacity: 0.88; }
-        .lbtn-dark:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.35); }
+        .lbtn-dark:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.4); }
 
         .lbtn-ghost {
           display: inline-flex; align-items: center; gap: 8px;
-          background: rgba(255,255,255,0.18); color: white; font-weight: 700; font-family: inherit;
+          background: rgba(255,255,255,0.18); color: white; font-weight: 800; font-family: inherit;
           border: 2.5px solid white; border-radius: 16px;
-          padding: 14px 32px; font-size: 17px;
+          padding: clamp(11px,2vw,15px) clamp(22px,4vw,32px); font-size: clamp(14px,2vw,17px);
           box-shadow: 0 5px 0 rgba(0,0,0,0.25);
           cursor: pointer; transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
         }
