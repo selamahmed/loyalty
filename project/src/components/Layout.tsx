@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import RewardPopup from './RewardPopup';
+import MovingStripes from './MovingStripes';
 
 const navItems = [
   { path: '/home', icon: Home, label: 'Home' },
@@ -91,6 +92,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
 
   return (
     <div className="page-container flex overflow-x-hidden">
+      <MovingStripes position="fixed" zIndex={0} />
       {rewardPopup && <RewardPopup data={rewardPopup} onDismiss={dismissRewardPopup} />}
 
       {/* Mobile sidebar overlay */}
