@@ -2,14 +2,21 @@ import React, { useState } from 'react';
 import { HelpCircle, ChevronDown, ChevronUp, Mail, MessageSquare, Phone, Check, Send } from 'lucide-react';
 import { tr } from '../lib/tr';
 
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 6px 0px var(--dark-border)',
+  borderRadius: 20,
+};
+
 const faqs = [
-  { q: 'How do I earn points?', a: 'You can earn points by scanning QR codes at partner stores, playing mini games, completing daily missions, logging in daily, and earning achievements.' },
-  { q: 'How long do points last?', a: 'Points are valid for 12 months from the date they are earned. Check your history to monitor expiration dates.' },
-  { q: 'Can I transfer points to another account?', a: 'Points are non-transferable between accounts. Each account has its own points balance.' },
-  { q: 'What happens if I lose my account access?', a: 'Use the "Forgot Password" feature on the login page to recover access to your account via your registered email.' },
-  { q: 'How do I redeem rewards?', a: 'Go to the Rewards Shop or Redeem Points page, choose your reward, and confirm. Your voucher will appear in your Inventory.' },
-  { q: 'Why was my QR scan not counted?', a: 'Ensure the QR code is clearly visible and not damaged. Each unique QR code can only be scanned once per day.' },
-  { q: 'How do mini game points work?', a: 'Each mini game awards points based on your performance. Points are added instantly to your balance when you win.' },
+  { q: 'Nasıl puan kazanırım?', a: 'Partner mağazalarda QR kod tarayarak, mini oyunlar oynayarak, günlük görevleri tamamlayarak, her gün giriş yaparak ve başarılar kazanarak puan kazanabilirsin.' },
+  { q: 'Puanlar ne kadar süre geçerli?', a: 'Puanlar kazanıldıktan itibaren 12 ay geçerlidir. Son kullanma tarihlerini takip etmek için geçmişine bakabilirsin.' },
+  { q: 'Puanlarımı başka bir hesaba aktarabilir miyim?', a: 'Puanlar hesaplar arasında devredilemez. Her hesabın kendi puan bakiyesi vardır.' },
+  { q: 'Hesabıma erişimimi kaybedersem ne yapmalıyım?', a: 'Kayıtlı e-posta adresin aracılığıyla hesabına erişimi geri kazanmak için giriş sayfasındaki "Şifremi Unuttum" özelliğini kullan.' },
+  { q: 'Ödüllerimi nasıl kullanırım?', a: 'Ödül Mağazasına veya Puan Kullan sayfasına git, ödülünü seç ve onayla. Kuponun Envanterinde görünecektir.' },
+  { q: 'QR kod taramam neden sayılmadı?', a: 'QR kodun açıkça görünür ve hasarsız olduğundan emin ol. Her benzersiz QR kod günde yalnızca bir kez taranabilir.' },
+  { q: 'Mini oyun puanları nasıl çalışır?', a: 'Her mini oyun performansına göre puan verir. Puanlar kazandığında anında bakiyene eklenir.' },
 ];
 
 const Support: React.FC = () => {
@@ -26,110 +33,154 @@ const Support: React.FC = () => {
     setLoading(false);
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '12px 14px', borderRadius: 12, fontWeight: 700, fontSize: 13,
+    background: 'var(--tab-bg)', color: 'var(--text-dark)',
+    border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', outline: 'none', boxSizing: 'border-box',
+  };
+
   return (
-    <div className="p-4 lg:p-6 space-y-8 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-black text-gray-900 dark:text-white">Help & Support</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Find answers or contact us</p>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Ghost watermark */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
+          fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
+          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
+        }}>DESTEK</div>
       </div>
 
-      {/* Contact options */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { icon: MessageSquare, label: 'Live Chat', sub: 'Avg 2 min', color: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' },
-          { icon: Mail, label: 'Email', sub: 'Within 24h', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' },
-          { icon: Phone, label: 'Call Us', sub: 'Mon-Fri', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
-        ].map(c => (
-          <button key={c.label} className="card p-4 text-center hover:shadow-md transition-shadow hover:scale-[1.02] active:scale-[0.98]">
-            <div className={`w-12 h-12 rounded-2xl ${c.color} flex items-center justify-center mx-auto mb-2`}>
-              <c.icon size={20} />
-            </div>
-            <p className="font-bold text-sm text-gray-900 dark:text-white">{c.label}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{c.sub}</p>
-          </button>
-        ))}
-      </div>
+      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
 
-      {/* FAQ */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <HelpCircle size={20} className="text-[#7B6EF6] dark:text-[#4F8EF7]" />
-          <h2 className="font-black text-xl text-gray-900 dark:text-white">Frequently Asked Questions</h2>
+        {/* ── Page header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+            background: 'linear-gradient(180deg,#4ade80,#16a34a)',
+            border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+          }}>💬</div>
+          <div>
+            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>Yardım & Destek</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Yanıt bul veya bizimle iletişime geç</p>
+          </div>
         </div>
-        <div className="space-y-2">
-          {faqs.map((faq, i) => (
-            <div key={i} className="card overflow-hidden">
-              <button
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-              >
-                <span className="font-bold text-sm text-gray-900 dark:text-white pr-4">{faq.q}</span>
-                {openFaq === i ? <ChevronUp size={16} className="text-gray-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />}
-              </button>
-              {openFaq === i && (
-                <div className="px-4 pb-4 border-t-2 border-black dark:border-gray-700 pt-3">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{faq.a}</p>
-                </div>
-              )}
-            </div>
+
+        {/* ── Contact options ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+          {[
+            { icon: MessageSquare, label: 'Canlı Sohbet', sub: 'Ort. 2 dk', color: '#22c55e', bg: 'rgba(34,197,94,0.12)', emoji: '💬' },
+            { icon: Mail, label: 'E-posta', sub: '24 saat içinde', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', emoji: '📧' },
+            { icon: Phone, label: 'Bizi Ara', sub: 'Pzt-Cum', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', emoji: '📞' },
+          ].map(c => (
+            <button key={c.label} style={{
+              ...card, padding: '16px 10px', textAlign: 'center', cursor: 'pointer',
+              transition: 'transform 0.1s, box-shadow 0.1s',
+            }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+            >
+              <div style={{
+                width: 48, height: 48, borderRadius: 14, background: c.bg,
+                border: `2.5px solid ${c.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 10px', fontSize: 22, boxShadow: `0 3px 0 ${c.color}44`,
+              }}>{c.emoji}</div>
+              <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 2px' }}>{c.label}</p>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, fontWeight: 600 }}>{c.sub}</p>
+            </button>
           ))}
         </div>
+
+        {/* ── FAQ ── */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <HelpCircle size={20} color="var(--primary-blue)" />
+            <h2 style={{ fontWeight: 900, fontSize: 17, color: 'var(--text-dark)', margin: 0 }}>Sık Sorulan Sorular</h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {faqs.map((faq, i) => (
+              <div key={i} style={{ ...card, overflow: 'hidden' }}>
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 12,
+                  }}
+                >
+                  <span style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', flex: 1 }}>{faq.q}</span>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8, background: openFaq === i ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--tab-bg)',
+                    border: '2px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s',
+                  }}>
+                    {openFaq === i ? <ChevronUp size={14} color="white" /> : <ChevronDown size={14} color="var(--text-muted)" />}
+                  </div>
+                </button>
+                {openFaq === i && (
+                  <div style={{ padding: '0 18px 16px', borderTop: '2px solid var(--dark-border)', paddingTop: 14, animation: 'faqOpen 0.2s ease-out' }}>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Contact form ── */}
+        <div>
+          <h2 style={{ fontWeight: 900, fontSize: 17, color: 'var(--text-dark)', margin: '0 0 12px' }}>Bize Ulaş</h2>
+          {submitted ? (
+            <div style={{ ...card, border: '3px solid #22c55e', boxShadow: '0 6px 0 #16a34a', padding: 32, textAlign: 'center', background: 'rgba(34,197,94,0.06)' }}>
+              <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#22c55e', border: '3px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                <Check size={28} color="white" />
+              </div>
+              <p style={{ fontWeight: 900, fontSize: 18, color: 'var(--text-dark)', margin: '0 0 6px' }}>Mesaj Gönderildi!</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>En kısa sürede sana geri döneceğiz.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ ...card, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 6 }}>Ad Soyad</label>
+                  <input type="text" required placeholder="Ad Soyad" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 6 }}>E-posta</label>
+                  <input type="email" required placeholder="E-posta" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 6 }}>Konu</label>
+                <input type="text" required placeholder="Konu" value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} style={inputStyle} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 6 }}>Mesaj</label>
+                <textarea required placeholder="Mesajınız..." rows={4} value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))} style={{ ...inputStyle, resize: 'vertical', minHeight: 100 }} />
+              </div>
+              <button type="submit" disabled={loading} style={{
+                padding: '14px', borderRadius: 14, fontWeight: 900, fontSize: 15,
+                background: loading ? '#94a3b8' : 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
+                border: '3px solid var(--dark-border)', boxShadow: loading ? 'none' : '0 5px 0 var(--dark-border)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.1s',
+              }}>
+                {loading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>⏳ Gönderiliyor...</span>
+                ) : (
+                  <><Send size={16} /> Gönder</>
+                )}
+              </button>
+            </form>
+          )}
+        </div>
+
       </div>
 
-      {/* Contact form */}
-      <div>
-        <h2 className="font-black text-xl text-gray-900 dark:text-white mb-4">Send Us a Message</h2>
-        {submitted ? (
-          <div className="card p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-green-500 border-2 border-black dark:border-gray-600 flex items-center justify-center mx-auto mb-4">
-              <Check size={32} className="text-white" />
-            </div>
-            <h3 className="font-black text-xl text-gray-900 dark:text-white">Message Sent!</h3>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">We'll get back to you within 24 hours.</p>
-            <button onClick={() => { setSubmitted(false); setForm({ name: '', email: '', subject: '', message: '' }); }} className="btn-secondary mt-4">
-              Send Another
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="card p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block font-bold text-sm text-gray-900 dark:text-white mb-2">Name</label>
-                <input type="text" placeholder="Your name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="input-field" required />
-              </div>
-              <div>
-                <label className="block font-bold text-sm text-gray-900 dark:text-white mb-2">Email</label>
-                <input type="email" placeholder="you@email.com" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="input-field" required />
-              </div>
-            </div>
-            <div>
-              <label className="block font-bold text-sm text-gray-900 dark:text-white mb-2">Subject</label>
-              <select value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} className="input-field" required>
-                <option value="">Select a topic...</option>
-                <option>Points & Rewards</option>
-                <option>Account Issues</option>
-                <option>Technical Problem</option>
-                <option>Feature Request</option>
-                <option>Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="block font-bold text-sm text-gray-900 dark:text-white mb-2">Message</label>
-              <textarea
-                placeholder="Describe your issue or question..."
-                value={form.message}
-                onChange={e => setForm({...form, message: e.target.value})}
-                className="input-field resize-none"
-                rows={4}
-                required
-              />
-            </div>
-            <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60">
-              {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Send size={16} /> Send Message</>}
-            </button>
-          </form>
-        )}
-      </div>
+      <style>{`
+        @keyframes faqOpen {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 };

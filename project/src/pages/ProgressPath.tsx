@@ -1,141 +1,198 @@
 import React from 'react';
-import { Lock, Unlock, Star, ChevronRight, Zap, Trophy } from 'lucide-react';
+import { Lock, Star, Zap, Trophy, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { progressLevels } from '../data/mockData';
 import { tr } from '../lib/tr';
 
-const rarityColors: Record<string, string> = {
-  1: 'from-gray-400 to-gray-500',
-  2: 'from-green-400 to-emerald-500',
-  5: 'from-blue-400 to-cyan-500',
-  8: 'from-amber-400 to-orange-500',
-  10: 'from-[#7B6EF6] to-[#4F8EF7]',
-  15: 'from-pink-500 to-rose-500',
-  20: 'from-yellow-400 to-amber-500',
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 6px 0px var(--dark-border)',
+  borderRadius: 20,
+};
+
+const levelGradients: Record<number, string> = {
+  1:  'linear-gradient(135deg,#9ca3af,#6b7280)',
+  2:  'linear-gradient(135deg,#4ade80,#16a34a)',
+  5:  'linear-gradient(135deg,#60a5fa,#0ea5e9)',
+  8:  'linear-gradient(135deg,#fbbf24,#f97316)',
+  10: 'linear-gradient(135deg,#7B6EF6,#4F8EF7)',
+  15: 'linear-gradient(135deg,#f472b6,#f43f5e)',
+  20: 'linear-gradient(135deg,#facc15,#f59e0b)',
+};
+
+const getLevelGradient = (level: number) => {
+  const keys = Object.keys(levelGradients).map(Number).sort((a, b) => b - a);
+  const key = keys.find(k => k <= level) ?? 1;
+  return levelGradients[key];
 };
 
 const ProgressPath: React.FC = () => {
   const { user, points } = useApp();
   const xpPercent = Math.round((user.xp / user.xpToNext) * 100);
+  const unlockedCount = progressLevels.filter(l => l.unlocked).length;
 
   return (
-    <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-black text-gray-900 dark:text-white">Progress Path</h1>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Ghost watermark */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
+          fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
+          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
+        }}>SEVİYE YOL</div>
+      </div>
 
-      {/* Current level card */}
-      <div className="card p-5 bg-gradient-to-br from-[#7B6EF6] to-[#4F8EF7] text-white border-black">
-        <div className="flex items-center justify-between mb-3">
+      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
+
+        {/* ── Page header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+            background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
+            border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+          }}>🗺️</div>
           <div>
-            <p className="text-white/80 text-sm">Current Level</p>
-            <h2 className="text-3xl font-black">Level {user.level}</h2>
-            <p className="text-white/90 font-medium">Champion</p>
-          </div>
-          <div className="w-20 h-20 rounded-full border-4 border-white/30 bg-white/20 flex items-center justify-center">
-            <span className="text-4xl font-black">{user.level}</span>
+            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>İlerleme Yolu</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Seviyeleri geç, ödül kazan</p>
           </div>
         </div>
-        <div className="mt-2">
-          <div className="flex justify-between text-xs text-white/70 mb-1">
-            <span>{user.xp.toLocaleString()} XP</span>
-            <span>{user.xpToNext.toLocaleString()} XP</span>
+
+        {/* ── Current level hero ── */}
+        <div style={{
+          ...card,
+          background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)',
+          padding: 'clamp(16px,4vw,28px)', position: 'relative', overflow: 'hidden',
+          color: 'white',
+        }}>
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16, position: 'relative' }}>
+            <div>
+              <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: 700, margin: '0 0 2px' }}>Mevcut Seviye</p>
+              <h2 style={{ color: 'white', fontWeight: 900, fontSize: 32, margin: '0 0 2px', lineHeight: 1 }}>Level {user.level}</h2>
+              <p style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 700, fontSize: 14, margin: 0 }}>Şampiyon</p>
+            </div>
+            <div style={{
+              width: 70, height: 70, borderRadius: '50%', background: 'rgba(255,255,255,0.2)',
+              border: '3px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 0 rgba(0,0,0,0.2)', flexShrink: 0,
+            }}>
+              <span style={{ fontWeight: 900, fontSize: 28, color: 'white' }}>{user.level}</span>
+            </div>
           </div>
-          <div className="h-3 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${xpPercent}%` }} />
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.75)', marginBottom: 6, fontWeight: 700 }}>
+              <span>{user.xp.toLocaleString()} XP</span>
+              <span>{user.xpToNext.toLocaleString()} XP</span>
+            </div>
+            <div style={{ height: 12, borderRadius: 999, background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${xpPercent}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s ease' }} />
+            </div>
+            <p style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 5, fontWeight: 600 }}>
+              {(user.xpToNext - user.xp).toLocaleString()} XP — Level {user.level + 1} için
+            </p>
           </div>
-          <p className="text-xs text-white/60 mt-1 text-center">{user.xpToNext - user.xp} XP to Level {user.level + 1}</p>
         </div>
-      </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card p-3 text-center">
-          <Zap size={18} className="text-amber-500 mx-auto mb-1" />
-          <p className="font-black text-gray-900 dark:text-white">{user.xp.toLocaleString()}</p>
-          <p className="text-xs text-gray-500">Total XP</p>
+        {/* ── Stats ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+          {[
+            { emoji: '⚡', value: user.xp.toLocaleString(), label: 'Toplam XP', color: '#f59e0b' },
+            { emoji: '⭐', value: points.toLocaleString(), label: 'Puanlar', color: '#7B6EF6' },
+            { emoji: '🏆', value: unlockedCount, label: 'Seviye Geçildi', color: '#22c55e' },
+          ].map(s => (
+            <div key={s.label} style={{ ...card, padding: '14px 10px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, marginBottom: 4 }}>{s.emoji}</div>
+              <p style={{ fontWeight: 900, fontSize: 16, color: s.color, margin: '0 0 2px', lineHeight: 1 }}>{s.value}</p>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</p>
+            </div>
+          ))}
         </div>
-        <div className="card p-3 text-center">
-          <Star size={18} className="text-[#7B6EF6] dark:text-[#4F8EF7] mx-auto mb-1" />
-          <p className="font-black text-gray-900 dark:text-white">{points.toLocaleString()}</p>
-          <p className="text-xs text-gray-500">Points</p>
-        </div>
-        <div className="card p-3 text-center">
-          <Trophy size={18} className="text-green-500 mx-auto mb-1" />
-          <p className="font-black text-gray-900 dark:text-white">{progressLevels.filter(l => l.unlocked).length}</p>
-          <p className="text-xs text-gray-500">Levels Done</p>
-        </div>
-      </div>
 
-      {/* Progress path */}
-      <div>
-        <h2 className="font-black text-lg text-gray-900 dark:text-white mb-4">Level Rewards</h2>
-        <div className="relative">
-          {/* Vertical line */}
-          <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
-
-          <div className="space-y-4">
-            {progressLevels.map((lvl, i) => {
-              const isCurrentLevel = lvl.level === user.level;
-              const gradKey = Object.keys(rarityColors).find(k => parseInt(k) <= lvl.level) || '1';
-              const gradClass = rarityColors[gradKey] || 'from-gray-400 to-gray-500';
-
-              return (
-                <div key={lvl.level} className={`relative flex items-center gap-4 pl-4 transition-all duration-200 ${!lvl.unlocked ? 'opacity-60' : ''}`}>
-                  {/* Node */}
-                  <div className={`relative z-10 w-9 h-9 rounded-full flex items-center justify-center border-2 border-black dark:border-gray-600 flex-shrink-0 ${
-                    isCurrentLevel ? 'bg-[#7B6EF6] dark:bg-[#4F8EF7] animate-pulse-glow'
-                    : lvl.unlocked ? `bg-gradient-to-br ${gradClass}` : 'bg-gray-200 dark:bg-gray-700'
-                  }`}>
-                    {lvl.unlocked ? (
-                      <span className="text-white text-xs font-black">{lvl.level}</span>
-                    ) : (
-                      <Lock size={14} className="text-gray-500" />
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className={`flex-1 card p-3 ${isCurrentLevel ? 'border-[#7B6EF6] dark:border-[#4F8EF7] shadow-md' : ''}`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-black text-gray-900 dark:text-white">Lv.{lvl.level} — {lvl.title}</p>
-                          {isCurrentLevel && <span className="badge bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white text-xs">Current</span>}
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {lvl.unlocked ? (
-                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                              <Unlock size={10} /> Reward: {lvl.reward}
-                            </span>
-                          ) : (
-                            <span>Requires {lvl.xpRequired.toLocaleString()} XP to unlock</span>
-                          )}
-                        </p>
-                      </div>
-                      {lvl.rewardPoints > 0 && (
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <Star size={12} className="text-amber-500" fill="currentColor" />
-                          <span className="text-sm font-black text-amber-600 dark:text-amber-400">+{lvl.rewardPoints}</span>
-                        </div>
+        {/* ── Progress path ── */}
+        <div>
+          <h2 style={{ fontWeight: 900, fontSize: 17, color: 'var(--text-dark)', margin: '0 0 16px' }}>Seviye Ödülleri</h2>
+          <div style={{ position: 'relative' }}>
+            {/* Vertical line */}
+            <div style={{ position: 'absolute', left: 22, top: 0, bottom: 0, width: 2, background: 'var(--dark-border)', opacity: 0.25 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {progressLevels.map((lvl, i) => {
+                const isCurrentLevel = lvl.level === user.level;
+                const gradient = getLevelGradient(lvl.level);
+                const prog = Math.min(100, Math.round((user.xp / lvl.xpRequired) * 100));
+                return (
+                  <div
+                    key={lvl.level}
+                    style={{ display: 'flex', alignItems: 'flex-start', gap: 14, paddingLeft: 4, opacity: lvl.unlocked ? 1 : 0.65 }}
+                  >
+                    {/* Node */}
+                    <div style={{
+                      width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+                      background: lvl.unlocked ? gradient : 'var(--tab-bg)',
+                      border: isCurrentLevel ? '3px solid var(--primary-blue)' : '3px solid var(--dark-border)',
+                      boxShadow: isCurrentLevel ? '0 0 0 4px rgba(123,110,246,0.25)' : '0 3px 0 var(--dark-border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1,
+                    }}>
+                      {lvl.unlocked ? (
+                        <span style={{ fontWeight: 900, fontSize: 13, color: 'white' }}>{lvl.level}</span>
+                      ) : (
+                        <Lock size={13} color="var(--text-muted)" />
                       )}
                     </div>
 
-                    {!lvl.unlocked && (
-                      <div className="mt-2">
-                        <div className="flex justify-between text-xs text-gray-500 mb-1">
-                          <span>Progress</span>
-                          <span>{Math.min(100, Math.round((user.xp / lvl.xpRequired) * 100))}%</span>
+                    {/* Card */}
+                    <div style={{
+                      flex: 1,
+                      ...card,
+                      border: isCurrentLevel ? '3px solid var(--primary-blue)' : '3px solid var(--dark-border)',
+                      boxShadow: isCurrentLevel ? '0 6px 0 var(--primary-blue)' : '0 6px 0 var(--dark-border)',
+                      padding: '12px 16px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: lvl.unlocked ? 0 : 8 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                            <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0 }}>Lv.{lvl.level} — {lvl.title}</p>
+                            {isCurrentLevel && (
+                              <span style={{ padding: '2px 7px', borderRadius: 999, background: 'var(--primary-blue)', color: 'white', fontSize: 9, fontWeight: 900, flexShrink: 0, textTransform: 'uppercase' }}>ŞU AN</span>
+                            )}
+                          </div>
+                          {lvl.unlocked ? (
+                            <p style={{ fontSize: 11, color: '#22c55e', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Check size={11} /> Ödül: {lvl.reward}
+                            </p>
+                          ) : (
+                            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, fontWeight: 600 }}>
+                              Kilit açmak için {lvl.xpRequired.toLocaleString()} XP gerekli
+                            </p>
+                          )}
                         </div>
-                        <div className="h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-[#7B6EF6] dark:bg-[#4F8EF7] rounded-full"
-                            style={{ width: `${Math.min(100, (user.xp / lvl.xpRequired) * 100)}%` }}
-                          />
-                        </div>
+                        {lvl.rewardPoints > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                            <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                            <span style={{ fontWeight: 900, fontSize: 13, color: '#f59e0b' }}>+{lvl.rewardPoints}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
+                      {!lvl.unlocked && (
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 700 }}>
+                            <span>İlerleme</span>
+                            <span>{prog}%</span>
+                          </div>
+                          <div style={{ height: 7, borderRadius: 999, background: 'var(--tab-bg)', border: '1.5px solid var(--dark-border)', overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%', borderRadius: 999, width: `${prog}%`,
+                              background: gradient, transition: 'width 0.5s ease',
+                            }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

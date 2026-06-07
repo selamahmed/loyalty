@@ -1,16 +1,23 @@
 import React, { useState } from 'react';
-import { Trophy, Lock, Star, Filter } from 'lucide-react';
+import { Trophy, Lock, Star } from 'lucide-react';
 import { achievements } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { WinningParticles } from '../components/WinningParticles';
 
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 6px 0px var(--dark-border)',
+  borderRadius: 20,
+};
+
 const rarityConfig = {
-  common: { label: tr.achievements.common, bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-400', border: 'border-gray-300 dark:border-gray-600' },
-  rare: { label: tr.achievements.rare, bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-300 dark:border-blue-700' },
-  epic: { label: tr.achievements.epic, bg: 'bg-[#7B6EF6]/10 dark:bg-[#4F8EF7]/20', text: 'text-[#7B6EF6] dark:text-[#4F8EF7]', border: 'border-[#7B6EF6]/40 dark:border-[#4F8EF7]/40' },
-  legendary: { label: tr.achievements.legendary, bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-300 dark:border-amber-700' },
+  common:    { label: 'Common',    bg: 'var(--tab-bg)', color: 'var(--text-muted)', accent: '#6b7280', border: 'var(--dark-border)' },
+  rare:      { label: 'Rare',      bg: 'rgba(59,130,246,0.15)', color: '#3b82f6', accent: '#3b82f6', border: '#3b82f6' },
+  epic:      { label: 'Epic',      bg: 'rgba(123,110,246,0.15)', color: '#7B6EF6', accent: '#7B6EF6', border: '#7B6EF6' },
+  legendary: { label: 'Legendary', bg: 'rgba(245,158,11,0.15)', color: '#f59e0b', accent: '#f59e0b', border: '#f59e0b' },
 };
 
 const Achievements: React.FC = () => {
@@ -20,181 +27,216 @@ const Achievements: React.FC = () => {
   const [showParticles, setShowParticles] = useState(false);
 
   const categories = ['all', ...Array.from(new Set(achievements.map(a => a.category)))];
-
   const filtered = achievements.filter(a => {
     const matchFilter = filter === 'all' || (filter === 'completed' ? a.completed : !a.completed);
     const matchCat = category === 'all' || a.category === category;
     return matchFilter && matchCat;
   });
-
   const completedCount = achievements.filter(a => a.completed).length;
   const totalPoints = achievements.filter(a => a.completed).reduce((s, a) => s + a.points, 0);
+  const progressPct = (completedCount / achievements.length) * 100;
+
+  const filterLabels: Record<string, string> = { all: tr.achievements.title, completed: tr.home.completed, locked: tr.achievements.locked };
 
   return (
-    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6 max-w-2xl mx-auto overflow-x-hidden">
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Ghost watermark */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
+          fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)',
+          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
+        }}>BAŞARILAR</div>
+      </div>
+
       <WinningParticles trigger={showParticles} emoji="⭐" />
 
-      <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">{tr.achievements.title}</h1>
+      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
 
-      {/* Summary card */}
-      <div className="card p-3 sm:p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:shadow-lg transition-shadow">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-amber-500 border-2 border-black dark:border-gray-600 flex items-center justify-center flex-shrink-0 hover:scale-110 transition-transform">
-            <Trophy size={20} className="sm:w-7 sm:h-7 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-black text-lg sm:text-xl text-gray-900 dark:text-white">{completedCount} / {achievements.length}</h2>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{tr.achievements.earned}</p>
-            <div className="mt-1.5 sm:mt-2 h-1.5 sm:h-2 bg-amber-200 dark:bg-amber-800 rounded-full overflow-hidden border border-amber-300 dark:border-amber-700">
-              <div
-                className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
-                style={{ width: `${(completedCount / achievements.length) * 100}%` }}
-              />
-            </div>
-          </div>
-          <div className="text-right flex-shrink-0">
-            <div className="flex items-center gap-1">
-              <Star size={12} className="sm:w-3.5 sm:h-3.5 text-amber-500" fill="currentColor" />
-              <span className="font-black text-sm sm:text-base text-amber-600 dark:text-amber-400">{totalPoints.toLocaleString()}</span>
-            </div>
-            <p className="text-xs text-gray-500">{tr.missions.ptsEarned}</p>
+        {/* ── Page header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+            background: 'linear-gradient(180deg,#fbbf24,#d97706)',
+            border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+          }}>🏆</div>
+          <div>
+            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>{tr.achievements.title}</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Rozetleri topla, efsane ol</p>
           </div>
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
-        {(['all', 'completed', 'locked'] as const).map(f => {
-          const filterLabels: Record<string, string> = {
-            all: tr.achievements.title,
-            completed: tr.home.completed,
-            locked: tr.achievements.locked
-          };
-          return (
-          <button
-            key={f}
-            onClick={() => { playSound('click'); setFilter(f); }}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border-2 font-bold text-xs sm:text-sm transition-all active:scale-95 hover:shadow-md ${
-              filter === f
-                ? 'bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white border-black dark:border-gray-600 shadow-md'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-black dark:border-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            {filterLabels[f]}
-          </button>
-          );
-        })}
-      </div>
-
-      {/* Category pills */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4 lg:mx-0 lg:px-0 scrollbar-hide">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => { playSound('click'); setCategory(cat); }}
-            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border font-medium text-xs capitalize whitespace-nowrap transition-all flex-shrink-0 active:scale-95 hover:shadow-md ${
-              category === cat
-                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Achievement grid */}
-      {filtered.length === 0 ? (
-        <div className="card p-10 text-center">
-          <Trophy size={40} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <p className="font-bold text-gray-500">{tr.common.noData}</p>
+        {/* ── Summary hero ── */}
+        <div style={{
+          ...card,
+          background: 'linear-gradient(135deg,#f59e0b 0%,#d97706 100%)',
+          padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: 18, background: 'rgba(255,255,255,0.25)',
+              border: '3px solid rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              boxShadow: '0 4px 0 rgba(0,0,0,0.2)',
+            }}>
+              <Trophy size={28} color="white" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 700, margin: '0 0 2px' }}>{tr.achievements.earned}</p>
+              <p style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: '0 0 8px', lineHeight: 1 }}>{completedCount} / {achievements.length}</p>
+              <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.25)', border: '1.5px solid rgba(255,255,255,0.4)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${progressPct}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s ease' }} />
+              </div>
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                <Star size={14} fill="white" color="white" />
+                <span style={{ fontWeight: 900, fontSize: 18, color: 'white' }}>{totalPoints.toLocaleString()}</span>
+              </div>
+              <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, margin: '2px 0 0', fontWeight: 600 }}>puan kazanıldı</p>
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-2 sm:grid sm:grid-cols-2 sm:gap-3 sm:space-y-0 animate-fadeIn">
-          {filtered.map((ach, index) => {
-            const rarity = rarityConfig[ach.rarity as keyof typeof rarityConfig];
-            const progress = Math.round((ach.progress / ach.total) * 100);
-            return (
-              <div
-                key={ach.id}
-                className={`card p-3 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 transform active:scale-95 cursor-pointer ${ach.completed ? '' : 'opacity-75'}`}
-                style={{ animation: `slideIn 0.3s ease-out ${index * 0.05}s both` }}
-                onClick={() => {
-                  if (ach.completed) {
-                    playSound('success');
-                    setShowParticles(true);
-                    setTimeout(() => setShowParticles(false), 2000);
-                  }
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`w-12 h-12 rounded-2xl ${rarity.bg} border-2 ${rarity.border} flex items-center justify-center flex-shrink-0 relative`}>
-                    <span className="text-xl">{ach.icon}</span>
-                    {!ach.completed && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gray-400 border-2 border-white dark:border-gray-800 flex items-center justify-center">
-                        <Lock size={9} className="text-white" />
-                      </div>
-                    )}
-                    {ach.completed && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white dark:border-gray-800 flex items-center justify-center">
-                        <svg viewBox="0 0 10 10" className="w-3 h-3" fill="none">
-                          <path d="M2 5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-0.5">
-                      <p className="font-black text-gray-900 dark:text-white text-sm leading-tight">{ach.title}</p>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${rarity.bg} ${rarity.text}`}>{rarity.label}</span>
+
+        {/* ── Filter buttons ── */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['all', 'completed', 'locked'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => { playSound('click'); setFilter(f); }}
+              style={{
+                flex: 1, padding: '10px 6px', borderRadius: 12, fontWeight: 900, fontSize: 12,
+                cursor: 'pointer', transition: 'all 0.1s',
+                background: filter === f ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
+                color: filter === f ? 'white' : 'var(--text-dark)',
+                border: '3px solid var(--dark-border)',
+                boxShadow: filter === f ? '0 5px 0 var(--dark-border)' : '0 4px 0 var(--dark-border)',
+              }}
+            >{filterLabels[f]}</button>
+          ))}
+        </div>
+
+        {/* ── Category pills ── */}
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => { playSound('click'); setCategory(cat); }}
+              style={{
+                padding: '6px 14px', borderRadius: 999, fontWeight: 900, fontSize: 11,
+                cursor: 'pointer', flexShrink: 0, transition: 'all 0.1s', textTransform: 'capitalize',
+                background: category === cat ? 'var(--dark-border)' : 'var(--tab-bg)',
+                color: category === cat ? 'var(--card-bg)' : 'var(--text-muted)',
+                border: '2px solid var(--dark-border)',
+              }}
+            >{cat}</button>
+          ))}
+        </div>
+
+        {/* ── Achievement grid ── */}
+        {filtered.length === 0 ? (
+          <div style={{ ...card, padding: 40, textAlign: 'center' }}>
+            <p style={{ fontSize: 40, margin: '0 0 10px' }}>🔍</p>
+            <p style={{ color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>{tr.common.noData}</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 12 }}>
+            {filtered.map((ach, index) => {
+              const rarity = rarityConfig[ach.rarity as keyof typeof rarityConfig];
+              const progress = Math.round((ach.progress / ach.total) * 100);
+              return (
+                <div
+                  key={ach.id}
+                  style={{
+                    ...card,
+                    padding: '16px 18px',
+                    border: ach.completed ? `3px solid ${rarity.border}` : '3px solid var(--dark-border)',
+                    boxShadow: ach.completed ? `0 6px 0 ${rarity.accent}44` : '0 6px 0 var(--dark-border)',
+                    opacity: ach.completed ? 1 : 0.8,
+                    cursor: 'pointer',
+                    animation: `achSlideIn 0.3s ease-out ${index * 0.04}s both`,
+                    transition: 'transform 0.1s',
+                  }}
+                  onClick={() => {
+                    if (ach.completed) { playSound('success'); setShowParticles(true); setTimeout(() => setShowParticles(false), 2000); }
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                    {/* Icon */}
+                    <div style={{
+                      width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                      background: rarity.bg, border: `2.5px solid ${rarity.border}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 22, position: 'relative',
+                      boxShadow: `0 3px 0 ${rarity.accent}44`,
+                    }}>
+                      {ach.icon}
+                      {!ach.completed && (
+                        <div style={{
+                          position: 'absolute', top: -6, right: -6, width: 20, height: 20,
+                          borderRadius: '50%', background: '#6b7280', border: '2px solid var(--card-bg)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Lock size={9} color="white" />
+                        </div>
+                      )}
+                      {ach.completed && (
+                        <div style={{
+                          position: 'absolute', top: -6, right: -6, width: 20, height: 20,
+                          borderRadius: '50%', background: '#22c55e', border: '2px solid var(--card-bg)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <span style={{ color: 'white', fontSize: 10, fontWeight: 900 }}>✓</span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{ach.description}</p>
 
-                    {!ach.completed && (
-                      <div className="mt-2">
-                        <div className="flex justify-between text-xs text-gray-400 mb-1">
-                          <span>{ach.progress}/{ach.total}</span>
-                          <span>{progress}%</span>
-                        </div>
-                        <div className="h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-[#7B6EF6] to-[#4F8EF7] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
-                        </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
+                        <p style={{ fontWeight: 900, fontSize: 14, margin: 0, color: 'var(--text-dark)', lineHeight: 1.2 }}>{ach.title}</p>
+                        <span style={{
+                          fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 999, flexShrink: 0,
+                          background: rarity.bg, color: rarity.color, border: `1.5px solid ${rarity.border}`,
+                          textTransform: 'uppercase', letterSpacing: '0.07em',
+                        }}>{rarity.label}</span>
                       </div>
-                    )}
+                      <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 8px', lineHeight: 1.4 }}>{ach.description}</p>
 
-                    <div className="flex items-center gap-1 mt-2">
-                      <Star size={10} className="text-amber-500" fill="currentColor" />
-                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400">+{ach.points} pts</span>
+                      {!ach.completed && (
+                        <div style={{ marginBottom: 6 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 700 }}>
+                            <span>{ach.progress}/{ach.total}</span>
+                            <span>{progress}%</span>
+                          </div>
+                          <div style={{ height: 8, borderRadius: 999, background: 'var(--tab-bg)', border: '1.5px solid var(--dark-border)', overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%', borderRadius: 999, width: `${progress}%`, transition: 'width 0.5s ease',
+                              background: `linear-gradient(90deg,${rarity.accent},${rarity.color})`,
+                            }} />
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 999, background: 'rgba(245,158,11,0.12)', border: '1.5px solid #f59e0b' }}>
+                        <Star size={10} fill="#f59e0b" color="#f59e0b" />
+                        <span style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b' }}>+{ach.points} pts</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <style>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
+        @keyframes achSlideIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>

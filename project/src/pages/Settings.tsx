@@ -5,44 +5,33 @@ import { useNavigate } from 'react-router-dom';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
 
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 6px 0px var(--dark-border)',
+  borderRadius: 20,
+};
+
 const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void }> = ({ value, onChange }) => (
   <button
     onClick={() => { playSound('click'); onChange(!value); }}
-    className={`relative w-12 h-6 rounded-full border-2 border-black dark:border-gray-500 transition-colors duration-200 hover:shadow-md active:scale-95 ${value ? 'bg-[#7B6EF6] dark:bg-[#4F8EF7]' : 'bg-gray-200 dark:bg-gray-700'}`}
+    style={{
+      position: 'relative', width: 48, height: 26, borderRadius: 999, flexShrink: 0,
+      border: '2.5px solid var(--dark-border)',
+      background: value ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--tab-bg)',
+      cursor: 'pointer', transition: 'background 0.2s',
+      boxShadow: value ? '0 2px 0 var(--dark-border)' : '0 2px 0 var(--dark-border)',
+    }}
   >
-    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${value ? 'translate-x-6' : 'translate-x-0.5'}`} />
+    <div style={{
+      position: 'absolute', top: 3, width: 16, height: 16, borderRadius: '50%', background: 'white',
+      transition: 'left 0.2s', left: value ? 26 : 4,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+    }} />
   </button>
 );
 
-const SettingsSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div>
-    <h2 className="font-black text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">{title}</h2>
-    <div className="card overflow-hidden divide-y-2 divide-black dark:divide-gray-700 hover:shadow-md transition-shadow">
-      {children}
-    </div>
-  </div>
-);
-
-const SettingsRow: React.FC<{
-  icon: React.FC<{ size?: number; className?: string }>;
-  label: string;
-  value?: React.ReactNode;
-  onClick?: () => void;
-  iconColor?: string;
-}> = ({ icon: Icon, label, value, onClick, iconColor = 'text-gray-600 dark:text-gray-400' }) => (
-  <div
-    className={`flex items-center gap-3 px-4 py-3.5 transition-all ${onClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 active:scale-95 transform' : ''}`}
-    onClick={onClick}
-  >
-    <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 hover:scale-110 transition-transform">
-      <Icon size={16} className={iconColor} />
-    </div>
-    <span className="flex-1 font-medium text-sm text-gray-900 dark:text-white">{label}</span>
-    {value !== undefined ? value : onClick ? <ChevronRight size={16} className="text-gray-400" /> : null}
-  </div>
-);
-
-const languages = ['Turkish', 'English', 'Spanish', 'French', 'German'];
+const languages = ['Türkçe', 'English', 'Español', 'Français', 'Deutsch'];
 
 const Settings: React.FC = () => {
   const { theme, toggleTheme, soundEnabled, setSoundEnabled, notificationsEnabled, setNotificationsEnabled, setIsLoggedIn } = useApp();
@@ -53,112 +42,174 @@ const Settings: React.FC = () => {
   const [emailNotifs, setEmailNotifs] = useState(false);
   const [activityAlerts, setActivityAlerts] = useState(true);
 
+  const Section: React.FC<{ title: string; emoji: string; children: React.ReactNode }> = ({ title, emoji, children }) => (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, paddingLeft: 4 }}>
+        <span style={{ fontSize: 14 }}>{emoji}</span>
+        <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em', margin: 0 }}>{title}</p>
+      </div>
+      <div style={{ ...card, overflow: 'hidden' }}>
+        {children}
+      </div>
+    </div>
+  );
+
+  const Row: React.FC<{ icon: React.FC<{ size?: number; color?: string }>; label: string; sub?: string; iconBg?: string; iconColor?: string; right?: React.ReactNode; onClick?: () => void }> =
+    ({ icon: Icon, label, sub, iconBg = 'var(--tab-bg)', iconColor = 'var(--text-muted)', right, onClick }) => (
+    <div
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
+        borderBottom: '2px solid var(--dark-border)', cursor: onClick ? 'pointer' : 'default',
+        transition: 'background 0.1s',
+      }}
+      onMouseEnter={e => { if (onClick) (e.currentTarget as HTMLElement).style.background = 'var(--tab-bg)'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
+    >
+      <div style={{ width: 38, height: 38, borderRadius: 12, background: iconBg, border: '2px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 0 var(--dark-border)' }}>
+        <Icon size={17} color={iconColor} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: sub ? '0 0 1px' : 0 }}>{label}</p>
+        {sub && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>{sub}</p>}
+      </div>
+      {right !== undefined ? right : onClick ? <ChevronRight size={16} color="var(--text-muted)" /> : null}
+    </div>
+  );
+
   return (
-    <div className="p-4 lg:p-6 space-y-6 max-w-lg mx-auto">
-      <h1 className="text-2xl font-black text-gray-900 dark:text-white">{tr.settings.title}</h1>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Ghost watermark */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
+          fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
+          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
+        }}>AYARLAR</div>
+      </div>
 
-      <SettingsSection title={tr.settings.appearance || 'Appearance'}>
-        <SettingsRow
-          icon={theme === 'light' ? Sun : Moon}
-          label={tr.settings.theme}
-          iconColor={theme === 'light' ? 'text-amber-500' : 'text-blue-400'}
-          value={
-            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 p-0.5 gap-1">
-              <button
-                onClick={e => { e.stopPropagation(); if (theme === 'dark') { playSound('click'); toggleTheme(); } }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all active:scale-90 ${theme === 'light' ? 'bg-white dark:bg-gray-600 shadow text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                {tr.settings.light || 'Light'}
-              </button>
-              <button
-                onClick={e => { e.stopPropagation(); if (theme === 'light') { playSound('click'); toggleTheme(); } }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all active:scale-90 ${theme === 'dark' ? 'bg-white dark:bg-gray-600 shadow text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                {tr.settings.dark || 'Dark'}
-              </button>
-            </div>
-          }
-        />
-      </SettingsSection>
+      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-lg mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
 
-      <SettingsSection title={tr.settings.languageRegion || 'Language & Region'}>
-        <div
-          className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors active:scale-95 transform"
-          onClick={() => { playSound('click'); setShowLangPicker(!showLangPicker); }}
-        >
-          <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:scale-110 transition-transform">
-            <Globe size={16} className="text-blue-500" />
+        {/* ── Page header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+            background: 'linear-gradient(180deg,#60a5fa,#2563eb)',
+            border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+          }}>⚙️</div>
+          <div>
+            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>{tr.settings.title}</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Uygulama tercihlerini yönet</p>
           </div>
-          <span className="flex-1 font-medium text-sm text-gray-900 dark:text-white">{tr.settings.language}</span>
-          <span className="text-sm text-[#7B6EF6] dark:text-[#4F8EF7] font-bold">{language}</span>
-          <ChevronRight size={16} className={`text-gray-400 transition-transform ${showLangPicker ? 'rotate-90' : ''}`} />
         </div>
-        {showLangPicker && (
-          <div className="border-t-2 border-black dark:border-gray-700 animate-slideDown">
-            {languages.map(lang => (
-              <button
-                key={lang}
-                onClick={() => { playSound('click'); setLanguage(lang); setShowLangPicker(false); }}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm transition-colors active:scale-95 transform"
-              >
-                <span className={`font-medium ${lang === language ? 'text-[#7B6EF6] dark:text-[#4F8EF7]' : 'text-gray-700 dark:text-gray-300'}`}>{lang}</span>
-                {lang === language && <Check size={14} className="text-[#7B6EF6] dark:text-[#4F8EF7]" />}
-              </button>
-            ))}
+
+        {/* ── Appearance ── */}
+        <Section title={tr.settings.appearance || 'Görünüm'} emoji="🎨">
+          <Row
+            icon={theme === 'light' ? Sun : Moon}
+            label={tr.settings.theme}
+            sub={theme === 'light' ? 'Açık mod aktif' : 'Koyu mod aktif'}
+            iconBg={theme === 'light' ? 'rgba(245,158,11,0.15)' : 'rgba(99,102,241,0.15)'}
+            iconColor={theme === 'light' ? '#f59e0b' : '#818cf8'}
+            right={
+              <div style={{ display: 'flex', background: 'var(--tab-bg)', borderRadius: 10, border: '2px solid var(--dark-border)', padding: 3, gap: 4 }}>
+                {[{ key: 'light', label: tr.settings.light || 'Açık' }, { key: 'dark', label: tr.settings.dark || 'Koyu' }].map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={e => { e.stopPropagation(); if (theme !== opt.key) { playSound('click'); toggleTheme(); } }}
+                    style={{
+                      padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 900,
+                      background: theme === opt.key ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'transparent',
+                      color: theme === opt.key ? 'white' : 'var(--text-muted)',
+                      border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >{opt.label}</button>
+                ))}
+              </div>
+            }
+          />
+        </Section>
+
+        {/* ── Language ── */}
+        <Section title={tr.settings.languageRegion || 'Dil & Bölge'} emoji="🌍">
+          <div>
+            <Row
+              icon={Globe}
+              label={tr.settings.language}
+              sub={language}
+              iconBg="rgba(59,130,246,0.15)"
+              iconColor="#3b82f6"
+              onClick={() => { playSound('click'); setShowLangPicker(!showLangPicker); }}
+              right={<ChevronRight size={16} color="var(--text-muted)" style={{ transform: showLangPicker ? 'rotate(90deg)' : '', transition: 'transform 0.2s' }} />}
+            />
+            {showLangPicker && (
+              <div style={{ borderTop: '2px solid var(--dark-border)', animation: 'slideDown 0.2s ease-out' }}>
+                {languages.map(lang => (
+                  <button key={lang} onClick={() => { playSound('click'); setLanguage(lang); setShowLangPicker(false); }} style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 18px', borderBottom: '1px solid var(--dark-border)', cursor: 'pointer',
+                    background: 'none', transition: 'background 0.1s',
+                  }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--tab-bg)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 900, color: lang === language ? 'var(--primary-blue)' : 'var(--text-dark)' }}>{lang}</span>
+                    {lang === language && <Check size={15} color="var(--primary-blue)" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </SettingsSection>
+        </Section>
 
-      <SettingsSection title={tr.settings.notifications}>
-        <SettingsRow icon={Bell} label={tr.settings.pushNotifications || 'Push Notifications'} iconColor="text-[#7B6EF6] dark:text-[#4F8EF7]"
-          value={<Toggle value={notificationsEnabled} onChange={setNotificationsEnabled} />}
-        />
-        <SettingsRow icon={Bell} label={tr.settings.emailNotifications || 'Email Notifications'} iconColor="text-blue-500"
-          value={<Toggle value={emailNotifs} onChange={setEmailNotifs} />}
-        />
-        <SettingsRow icon={Bell} label={tr.settings.activityAlerts || 'Activity Alerts'} iconColor="text-green-500"
-          value={<Toggle value={activityAlerts} onChange={setActivityAlerts} />}
-        />
-      </SettingsSection>
+        {/* ── Notifications ── */}
+        <Section title={tr.settings.notifications} emoji="🔔">
+          <Row icon={Bell} label={tr.settings.pushNotifications || 'Anlık Bildirimler'} iconBg="rgba(123,110,246,0.15)" iconColor="#7B6EF6" right={<Toggle value={notificationsEnabled} onChange={setNotificationsEnabled} />} />
+          <Row icon={Bell} label={tr.settings.emailNotifications || 'E-posta Bildirimleri'} iconBg="rgba(59,130,246,0.15)" iconColor="#3b82f6" right={<Toggle value={emailNotifs} onChange={setEmailNotifs} />} />
+          <Row icon={Bell} label={tr.settings.activityAlerts || 'Aktivite Uyarıları'} iconBg="rgba(34,197,94,0.15)" iconColor="#22c55e" right={<Toggle value={activityAlerts} onChange={setActivityAlerts} />} />
+        </Section>
 
-      <SettingsSection title={tr.settings.sound}>
-        <SettingsRow
-          icon={soundEnabled ? Volume2 : VolumeX}
-          label={tr.settings.soundEffects || 'Sound Effects'}
-          iconColor={soundEnabled ? 'text-green-500' : 'text-gray-400'}
-          value={<Toggle value={soundEnabled} onChange={setSoundEnabled} />}
-        />
-      </SettingsSection>
+        {/* ── Sound ── */}
+        <Section title={tr.settings.sound} emoji="🔊">
+          <Row
+            icon={soundEnabled ? Volume2 : VolumeX}
+            label={tr.settings.soundEffects || 'Ses Efektleri'}
+            sub={soundEnabled ? 'Sesler açık' : 'Sesler kapalı'}
+            iconBg={soundEnabled ? 'rgba(34,197,94,0.15)' : 'rgba(107,114,128,0.12)'}
+            iconColor={soundEnabled ? '#22c55e' : '#6b7280'}
+            right={<Toggle value={soundEnabled} onChange={setSoundEnabled} />}
+          />
+        </Section>
 
-      <SettingsSection title={tr.settings.account}>
-        <SettingsRow icon={User} label={tr.settings.editProfile || 'Edit Profile'} iconColor="text-gray-600 dark:text-gray-400" onClick={() => { playSound('click'); navigate('/profile'); }} />
-        <SettingsRow icon={Shield} label={tr.settings.privacySecurity || 'Privacy & Security'} iconColor="text-blue-500" onClick={() => playSound('click')} />
-        <SettingsRow icon={Shield} label={tr.settings.changePassword || 'Change Password'} iconColor="text-amber-500" onClick={() => playSound('click')} />
-      </SettingsSection>
+        {/* ── Account ── */}
+        <Section title={tr.settings.account} emoji="👤">
+          <Row icon={User} label={tr.settings.editProfile || 'Profili Düzenle'} iconBg="rgba(107,114,128,0.12)" iconColor="var(--text-muted)" onClick={() => { playSound('click'); navigate('/profile'); }} />
+          <Row icon={Shield} label={tr.settings.privacySecurity || 'Gizlilik & Güvenlik'} iconBg="rgba(59,130,246,0.15)" iconColor="#3b82f6" onClick={() => playSound('click')} />
+          <Row icon={Shield} label={tr.settings.changePassword || 'Şifre Değiştir'} iconBg="rgba(245,158,11,0.15)" iconColor="#f59e0b" onClick={() => playSound('click')} />
+        </Section>
 
-      <button
-        onClick={() => { playSound('click'); setIsLoggedIn(false); navigate('/login'); }}
-        className="btn-danger w-full flex items-center justify-center gap-2 transition-all active:scale-95 hover:shadow-lg"
-      >
-        <LogOut size={16} />
-        <span>{tr.settings.logout}</span>
-      </button>
+        {/* ── Logout ── */}
+        <button onClick={() => { playSound('click'); setIsLoggedIn(false); navigate('/login'); }} style={{
+          width: '100%', ...card, border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626',
+          padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          cursor: 'pointer', background: 'rgba(239,68,68,0.06)', transition: 'transform 0.1s, box-shadow 0.1s',
+        }}
+          onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 #dc2626'; }}
+          onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 #dc2626'; }}
+        >
+          <LogOut size={18} color="#ef4444" />
+          <span style={{ fontWeight: 900, fontSize: 15, color: '#ef4444' }}>{tr.settings.logout}</span>
+        </button>
 
-      <p className="text-center text-xs text-gray-400">NexReward v2.0.0 • {tr.settings.frontendDemo || 'Frontend Demo'}</p>
+        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>NexReward v2.0.0 • {tr.settings.frontendDemo || 'Frontend Demo'}</p>
+
+      </div>
 
       <style>{`
         @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-slideDown {
-          animation: slideDown 0.2s ease-out;
+          from { opacity: 0; transform: translateY(-8px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>

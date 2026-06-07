@@ -1,86 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Star, Crown, TrendingUp, Gift, Sparkles, Timer, Medal } from 'lucide-react';
+import { Trophy, Star, Crown, TrendingUp, Gift, Sparkles, Timer } from 'lucide-react';
 import { leaderboard } from '../data/mockData';
 import { useRewardEvents, RewardEvent, Winner } from '../context/RewardEventsContext';
+
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 6px 0px var(--dark-border)',
+  borderRadius: 20,
+};
 
 /* ── Countdown hook ── */
 const useCountdown = (endDate: string) => {
   const calc = () => {
     const diff = new Date(endDate).getTime() - Date.now();
     if (diff <= 0) return { days: 0, hours: 0, mins: 0, secs: 0, ended: true };
-    return {
-      days: Math.floor(diff / 86400000),
-      hours: Math.floor((diff % 86400000) / 3600000),
-      mins: Math.floor((diff % 3600000) / 60000),
-      secs: Math.floor((diff % 60000) / 1000),
-      ended: false,
-    };
+    return { days: Math.floor(diff/86400000), hours: Math.floor((diff%86400000)/3600000), mins: Math.floor((diff%3600000)/60000), secs: Math.floor((diff%60000)/1000), ended: false };
   };
   const [cd, setCd] = useState(calc);
-  useEffect(() => {
-    const t = setInterval(() => setCd(calc()), 1000);
-    return () => clearInterval(t);
-  }, [endDate]);
+  useEffect(() => { const t = setInterval(() => setCd(calc()), 1000); return () => clearInterval(t); }, [endDate]);
   return cd;
-};
-
-/* ── Confetti burst ── */
-const Confetti: React.FC = () => {
-  const colors = ['#FFD700', '#7B6EF6', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
-  const pieces = Array.from({ length: 28 }, (_, i) => ({
-    id: i,
-    color: colors[i % colors.length],
-    left: `${Math.random() * 100}%`,
-    delay: `${Math.random() * 1.2}s`,
-    duration: `${1.2 + Math.random() * 1}s`,
-    size: `${6 + Math.random() * 8}px`,
-    rotate: `${Math.random() * 360}deg`,
-  }));
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {pieces.map(p => (
-        <div
-          key={p.id}
-          className="absolute animate-confetti rounded-sm"
-          style={{
-            left: p.left,
-            top: '-10px',
-            width: p.size,
-            height: p.size,
-            backgroundColor: p.color,
-            animationDelay: p.delay,
-            animationDuration: p.duration,
-            transform: `rotate(${p.rotate})`,
-          }}
-        />
-      ))}
-    </div>
-  );
-};
-
-/* ── Countdown Display ── */
-const CountdownBlock: React.FC<{ endDate: string }> = ({ endDate }) => {
-  const cd = useCountdown(endDate);
-  if (cd.ended) return <span className="font-black text-red-400">Event Ended</span>;
-  const units = [
-    { label: 'D', val: cd.days },
-    { label: 'H', val: cd.hours },
-    { label: 'M', val: cd.mins },
-    { label: 'S', val: cd.secs },
-  ];
-  return (
-    <div className="flex items-center gap-1">
-      {units.map(u => (
-        <React.Fragment key={u.label}>
-          <div className="bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 text-center min-w-[36px]">
-            <p className="font-black text-white text-sm leading-none">{String(u.val).padStart(2,'0')}</p>
-            <p className="text-white/60 text-[9px] font-bold uppercase">{u.label}</p>
-          </div>
-          {u.label !== 'S' && <span className="text-white/60 font-black text-sm">:</span>}
-        </React.Fragment>
-      ))}
-    </div>
-  );
 };
 
 /* ── Active Event Banner ── */
@@ -89,118 +28,103 @@ const ActiveEventBanner: React.FC<{ event: RewardEvent }> = ({ event }) => {
   const { getWinners } = useRewardEvents();
   const winners: Winner[] = ended ? getWinners(event) : [];
   const [showAll, setShowAll] = useState(false);
-
-  const medal = (rank: number) =>
-    rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `🏅`;
+  const cd = useCountdown(event.endDate);
+  const medal = (rank: number) => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '🏅';
 
   return (
-    <div className={`relative rounded-3xl overflow-hidden border-4 border-black dark:border-gray-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] dark:shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)]`}>
-      {ended && <Confetti />}
-
-      {/* Banner gradient bg */}
-      <div className={`relative bg-gradient-to-r ${event.banner} p-5`}>
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="relative">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black text-white mb-2 border border-white/30">
-                <Trophy size={10} fill="currentColor" />
-                {ended ? '🎉 EVENT ENDED — WINNERS!' : 'LIVE REWARD EVENT'}
-              </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white mb-1 drop-shadow">{event.title}</h3>
-              <p className="text-white/80 text-xs sm:text-sm max-w-md line-clamp-2">{event.description}</p>
+    <div style={{ ...card, overflow: 'hidden' }}>
+      <div className={`relative bg-gradient-to-r ${event.banner} p-5`} style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)' }} />
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 8,
+            background: 'rgba(255,255,255,0.2)', borderRadius: 999, padding: '4px 12px',
+            border: '1.5px solid rgba(255,255,255,0.35)',
+          }}>
+            <Trophy size={10} fill="currentColor" color="white" />
+            <span style={{ fontSize: 10, fontWeight: 900, color: 'white', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              {ended ? '🎉 ETKİNLİK BİTTİ' : '🔴 CANLI ETKİNLİK'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+            <div>
+              <h3 style={{ color: 'white', fontWeight: 900, fontSize: 22, margin: '0 0 4px', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>{event.title}</h3>
+              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: 0, maxWidth: 340 }}>{event.description}</p>
             </div>
             {!ended && (
-              <div className="flex-shrink-0 bg-black/30 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/20">
-                <p className="text-white/70 text-[10px] font-black uppercase tracking-widest mb-1 flex items-center gap-1"><Timer size={10} /> Ends In</p>
-                <CountdownBlock endDate={event.endDate} />
+              <div style={{
+                background: 'rgba(0,0,0,0.35)', borderRadius: 14, padding: '10px 14px',
+                border: '1.5px solid rgba(255,255,255,0.2)', flexShrink: 0,
+              }}>
+                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Timer size={9} /> Bitiş
+                </p>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[{ v: cd.days, l: 'G' }, { v: cd.hours, l: 'S' }, { v: cd.mins, l: 'D' }, { v: cd.secs, l: 'SN' }].map(u => (
+                    <div key={u.l} style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 8, padding: '4px 6px', textAlign: 'center', minWidth: 30 }}>
+                      <p style={{ color: 'white', fontWeight: 900, fontSize: 14, margin: 0, lineHeight: 1 }}>{String(u.v).padStart(2,'0')}</p>
+                      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 8, fontWeight: 700, margin: 0 }}>{u.l}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Prize cards */}
-      <div className="bg-white dark:bg-gray-800 p-4 space-y-3">
+      <div style={{ padding: '16px 20px', background: 'var(--card-bg)' }}>
         {!ended && (
           <>
-            <p className="font-black text-gray-700 dark:text-gray-300 text-sm flex items-center gap-2">
-              <Gift size={15} className="text-purple-500" /> Prize Pool
-              <span className="text-xs font-normal text-gray-400">— Earn the most points to win!</span>
+            <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Gift size={15} color="#7B6EF6" /> Ödül Havuzu
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>— En fazla puan kazanan kazanır!</span>
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
               {event.rewards.slice(0, 3).map(r => (
-                <div key={r.rank}
-                  className={`relative rounded-2xl p-3 border-2 text-center transition-transform hover:scale-[1.02] cursor-default ${
-                    r.rank === 1
-                      ? 'border-amber-400 bg-gradient-to-b from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/20 shadow-[2px_2px_0px_0px_rgba(251,191,36,0.5)]'
-                      : r.rank === 2
-                      ? 'border-gray-300 dark:border-gray-500 bg-gradient-to-b from-gray-50 to-slate-50 dark:from-gray-800 dark:to-gray-750 shadow-[2px_2px_0px_0px_rgba(156,163,175,0.4)]'
-                      : 'border-orange-300 dark:border-orange-700 bg-gradient-to-b from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/10 shadow-[2px_2px_0px_0px_rgba(251,146,60,0.4)]'
-                  }`}>
-                  <div className="text-4xl mb-1.5 filter drop-shadow">{r.rewardImage}</div>
-                  <span className={`text-xs font-black ${r.rank === 1 ? 'text-amber-600' : r.rank === 2 ? 'text-gray-500' : 'text-orange-500'}`}>{r.label}</span>
-                  <p className="font-black text-gray-900 dark:text-white text-sm mt-0.5">{r.rewardName}</p>
-                  {r.quantity > 1 && <p className="text-[10px] text-gray-400 mt-0.5">×{r.quantity}</p>}
+                <div key={r.rank} style={{
+                  padding: '12px 8px', borderRadius: 14, textAlign: 'center',
+                  border: `2.5px solid ${r.rank === 1 ? '#f59e0b' : r.rank === 2 ? '#94a3b8' : '#f97316'}`,
+                  boxShadow: `0 4px 0 ${r.rank === 1 ? '#d97706' : r.rank === 2 ? '#64748b' : '#ea580c'}`,
+                  background: r.rank === 1 ? 'rgba(245,158,11,0.1)' : r.rank === 2 ? 'rgba(148,163,184,0.1)' : 'rgba(249,115,22,0.1)',
+                }}>
+                  <div style={{ fontSize: 32, marginBottom: 6 }}>{r.rewardImage}</div>
+                  <span style={{ fontSize: 9, fontWeight: 900, color: r.rank === 1 ? '#d97706' : r.rank === 2 ? '#64748b' : '#ea580c', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{r.label}</span>
+                  <p style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-dark)', margin: '2px 0 0', lineHeight: 1.2 }}>{r.rewardName}</p>
                 </div>
               ))}
             </div>
             {event.rewards.length > 3 && (
-              <div>
-                <button onClick={() => setShowAll(v => !v)} className="text-xs font-bold text-[#7B6EF6] dark:text-[#4F8EF7] hover:underline">
-                  {showAll ? '▲ Show less' : `▼ Show all ${event.rewards.length} prizes`}
-                </button>
-                {showAll && (
-                  <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {event.rewards.slice(3).map(r => (
-                      <div key={r.rank} className="rounded-xl p-2 border border-gray-200 dark:border-gray-700 flex items-center gap-2 bg-gray-50 dark:bg-gray-750">
-                        <span className="text-xl">{r.rewardImage}</span>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-bold text-gray-400">{r.label}</p>
-                          <p className="text-xs font-black text-gray-900 dark:text-white truncate">{r.rewardName}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <button onClick={() => setShowAll(v => !v)} style={{ marginTop: 10, fontSize: 12, fontWeight: 900, color: 'var(--primary-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                {showAll ? '▲ Daha az' : `▼ Tüm ${event.rewards.length} ödülü gör`}
+              </button>
             )}
           </>
         )}
 
-        {/* Winners display when ended */}
         {ended && (
-          <div className="space-y-3">
-            <p className="font-black text-gray-900 dark:text-white flex items-center gap-2">
-              <Sparkles size={16} className="text-amber-500" /> Final Winners
+          <div>
+            <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Sparkles size={16} color="#f59e0b" /> Kazananlar
             </p>
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {winners.map(w => (
-                <div key={w.rank}
-                  className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${
-                    w.rank === 1
-                      ? 'border-amber-400 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/10'
-                      : w.rank === 2
-                      ? 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-750'
-                      : 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10'
-                  }`}>
-                  <span className="text-2xl flex-shrink-0">{medal(w.rank)}</span>
-                  <img src={w.avatar} alt={w.username} className="w-9 h-9 rounded-full border-2 border-black dark:border-gray-600 flex-shrink-0 object-cover"
-                    onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${w.username}&background=7B6EF6&color=fff`; }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-black text-sm text-gray-900 dark:text-white truncate">{w.username}</p>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="flex items-center gap-0.5 text-xs text-amber-600 dark:text-amber-400 font-bold">
-                        <Star size={10} fill="currentColor" />{w.points.toLocaleString()} pts
-                      </span>
-                      <span className="text-gray-300 dark:text-gray-600">•</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{w.reward.rewardImage} {w.reward.rewardName}</span>
+                <div key={w.rank} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14,
+                  border: `2.5px solid ${w.rank === 1 ? '#f59e0b' : w.rank === 2 ? '#94a3b8' : '#f97316'}`,
+                  background: w.rank === 1 ? 'rgba(245,158,11,0.08)' : 'var(--tab-bg)',
+                }}>
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>{medal(w.rank)}</span>
+                  <img src={w.avatar} alt={w.username} style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid var(--dark-border)', objectFit: 'cover', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0 }}>{w.username}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Star size={10} fill="#f59e0b" color="#f59e0b" />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{w.points.toLocaleString()} pts</span>
                     </div>
                   </div>
                   {w.rank === 1 && (
-                    <span className="flex-shrink-0 bg-amber-400 text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-600 animate-pulse">
-                      CHAMPION
-                    </span>
+                    <span style={{ fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: 999, background: '#f59e0b', color: 'black', border: '1.5px solid #d97706', flexShrink: 0 }}>ŞAMPİYON</span>
                   )}
                 </div>
               ))}
@@ -212,132 +136,166 @@ const ActiveEventBanner: React.FC<{ event: RewardEvent }> = ({ event }) => {
   );
 };
 
-/* ── Main Leaderboard Page ── */
+/* ── Main Leaderboard ── */
 const Leaderboard: React.FC = () => {
   const [tab, setTab] = useState<'weekly' | 'monthly' | 'alltime'>('weekly');
   const { events } = useRewardEvents();
-
   const top3 = leaderboard.slice(0, 3);
   const rest = leaderboard.slice(3);
   const podiumOrder = [top3[1], top3[0], top3[2]];
-
   const publishedEvents = events.filter(e => e.published);
 
-  return (
-    <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
-        <Trophy className="text-amber-500" size={24} />
-        Leaderboard
-      </h1>
+  const podiumColors = ['#94a3b8','#f59e0b','#f97316'];
+  const podiumHeights = [80, 110, 60];
 
-      {/* ── Active Reward Events ── */}
-      {publishedEvents.length > 0 && (
-        <div className="space-y-4">
-          {publishedEvents.map(ev => (
-            <ActiveEventBanner key={ev.id} event={ev} />
+  return (
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Ghost watermark */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
+          fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
+          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
+        }}>LİDERLİK</div>
+      </div>
+
+      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
+
+        {/* ── Page header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+            background: 'linear-gradient(180deg,#fbbf24,#d97706)',
+            border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+          }}>👑</div>
+          <div>
+            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>Leaderboard</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Zirveye çık, efsane ol</p>
+          </div>
+        </div>
+
+        {/* ── Active events ── */}
+        {publishedEvents.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {publishedEvents.map(ev => <ActiveEventBanner key={ev.id} event={ev} />)}
+          </div>
+        )}
+
+        {/* ── Tabs ── */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['weekly', 'monthly', 'alltime'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              flex: 1, padding: '11px 6px', borderRadius: 12, fontWeight: 900, fontSize: 12,
+              cursor: 'pointer', transition: 'all 0.1s',
+              background: tab === t ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
+              color: tab === t ? 'white' : 'var(--text-dark)',
+              border: '3px solid var(--dark-border)',
+              boxShadow: tab === t ? '0 5px 0 var(--dark-border)' : '0 4px 0 var(--dark-border)',
+            }}>{t === 'alltime' ? 'All Time' : t.charAt(0).toUpperCase() + t.slice(1)}</button>
           ))}
         </div>
-      )}
 
-      {/* Tab */}
-      <div className="flex bg-gray-100 dark:bg-gray-800 rounded-2xl border-2 border-black dark:border-gray-600 p-1">
-        {(['weekly', 'monthly', 'alltime'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs capitalize transition-all ${
-              tab === t ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-black dark:border-gray-500' : 'text-gray-500 dark:text-gray-400'
-            }`}
-          >
-            {t === 'alltime' ? 'All Time' : t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Podium */}
-      <div className="card p-4 lg:p-6 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-200 dark:border-amber-700">
-        <h2 className="text-center font-black text-gray-700 dark:text-gray-300 mb-4 lg:mb-6 flex items-center justify-center gap-2">
-          <Crown size={20} className="text-amber-500" />
-          Top 3 Champions
-        </h2>
-        <div className="flex items-end justify-center gap-2 lg:gap-4">
-          {podiumOrder.map((player, i) => {
-            const rankBadge = player?.rank === 1 ? '👑' : player?.rank === 2 ? '🥈' : '🥉';
-            const isFirst = player?.rank === 1;
-            return (
-              <div key={player?.rank} className="flex flex-col items-center gap-1 lg:gap-2">
-                <div className="relative">
-                  <div className={`rounded-full overflow-hidden border-2 lg:border-4 ${
-                    isFirst ? 'border-amber-400 w-14 h-14 lg:w-20 lg:h-20' : 'border-gray-300 dark:border-gray-600 w-12 h-12 lg:w-16 lg:h-16'
-                  }`}>
-                    {player?.avatar && <img src={player.avatar} alt={player.username} className="w-full h-full object-cover" />}
+        {/* ── Podium ── */}
+        <div style={{
+          ...card,
+          background: 'linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
+          border: '3px solid #f59e0b', boxShadow: '0 6px 0 #d97706',
+          padding: 'clamp(16px,4vw,28px)',
+        }}>
+          <h2 style={{ textAlign: 'center', fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: '0 0 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <Crown size={20} color="#f59e0b" /> Top 3 Şampiyonlar
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 12 }}>
+            {podiumOrder.map((player, i) => {
+              const isFirst = player?.rank === 1;
+              const badge = player?.rank === 1 ? '👑' : player?.rank === 2 ? '🥈' : '🥉';
+              return (
+                <div key={player?.rank} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{
+                      width: isFirst ? 72 : 58, height: isFirst ? 72 : 58,
+                      borderRadius: '50%', overflow: 'hidden',
+                      border: `${isFirst ? 4 : 3}px solid ${podiumColors[i]}`,
+                      boxShadow: `0 4px 0 ${podiumColors[i]}88`,
+                    }}>
+                      {player?.avatar && <img src={player.avatar} alt={player.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                    </div>
+                    <div style={{ position: 'absolute', top: -8, right: -6, fontSize: isFirst ? 22 : 18 }}>{badge}</div>
                   </div>
-                  <div className="absolute -top-1 lg:-top-2 -right-1 lg:-right-2 text-lg lg:text-xl">{rankBadge}</div>
+                  <p style={{ fontWeight: 900, fontSize: isFirst ? 14 : 12, color: 'var(--text-dark)', textAlign: 'center', margin: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player?.username}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <Star size={10} fill="#f59e0b" color="#f59e0b" />
+                    <span style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b' }}>{player?.points.toLocaleString()}</span>
+                  </div>
+                  {/* Podium block */}
+                  <div style={{
+                    width: isFirst ? 80 : 64, height: podiumHeights[i],
+                    borderRadius: '12px 12px 0 0',
+                    background: podiumColors[i], border: '3px solid var(--dark-border)',
+                    boxShadow: '0 -4px 0 var(--dark-border) inset',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ fontSize: isFirst ? 24 : 20, fontWeight: 900, color: 'white' }}>#{player?.rank}</span>
+                  </div>
                 </div>
-                <p className={`font-black text-gray-900 dark:text-white text-center ${isFirst ? 'text-sm lg:text-base' : 'text-xs lg:text-sm'}`}>{player?.username}</p>
-                <div className="flex items-center gap-1">
-                  <Star size={10} className="text-amber-500" fill="currentColor" />
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{player?.points.toLocaleString()}</span>
-                </div>
-                <div className={`w-16 lg:w-20 rounded-t-2xl flex items-center justify-center border-2 border-black dark:border-gray-600 ${
-                  isFirst ? 'bg-amber-400 h-20 lg:h-24' : i === 0 ? 'bg-gray-300 dark:bg-gray-600 h-14 lg:h-16' : 'bg-orange-300 dark:bg-orange-700 h-10 lg:h-12'
-                }`}>
-                  <span className="text-xl lg:text-2xl font-black text-white">#{player?.rank}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Rest of rankings */}
-      <div className="space-y-2">
-        {rest.map(player => (
-          <div
-            key={player.rank}
-            className={`card p-3 lg:p-4 flex items-center gap-3 lg:gap-4 transition-all ${player.isCurrentUser ? 'border-[#7B6EF6] dark:border-[#4F8EF7] bg-[#7B6EF6]/5 dark:bg-[#4F8EF7]/5' : 'hover:shadow-md'}`}
-          >
-            <div className="w-6 lg:w-8 text-center flex-shrink-0">
-              <span className={`font-black text-base lg:text-lg ${player.rank <= 10 ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'}`}>#{player.rank}</span>
-            </div>
-            <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-black dark:border-gray-600 flex-shrink-0">
-              <img src={player.avatar} alt={player.username} className="w-full h-full object-cover"
-                onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${player.username}&background=7B6EF6&color=fff`; }}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className={`font-bold text-sm text-gray-900 dark:text-white truncate ${player.isCurrentUser ? 'text-[#7B6EF6] dark:text-[#4F8EF7]' : ''}`}>
-                  {player.username}
-                </p>
-                {player.isCurrentUser && <span className="badge bg-[#7B6EF6]/10 dark:bg-[#4F8EF7]/20 text-[#7B6EF6] dark:text-[#4F8EF7] text-xs flex-shrink-0">You</span>}
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Level {player.level}</p>
-            </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Star size={12} className="text-amber-500" fill="currentColor" />
-              <span className="font-black text-xs lg:text-sm text-amber-600 dark:text-amber-400">{player.points.toLocaleString()}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Your ranking */}
-      <div className="card p-3 lg:p-4 bg-[#7B6EF6]/5 dark:bg-[#4F8EF7]/10 border-2 border-[#7B6EF6] dark:border-[#4F8EF7]">
-        <div className="flex items-center gap-3">
-          <Trophy size={20} className="text-[#7B6EF6] dark:text-[#4F8EF7] flex-shrink-0" />
-          <div className="min-w-0">
-            <p className="font-bold text-gray-900 dark:text-white">Your Ranking</p>
-            <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">You're in the top 25%!</p>
-          </div>
-          <div className="ml-auto text-right flex-shrink-0">
-            <p className="font-black text-xl lg:text-2xl text-[#7B6EF6] dark:text-[#4F8EF7]">#3</p>
-            <div className="flex items-center gap-1 justify-end">
-              <TrendingUp size={12} className="text-green-500" />
-              <span className="text-xs text-green-500 font-bold">+2 this week</span>
-            </div>
+              );
+            })}
           </div>
         </div>
+
+        {/* ── Rest of rankings ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {rest.map(player => (
+            <div key={player.rank} style={{
+              ...card,
+              border: player.isCurrentUser ? '3px solid var(--primary-blue)' : '3px solid var(--dark-border)',
+              boxShadow: player.isCurrentUser ? '0 6px 0 var(--primary-blue)' : '0 6px 0 var(--dark-border)',
+              background: player.isCurrentUser ? 'rgba(123,110,246,0.07)' : 'var(--card-bg)',
+              padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <div style={{ width: 32, textAlign: 'center', flexShrink: 0 }}>
+                <span style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)' }}>#{player.rank}</span>
+              </div>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2.5px solid var(--dark-border)', flexShrink: 0 }}>
+                <img src={player.avatar} alt={player.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${player.username}&background=7B6EF6&color=fff`; }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <p style={{ fontWeight: 900, fontSize: 13, color: player.isCurrentUser ? 'var(--primary-blue)' : 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.username}</p>
+                  {player.isCurrentUser && (
+                    <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 999, background: 'var(--primary-blue)', color: 'white', flexShrink: 0 }}>SEN</span>
+                  )}
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0, fontWeight: 600 }}>Seviye {player.level}</p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                <span style={{ fontWeight: 900, fontSize: 13, color: '#f59e0b' }}>{player.points.toLocaleString()}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Your ranking ── */}
+        <div style={{
+          ...card,
+          border: '3px solid var(--primary-blue)', boxShadow: '0 6px 0 var(--primary-blue)',
+          padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14,
+          background: 'rgba(123,110,246,0.06)',
+        }}>
+          <Trophy size={24} color="var(--primary-blue)" />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 2px' }}>Senin Sıralaman</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <TrendingUp size={12} color="#22c55e" />
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>+2 bu hafta</span>
+            </div>
+          </div>
+          <p style={{ fontWeight: 900, fontSize: 32, color: 'var(--primary-blue)', margin: 0 }}>#3</p>
+        </div>
+
       </div>
     </div>
   );

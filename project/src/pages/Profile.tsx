@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Trophy, Zap, Target, CreditCard as Edit3, Settings, LogOut, ChevronRight, TrendingUp, Calendar, Package, Ticket, Tag, Gift, Check, Copy, Clock, Video as LucideIcon } from 'lucide-react';
+import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, TrendingUp, Calendar, Package, Ticket, Tag, Gift, Check, Copy, Clock, CreditCard as Edit3 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { achievements, inventory } from '../data/mockData';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
+
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 6px 0px var(--dark-border)',
+  borderRadius: 20,
+};
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -14,10 +22,10 @@ const Profile: React.FC = () => {
   const xpPercent = Math.round((user.xp / user.xpToNext) * 100);
   const completedAchievements = achievements.filter(a => a.completed);
 
-  const typeConfig: Record<string, { color: string; bg: string; icon: LucideIcon }> = {
-    coupon: { color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/30', icon: Tag },
-    ticket: { color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/30', icon: Ticket },
-    reward: { color: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/30', icon: Gift },
+  const typeConfig: Record<string, { color: string; bg: string; accent: string; icon: LucideIcon }> = {
+    coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', accent: '#3b82f6', icon: Tag },
+    ticket: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', accent: '#f59e0b', icon: Ticket },
+    reward: { color: '#22c55e', bg: 'rgba(34,197,94,0.1)', accent: '#22c55e', icon: Gift },
   };
 
   const handleCopy = (code: string) => {
@@ -30,260 +38,279 @@ const Profile: React.FC = () => {
   const isExpired = (date: string) => new Date(date) < new Date();
   const activeInventory = inventory.filter(i => !i.used);
   const displayedInventory = showAllInventory ? activeInventory : activeInventory.slice(0, 3);
-
-  const stats = [
-    { label: tr.profile.totalPoints, value: user.totalPoints.toLocaleString(), icon: Star, color: 'text-amber-500' },
-    { label: tr.profile.currentLevel, value: `Lv.${user.level}`, icon: TrendingUp, color: 'text-green-500' },
-    { label: tr.profile.achievements, value: `${user.achievements}/${user.totalAchievements}`, icon: Trophy, color: 'text-[#7B6EF6]' },
-    { label: tr.profile.dayStreak, value: `${user.streak} days`, icon: Zap, color: 'text-orange-500' },
-  ];
-
   const recentAchievements = completedAchievements.slice(0, 4);
 
+  const stats = [
+    { label: tr.profile.totalPoints, value: user.totalPoints.toLocaleString(), icon: Star, color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', emoji: '⭐' },
+    { label: tr.profile.currentLevel, value: `Lv.${user.level}`, icon: TrendingUp, color: '#22c55e', bg: 'rgba(34,197,94,0.12)', emoji: '📈' },
+    { label: tr.profile.achievements, value: `${user.achievements}/${user.totalAchievements}`, icon: Trophy, color: '#7B6EF6', bg: 'rgba(123,110,246,0.12)', emoji: '🏆' },
+    { label: tr.profile.dayStreak, value: `${user.streak}g`, icon: Zap, color: '#f97316', bg: 'rgba(249,115,22,0.12)', emoji: '🔥' },
+  ];
+
   return (
-    <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
-      {/* Profile header */}
-      <div className="card p-6">
-        <div className="flex items-start gap-4">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full border-4 border-black dark:border-gray-600 overflow-hidden">
-              <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#7B6EF6] dark:bg-[#4F8EF7] border-2 border-white dark:border-gray-800 flex items-center justify-center">
-              <span className="text-white font-black text-xs">{user.level}</span>
-            </div>
-          </div>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Ghost watermark */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
+          fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)',
+          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
+        }}>PROFİL</div>
+      </div>
 
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-black text-gray-900 dark:text-white">{user.username}</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
+
+        {/* ── Profile hero ── */}
+        <div style={{
+          ...card,
+          background: 'linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%)',
+          padding: 'clamp(16px,4vw,28px)', position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+            {/* Avatar */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{ width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', border: '4px solid rgba(255,255,255,0.6)', boxShadow: '0 4px 0 rgba(0,0,0,0.2)' }}>
+                <img src={user.avatar} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
-              <button
-                onClick={() => { playSound('click'); navigate('/settings'); }}
-                className="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                <Edit3 size={16} />
-              </button>
+              <div style={{
+                position: 'absolute', bottom: -4, right: -4, width: 28, height: 28,
+                borderRadius: '50%', background: '#f59e0b', border: '2.5px solid white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span style={{ color: 'black', fontWeight: 900, fontSize: 11 }}>{user.level}</span>
+              </div>
             </div>
 
-            <div className="mt-2 flex items-center gap-2">
-              <span className="badge bg-[#7B6EF6]/10 dark:bg-[#4F8EF7]/20 text-[#7B6EF6] dark:text-[#4F8EF7] border border-[#7B6EF6]/30">
-                Seviye {user.level} • {tr.profile.champion}
-              </span>
-              <span className="badge bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
-                <Zap size={10} /> {user.streak}g serisi
-              </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                <div>
+                  <h1 style={{ color: 'white', fontWeight: 900, fontSize: 24, margin: '0 0 2px', lineHeight: 1 }}>{user.username}</h1>
+                  <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, margin: 0, fontWeight: 600 }}>{user.email}</p>
+                </div>
+                <button onClick={() => { playSound('click'); navigate('/settings'); }} style={{
+                  width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)',
+                  border: '2px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+                }}>
+                  <Edit3 size={16} color="white" />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                <span style={{ padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.35)', fontSize: 11, fontWeight: 900, color: 'white' }}>
+                  Seviye {user.level} • {tr.profile.champion}
+                </span>
+                <span style={{ padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.35)', fontSize: 11, fontWeight: 900, color: 'white' }}>
+                  🔥 {user.streak}g serisi
+                </span>
+              </div>
+
+              {/* XP bar */}
+              <div style={{ marginTop: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.7)', marginBottom: 5, fontWeight: 700 }}>
+                  <span>Lv.{user.level}</span>
+                  <span>{user.xp.toLocaleString()} / {user.xpToNext.toLocaleString()} XP</span>
+                  <span>Lv.{user.level + 1}</span>
+                </div>
+                <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${xpPercent}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s ease' }} />
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Join date */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, color: 'rgba(255,255,255,0.7)' }}>
+            <Calendar size={13} />
+            <span style={{ fontSize: 12, fontWeight: 600 }}>
+              {new Date(user.joinDate).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' })} tarihinden beri üye
+            </span>
           </div>
         </div>
 
-        {/* XP progress */}
-        <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-2xl">
-          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
-            <span>Level {user.level}</span>
-            <span>{user.xp.toLocaleString()} / {user.xpToNext.toLocaleString()} XP</span>
-            <span>Level {user.level + 1}</span>
-          </div>
-          <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-[#7B6EF6] to-[#4F8EF7] rounded-full transition-all duration-700"
-              style={{ width: `${xpPercent}%` }}
-            />
-          </div>
-          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-1">{user.xpToNext - user.xp} XP to next level</p>
-        </div>
-
-        {/* Join date */}
-        <div className="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-          <Calendar size={14} />
-          <span>Member since {new Date(user.joinDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</span>
-        </div>
-      </div>
-
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {stats.map(stat => (
-          <div key={stat.label} className="card p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-              <stat.icon size={18} className={stat.color} />
-            </div>
-            <div>
-              <p className="font-black text-lg text-gray-900 dark:text-white">{stat.value}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Current points */}
-      <div className="card p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">{tr.profile.availablePoints}</p>
-            <div className="flex items-center gap-2">
-              <Star size={24} className="text-amber-500" fill="currentColor" />
-              <span className="text-4xl font-black text-amber-600 dark:text-amber-400">{points.toLocaleString()}</span>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/redeem')}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl border-2 border-amber-700 transition-colors"
-          >
-            {tr.profile.redeem}
-          </button>
-        </div>
-      </div>
-
-      {/* Recent achievements */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-black text-lg text-gray-900 dark:text-white">{tr.profile.recentAchievements}</h2>
-          <button onClick={() => navigate('/achievements')} className="flex items-center gap-1 text-sm text-[#7B6EF6] dark:text-[#4F8EF7] font-bold">
-            {tr.profile.seeAll} <ChevronRight size={14} />
-          </button>
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {recentAchievements.map(ach => (
-            <div key={ach.id} className="card p-3 text-center hover:scale-105 transition-transform">
-              <div className="text-2xl mb-1">{ach.icon}</div>
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 leading-tight">{ach.title}</p>
+        {/* ── Stats grid ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+          {stats.map(stat => (
+            <div key={stat.label} style={{ ...card, padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 46, height: 46, borderRadius: 14, background: stat.bg,
+                border: `2.5px solid ${stat.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: `0 3px 0 ${stat.color}44`, flexShrink: 0, fontSize: 20,
+              }}>{stat.emoji}</div>
+              <div>
+                <p style={{ fontWeight: 900, fontSize: 20, color: 'var(--text-dark)', margin: '0 0 1px', lineHeight: 1 }}>{stat.value}</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, fontWeight: 600 }}>{stat.label}</p>
+              </div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Inventory Section */}
-      {activeInventory.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-black text-lg text-gray-900 dark:text-white flex items-center gap-2">
-              <Package size={18} className="text-[#7B6EF6] dark:text-[#4F8EF7]" />
-              {tr.profile.myInventory}
-            </h2>
-            {activeInventory.length > 3 && (
-              <button
-                onClick={() => setShowAllInventory(!showAllInventory)}
-                className="flex items-center gap-1 text-sm text-[#7B6EF6] dark:text-[#4F8EF7] font-bold"
-              >
-                {showAllInventory ? 'Daha Az Gör' : `${tr.profile.seeAll} (${activeInventory.length})`} <ChevronRight size={14} className={showAllInventory ? 'rotate-90' : ''} />
-              </button>
-            )}
-          </div>
-          <div className="space-y-3">
-            {displayedInventory.map(item => {
-              const config = typeConfig[item.type];
-              const IconComp = config.icon;
-              const expired = isExpired(item.expires);
-
-              return (
-                <div key={item.id} className={`card p-4 flex items-start gap-4 ${expired ? 'opacity-60' : ''}`}>
-                  <div className={`w-12 h-12 rounded-2xl ${config.bg} flex items-center justify-center flex-shrink-0`}>
-                    <IconComp size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-bold text-gray-900 dark:text-white">{item.title}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.description}</p>
-                      </div>
-                      {expired ? (
-                        <span className="badge bg-red-100 dark:bg-red-900/30 text-red-500 text-xs flex-shrink-0">{tr.profile.expired}</span>
-                      ) : (
-                        <span className={`badge ${config.bg} ${config.color} text-xs flex-shrink-0 capitalize`}>{item.type}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 mt-3">
-                      <div className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
-                        <span className="font-mono text-sm font-bold text-gray-900 dark:text-white tracking-widest">{item.code}</span>
-                      </div>
-                      <button
-                        onClick={() => handleCopy(item.code)}
-                        disabled={expired}
-                        className="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 active:scale-95"
-                      >
-                        {copiedCode === item.code ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
-                      <Clock size={10} />
-                      <span>{tr.profile.expires} {new Date(item.expires).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Activity summary */}
-      <div className="card p-4">
-        <h2 className="font-black text-lg text-gray-900 dark:text-white mb-3">{tr.profile.activitySummary}</h2>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{tr.profile.qrScansThisMonth}</span>
-            <span className="font-bold text-gray-900 dark:text-white">12</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{tr.profile.gamesPlayed}</span>
-            <span className="font-bold text-gray-900 dark:text-white">47</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{tr.profile.rewardsRedeemed}</span>
-            <span className="font-bold text-gray-900 dark:text-white">6</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{tr.profile.missionsCompleted}</span>
-            <span className="font-bold text-gray-900 dark:text-white">23</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Action links */}
-      <div className="space-y-2">
-        {[
-          { icon: Target, label: tr.profile.viewMissions, path: '/missions' },
-          { icon: Trophy, label: tr.profile.viewAchievements, path: '/achievements' },
-          { icon: Settings, label: tr.profile.accountSettings, path: '/settings' },
-        ].map(item => (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            className="w-full card p-4 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
-          >
-            <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-              <item.icon size={17} className="text-gray-600 dark:text-gray-400" />
+        {/* ── Points card ── */}
+        <div style={{
+          ...card,
+          background: 'linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(217,119,6,0.1) 100%)',
+          border: '3px solid #f59e0b', boxShadow: '0 6px 0 #d97706',
+          padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16,
+        }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#d97706', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{tr.profile.availablePoints}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Star size={28} fill="#f59e0b" color="#f59e0b" />
+              <span style={{ fontSize: 38, fontWeight: 900, color: '#d97706', lineHeight: 1 }}>{points.toLocaleString()}</span>
             </div>
-            <span className="flex-1 font-medium text-gray-900 dark:text-white">{item.label}</span>
-            <ChevronRight size={16} className="text-gray-400" />
-          </button>
-        ))}
-
-        <button
-          onClick={() => { setIsLoggedIn(false); playSound('click'); navigate('/login'); }}
-          className="w-full p-4 flex items-center gap-3 rounded-xl font-black transition-all"
-          style={{
-            background: 'var(--card-bg)',
-            color: 'var(--text-dark)',
-            border: '2.5px solid var(--dark-border)',
-            boxShadow: '0px 3px 0px var(--dark-border)',
-          }}
-        >
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{
-              background: '#ef4444',
-              color: 'white',
-              border: '2px solid var(--dark-border)',
-            }}
-          >
-            <LogOut size={17} />
           </div>
-          <span>{tr.profile.logout}</span>
-          <ChevronRight size={14} className="ml-auto" />
-        </button>
+          <button onClick={() => navigate('/redeem')} style={{
+            padding: '12px 20px', borderRadius: 14, fontWeight: 900, fontSize: 14,
+            background: '#f59e0b', color: 'black',
+            border: '3px solid #d97706', boxShadow: '0 5px 0 #d97706',
+            cursor: 'pointer', flexShrink: 0, transition: 'transform 0.1s, box-shadow 0.1s',
+          }}
+            onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 #d97706'; }}
+            onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 5px 0 #d97706'; }}
+          >{tr.profile.redeem}</button>
+        </div>
+
+        {/* ── Recent achievements ── */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h2 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 17, margin: 0 }}>{tr.profile.recentAchievements}</h2>
+            <button onClick={() => navigate('/achievements')} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 900, color: 'var(--primary-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              {tr.profile.seeAll} <ChevronRight size={14} />
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+            {recentAchievements.map(ach => (
+              <div key={ach.id} style={{ ...card, padding: '14px 8px', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}>
+                <div style={{ fontSize: 26, marginBottom: 5 }}>{ach.icon}</div>
+                <p style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-dark)', margin: 0, lineHeight: 1.2 }}>{ach.title}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Inventory ── */}
+        {activeInventory.length > 0 && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <h2 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 17, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Package size={18} color="var(--primary-blue)" /> {tr.profile.myInventory}
+              </h2>
+              {activeInventory.length > 3 && (
+                <button onClick={() => setShowAllInventory(!showAllInventory)} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 900, color: 'var(--primary-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  {showAllInventory ? 'Daha Az' : `${tr.profile.seeAll} (${activeInventory.length})`} <ChevronRight size={14} />
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {displayedInventory.map(item => {
+                const config = typeConfig[item.type];
+                const IconComp = config.icon;
+                const expired = isExpired(item.expires);
+                return (
+                  <div key={item.id} style={{ ...card, padding: '16px 18px', opacity: expired ? 0.6 : 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                      <div style={{
+                        width: 50, height: 50, borderRadius: 14, background: config.bg,
+                        border: `2.5px solid ${config.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        boxShadow: `0 3px 0 ${config.accent}44`,
+                      }}>
+                        <IconComp size={22} color={config.color} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                          <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: 0 }}>{item.title}</p>
+                          {expired ? (
+                            <span style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.12)', border: '1.5px solid #ef4444', fontSize: 9, fontWeight: 900, color: '#ef4444', flexShrink: 0, textTransform: 'uppercase' }}>Son Kullanma Geçti</span>
+                          ) : (
+                            <span style={{ padding: '2px 8px', borderRadius: 999, background: config.bg, border: `1.5px solid ${config.accent}`, fontSize: 9, fontWeight: 900, color: config.color, flexShrink: 0, textTransform: 'capitalize' }}>{item.type}</span>
+                          )}
+                        </div>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 10px' }}>{item.description}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ flex: 1, padding: '8px 12px', background: 'var(--tab-bg)', borderRadius: 10, border: '2px dashed var(--dark-border)' }}>
+                            <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 900, color: 'var(--text-dark)', letterSpacing: '0.1em' }}>{item.code}</span>
+                          </div>
+                          <button onClick={() => handleCopy(item.code)} disabled={expired} style={{
+                            width: 38, height: 38, borderRadius: 10, background: 'var(--tab-bg)',
+                            border: '2px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: expired ? 'not-allowed' : 'pointer', flexShrink: 0,
+                          }}>
+                            {copiedCode === item.code ? <Check size={16} color="#22c55e" /> : <Copy size={16} color="var(--text-muted)" />}
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8 }}>
+                          <Clock size={10} color="var(--text-muted)" />
+                          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{tr.profile.expires} {new Date(item.expires).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Activity summary ── */}
+        <div style={{ ...card, padding: '18px 20px' }}>
+          <h2 style={{ fontWeight: 900, fontSize: 17, color: 'var(--text-dark)', margin: '0 0 14px' }}>{tr.profile.activitySummary}</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {[
+              { label: tr.profile.qrScansThisMonth, value: '12', emoji: '📱' },
+              { label: tr.profile.gamesPlayed, value: '47', emoji: '🎮' },
+              { label: tr.profile.rewardsRedeemed, value: '6', emoji: '🎁' },
+              { label: tr.profile.missionsCompleted, value: '23', emoji: '🎯' },
+            ].map((item, i, arr) => (
+              <div key={item.label} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 0', borderBottom: i < arr.length - 1 ? '1.5px dashed var(--dark-border)' : 'none',
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
+                  <span>{item.emoji}</span> {item.label}
+                </span>
+                <span style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)' }}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Nav links ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { icon: Target, label: tr.profile.viewMissions, path: '/missions', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
+            { icon: Trophy, label: tr.profile.viewAchievements, path: '/achievements', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+            { icon: Settings, label: tr.profile.accountSettings, path: '/settings', color: '#7B6EF6', bg: 'rgba(123,110,246,0.1)' },
+          ].map(item => (
+            <button key={item.path} onClick={() => { playSound('click'); navigate(item.path); }} style={{
+              ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
+              cursor: 'pointer', transition: 'transform 0.1s, box-shadow 0.1s', textAlign: 'left',
+            }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+            >
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: item.bg, border: `2px solid ${item.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <item.icon size={18} color={item.color} />
+              </div>
+              <span style={{ flex: 1, fontWeight: 900, fontSize: 14, color: 'var(--text-dark)' }}>{item.label}</span>
+              <ChevronRight size={16} color="var(--text-muted)" />
+            </button>
+          ))}
+
+          <button onClick={() => { setIsLoggedIn(false); playSound('click'); navigate('/login'); }} style={{
+            ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
+            cursor: 'pointer', border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626',
+            background: 'rgba(239,68,68,0.06)',
+          }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: '#ef4444', border: '2px solid #dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <LogOut size={18} color="white" />
+            </div>
+            <span style={{ flex: 1, fontWeight: 900, fontSize: 14, color: '#ef4444' }}>{tr.profile.logout}</span>
+            <ChevronRight size={16} color="#ef4444" />
+          </button>
+        </div>
+
       </div>
     </div>
   );

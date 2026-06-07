@@ -919,77 +919,124 @@ const MiniGames: React.FC = () => {
     }
   };
 
+  const cardStyle = {
+    background: 'var(--card-bg)',
+    border: '3px solid var(--dark-border)',
+    boxShadow: '0px 6px 0px var(--dark-border)',
+    borderRadius: 20,
+  };
+
   if (activeGame) {
     const game = gamesList.find(g => g.id === activeGame)!;
     return (
-      <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setActiveGame(null)} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-            <X size={18} />
-          </button>
-          <div>
-            <h1 className="font-black text-xl text-gray-900 dark:text-white">{game.emoji} {game.label}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Win up to {game.points} points</p>
-          </div>
+      <div style={{ position: 'relative', minHeight: '100vh' }}>
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+          <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>OYUN</div>
         </div>
-        <div className="card p-6">
-          {activeGame === 'spin' && <SpinWheel onWin={handleWin} />}
-          {activeGame === 'memory' && <MemoryGame onWin={handleWin} />}
-          {activeGame === 'quiz' && <QuizGame onWin={handleWin} />}
-          {activeGame === 'catch' && <CatchGame onWin={handleWin} />}
-          {activeGame === 'flappy' && <FlappyGame onWin={handleWin} />}
-          {activeGame === 'snake' && <SnakeGame onWin={handleWin} />}
-          {activeGame === 'rhythm' && <TapRhythmGame onWin={handleWin} />}
-          {activeGame === 'color' && <ColorMatchGame onWin={handleWin} />}
-          {activeGame === 'daily' && <DailyChallenge onWin={handleWin} />}
+        <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto" style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={() => setActiveGame(null)}
+              style={{ ...cardStyle, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, boxShadow: '0 4px 0 var(--dark-border)', padding: 0 }}
+            >
+              <X size={18} color="var(--text-dark)" />
+            </button>
+            <div>
+              <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 22, margin: 0, lineHeight: 1 }}>{game.emoji} {game.label}</h1>
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>En fazla {game.points} puan kazan</p>
+            </div>
+          </div>
+          <div style={{ ...cardStyle, padding: 24 }}>
+            {activeGame === 'spin' && <SpinWheel onWin={handleWin} />}
+            {activeGame === 'memory' && <MemoryGame onWin={handleWin} />}
+            {activeGame === 'quiz' && <QuizGame onWin={handleWin} />}
+            {activeGame === 'catch' && <CatchGame onWin={handleWin} />}
+            {activeGame === 'flappy' && <FlappyGame onWin={handleWin} />}
+            {activeGame === 'snake' && <SnakeGame onWin={handleWin} />}
+            {activeGame === 'rhythm' && <TapRhythmGame onWin={handleWin} />}
+            {activeGame === 'color' && <ColorMatchGame onWin={handleWin} />}
+            {activeGame === 'daily' && <DailyChallenge onWin={handleWin} />}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-black text-gray-900 dark:text-white">Mini Games</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Play games to earn bonus points</p>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Ghost watermark */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+        <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>MİNİ OYUN</div>
       </div>
 
-      {/* Hero */}
-      <div className="card p-6 bg-gradient-to-br from-[#7B6EF6] to-[#4F8EF7] text-white border-black">
-        <div className="flex items-center gap-4">
-          <div className="text-5xl animate-float">🎮</div>
+      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto" style={{ position: 'relative', zIndex: 1 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, background: 'linear-gradient(180deg,#4ade80,#16a34a)', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🎮</div>
           <div>
-            <h2 className="font-black text-xl">Play & Earn</h2>
-            <p className="text-white/80 text-sm mt-1">Each game earns you real points. Play daily for maximum rewards!</p>
+            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>Mini Oyunlar</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Oyna, eğlen, puan kazan</p>
           </div>
+        </div>
+
+        {/* Hero */}
+        <div style={{ ...cardStyle, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden', color: 'white' }}>
+          <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ fontSize: 52 }}>🎮</span>
+            <div>
+              <h2 style={{ fontWeight: 900, fontSize: 20, margin: '0 0 4px', color: 'white' }}>Oyna & Kazan</h2>
+              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>Her oyun gerçek puan kazandırır. Maksimum ödül için her gün oyna!</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Game list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {gamesList.map((game, index) => (
+            <button
+              key={game.id}
+              onClick={() => setActiveGame(game.id)}
+              style={{
+                ...cardStyle, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14,
+                cursor: 'pointer', textAlign: 'left', transition: 'transform 0.1s, box-shadow 0.1s',
+                animation: `gameSlideIn 0.3s ease-out ${index * 0.04}s both`,
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 0 var(--dark-border)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}
+              onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 var(--dark-border)'; }}
+              onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}
+            >
+              <div style={{
+                width: 56, height: 56, borderRadius: 16, flexShrink: 0,
+                background: 'linear-gradient(135deg,rgba(123,110,246,0.15),rgba(79,142,247,0.15))',
+                border: '2.5px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 26, boxShadow: '0 3px 0 var(--dark-border)',
+              }}>
+                {game.emoji}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 3px' }}>{game.label}</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>{game.desc}</p>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                  <Star size={13} fill="#f59e0b" color="#f59e0b" />
+                  <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>{game.points}</span>
+                </div>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: '1px 0 0', fontWeight: 600 }}>puan</p>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Game list */}
-      <div className="space-y-3">
-        {gamesList.map(game => (
-          <button
-            key={game.id}
-            onClick={() => setActiveGame(game.id)}
-            className="w-full card p-4 flex items-center gap-4 hover:shadow-md transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] text-left"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-[#7B6EF6]/10 dark:bg-[#4F8EF7]/20 flex items-center justify-center text-3xl flex-shrink-0">
-              {game.emoji}
-            </div>
-            <div className="flex-1">
-              <p className="font-black text-gray-900 dark:text-white">{game.label}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{game.desc}</p>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <div className="flex items-center gap-1 justify-end">
-                <Star size={12} className="text-amber-500" fill="currentColor" />
-                <span className="text-sm font-black text-amber-600 dark:text-amber-400">{game.points}</span>
-              </div>
-              <p className="text-xs text-gray-400">pts</p>
-            </div>
-          </button>
-        ))}
-      </div>
+      <style>{`
+        @keyframes gameSlideIn {
+          from { opacity: 0; transform: translateX(-12px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
     </div>
   );
 };

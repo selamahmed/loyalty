@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { QrCode, Camera, Check, X, Zap, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { QrCode, Camera, Check, Zap, RotateCcw, MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../lib/tr';
 
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 6px 0px var(--dark-border)',
+  borderRadius: 20,
+};
+
 const fakeQRResults = [
-  { code: 'STORE42-BONUS', title: 'Store Visit Bonus!', points: 75, location: 'Store #42 - Main St' },
-  { code: 'EVENT2026-SPECIAL', title: 'Event Special Code!', points: 150, location: 'Summer Event Booth' },
-  { code: 'PARTNER-CAFE', title: 'Partner Cafe Visit!', points: 50, location: 'Coffee Corner' },
-  { code: 'PROMO-SALE', title: 'Sale Promo Code!', points: 100, location: 'Online Exclusive' },
+  { code: 'STORE42-BONUS',    title: 'Mağaza Ziyaret Bonusu!', points: 75,  location: 'Mağaza #42 - Ana Cad.' },
+  { code: 'EVENT2026-SPECIAL',title: 'Etkinlik Özel Kodu!',    points: 150, location: 'Yaz Etkinliği Standı' },
+  { code: 'PARTNER-CAFE',     title: 'Partner Kafe Ziyareti!', points: 50,  location: 'Coffee Corner' },
+  { code: 'PROMO-SALE',       title: 'İndirim Promosyonu!',    points: 100, location: 'Online Özel' },
 ];
 
 const QRScanner: React.FC = () => {
@@ -17,17 +24,13 @@ const QRScanner: React.FC = () => {
   const [result, setResult] = useState<typeof fakeQRResults[0] | null>(null);
   const [manualCode, setManualCode] = useState('');
   const [error, setError] = useState('');
-  const [history, setHistory] = useState<{ code: string; points: number; time: string }[]>([
-    { code: 'STORE18-DAILY', points: 75, time: '2 days ago' },
-    { code: 'EVENT2025-X', points: 100, time: '5 days ago' },
+  const [history, setHistory] = useState<{ code: string; points: number; time: string; location: string }[]>([
+    { code: 'STORE18-DAILY', points: 75,  time: '2 gün önce', location: 'Mağaza #18' },
+    { code: 'EVENT2025-X',   points: 100, time: '5 gün önce', location: 'Özel Etkinlik' },
   ]);
 
   const startScan = () => {
-    setScanning(true);
-    setResult(null);
-    setError('');
-    setScanProgress(0);
-
+    setScanning(true); setResult(null); setError(''); setScanProgress(0);
     let prog = 0;
     const interval = setInterval(() => {
       prog += Math.random() * 15 + 5;
@@ -37,8 +40,7 @@ const QRScanner: React.FC = () => {
         setTimeout(() => {
           setScanProgress(100);
           const r = fakeQRResults[Math.floor(Math.random() * fakeQRResults.length)];
-          setResult(r);
-          setScanning(false);
+          setResult(r); setScanning(false);
         }, 500);
       }
     }, 150);
@@ -47,158 +49,221 @@ const QRScanner: React.FC = () => {
   const claimReward = () => {
     if (!result) return;
     addPoints(result.points);
-    showRewardPopup({
-      type: 'reward',
-      title: result.title,
-      subtitle: `You scanned a QR code at ${result.location}`,
-      points: result.points,
-    });
-    setHistory(prev => [{ code: result.code, points: result.points, time: 'Just now' }, ...prev]);
-    setResult(null);
-    setScanProgress(0);
+    showRewardPopup({ type: 'reward', title: result.title, subtitle: `${result.location} adresinde QR kod taradın`, points: result.points });
+    setHistory(prev => [{ code: result.code, points: result.points, time: 'Az önce', location: result.location }, ...prev]);
+    setResult(null); setScanProgress(0);
   };
 
   const handleManualSubmit = () => {
     const found = fakeQRResults.find(r => r.code === manualCode.trim().toUpperCase());
-    if (found) {
-      setResult(found);
-      setError('');
-    } else {
-      setError('Invalid code. Please try again.');
-    }
+    if (found) { setResult(found); setError(''); }
+    else setError('Geçersiz kod. Lütfen tekrar dene.');
   };
 
   return (
-    <div className="p-4 lg:p-6 space-y-6 max-w-lg mx-auto">
-      <h1 className="text-2xl font-black text-gray-900 dark:text-white">QR Scanner</h1>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Ghost watermark */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
+          fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)',
+          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
+        }}>QR TARA</div>
+      </div>
 
-      {/* Scanner viewport */}
-      <div className="card p-6">
-        <div className="relative aspect-square w-full max-w-xs mx-auto bg-gray-900 dark:bg-black rounded-3xl overflow-hidden border-2 border-black dark:border-gray-600">
-          {/* Camera simulation */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            {scanning ? (
+      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-lg mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
+
+        {/* ── Page header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+            background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
+            border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+          }}>📱</div>
+          <div>
+            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>QR Tarayıcı</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Kod tara, anında puan kazan</p>
+          </div>
+        </div>
+
+        {/* ── Scanner viewport ── */}
+        <div style={{ ...card, padding: 20 }}>
+          {/* Camera area */}
+          <div style={{
+            aspectRatio: '1/1', width: '100%', maxWidth: 300, margin: '0 auto 16px',
+            background: '#0f172a', borderRadius: 20, overflow: 'hidden', position: 'relative',
+            border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)',
+          }}>
+            {scanning && (
               <>
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#7B6EF6]/20 dark:via-[#4F8EF7]/20 to-transparent animate-pulse" />
-                <div className="w-48 h-48 border-2 border-[#7B6EF6] dark:border-[#4F8EF7] relative">
-                  <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-[#7B6EF6] dark:border-[#4F8EF7]" />
-                  <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-[#7B6EF6] dark:border-[#4F8EF7]" />
-                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-[#7B6EF6] dark:border-[#4F8EF7]" />
-                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-[#7B6EF6] dark:border-[#4F8EF7]" />
-                  <div
-                    className="absolute left-0 right-0 h-0.5 bg-[#7B6EF6] dark:bg-[#4F8EF7] shadow-[0_0_8px_#7B6EF6]"
-                    style={{
-                      top: `${scanProgress}%`,
-                      transition: 'top 0.15s linear',
-                    }}
-                  />
-                </div>
-                <p className="absolute bottom-4 text-white/80 text-sm">Scanning...</p>
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent,rgba(123,110,246,0.18),transparent)', animation: 'qrPulse 1.5s ease-in-out infinite' }} />
+                {/* Corner guides */}
+                {[{ top: 24, left: 24 }, { top: 24, right: 24 }, { bottom: 24, left: 24 }, { bottom: 24, right: 24 }].map((pos, i) => (
+                  <div key={i} style={{
+                    position: 'absolute', width: 28, height: 28,
+                    borderTop: i < 2 ? '4px solid #a78bfa' : 'none',
+                    borderBottom: i >= 2 ? '4px solid #a78bfa' : 'none',
+                    borderLeft: i % 2 === 0 ? '4px solid #a78bfa' : 'none',
+                    borderRight: i % 2 !== 0 ? '4px solid #a78bfa' : 'none',
+                    ...pos,
+                  }} />
+                ))}
+                {/* Scan line */}
+                <div style={{
+                  position: 'absolute', left: 0, right: 0, height: 2,
+                  background: 'linear-gradient(90deg,transparent,#a78bfa,transparent)',
+                  boxShadow: '0 0 10px #a78bfa',
+                  top: `${scanProgress}%`, transition: 'top 0.15s linear',
+                }} />
+                <p style={{ position: 'absolute', bottom: 14, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 700 }}>Taranıyor...</p>
               </>
-            ) : result ? (
-              <div className="flex flex-col items-center gap-3 p-4 text-center">
-                <div className="w-16 h-16 rounded-full bg-green-500 border-2 border-white flex items-center justify-center">
-                  <Check size={32} className="text-white" />
+            )}
+
+            {result && !scanning && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, padding: 20 }}>
+                <div style={{ width: 70, height: 70, borderRadius: '50%', background: '#22c55e', border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 24px rgba(34,197,94,0.5)' }}>
+                  <Check size={34} color="white" />
                 </div>
-                <p className="text-white font-black text-xl">Code Found!</p>
+                <p style={{ color: 'white', fontWeight: 900, fontSize: 18, textAlign: 'center', margin: 0 }}>Kod Bulundu!</p>
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3 text-white/60">
-                <Camera size={48} />
-                <p className="text-sm">Tap to start scanning</p>
+            )}
+
+            {!scanning && !result && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, color: 'rgba(255,255,255,0.4)' }}>
+                <Camera size={52} />
+                <p style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', margin: 0 }}>Taramayı başlatmak için dokun</p>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Scan progress bar */}
-        {(scanning || scanProgress > 0) && !result && (
-          <div className="mt-4">
-            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#7B6EF6] dark:bg-[#4F8EF7] rounded-full transition-all"
-                style={{ width: `${scanProgress}%` }}
-              />
-            </div>
-            <p className="text-center text-xs text-gray-500 mt-1">Analyzing QR code...</p>
-          </div>
-        )}
-
-        {/* Result */}
-        {result && (
-          <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-2xl border-2 border-green-300 dark:border-green-700">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center flex-shrink-0">
-                <Check size={20} className="text-white" />
+          {/* Progress bar while scanning */}
+          {scanning && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ height: 10, background: 'var(--tab-bg)', borderRadius: 999, border: '2px solid var(--dark-border)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${scanProgress}%`, background: 'linear-gradient(90deg,var(--gradient-start),var(--gradient-end))', borderRadius: 999, transition: 'width 0.15s linear' }} />
               </div>
-              <div className="flex-1">
-                <p className="font-black text-green-700 dark:text-green-400">{result.title}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{result.location}</p>
-                <div className="flex items-center gap-1 mt-2">
-                  <Zap size={14} className="text-amber-500" />
-                  <span className="font-black text-amber-600 dark:text-amber-400">+{result.points} Points</span>
+              <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 6, fontWeight: 700 }}>QR kod analiz ediliyor...</p>
+            </div>
+          )}
+
+          {/* Result card */}
+          {result && (
+            <div style={{ padding: '16px', background: 'rgba(34,197,94,0.08)', borderRadius: 14, border: '2.5px solid #22c55e', boxShadow: '0 4px 0 #16a34a', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid var(--dark-border)' }}>
+                  <Check size={22} color="white" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 3px' }}>{result.title}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                    <MapPin size={11} color="var(--text-muted)" />
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>{result.location}</span>
+                  </div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', border: '2px solid #f59e0b' }}>
+                    <Zap size={13} color="#f59e0b" />
+                    <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>+{result.points} Puan</span>
+                  </div>
                 </div>
               </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button onClick={() => { setResult(null); setScanProgress(0); }} style={{
+                  flex: 1, padding: '11px', borderRadius: 12, fontWeight: 900, fontSize: 13,
+                  background: 'var(--card-bg)', color: 'var(--text-dark)',
+                  border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                  <RotateCcw size={14} /> Tekrar Tara
+                </button>
+                <button onClick={claimReward} style={{
+                  flex: 1, padding: '11px', borderRadius: 12, fontWeight: 900, fontSize: 13,
+                  background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
+                  border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+                  cursor: 'pointer',
+                }}>
+                  Talep Et +{result.points}
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2 mt-3">
-              <button onClick={() => { setResult(null); setScanProgress(0); }} className="btn-secondary flex-1 text-sm py-2">
-                <RotateCcw size={14} className="inline mr-1" /> Scan Again
-              </button>
-              <button onClick={claimReward} className="btn-primary flex-1 text-sm py-2">
-                Claim +{result.points} pts
-              </button>
+          )}
+
+          {!scanning && !result && (
+            <button onClick={startScan} style={{
+              width: '100%', padding: '14px', borderRadius: 14, fontWeight: 900, fontSize: 15,
+              background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
+              border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              transition: 'transform 0.1s, box-shadow 0.1s',
+            }}
+              onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 var(--dark-border)'; }}
+              onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}
+            >
+              <QrCode size={20} /> Taramayı Başlat
+            </button>
+          )}
+        </div>
+
+        {/* ── Manual code entry ── */}
+        <div style={{ ...card, padding: '18px 20px' }}>
+          <h3 style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 12px' }}>Kodu Manuel Gir</h3>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="text"
+              placeholder="örn. STORE42-BONUS"
+              value={manualCode}
+              onChange={e => setManualCode(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleManualSubmit()}
+              style={{
+                flex: 1, padding: '12px 14px', borderRadius: 12, fontWeight: 700, fontSize: 13,
+                background: 'var(--tab-bg)', color: 'var(--text-dark)',
+                border: '2.5px solid var(--dark-border)', outline: 'none',
+                fontFamily: 'monospace', letterSpacing: '0.06em',
+              }}
+            />
+            <button onClick={handleManualSubmit} style={{
+              padding: '12px 18px', borderRadius: 12, fontWeight: 900, fontSize: 13,
+              background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
+              border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+              cursor: 'pointer',
+            }}>Gir</button>
+          </div>
+          {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 8, fontWeight: 700 }}>{error}</p>}
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, fontWeight: 600 }}>Dene: STORE42-BONUS, EVENT2026-SPECIAL</p>
+        </div>
+
+        {/* ── Scan history ── */}
+        {history.length > 0 && (
+          <div>
+            <h3 style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 12px' }}>Son Taramalar</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {history.map((h, i) => (
+                <div key={i} style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(34,197,94,0.12)', border: '2px solid #22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Check size={18} color="#22c55e" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: 'var(--text-dark)', margin: '0 0 2px' }}>{h.code}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <MapPin size={10} color="var(--text-muted)" />
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>{h.location} • {h.time}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                    <Zap size={12} color="#f59e0b" />
+                    <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>+{h.points}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        )}
-
-        {!scanning && !result && (
-          <button onClick={startScan} className="btn-primary w-full mt-4 flex items-center justify-center gap-2">
-            <QrCode size={20} /> Start Scanning
-          </button>
         )}
       </div>
 
-      {/* Manual code entry */}
-      <div className="card p-4">
-        <h3 className="font-bold text-gray-900 dark:text-white mb-3">Enter Code Manually</h3>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="e.g. STORE42-BONUS"
-            value={manualCode}
-            onChange={e => setManualCode(e.target.value)}
-            className="input-field flex-1"
-            onKeyDown={e => e.key === 'Enter' && handleManualSubmit()}
-          />
-          <button onClick={handleManualSubmit} className="btn-primary px-4">Check</button>
-        </div>
-        {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
-        <p className="text-xs text-gray-400 mt-2">Try: STORE42-BONUS, EVENT2026-SPECIAL</p>
-      </div>
-
-      {/* Scan history */}
-      {history.length > 0 && (
-        <div>
-          <h3 className="font-bold text-gray-900 dark:text-white mb-3">Recent Scans</h3>
-          <div className="space-y-2">
-            {history.map((h, i) => (
-              <div key={i} className="card p-3 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <Check size={14} className="text-green-500" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-mono text-sm font-bold text-gray-700 dark:text-gray-300">{h.code}</p>
-                  <p className="text-xs text-gray-400">{h.time}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Zap size={12} className="text-amber-500" />
-                  <span className="font-bold text-sm text-amber-600 dark:text-amber-400">+{h.points}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <style>{`
+        @keyframes qrPulse {
+          0%,100% { opacity:0.4; } 50% { opacity:1; }
+        }
+      `}</style>
     </div>
   );
 };

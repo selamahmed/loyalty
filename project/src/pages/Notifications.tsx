@@ -1,371 +1,209 @@
 import React, { useState } from 'react';
-import { Bell, Check, Trash2, Gift, Trophy, Star, Megaphone, Activity, AlertCircle, Zap, Heart, Sparkles } from 'lucide-react';
+import { Bell, Check, Trash2, Gift, Trophy, Star, Megaphone, Activity, Sparkles } from 'lucide-react';
 import { notifications as initialNotifs } from '../data/mockData';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 
-const typeIcons: Record<string, React.FC<{ size?: number; className?: string }>> = {
-  reward: Gift,
-  achievement: Trophy,
-  points: Star,
-  event: Megaphone,
-  system: Activity,
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 6px 0px var(--dark-border)',
+  borderRadius: 20,
 };
 
-const typeColors: Record<string, { bg: string; icon: string; gradient: string; illustration: string }> = {
-  reward: {
-    bg: 'bg-gradient-to-br from-[#22c55e]/10 to-[#16a34a]/5',
-    icon: 'text-[#22c55e]',
-    gradient: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-    illustration: '🎁',
-  },
-  achievement: {
-    bg: 'bg-gradient-to-br from-[#f59e0b]/10 to-[#d97706]/5',
-    icon: 'text-[#f59e0b]',
-    gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-    illustration: '🏆',
-  },
-  points: {
-    bg: 'bg-gradient-to-br from-[#7B6EF6]/10 to-[#4F8EF7]/5',
-    icon: 'text-[#7B6EF6]',
-    gradient: 'linear-gradient(135deg, #7B6EF6 0%, #4F8EF7 100%)',
-    illustration: '⭐',
-  },
-  event: {
-    bg: 'bg-gradient-to-br from-[#3b82f6]/10 to-[#1d4ed8]/5',
-    icon: 'text-[#3b82f6]',
-    gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-    illustration: '🎉',
-  },
-  system: {
-    bg: 'bg-gradient-to-br from-gray-200/10 to-gray-300/5 dark:from-gray-700/30 dark:to-gray-600/20',
-    icon: 'text-gray-600 dark:text-gray-400',
-    gradient: 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)',
-    illustration: '⚙️',
-  },
+const typeConfig: Record<string, { gradient: string; icon: string; border: string; accent: string }> = {
+  reward:      { gradient: 'linear-gradient(135deg,#22c55e,#16a34a)', icon: '🎁', border: '#22c55e', accent: 'rgba(34,197,94,0.1)' },
+  achievement: { gradient: 'linear-gradient(135deg,#f59e0b,#d97706)', icon: '🏆', border: '#f59e0b', accent: 'rgba(245,158,11,0.1)' },
+  points:      { gradient: 'linear-gradient(135deg,#7B6EF6,#4F8EF7)', icon: '⭐', border: '#7B6EF6', accent: 'rgba(123,110,246,0.1)' },
+  event:       { gradient: 'linear-gradient(135deg,#3b82f6,#1d4ed8)', icon: '🎉', border: '#3b82f6', accent: 'rgba(59,130,246,0.1)' },
+  system:      { gradient: 'linear-gradient(135deg,#9ca3af,#6b7280)', icon: '⚙️', border: '#6b7280', accent: 'rgba(107,114,128,0.08)' },
+};
+
+const filterLabels: Record<string, string> = {
+  all: 'Tümü', unread: 'Okunmamış', reward: 'Ödüller', achievement: 'Başarılar', points: 'Puanlar', event: 'Etkinlikler', system: 'Sistem',
 };
 
 const Notifications: React.FC = () => {
   const [notifs, setNotifs] = useState(initialNotifs);
   const [filter, setFilter] = useState('all');
 
-  const filtered = filter === 'all' ? notifs : filter === 'unread' ? notifs.filter(n => !n.read) : notifs.filter(n => n.type === filter);
+  const filtered = filter === 'all' ? notifs
+    : filter === 'unread' ? notifs.filter(n => !n.read)
+    : notifs.filter(n => n.type === filter);
   const unreadCount = notifs.filter(n => !n.read).length;
 
-  const markRead = (id: string) => {
-    playSound('click');
-    setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  };
-
-  const markAllRead = () => {
-    playSound('success');
-    setNotifs(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
-  const deleteNotif = (id: string) => {
-    playSound('click');
-    setNotifs(prev => prev.filter(n => n.id !== id));
-  };
+  const markRead = (id: string) => { playSound('click'); setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n)); };
+  const markAllRead = () => { playSound('success'); setNotifs(prev => prev.map(n => ({ ...n, read: true }))); };
+  const deleteNotif = (id: string) => { playSound('click'); setNotifs(prev => prev.filter(n => n.id !== id)); };
 
   return (
-    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6 max-w-4xl mx-auto overflow-x-hidden">
-      {/* Header with Animated Icon */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="relative">
-            <Bell
-              size={32}
-              className="sm:w-8 sm:h-8"
-              style={{
-                color: 'var(--gradient-start)',
-                animation: unreadCount > 0 ? 'ring 2s ease-in-out infinite' : 'none',
-              }}
-            />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-red-500 text-white text-xs font-black flex items-center justify-center animate-pulse shadow-lg">
-                {unreadCount}
-              </span>
-            )}
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">{tr.notifications.title}</h1>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{unreadCount} {tr.notifications.unread || 'unread'}</p>
-          </div>
-        </div>
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllRead}
-            className="flex items-center gap-1 text-xs sm:text-sm font-bold px-3 py-2 rounded-xl transition-all active:scale-95 hover:scale-105"
-            style={{
-              color: 'white',
-              background: 'linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%)',
-              border: '2px solid var(--dark-border)',
-              boxShadow: '0px 3px 0px var(--dark-border)',
-            }}
-          >
-            <Check size={14} className="sm:w-4 sm:h-4" /> {tr.notifications.markAllAsRead}
-          </button>
-        )}
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Ghost watermark */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
+          fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
+          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
+        }}>BİLDİRİMLER</div>
       </div>
 
-      {/* Filters with Animations */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4 lg:mx-0 lg:px-0 scrollbar-hide">
-        {['all', 'unread', 'reward', 'achievement', 'points', 'event', 'system'].map(f => {
-          const filterLabels: Record<string, string> = {
-            all: tr.notifications.all || 'All',
-            unread: tr.notifications.unread || 'Unread',
-            reward: tr.notifications.reward || 'Rewards',
-            achievement: tr.notifications.achievement || 'Achievements',
-            points: tr.notifications.points || 'Points',
-            event: tr.notifications.event || 'Events',
-            system: tr.notifications.system || 'System',
-          };
+      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
 
-          const isActive = filter === f;
-          return (
-            <button
-              key={f}
-              onClick={() => {
-                playSound('click');
-                setFilter(f);
-              }}
-              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl border-2 font-bold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 active:scale-95 hover:scale-105 ${
-                isActive
-                  ? 'text-white border-black dark:border-gray-600 shadow-md'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-black dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
-              style={
-                isActive
-                  ? {
-                      background: 'linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%)',
-                      boxShadow: '0px 4px 0px var(--dark-border)',
-                    }
-                  : {
-                      background: 'var(--card-bg)',
-                      boxShadow: '0px 2px 0px var(--dark-border)',
-                    }
-              }
-            >
-              {filterLabels[f]}
+        {/* ── Page header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: 16,
+                background: 'linear-gradient(180deg,#a78bfa,#6d28d9)',
+                border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+                animation: unreadCount > 0 ? 'bellRing 2s ease-in-out infinite' : 'none',
+              }}>🔔</div>
+              {unreadCount > 0 && (
+                <div style={{
+                  position: 'absolute', top: -6, right: -6, width: 22, height: 22,
+                  borderRadius: '50%', background: '#ef4444', border: '2px solid var(--card-bg)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 900, color: 'white',
+                }}>{unreadCount}</div>
+              )}
+            </div>
+            <div>
+              <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>{tr.notifications.title}</h1>
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>{unreadCount} okunmamış bildirim</p>
+            </div>
+          </div>
+          {unreadCount > 0 && (
+            <button onClick={markAllRead} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 12, fontWeight: 900, fontSize: 12,
+              background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
+              border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', flexShrink: 0,
+            }}>
+              <Check size={13} /> Tümünü Okundu İşaretle
             </button>
-          );
-        })}
-      </div>
-
-      {/* Empty State */}
-      {filtered.length === 0 ? (
-        <div
-          className="card p-8 sm:p-12 text-center"
-          style={{
-            background: 'var(--card-bg)',
-            border: '3px dashed var(--dark-border)',
-            boxShadow: '0px 6px 0px var(--dark-border)',
-          }}
-        >
-          <div className="text-5xl sm:text-6xl mb-4 animate-bounce-in">🔔</div>
-          <p className="font-black text-lg sm:text-xl text-gray-900 dark:text-white mb-2">{tr.notifications.empty}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">You're all caught up! Check back later for updates.</p>
+          )}
         </div>
-      ) : (
-        <div className="space-y-3 animate-fadeIn">
-          {filtered.map((notif, index) => {
-            const IconComp = typeIcons[notif.type] || Bell;
-            const typeConfig = typeColors[notif.type] || typeColors.system;
-            const isPriority = notif.type === 'achievement' || notif.type === 'reward';
 
-            return (
-              <div
-                key={notif.id}
-                className={`card transition-all cursor-pointer hover:scale-102 active:scale-95 group ${typeConfig.bg} ${
-                  !notif.read ? 'ring-2 ring-[#7B6EF6] dark:ring-[#4F8EF7]' : ''
-                }`}
-                style={{
-                  background: notif.read ? 'var(--card-bg)' : typeConfig.bg,
-                  border: !notif.read ? `2px solid ${typeConfig.icon.split('-')[1]}` : '2px solid var(--dark-border)',
-                  boxShadow: `0px 4px 0px var(--dark-border)`,
-                  animation: `slideIn 0.3s ease-out ${index * 0.05}s both`,
-                  overflow: 'hidden',
-                  position: 'relative',
-                }}
-                onClick={() => markRead(notif.id)}
-              >
-                {/* Animated Background Gradient */}
+        {/* ── Filter pills ── */}
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+          {Object.keys(filterLabels).map(f => (
+            <button key={f} onClick={() => { playSound('click'); setFilter(f); }} style={{
+              padding: '8px 14px', borderRadius: 999, fontWeight: 900, fontSize: 11,
+              cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', transition: 'all 0.1s',
+              background: filter === f ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
+              color: filter === f ? 'white' : 'var(--text-dark)',
+              border: '2.5px solid var(--dark-border)',
+              boxShadow: filter === f ? '0 4px 0 var(--dark-border)' : '0 3px 0 var(--dark-border)',
+            }}>{filterLabels[f]}</button>
+          ))}
+        </div>
+
+        {/* ── Notification list ── */}
+        {filtered.length === 0 ? (
+          <div style={{ ...card, border: '3px dashed var(--dark-border)', padding: 48, textAlign: 'center' }}>
+            <p style={{ fontSize: 48, margin: '0 0 12px' }}>🔔</p>
+            <p style={{ fontWeight: 900, fontSize: 18, color: 'var(--text-dark)', margin: '0 0 6px' }}>{tr.notifications.empty}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Şimdilik hepsi bu kadar!</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {filtered.map((notif, index) => {
+              const cfg = typeConfig[notif.type] || typeConfig.system;
+              const isPriority = notif.type === 'achievement' || notif.type === 'reward';
+              return (
                 <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300"
+                  key={notif.id}
+                  onClick={() => markRead(notif.id)}
                   style={{
-                    background: typeConfig.gradient,
+                    ...card,
+                    border: !notif.read ? `3px solid ${cfg.border}` : '3px solid var(--dark-border)',
+                    boxShadow: !notif.read ? `0 6px 0 ${cfg.border}88` : '0 6px 0 var(--dark-border)',
+                    background: !notif.read ? cfg.accent : 'var(--card-bg)',
+                    padding: '14px 16px', cursor: 'pointer',
+                    animation: `notifSlideIn 0.3s ease-out ${index * 0.05}s both`,
+                    display: 'flex', alignItems: 'flex-start', gap: 14, position: 'relative', overflow: 'hidden',
+                    transition: 'transform 0.1s',
                   }}
-                />
-
-                <div className="relative p-3 sm:p-4 flex items-start gap-3 sm:gap-4">
-                  {/* Icon Container with Animation */}
-                  <div
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 relative overflow-hidden group-hover:scale-110 transition-transform"
-                    style={{
-                      background: typeConfig.gradient,
-                      border: '2px solid var(--dark-border)',
-                      boxShadow: '0px 3px 0px var(--dark-border)',
-                    }}
-                  >
-                    <div className="text-xl sm:text-2xl">{typeConfig.illustration}</div>
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+                >
+                  {/* Icon */}
+                  <div style={{
+                    width: 50, height: 50, borderRadius: 14, flexShrink: 0,
+                    background: cfg.gradient, border: '2.5px solid var(--dark-border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+                    boxShadow: '0 3px 0 var(--dark-border)', position: 'relative',
+                  }}>
+                    {cfg.icon}
                     {isPriority && (
-                      <Sparkles
-                        size={12}
-                        className="absolute top-1 right-1 text-yellow-300 animate-pulse"
-                      />
+                      <Sparkles size={12} color="#fbbf24" style={{ position: 'absolute', top: -4, right: -4 }} />
                     )}
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p
-                            className={`font-black text-sm sm:text-base leading-tight ${
-                              !notif.read
-                                ? 'text-gray-900 dark:text-white'
-                                : 'text-gray-600 dark:text-gray-400'
-                            }`}
-                          >
-                            {notif.title}
-                          </p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                          <p style={{
+                            fontWeight: 900, fontSize: 14, margin: 0, lineHeight: 1.2,
+                            color: !notif.read ? 'var(--text-dark)' : 'var(--text-muted)',
+                          }}>{notif.title}</p>
                           {isPriority && (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-black bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700">
-                              Priority
-                            </span>
+                            <span style={{ padding: '1px 6px', borderRadius: 999, fontSize: 8, fontWeight: 900, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid #f59e0b', textTransform: 'uppercase', flexShrink: 0 }}>ÖNEMLİ</span>
                           )}
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
-                          {notif.message}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">{notif.time}</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 5px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{notif.message}</p>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{notif.time}</span>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                         {!notif.read && (
-                          <div
-                            className="w-2.5 h-2.5 rounded-full animate-pulse flex-shrink-0"
-                            style={{ background: 'linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%)' }}
-                          />
+                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: cfg.border, flexShrink: 0 }} />
                         )}
                         <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            deleteNotif(notif.id);
-                            playSound('click');
-                          }}
-                          className="p-2 rounded-lg transition-all active:scale-90 hover:bg-red-100 dark:hover:bg-red-900/20"
-                          style={{ color: 'var(--text-muted)' }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLElement).style.color = '#ef4444';
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
-                          }}
+                          onClick={e => { e.stopPropagation(); deleteNotif(notif.id); }}
+                          style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--tab-bg)', border: '1.5px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                         >
-                          <Trash2 size={16} className="sm:w-5 sm:h-5" />
+                          <Trash2 size={13} color="var(--text-muted)" />
                         </button>
                       </div>
                     </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Stats summary ── */}
+        {notifs.length > 0 && (
+          <div style={{ ...card, padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, textAlign: 'center' }}>
+            {[
+              { val: notifs.length, label: 'Toplam', color: 'var(--text-dark)' },
+              { val: unreadCount, label: 'Okunmamış', color: 'var(--primary-blue)' },
+              { val: notifs.filter(n => n.read).length, label: 'Okunmuş', color: '#22c55e' },
+            ].map(s => (
+              <div key={s.label} style={{ borderRight: '1.5px dashed var(--dark-border)', padding: '4px' }}>
+                <p style={{ fontWeight: 900, fontSize: 24, color: s.color, margin: '0 0 3px', lineHeight: 1 }}>{s.val}</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>{s.label}</p>
               </div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
-      {/* Stats Card */}
-      {notifs.length > 0 && (
-        <div
-          className="card p-4 sm:p-6 grid grid-cols-3 gap-2 sm:gap-4"
-          style={{
-            background: 'linear-gradient(135deg, var(--tab-bg) 0%, var(--input-bg) 100%)',
-            border: '2px solid var(--dark-border)',
-            boxShadow: '0px 4px 0px var(--dark-border)',
-          }}
-        >
-          <div className="text-center">
-            <div className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
-              {notifs.length}
-            </div>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-bold mt-1">Total</p>
-          </div>
-          <div className="text-center border-l-2 border-r-2 border-var(--dark-border)">
-            <div className="text-2xl sm:text-3xl font-black" style={{ color: 'var(--gradient-start)' }}>
-              {unreadCount}
-            </div>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-bold mt-1">Unread</p>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl sm:text-3xl font-black text-green-500">
-              {notifs.filter(n => n.read).length}
-            </div>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-bold mt-1">Read</p>
-          </div>
-        </div>
-      )}
-
-      {/* Animations */}
       <style>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+        @keyframes notifSlideIn {
+          from { opacity: 0; transform: translateX(-10px); }
+          to   { opacity: 1; transform: translateX(0); }
         }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes ring {
-          0%, 100% {
-            transform: rotate(0deg);
-          }
-          10% {
-            transform: rotate(-15deg);
-          }
-          20% {
-            transform: rotate(15deg);
-          }
-          30% {
-            transform: rotate(-15deg);
-          }
-          40% {
-            transform: rotate(15deg);
-          }
-          50% {
-            transform: rotate(0deg);
-          }
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        .hover\:scale-102:hover {
-          transform: scale(1.02);
-        }
-
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        @keyframes bellRing {
+          0%,100% { transform: rotate(0); }
+          10%,30% { transform: rotate(-15deg); }
+          20%,40% { transform: rotate(15deg); }
+          50% { transform: rotate(0); }
         }
       `}</style>
     </div>

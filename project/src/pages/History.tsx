@@ -1,121 +1,156 @@
 import React, { useState } from 'react';
-import { History as HistoryIcon, TrendingUp, TrendingDown, QrCode, Gamepad2, Target, Star, Gift, Users } from 'lucide-react';
+import { TrendingUp, TrendingDown, QrCode, Gamepad2, Target, Star, Gift, Users, Clock } from 'lucide-react';
 import { pointsHistory } from '../data/mockData';
 import { tr } from '../lib/tr';
 
-const categoryIcons: Record<string, React.FC<{ size?: number; className?: string }>> = {
-  qr: QrCode,
-  game: Gamepad2,
-  daily: Target,
-  achievement: Star,
-  redeem: Gift,
-  referral: Users,
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 6px 0px var(--dark-border)',
+  borderRadius: 20,
 };
 
-const categoryColors: Record<string, string> = {
-  qr: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
-  game: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
-  daily: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
-  achievement: 'bg-[#7B6EF6]/10 dark:bg-[#4F8EF7]/20 text-[#7B6EF6] dark:text-[#4F8EF7]',
-  redeem: 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400',
-  referral: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400',
+type CategoryKey = 'qr' | 'game' | 'daily' | 'achievement' | 'redeem' | 'referral';
+
+const categoryConfig: Record<CategoryKey, { icon: React.FC<{ size?: number; color?: string }>; color: string; bg: string; emoji: string }> = {
+  qr:          { icon: QrCode,    color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  emoji: '📱' },
+  game:        { icon: Gamepad2,  color: '#22c55e', bg: 'rgba(34,197,94,0.12)',   emoji: '🎮' },
+  daily:       { icon: Target,    color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  emoji: '📅' },
+  achievement: { icon: Star,      color: '#7B6EF6', bg: 'rgba(123,110,246,0.12)', emoji: '🏆' },
+  redeem:      { icon: Gift,      color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   emoji: '🎁' },
+  referral:    { icon: Users,     color: '#ec4899', bg: 'rgba(236,72,153,0.12)',  emoji: '👥' },
 };
 
 const History: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'earned' | 'redeemed'>('all');
-
   const filtered = filter === 'all' ? pointsHistory : pointsHistory.filter(h => h.type === filter);
-  const totalEarned = pointsHistory.filter(h => h.type === 'earned').reduce((s, h) => s + h.points, 0);
+  const totalEarned   = pointsHistory.filter(h => h.type === 'earned').reduce((s, h) => s + h.points, 0);
   const totalRedeemed = pointsHistory.filter(h => h.type === 'redeemed').reduce((s, h) => s + Math.abs(h.points), 0);
 
-  // Group by date
   const grouped = filtered.reduce<Record<string, typeof filtered>>((acc, h) => {
-    const date = new Date(h.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const date = new Date(h.date).toLocaleDateString('tr-TR', { weekday: 'long', month: 'long', day: 'numeric' });
     if (!acc[date]) acc[date] = [];
     acc[date].push(h);
     return acc;
   }, {});
 
   return (
-    <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-black text-gray-900 dark:text-white">Points History</h1>
-
-      {/* Summary */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="card p-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp size={16} className="text-green-500" />
-            <span className="text-xs font-bold text-green-600 dark:text-green-400">Total Earned</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Star size={16} className="text-amber-500" fill="currentColor" />
-            <span className="font-black text-xl text-green-700 dark:text-green-300">+{totalEarned.toLocaleString()}</span>
-          </div>
-        </div>
-        <div className="card p-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingDown size={16} className="text-red-500" />
-            <span className="text-xs font-bold text-red-600 dark:text-red-400">Total Redeemed</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Star size={16} className="text-amber-500" fill="currentColor" />
-            <span className="font-black text-xl text-red-700 dark:text-red-300">-{totalRedeemed.toLocaleString()}</span>
-          </div>
-        </div>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Ghost watermark */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
+          fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
+          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
+        }}>GEÇMİŞ</div>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex bg-gray-100 dark:bg-gray-800 rounded-2xl border-2 border-black dark:border-gray-600 p-1">
-        {(['all', 'earned', 'redeemed'] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-sm capitalize transition-all duration-200 ${
-              filter === f ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-black dark:border-gray-500' : 'text-gray-500 dark:text-gray-400'
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
 
-      {/* Timeline */}
-      {Object.entries(grouped).length === 0 ? (
-        <div className="card p-12 text-center">
-          <HistoryIcon size={48} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <p className="font-bold text-gray-500">No history yet</p>
+        {/* ── Page header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+            background: 'linear-gradient(180deg,#60a5fa,#2563eb)',
+            border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+          }}>📋</div>
+          <div>
+            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>Puan Geçmişi</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Tüm aktivitelerini gör</p>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-6">
-          {Object.entries(grouped).map(([date, items]) => (
-            <div key={date}>
-              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">{date}</p>
-              <div className="space-y-2">
-                {items.map(item => {
-                  const IconComp = categoryIcons[item.category] || Star;
-                  const colorClass = categoryColors[item.category] || '';
-                  const isEarned = item.type === 'earned';
-                  return (
-                    <div key={item.id} className="card p-4 flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-2xl ${colorClass} flex items-center justify-center flex-shrink-0`}>
-                        <IconComp size={18} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm text-gray-900 dark:text-white">{item.description}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 capitalize mt-0.5">{item.category}</p>
-                      </div>
-                      <div className={`flex items-center gap-1 font-black text-sm ${isEarned ? 'text-green-500' : 'text-red-500'}`}>
-                        {isEarned ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                        {isEarned ? '+' : ''}{item.points}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+
+        {/* ── Summary ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ ...card, border: '3px solid #22c55e', boxShadow: '0 6px 0 #16a34a', padding: '16px 18px', background: 'rgba(34,197,94,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+              <TrendingUp size={16} color="#22c55e" />
+              <span style={{ fontSize: 11, fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Kazanılan</span>
             </div>
-          ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Star size={18} fill="#f59e0b" color="#f59e0b" />
+              <span style={{ fontWeight: 900, fontSize: 22, color: '#16a34a' }}>+{totalEarned.toLocaleString()}</span>
+            </div>
+          </div>
+          <div style={{ ...card, border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626', padding: '16px 18px', background: 'rgba(239,68,68,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+              <TrendingDown size={16} color="#ef4444" />
+              <span style={{ fontSize: 11, fontWeight: 900, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Harcanan</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Star size={18} fill="#f59e0b" color="#f59e0b" />
+              <span style={{ fontWeight: 900, fontSize: 22, color: '#dc2626' }}>-{totalRedeemed.toLocaleString()}</span>
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* ── Filter tabs ── */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['all', 'earned', 'redeemed'] as const).map(f => {
+            const labels = { all: 'Tümü', earned: 'Kazanılan', redeemed: 'Harcanan' };
+            return (
+              <button key={f} onClick={() => setFilter(f)} style={{
+                flex: 1, padding: '11px', borderRadius: 12, fontWeight: 900, fontSize: 12,
+                cursor: 'pointer', transition: 'all 0.1s',
+                background: filter === f ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
+                color: filter === f ? 'white' : 'var(--text-dark)',
+                border: '3px solid var(--dark-border)',
+                boxShadow: filter === f ? '0 5px 0 var(--dark-border)' : '0 4px 0 var(--dark-border)',
+              }}>{labels[f]}</button>
+            );
+          })}
+        </div>
+
+        {/* ── Timeline ── */}
+        {Object.entries(grouped).length === 0 ? (
+          <div style={{ ...card, padding: 48, textAlign: 'center' }}>
+            <p style={{ fontSize: 40, margin: '0 0 10px' }}>📭</p>
+            <p style={{ color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>Henüz geçmiş yok</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {Object.entries(grouped).map(([date, items]) => (
+              <div key={date}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <Clock size={13} color="var(--text-muted)" />
+                  <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{date}</p>
+                  <div style={{ flex: 1, height: 1, background: 'var(--dark-border)', opacity: 0.2 }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {items.map(item => {
+                    const cat = categoryConfig[item.category as CategoryKey] || categoryConfig.daily;
+                    const IconComp = cat.icon;
+                    const isEarned = item.type === 'earned';
+                    return (
+                      <div key={item.id} style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{
+                          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                          background: cat.bg, border: `2.5px solid ${cat.color}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: `0 3px 0 ${cat.color}44`,
+                        }}>
+                          <IconComp size={18} color={cat.color} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.description}</p>
+                          <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 999, background: cat.bg, color: cat.color, textTransform: 'capitalize' }}>{item.category}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                          {isEarned ? <TrendingUp size={14} color="#22c55e" /> : <TrendingDown size={14} color="#ef4444" />}
+                          <span style={{ fontWeight: 900, fontSize: 15, color: isEarned ? '#22c55e' : '#ef4444' }}>
+                            {isEarned ? '+' : ''}{item.points}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
