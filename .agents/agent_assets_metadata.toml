@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "hY4lyd1cNkQSLyFgmnIiw"
+uri = "file://README.md"
+type = "text"
+title = "NexReward — Full Project Report"
