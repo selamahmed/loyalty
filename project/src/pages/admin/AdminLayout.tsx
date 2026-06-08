@@ -9,22 +9,22 @@ import { useApp } from '../../context/AppContext';
 import { tr } from '../../lib/tr';
 
 const adminNavItems = [
-  { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/admin/dashboard-v2', icon: Activity, label: 'Dashboard V2' },
-  { path: '/admin/analytics', icon: BarChart2, label: 'Analytics' },
-  { path: '/admin/users', icon: Users, label: 'Users' },
-  { path: '/admin/users-v2', icon: Shield, label: 'Users V2 (Full)' },
-  { path: '/admin/rewards', icon: Gift, label: 'Rewards' },
-  { path: '/admin/reward-events', icon: Trophy, label: 'Reward Events' },
-  { path: '/admin/events', icon: Bell, label: 'Events' },
-  { path: '/admin/notifications', icon: Megaphone, label: 'Notifications' },
-  { path: '/admin/inventory', icon: Package, label: 'Inventory' },
-  { path: '/admin/checkout', icon: ScanLine, label: 'Checkout Scanner' },
-  { path: '/admin/qr', icon: QrCode, label: 'QR Codes' },
-  { path: '/admin/games', icon: Gamepad2, label: 'Games' },
-  { path: '/admin/points-economy', icon: Zap, label: 'Points Economy' },
-  { path: '/admin/audit-logs', icon: FileText, label: 'Audit Logs' },
-  { path: '/admin/settings', icon: Settings, label: 'Settings' },
+  { path: '/admin',               icon: LayoutDashboard, label: 'Kontrol Paneli'       },
+  { path: '/admin/dashboard-v2',  icon: Activity,        label: 'Panel V2'              },
+  { path: '/admin/analytics',     icon: BarChart2,       label: 'Analitik'              },
+  { path: '/admin/users',         icon: Users,           label: 'Kullanıcılar'          },
+  { path: '/admin/users-v2',      icon: Shield,          label: 'Kullanıcılar V2 (Tam)' },
+  { path: '/admin/rewards',       icon: Gift,            label: 'Ürün Mağazası'         },
+  { path: '/admin/reward-events', icon: Trophy,          label: 'Ödül Etkinlikleri'     },
+  { path: '/admin/events',        icon: Bell,            label: 'Etkinlikler'           },
+  { path: '/admin/notifications', icon: Megaphone,       label: 'Bildirimler'           },
+  { path: '/admin/inventory',     icon: Package,         label: 'Envanter Yönetimi'     },
+  { path: '/admin/checkout',      icon: ScanLine,        label: 'Checkout Tarayıcı'     },
+  { path: '/admin/qr',            icon: QrCode,          label: 'QR Kodları'            },
+  { path: '/admin/games',         icon: Gamepad2,        label: 'Oyunlar'               },
+  { path: '/admin/points-economy',icon: Zap,             label: 'Puan Ekonomisi'        },
+  { path: '/admin/audit-logs',    icon: FileText,        label: 'Denetim Günlüğü'       },
+  { path: '/admin/settings',      icon: Settings,        label: 'Ayarlar'               },
 ];
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -80,7 +80,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-sm font-medium text-gray-600 dark:text-gray-400 transition-colors"
           >
             <ArrowLeft size={16} />
-            Back to App
+            Uygulamaya Dön
           </button>
         </div>
       </aside>

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Star, Gift, Coffee, Tag, X, Check, Zap, ArrowRight } from 'lucide-react';
+import { Search, Star, ShoppingCart, Tag, X, Check, Zap, ArrowRight, Package } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useInventory } from '../context/InventoryContext';
 import { rewards } from '../data/mockData';
 import { playSound } from '../lib/sounds';
-import { tr } from '../lib/tr';
 import { WinningParticles } from '../components/WinningParticles';
 
 const card = {
@@ -14,28 +14,28 @@ const card = {
 };
 
 const categories = [
-  { id: 'all',      label: 'Tümü',     icon: Gift,   color: '#7B6EF6', emoji: '🎁' },
-  { id: 'coffee',   label: 'Kahve',    icon: Coffee, color: '#92400e', emoji: '☕' },
-  { id: 'pastries', label: 'Pastane',  icon: Tag,    color: '#ec4899', emoji: '🥐' },
-  { id: 'food',     label: 'Yemek',    icon: Coffee, color: '#22c55e', emoji: '🍔' },
-  { id: 'drinks',   label: 'İçecek',   icon: Coffee, color: '#3b82f6', emoji: '🥤' },
+  { id: 'all',      label: 'Tümü',    emoji: '🛍️' },
+  { id: 'coffee',   label: 'Kahve',   emoji: '☕' },
+  { id: 'pastries', label: 'Pastane', emoji: '🥐' },
+  { id: 'food',     label: 'Yemek',   emoji: '🍔' },
+  { id: 'drinks',   label: 'İçecek',  emoji: '🥤' },
 ];
 
-interface RedeemModalProps {
+interface BuyModalProps {
   reward: typeof rewards[0];
   onConfirm: () => void;
   onClose: () => void;
   canAfford: boolean;
 }
 
-const RedeemModal: React.FC<RedeemModalProps> = ({ reward, onConfirm, onClose, canAfford }) => (
+const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAfford }) => (
   <div style={{
     position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 16, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
   }}>
     <div style={{ ...card, maxWidth: 380, width: '100%', padding: 24, animation: 'modalPop 0.2s ease-out' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h3 style={{ fontWeight: 900, fontSize: 18, color: 'var(--text-dark)', margin: 0 }}>{tr.shop.confirmRedemption}</h3>
+        <h3 style={{ fontWeight: 900, fontSize: 18, color: 'var(--text-dark)', margin: 0 }}>Satın Almayı Onayla</h3>
         <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <X size={16} color="var(--text-muted)" />
         </button>
@@ -46,10 +46,15 @@ const RedeemModal: React.FC<RedeemModalProps> = ({ reward, onConfirm, onClose, c
       </div>
 
       <h4 style={{ fontWeight: 900, fontSize: 17, color: 'var(--text-dark)', margin: '0 0 4px' }}>{reward.title}</h4>
-      <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.5 }}>{reward.description}</p>
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.5 }}>{reward.description}</p>
 
-      <div style={{ padding: '14px 16px', background: 'rgba(245,158,11,0.1)', border: '2.5px solid #f59e0b', borderRadius: 14, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontWeight: 700, fontSize: 13, color: '#d97706' }}>{tr.shop.cost}</span>
+      <div style={{ padding: '12px 14px', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', borderRadius: 12, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Package size={14} color="#16a34a" />
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a' }}>Satın alındığında envanterinize bilet olarak eklenir</span>
+      </div>
+
+      <div style={{ padding: '12px 16px', background: 'rgba(245,158,11,0.1)', border: '2.5px solid #f59e0b', borderRadius: 14, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: '#d97706' }}>Puan Maliyeti</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <Star size={16} fill="#f59e0b" color="#f59e0b" />
           <span style={{ fontWeight: 900, fontSize: 16, color: '#d97706' }}>{reward.points.toLocaleString()} pts</span>
@@ -57,21 +62,28 @@ const RedeemModal: React.FC<RedeemModalProps> = ({ reward, onConfirm, onClose, c
       </div>
 
       {!canAfford && (
-        <p style={{ textAlign: 'center', fontSize: 12, color: '#ef4444', fontWeight: 700, margin: '0 0 12px' }}>Yeterli puanın yok.</p>
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#ef4444', fontWeight: 700, margin: '0 0 12px' }}>
+          Yeterli puanın yok. Daha fazla puan kazan!
+        </p>
       )}
 
       <div style={{ display: 'flex', gap: 10 }}>
         <button onClick={onClose} style={{
-          flex: 1, padding: '13px', borderRadius: 12, fontWeight: 900, fontSize: 14,
+          flex: 1, padding: 13, borderRadius: 12, fontWeight: 900, fontSize: 14,
           background: 'var(--card-bg)', color: 'var(--text-dark)',
           border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer',
-        }}>{tr.shop.cancel || 'İptal'}</button>
+        }}>İptal</button>
         <button onClick={onConfirm} disabled={!canAfford} style={{
-          flex: 1, padding: '13px', borderRadius: 12, fontWeight: 900, fontSize: 14,
-          background: canAfford ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : '#94a3b8', color: 'white',
-          border: '3px solid var(--dark-border)', boxShadow: canAfford ? '0 4px 0 var(--dark-border)' : 'none',
+          flex: 1, padding: 13, borderRadius: 12, fontWeight: 900, fontSize: 14,
+          background: canAfford ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : '#94a3b8',
+          color: 'white', border: '3px solid var(--dark-border)',
+          boxShadow: canAfford ? '0 4px 0 var(--dark-border)' : 'none',
           cursor: canAfford ? 'pointer' : 'not-allowed',
-        }}>{tr.shop.redeem}</button>
+        }}>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <ShoppingCart size={14} /> Satın Al
+          </span>
+        </button>
       </div>
     </div>
   </div>
@@ -79,22 +91,47 @@ const RedeemModal: React.FC<RedeemModalProps> = ({ reward, onConfirm, onClose, c
 
 const RewardsShop: React.FC = () => {
   const { points, spendPoints, showRewardPopup } = useApp();
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('all');
+  const { addItem } = useInventory();
+  const [search, setSearch]             = useState('');
+  const [category, setCategory]         = useState('all');
   const [selectedReward, setSelectedReward] = useState<typeof rewards[0] | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [success, setSuccess]           = useState<string | null>(null);
   const [showParticles, setShowParticles] = useState(false);
 
   const filtered = rewards.filter(r => {
     const matchSearch = r.title.toLowerCase().includes(search.toLowerCase());
-    const matchCat = category === 'all' || r.category === category;
+    const matchCat    = category === 'all' || r.category === category;
     return matchSearch && matchCat;
   });
 
-  const handleRedeem = () => {
+  const handleBuy = () => {
     if (!selectedReward) return;
-    spendPoints(selectedReward.points);
-    showRewardPopup({ type: 'reward', title: tr.shop.success, subtitle: selectedReward.title, points: selectedReward.points });
+    const spent = spendPoints(selectedReward.points);
+    if (!spent) return;
+
+    const expiryDate = selectedReward.expiresAt
+      ? selectedReward.expiresAt
+      : new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+
+    addItem({
+      type: 'ticket',
+      title: selectedReward.title,
+      description: selectedReward.description,
+      expires: expiryDate,
+      code: `TKT-${selectedReward.id.toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      used: false,
+      quantity: 1,
+      image: selectedReward.image,
+      points: selectedReward.points,
+      barcode: `BC${Date.now()}`,
+    });
+
+    showRewardPopup({
+      type: 'reward',
+      title: '🎉 Satın Alındı!',
+      subtitle: `${selectedReward.title} envanterinize eklendi`,
+      points: selectedReward.points,
+    });
     playSound('level-up');
     setShowParticles(true);
     setSuccess(selectedReward.title);
@@ -106,7 +143,6 @@ const RewardsShop: React.FC = () => {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
-      {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{
           position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
@@ -115,11 +151,11 @@ const RewardsShop: React.FC = () => {
         }}>MAĞAZA</div>
       </div>
 
-      <WinningParticles trigger={showParticles} emoji="🎁" />
+      <WinningParticles trigger={showParticles} emoji="🛍️" />
       {selectedReward && (
-        <RedeemModal
+        <BuyModal
           reward={selectedReward}
-          onConfirm={handleRedeem}
+          onConfirm={handleBuy}
           onClose={() => setSelectedReward(null)}
           canAfford={points >= selectedReward.points}
         />
@@ -127,7 +163,7 @@ const RewardsShop: React.FC = () => {
 
       <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-4xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
 
-        {/* ── Page header ── */}
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 16, flexShrink: 0,
@@ -136,12 +172,12 @@ const RewardsShop: React.FC = () => {
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
           }}>🛍️</div>
           <div>
-            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>Ödül Mağazası</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Puanlarını harika ödüllerle değiştir</p>
+            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>Ürün Mağazası</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Puanlarınla ürün satın al, envanterine ekle</p>
           </div>
         </div>
 
-        {/* ── Points balance banner ── */}
+        {/* Points banner */}
         <div style={{
           ...card,
           background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)',
@@ -154,7 +190,7 @@ const RewardsShop: React.FC = () => {
             <p style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, lineHeight: 1 }}>{points.toLocaleString()} pts</p>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 700, margin: '0 0 2px' }}>{filtered.length} ödül</p>
+            <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: 700, margin: '0 0 2px' }}>{filtered.length} ürün</p>
             <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: 900, margin: 0 }}>hazır bekliyor</p>
           </div>
         </div>
@@ -169,16 +205,19 @@ const RewardsShop: React.FC = () => {
             <div style={{ width: 36, height: 36, borderRadius: 10, background: '#22c55e', border: '2px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Check size={20} color="white" />
             </div>
-            <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: 0 }}>🎉 {success} — Başarıyla alındı!</p>
+            <div>
+              <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: 0 }}>🎉 {success} satın alındı!</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>Bilet envanterinize eklendi</p>
+            </div>
           </div>
         )}
 
-        {/* ── Search ── */}
+        {/* Search */}
         <div style={{ position: 'relative' }}>
           <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             type="text"
-            placeholder="Ödül ara..."
+            placeholder="Ürün ara..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{
@@ -190,7 +229,7 @@ const RewardsShop: React.FC = () => {
           />
         </div>
 
-        {/* ── Categories ── */}
+        {/* Categories */}
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
           {categories.map(cat => (
             <button
@@ -199,7 +238,7 @@ const RewardsShop: React.FC = () => {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '9px 16px', borderRadius: 12, fontWeight: 900, fontSize: 12,
-                cursor: 'pointer', flexShrink: 0, transition: 'all 0.1s', whiteSpace: 'nowrap',
+                cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 background: category === cat.id ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
                 color: category === cat.id ? 'white' : 'var(--text-dark)',
                 border: '3px solid var(--dark-border)',
@@ -211,22 +250,21 @@ const RewardsShop: React.FC = () => {
           ))}
         </div>
 
-        {/* ── Results label ── */}
+        {/* Results label */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 700, margin: 0 }}>
-            {filtered.length} ödül gösteriliyor
-            {category !== 'all' && ` — ${activeCat.label}`}
+            {filtered.length} ürün gösteriliyor{category !== 'all' && ` — ${activeCat.label}`}
           </p>
           {search && (
             <button onClick={() => setSearch('')} style={{ fontSize: 11, fontWeight: 900, color: 'var(--primary-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Temizle</button>
           )}
         </div>
 
-        {/* ── Rewards grid ── */}
+        {/* Products grid */}
         {filtered.length === 0 ? (
           <div style={{ ...card, padding: 48, textAlign: 'center' }}>
             <p style={{ fontSize: 40, margin: '0 0 10px' }}>🔍</p>
-            <p style={{ color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>Ödül bulunamadı</p>
+            <p style={{ color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>Ürün bulunamadı</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 14 }}>
@@ -245,15 +283,11 @@ const RewardsShop: React.FC = () => {
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 9px 0 var(--dark-border)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}
                 >
-                  {/* Image */}
                   <div style={{ position: 'relative', height: 130, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)' }}>
-                    <img src={reward.image} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }} />
-                    {/* Badges */}
-                    <div style={{ position: 'absolute', top: 8, left: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {reward.limited && (
-                        <span style={{ padding: '2px 8px', borderRadius: 999, background: '#ef4444', color: 'white', fontSize: 9, fontWeight: 900, border: '1.5px solid rgba(0,0,0,0.2)', textTransform: 'uppercase' }}>LIMITED</span>
-                      )}
-                    </div>
+                    <img src={reward.image} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {reward.limited && (
+                      <span style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 999, background: '#ef4444', color: 'white', fontSize: 9, fontWeight: 900, textTransform: 'uppercase' }}>SINIRLI</span>
+                    )}
                     {!canAfford && (
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <span style={{ fontSize: 10, fontWeight: 900, color: 'white', padding: '4px 10px', background: 'rgba(0,0,0,0.6)', borderRadius: 999 }}>Yetersiz Puan</span>
@@ -261,7 +295,6 @@ const RewardsShop: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Info */}
                   <div style={{ padding: '12px 14px' }}>
                     <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 4px', lineHeight: 1.2 }}>{reward.title}</p>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 10px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{reward.description}</p>
@@ -287,14 +320,8 @@ const RewardsShop: React.FC = () => {
       </div>
 
       <style>{`
-        @keyframes shopFadeIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to   { opacity: 1; transform: scale(1); }
-        }
-        @keyframes modalPop {
-          from { opacity: 0; transform: scale(0.92); }
-          to   { opacity: 1; transform: scale(1); }
-        }
+        @keyframes shopFadeIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+        @keyframes modalPop   { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
       `}</style>
     </div>
   );

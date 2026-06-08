@@ -117,8 +117,11 @@ const InventoryQRModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const selectedItem = selected ? activeItems.find(i => i.code === selected) : null;
 
-  /* build full JSON payload for selected item */
-  const getQRData = (item: typeof activeItems[0]) => {
+  /* Fixed timestamp captured once when item is selected — prevents QR URL from
+     changing on every render (which caused the regeneration loop bug). */
+  const issuedAt = React.useMemo(() => new Date().toISOString(), [selected]);
+
+  const getQRData = React.useCallback((item: typeof activeItems[0]) => {
     return JSON.stringify({
       type: 'item_redemption',
       item_id: item.id,
@@ -126,9 +129,9 @@ const InventoryQRModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       item_title: item.title,
       item_type: item.type,
       expires: item.expires,
-      issued_at: new Date().toISOString(),
+      issued_at: issuedAt,
     });
-  };
+  }, [issuedAt]);
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', padding: 0 }}
