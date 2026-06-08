@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { RewardEventsProvider } from './context/RewardEventsContext';
+import { InventoryProvider } from './context/InventoryContext';
 import Layout from './components/Layout';
 
 // Auth pages
@@ -40,6 +41,7 @@ import AdminEvents from './pages/admin/AdminEvents';
 import AdminNotifications from './pages/admin/AdminNotifications';
 import AdminQR from './pages/admin/AdminQR';
 import AdminGames from './pages/admin/AdminGames';
+import AdminInventory from './pages/admin/AdminInventory';
 
 // Additional admin pages
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
@@ -59,6 +61,7 @@ function App() {
   return (
     <RewardEventsProvider>
     <AppProvider>
+    <InventoryProvider>
       <HashRouter>
         <Routes>
 
@@ -99,6 +102,7 @@ function App() {
           <Route path="/admin/notifications" element={<AdminNotifications />} />
           <Route path="/admin/qr" element={<AdminQR />} />
           <Route path="/admin/games" element={<AdminGames />} />
+          <Route path="/admin/inventory" element={<AdminInventory />} />
 
           {/* New Admin Pages */}
           <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
@@ -114,6 +118,7 @@ function App() {
 
         </Routes>
       </HashRouter>
+    </InventoryProvider>
     </AppProvider>
     </RewardEventsProvider>
   );

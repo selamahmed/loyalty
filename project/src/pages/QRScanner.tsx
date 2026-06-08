@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { QrCode, Camera, Check, Zap, RotateCcw, MapPin, X, FlipHorizontal, Keyboard } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { inventory } from '../data/mockData';
+import { useInventory } from '../context/InventoryContext';
+import InventoryDetailModal from '../components/InventoryDetailModal';
 
 const card = {
   background: 'var(--card-bg)',
@@ -20,7 +21,8 @@ const fakeQRResults = [
 /* ── Inventory item QR popup ── */
 const InventoryQRModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [selected, setSelected] = useState<string | null>(null);
-  const activeItems = inventory.filter(i => !i.used);
+  const { items } = useInventory();
+  const activeItems = items.filter(i => !i.used);
   const typeColors: Record<string, string> = { coupon: '#3b82f6', ticket: '#f59e0b', reward: '#22c55e' };
 
   return (
@@ -84,9 +86,11 @@ const InventoryQRModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 /* ── Main Scanner ── */
 const QRScanner: React.FC = () => {
   const { addPoints, showRewardPopup } = useApp();
+  const { getByCode, markUsed } = useInventory();
 
   const [mode, setMode]         = useState<'idle' | 'camera' | 'fake' | 'manual'>('idle');
   const [result, setResult]     = useState<typeof fakeQRResults[0] | null>(null);
+  const [inventoryMatch, setInventoryMatch] = useState<ReturnType<typeof getByCode>>(undefined);
   const [scanProgress, setScanProgress] = useState(0);
   const [manualCode, setManualCode]     = useState('');
   const [error, setError]       = useState('');
@@ -145,11 +149,17 @@ const QRScanner: React.FC = () => {
       const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
       if (code && code.data) {
         stopCamera();
-        const known = fakeQRResults.find(r => r.code === code.data.trim().toUpperCase());
+        const scanned = code.data.trim();
+        const invItem = getByCode(scanned);
+        if (invItem) {
+          setInventoryMatch(invItem);
+          return;
+        }
+        const known = fakeQRResults.find(r => r.code === scanned.toUpperCase());
         if (known) {
           setResult(known);
         } else {
-          setResult({ code: code.data, title: 'QR Kodu Okundu', points: 0, location: 'Bilinmeyen' });
+          setResult({ code: scanned, title: 'QR Kodu Okundu', points: 0, location: 'Bilinmeyen' });
         }
         return;
       }
@@ -201,15 +211,19 @@ const QRScanner: React.FC = () => {
   };
 
   const handleManualSubmit = () => {
-    const found = fakeQRResults.find(r => r.code === manualCode.trim().toUpperCase());
+    const trimmed = manualCode.trim().toUpperCase();
+    const invItem = getByCode(trimmed);
+    if (invItem) { setInventoryMatch(invItem); setError(''); setMode('idle'); return; }
+    const found = fakeQRResults.find(r => r.code === trimmed);
     if (found) { setResult(found); setError(''); setMode('idle'); }
     else setError('Geçersiz kod. Lütfen tekrar dene.');
   };
 
-  const reset = () => { setResult(null); setScanProgress(0); setError(''); setMode('idle'); };
+  const reset = () => { setResult(null); setScanProgress(0); setError(''); setMode('idle'); setInventoryMatch(undefined); };
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {inventoryMatch && <InventoryDetailModal item={inventoryMatch} onClose={() => setInventoryMatch(undefined)} />}
       {showInventoryQR && <InventoryQRModal onClose={() => setShowInventoryQR(false)} />}
 
       {/* Ghost watermark */}
