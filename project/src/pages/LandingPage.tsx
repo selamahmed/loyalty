@@ -302,7 +302,7 @@ const LandingPage: React.FC = () => {
                 onClick={() => setMenuOpen(!menuOpen)}
                 style={{
                   width: 34, height: 34, borderRadius: 10, border: `2px solid ${t.border}`,
-                  background: t.cardBg, cursor: 'pointer', display: 'none', alignItems: 'center', justifyContent: 'center',
+                  background: t.cardBg, cursor: 'pointer', alignItems: 'center', justifyContent: 'center',
                   boxShadow: `0 3px 0 ${t.shadow}`, flexShrink: 0,
                 }}>
                 {menuOpen ? <X size={16} color={t.textPrimary} /> : <Menu size={16} color={t.textPrimary} />}

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { X, Copy, Check, Clock, Tag, Ticket, Gift, Package, QrCode, AlertCircle, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Copy, Check, Clock, Tag, Ticket, Gift, Package, QrCode, AlertCircle } from 'lucide-react';
 import { InventoryItem, useInventory } from '../context/InventoryContext';
+import { createInventoryQRPayload } from '../lib/qrUtils';
 
 const card = {
   background: 'var(--card-bg)',
@@ -10,17 +11,13 @@ const card = {
 };
 
 const typeConfig: Record<string, { color: string; bg: string; accent: string; icon: React.FC<{ size?: number; color?: string }>; label: string }> = {
-  coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', accent: '#3b82f6', icon: Tag, label: 'Kupon' },
-  ticket: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', accent: '#f59e0b', icon: Ticket, label: 'Bilet' },
-  reward: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', accent: '#22c55e', icon: Gift, label: 'Ödül' },
+  coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  accent: '#3b82f6', icon: Tag,    label: 'Kupon' },
+  ticket: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  accent: '#f59e0b', icon: Ticket, label: 'Bilet' },
+  reward: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',   accent: '#22c55e', icon: Gift,   label: 'Ödül'  },
 };
 
 interface Countdown {
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-  expired: boolean;
+  days: number; hours: number; minutes: number; seconds: number; expired: boolean;
 }
 
 function getCountdown(expiresStr: string): Countdown {
@@ -40,12 +37,12 @@ interface Props {
 
 const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
   const { markUsed } = useInventory();
-  const cfg = typeConfig[item.type] || typeConfig.reward;
+  const cfg      = typeConfig[item.type] || typeConfig.reward;
   const IconComp = cfg.icon;
 
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied]       = useState(false);
   const [countdown, setCountdown] = useState<Countdown>(getCountdown(item.expires));
-  const [showQR, setShowQR] = useState(false);
+  const [showQR, setShowQR]       = useState(false);
   const [confirmUse, setConfirmUse] = useState(false);
 
   useEffect(() => {
@@ -67,6 +64,12 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
   const isExpired = countdown.expired;
   const isUsed    = item.used;
 
+  /* Full JSON payload encoded into QR — cashier's scanner parses this */
+  const qrPayload = createInventoryQRPayload({
+    id: item.id, code: item.code, title: item.title, type: item.type, expires: item.expires,
+  });
+  const qrData = encodeURIComponent(JSON.stringify(qrPayload));
+
   return (
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', padding: 0 }}
@@ -87,11 +90,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
         {/* ── Header image ── */}
         <div style={{ position: 'relative', margin: '12px 16px 0', borderRadius: 18, overflow: 'hidden', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', height: 200 }}>
           {item.image ? (
-            <img
-              src={item.image}
-              alt={item.title}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
+            <img src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           ) : (
             <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64 }}>
               <Package size={64} color="var(--text-muted)" />
@@ -135,7 +134,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
 
           {/* ── Countdown timer ── */}
           {!isExpired && !isUsed ? (
-            <div style={{ ...card, padding: '14px 16px', background: isExpired ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.04)' }}>
+            <div style={{ ...card, padding: '14px 16px', background: 'rgba(34,197,94,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                 <Clock size={14} color={countdown.days < 3 ? '#ef4444' : '#22c55e'} />
                 <span style={{ fontSize: 11, fontWeight: 900, color: countdown.days < 3 ? '#ef4444' : '#22c55e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -174,10 +173,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
           <div>
             <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>Kupon Kodu</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div style={{
-                flex: 1, padding: '12px 16px', borderRadius: 14,
-                background: 'var(--tab-bg)', border: '2.5px dashed var(--dark-border)',
-              }}>
+              <div style={{ flex: 1, padding: '12px 16px', borderRadius: 14, background: 'var(--tab-bg)', border: '2.5px dashed var(--dark-border)' }}>
                 <span style={{ fontFamily: 'monospace', fontSize: 16, fontWeight: 900, color: 'var(--text-dark)', letterSpacing: '0.12em' }}>{item.code}</span>
               </div>
               <button
@@ -217,14 +213,30 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'qrFadeIn 0.25s ease-out' }}>
                 <div style={{ background: 'white', padding: 16, borderRadius: 20, border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)' }}>
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(item.code)}&size=240x240&margin=10&color=000000&bgcolor=ffffff`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?data=${qrData}&size=240x240&margin=10&color=000000&bgcolor=ffffff`}
                     alt={`QR: ${item.code}`}
                     style={{ width: 240, height: 240, display: 'block', borderRadius: 8 }}
                   />
                 </div>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, fontWeight: 600, textAlign: 'center' }}>
-                  Kasada bu QR kodu tarat
-                </p>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 4px', fontWeight: 600 }}>
+                    Kasada bu QR kodu tarat
+                  </p>
+                  {/* Metadata chips */}
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: 999, background: `${cfg.color}18`, border: `1.5px solid ${cfg.color}`, fontSize: 10, fontWeight: 900, color: cfg.color }}>
+                      {cfg.label}
+                    </span>
+                    {item.points > 0 && (
+                      <span style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(245,158,11,0.12)', border: '1.5px solid #f59e0b', fontSize: 10, fontWeight: 900, color: '#d97706' }}>
+                        {item.points} puan
+                      </span>
+                    )}
+                    <span style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(107,114,128,0.1)', border: '1.5px solid #9ca3af', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                      {item.code}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
           </div>

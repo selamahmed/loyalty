@@ -1,0 +1,2 @@
+- [QR System Architecture](qr-system.md) — cashier QR uses full JSON payload in QR image; scanner parses with parseQRPayload() from qrUtils.ts
+- [LandingPage hamburger fix](landing-hamburger.md) — inline `display: none` on hamburger button blocked CSS media query; must not set display in inline style
