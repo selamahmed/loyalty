@@ -897,15 +897,15 @@ const DailyChallenge: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) =
 };
 
 const gamesList = [
-  { id: 'spin', label: 'Spin Wheel', emoji: '🎰', desc: 'Spin to win up to 200 pts', points: '5-200' },
-  { id: 'memory', label: 'Memory Game', emoji: '🧩', desc: 'Match pairs to win', points: '50-200' },
-  { id: 'quiz', label: 'Quiz', emoji: '🧠', desc: 'Answer 5 questions', points: '0-125' },
-  { id: 'catch', label: 'Catch Game', emoji: '🎁', desc: 'Catch gifts, avoid bombs', points: '0-100' },
-  { id: 'flappy', label: 'Flappy Bird', emoji: '🐦', desc: 'Tap to fly through pipes', points: '0-100' },
-  { id: 'snake', label: 'Snake', emoji: '🐍', desc: 'Arrow keys to move', points: '0-150' },
-  { id: 'rhythm', label: 'Tap Rhythm', emoji: '🎵', desc: 'Tap when circle hits line', points: '0-120' },
-  { id: 'color', label: 'Color Match', emoji: '🎨', desc: '10 levels of color matching', points: '0-120' },
-  { id: 'daily', label: 'Daily Challenge', emoji: '⚡', desc: 'One question, big reward', points: '150' },
+  { id: 'spin',   label: 'Spin Wheel',       emoji: '🎰', desc: 'Spin to win up to 200 pts',     points: '5-200',  img: 'https://picsum.photos/seed/spinw77/120/120',   color: '#7B6EF6' },
+  { id: 'memory', label: 'Memory Game',       emoji: '🧩', desc: 'Match pairs to win',             points: '50-200', img: 'https://picsum.photos/seed/memgm77/120/120',   color: '#22c55e' },
+  { id: 'quiz',   label: 'Quiz',              emoji: '🧠', desc: 'Answer 5 questions',             points: '0-125',  img: 'https://picsum.photos/seed/quizz77/120/120',   color: '#f59e0b' },
+  { id: 'catch',  label: 'Catch Game',        emoji: '🎁', desc: 'Catch gifts, avoid bombs',       points: '0-100',  img: 'https://picsum.photos/seed/catchg77/120/120',  color: '#ef4444' },
+  { id: 'flappy', label: 'Flappy Bird',       emoji: '🐦', desc: 'Tap to fly through pipes',       points: '0-100',  img: 'https://picsum.photos/seed/flppy77/120/120',   color: '#06b6d4' },
+  { id: 'snake',  label: 'Snake',             emoji: '🐍', desc: 'Arrow keys to move',             points: '0-150',  img: 'https://picsum.photos/seed/snakk77/120/120',   color: '#22c55e' },
+  { id: 'rhythm', label: 'Tap Rhythm',        emoji: '🎵', desc: 'Tap when circle hits line',      points: '0-120',  img: 'https://picsum.photos/seed/rhyth77/120/120',   color: '#ec4899' },
+  { id: 'color',  label: 'Color Match',       emoji: '🎨', desc: '10 levels of color matching',    points: '0-120',  img: 'https://picsum.photos/seed/colorr77/120/120',  color: '#8b5cf6' },
+  { id: 'daily',  label: 'Daily Challenge',   emoji: '⚡', desc: 'One question, big reward',       points: '150',    img: 'https://picsum.photos/seed/daylch77/120/120',  color: '#f59e0b' },
 ];
 
 const MiniGames: React.FC = () => {
@@ -979,16 +979,23 @@ const MiniGames: React.FC = () => {
           </div>
         </div>
 
-        {/* Hero */}
-        <div style={{ ...cardStyle, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden', color: 'white' }}>
-          <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span style={{ fontSize: 52 }}>🎮</span>
-            <div>
-              <h2 style={{ fontWeight: 900, fontSize: 20, margin: '0 0 4px', color: 'white' }}>Oyna & Kazan</h2>
-              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>Her oyun gerçek puan kazandırır. Maksimum ödül için her gün oyna!</p>
-            </div>
+        {/* Hero illustration banner */}
+        <div style={{ ...cardStyle, overflow: 'hidden', position: 'relative', height: 140 }}>
+          <img
+            src="https://picsum.photos/seed/gamehero55/900/280"
+            alt="Mini Games"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.5) saturate(1.2)' }}
+          />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(34,197,94,0.88) 0%, rgba(22,163,74,0.2) 70%)' }} />
+          <div style={{ position: 'absolute', top: '50%', left: 18, transform: 'translateY(-50%)' }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 7,
+              background: '#FFE500', color: '#000', borderRadius: 999, padding: '2px 9px', fontSize: 9, fontWeight: 900, letterSpacing: '0.1em',
+            }}>🎮 MİNİ OYUNLAR</div>
+            <h2 style={{ fontWeight: 900, fontSize: 'clamp(16px,3vw,22px)', margin: '0 0 4px', color: 'white', letterSpacing: '-0.03em', lineHeight: 1.1 }}>Oyna & Kazan</h2>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, margin: 0, fontWeight: 600 }}>Her oyun gerçek puan kazandırır!</p>
           </div>
+          <div style={{ position: 'absolute', right: 18, top: '50%', transform: 'translateY(-50%)', fontSize: 'clamp(48px,9vw,68px)', opacity: 0.9, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>🕹️</div>
         </div>
 
         {/* Game list */}
@@ -1008,12 +1015,13 @@ const MiniGames: React.FC = () => {
               onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}
             >
               <div style={{
-                width: 56, height: 56, borderRadius: 16, flexShrink: 0,
-                background: 'linear-gradient(135deg,rgba(123,110,246,0.15),rgba(79,142,247,0.15))',
-                border: '2.5px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 26, boxShadow: '0 3px 0 var(--dark-border)',
+                width: 60, height: 60, borderRadius: 16, flexShrink: 0,
+                overflow: 'hidden', position: 'relative',
+                border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
               }}>
-                {game.emoji}
+                <img src={game.img} alt={game.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.65) saturate(1.2)' }} />
+                <div style={{ position: 'absolute', inset: 0, background: `${game.color}55` }} />
+                <div style={{ position: 'absolute', bottom: 1, right: 2, fontSize: 20, lineHeight: 1, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.5))' }}>{game.emoji}</div>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 3px' }}>{game.label}</p>

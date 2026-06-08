@@ -33,43 +33,57 @@ const ActiveEventBanner: React.FC<{ event: RewardEvent }> = ({ event }) => {
 
   return (
     <div style={{ ...card, overflow: 'hidden' }}>
-      <div className={`relative bg-gradient-to-r ${event.banner} p-5`} style={{ position: 'relative' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)' }} />
-        <div style={{ position: 'relative' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 8,
-            background: 'rgba(255,255,255,0.2)', borderRadius: 999, padding: '4px 12px',
-            border: '1.5px solid rgba(255,255,255,0.35)',
-          }}>
-            <Trophy size={10} fill="currentColor" color="white" />
-            <span style={{ fontSize: 10, fontWeight: 900, color: 'white', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              {ended ? '🎉 ETKİNLİK BİTTİ' : '🔴 CANLI ETKİNLİK'}
-            </span>
+      {/* ── Neo-brutalism event header ── */}
+      <div style={{
+        background: ended ? '#BFFF00' : '#FFE500',
+        borderBottom: '3px solid #000',
+        padding: '20px 20px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Watermark shape */}
+        <div style={{ position: 'absolute', right: -10, top: '50%', transform: 'translateY(-50%) rotate(10deg)', fontSize: 110, opacity: 0.1, fontWeight: 900, pointerEvents: 'none', lineHeight: 1, userSelect: 'none' }}>🏆</div>
+
+        {/* Live / ended tag */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10,
+          background: '#000', color: ended ? '#BFFF00' : '#FFE500',
+          borderRadius: 999, padding: '3px 12px', fontSize: 10, fontWeight: 900,
+          letterSpacing: '0.12em', textTransform: 'uppercase',
+        }}>
+          <Trophy size={9} fill="currentColor" color={ended ? '#BFFF00' : '#FFE500'} />
+          {ended ? '🎉 ETKİNLİK BİTTİ' : '🔴 CANLI ETKİNLİK'}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div>
+            <h3 style={{ color: '#000', fontWeight: 900, fontSize: 22, margin: '0 0 4px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>{event.title}</h3>
+            <p style={{ color: 'rgba(0,0,0,0.65)', fontSize: 13, margin: 0, maxWidth: 340, fontWeight: 600 }}>{event.description}</p>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-            <div>
-              <h3 style={{ color: 'white', fontWeight: 900, fontSize: 22, margin: '0 0 4px', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>{event.title}</h3>
-              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: 0, maxWidth: 340 }}>{event.description}</p>
-            </div>
-            {!ended && (
-              <div style={{
-                background: 'rgba(0,0,0,0.35)', borderRadius: 14, padding: '10px 14px',
-                border: '1.5px solid rgba(255,255,255,0.2)', flexShrink: 0,
-              }}>
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Timer size={9} /> Bitiş
-                </p>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {[{ v: cd.days, l: 'G' }, { v: cd.hours, l: 'S' }, { v: cd.mins, l: 'D' }, { v: cd.secs, l: 'SN' }].map(u => (
-                    <div key={u.l} style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 8, padding: '4px 6px', textAlign: 'center', minWidth: 30 }}>
-                      <p style={{ color: 'white', fontWeight: 900, fontSize: 14, margin: 0, lineHeight: 1 }}>{String(u.v).padStart(2,'0')}</p>
-                      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 8, fontWeight: 700, margin: 0 }}>{u.l}</p>
-                    </div>
-                  ))}
-                </div>
+
+          {!ended && (
+            <div style={{
+              background: '#000', borderRadius: 12, padding: '8px 12px',
+              flexShrink: 0, border: '2.5px solid #000',
+              boxShadow: '0 4px 0 rgba(0,0,0,0.35)',
+            }}>
+              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 5px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Timer size={9} /> BİTİŞ
+              </p>
+              <div style={{ display: 'flex', gap: 5 }}>
+                {[{ v: cd.days, l: 'G' }, { v: cd.hours, l: 'S' }, { v: cd.mins, l: 'D' }, { v: cd.secs, l: 'SN' }].map(u => (
+                  <div key={u.l} style={{
+                    background: '#FFE500', borderRadius: 8, padding: '4px 6px',
+                    textAlign: 'center', minWidth: 30,
+                    border: '2px solid rgba(255,255,255,0.15)',
+                  }}>
+                    <p style={{ color: '#000', fontWeight: 900, fontSize: 14, margin: 0, lineHeight: 1 }}>{String(u.v).padStart(2,'0')}</p>
+                    <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 8, fontWeight: 800, margin: 0 }}>{u.l}</p>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -84,13 +98,14 @@ const ActiveEventBanner: React.FC<{ event: RewardEvent }> = ({ event }) => {
               {event.rewards.slice(0, 3).map(r => (
                 <div key={r.rank} style={{
                   padding: '12px 8px', borderRadius: 14, textAlign: 'center',
-                  border: `2.5px solid ${r.rank === 1 ? '#f59e0b' : r.rank === 2 ? '#94a3b8' : '#f97316'}`,
-                  boxShadow: `0 4px 0 ${r.rank === 1 ? '#d97706' : r.rank === 2 ? '#64748b' : '#ea580c'}`,
-                  background: r.rank === 1 ? 'rgba(245,158,11,0.1)' : r.rank === 2 ? 'rgba(148,163,184,0.1)' : 'rgba(249,115,22,0.1)',
+                  border: '3px solid #000',
+                  boxShadow: '0 4px 0 #000',
+                  background: r.rank === 1 ? '#FFE500' : r.rank === 2 ? '#e2e8f0' : '#FF6B35',
+                  transform: r.rank === 1 ? 'rotate(-1deg)' : r.rank === 2 ? 'rotate(0.5deg)' : 'rotate(1.5deg)',
                 }}>
                   <div style={{ fontSize: 32, marginBottom: 6 }}>{r.rewardImage}</div>
-                  <span style={{ fontSize: 9, fontWeight: 900, color: r.rank === 1 ? '#d97706' : r.rank === 2 ? '#64748b' : '#ea580c', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{r.label}</span>
-                  <p style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-dark)', margin: '2px 0 0', lineHeight: 1.2 }}>{r.rewardName}</p>
+                  <span style={{ fontSize: 9, fontWeight: 900, color: '#000', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>{r.label}</span>
+                  <p style={{ fontWeight: 900, fontSize: 12, color: '#000', margin: '2px 0 0', lineHeight: 1.2 }}>{r.rewardName}</p>
                 </div>
               ))}
             </div>

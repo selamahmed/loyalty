@@ -140,6 +140,26 @@ const Home: React.FC = () => {
           ))}
         </div>
 
+        {/* ── Illustration Banner ── */}
+        <div style={{ ...card, overflow: 'hidden', position: 'relative', height: 130 }}>
+          <img
+            src="https://picsum.photos/seed/homehero11/900/280"
+            alt="Kazanmaya başla"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.55) saturate(1.1)' }}
+          />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(109,40,217,0.85) 0%, rgba(109,40,217,0.15) 75%)' }} />
+          <div style={{ position: 'absolute', top: '50%', left: 18, transform: 'translateY(-50%)' }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 6,
+              background: '#FFE500', color: '#000', borderRadius: 999, padding: '2px 9px', fontSize: 9, fontWeight: 900, letterSpacing: '0.1em',
+            }}>⚡ BUGÜN KAZAN</div>
+            <p style={{ color: 'white', fontSize: 'clamp(15px,3vw,20px)', fontWeight: 900, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              Alışveriş yap,<br />puan topla!
+            </p>
+          </div>
+          <div style={{ position: 'absolute', right: 18, top: '50%', transform: 'translateY(-50%)', fontSize: 'clamp(44px,8vw,62px)', opacity: 0.9, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>🎁</div>
+        </div>
+
         {/* ── Quick Actions ── */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -157,23 +177,34 @@ const Home: React.FC = () => {
                 onClick={() => { playSound('click'); navigate(action.path); }}
                 style={{
                   ...card,
-                  padding: '18px 14px', display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', gap: 10, cursor: 'pointer',
+                  padding: 0, display: 'flex', flexDirection: 'column',
+                  alignItems: 'stretch', gap: 0, cursor: 'pointer',
                   background: 'var(--card-bg)', transition: 'transform 0.1s, box-shadow 0.1s',
+                  overflow: 'hidden',
                 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
                 onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0px 2px 0px var(--dark-border)'; }}
                 onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0px 6px 0px var(--dark-border)'; }}
               >
-                <div style={{
-                  width: 52, height: 52, borderRadius: 16,
-                  background: action.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
-                }}>
-                  <action.icon size={22} color="white" />
+                {/* Illustration top */}
+                <div style={{ position: 'relative', height: 72, overflow: 'hidden' }}>
+                  <img
+                    src={`https://picsum.photos/seed/${action.path.replace('/','')}_ill/280/150`}
+                    alt={action.label}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.58) saturate(1.1)' }}
+                  />
+                  <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, transparent 20%, var(--card-bg) 100%)` }} />
+                  <div style={{
+                    position: 'absolute', top: 8, left: 10,
+                    width: 38, height: 38, borderRadius: 12,
+                    background: action.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
+                  }}>
+                    <action.icon size={18} color="white" />
+                  </div>
                 </div>
-                <div style={{ textAlign: 'center' }}>
+                <div style={{ textAlign: 'center', padding: '8px 10px 12px' }}>
                   <span style={{ color: 'var(--text-dark)', fontSize: 12, fontWeight: 900, display: 'block', lineHeight: 1.2 }}>{action.label}</span>
                   <span style={{ fontSize: 16, marginTop: 2, display: 'block' }}>{action.emoji}</span>
                 </div>

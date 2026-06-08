@@ -67,6 +67,25 @@ const Achievements: React.FC = () => {
           </div>
         </div>
 
+        {/* ── Illustration banner ── */}
+        <div style={{ ...card, overflow: 'hidden', position: 'relative', height: 130 }}>
+          <img
+            src="https://picsum.photos/seed/achbanner55/900/260"
+            alt="Achievements"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.48) saturate(1.3)' }}
+          />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(217,119,6,0.88) 0%, rgba(245,158,11,0.12) 70%)' }} />
+          <div style={{ position: 'absolute', top: '50%', left: 18, transform: 'translateY(-50%)' }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 7,
+              background: '#000', color: '#FFE500', borderRadius: 999, padding: '2px 9px', fontSize: 9, fontWeight: 900, letterSpacing: '0.1em',
+            }}>⭐ ROZETLER</div>
+            <h2 style={{ fontWeight: 900, fontSize: 'clamp(15px,3vw,20px)', margin: '0 0 3px', color: 'white', letterSpacing: '-0.03em', lineHeight: 1.1 }}>Rozetleri topla,</h2>
+            <h2 style={{ fontWeight: 900, fontSize: 'clamp(15px,3vw,20px)', margin: 0, color: '#FFE500', letterSpacing: '-0.03em', lineHeight: 1.1 }}>efsane ol!</h2>
+          </div>
+          <div style={{ position: 'absolute', right: 18, top: '50%', transform: 'translateY(-50%)', fontSize: 'clamp(46px,8vw,64px)', opacity: 0.9, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.5))' }}>🏆</div>
+        </div>
+
         {/* ── Summary hero ── */}
         <div style={{
           ...card,
