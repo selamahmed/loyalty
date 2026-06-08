@@ -1,0 +1,16 @@
+Act as an Expert Full-Stack Developer specializing in Progressive Web Apps (PWAs) and cutting-edge UI/UX design. I need to implement two advanced features for my web application. Please provide the complete frontend and backend code (Node.js/Express and HTML/CSS/JS or React) for the following:
+
+### 1. Persistent Push Notifications (Background)
+Implement real web push notifications that work even when the browser or app is closed on a mobile device. 
+*   **Backend:** Create a Node.js/Express server using the `web-push` library. Write the endpoints to save user subscriptions and a function to broadcast payloads.
+*   **Service Worker:** Write a `service-worker.js` file that listens for the `push` event and uses `self.registration.showNotification` to display it. Handle the `notificationclick` event to open the app.
+*   **Frontend:** Write the client-side JavaScript to register the Service Worker, request notification permissions from the user, and subscribe to the push manager. 
+*   **Note:** Clearly comment where I need to generate and insert my VAPID keys.
+
+### 2. Neo-Brutalist Lazy Loading
+Implement lazy loading for images or heavy content blocks, but styled to perfectly match a Neo-Brutalist aesthetic.
+*   **Logic:** Use `IntersectionObserver` to trigger the loading of the actual assets only when they scroll into the viewport.
+*   **Aesthetic (Neo-Brutalism):** While the content is loading, display skeleton loaders or placeholders that feature high-contrast, clashing colors (e.g., neon yellow, bright pink, pure cyan), thick stark black borders (`border: 4px solid #000`), and harsh, unblurred drop shadows (`box-shadow: 6px 6px 0px #000`).
+*   **Animation:** Avoid smooth fades. When the image loads, make it snap into place abruptly or use a chunky, jagged keyframe animation that fits the brutalist vibe.
+
+Please provide the code in clearly separated files/blocks with step-by-step instructions on how to initialize the project (e.g., necessary `npm install` commands).
