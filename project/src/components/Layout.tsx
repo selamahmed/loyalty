@@ -29,7 +29,6 @@ const sidebarGroups = [
     items: [
       { path: '/shop',      icon: ShoppingBag, label: 'Ürün Mağazası'   },
       { path: '/inventory', icon: Package,     label: 'Envanterim'       },
-      { path: '/redeem',    icon: Star,        label: 'Puanları Kullan'  },
     ],
   },
   {

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Sun, Moon, Bell, Volume2, VolumeX, Globe, User, Shield, ChevronRight, Check, LogOut } from 'lucide-react';
+import { Sun, Moon, Bell, BellOff, Volume2, VolumeX, Globe, User, Shield, ChevronRight, Check, LogOut, Smartphone, Loader, WifiOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
+import { usePushNotification } from '../hooks/usePushNotification';
 
 const card = {
   background: 'var(--card-bg)',
@@ -12,15 +13,17 @@ const card = {
   borderRadius: 20,
 };
 
-const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void }> = ({ value, onChange }) => (
+const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void; disabled?: boolean }> = ({ value, onChange, disabled }) => (
   <button
-    onClick={() => { playSound('click'); onChange(!value); }}
+    disabled={disabled}
+    onClick={() => { if (!disabled) { playSound('click'); onChange(!value); } }}
     style={{
       position: 'relative', width: 48, height: 26, borderRadius: 999, flexShrink: 0,
       border: '2.5px solid var(--dark-border)',
       background: value ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--tab-bg)',
-      cursor: 'pointer', transition: 'background 0.2s',
-      boxShadow: value ? '0 2px 0 var(--dark-border)' : '0 2px 0 var(--dark-border)',
+      cursor: disabled ? 'not-allowed' : 'pointer', transition: 'background 0.2s',
+      boxShadow: '0 2px 0 var(--dark-border)',
+      opacity: disabled ? 0.5 : 1,
     }}
   >
     <div style={{
@@ -33,13 +36,81 @@ const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void }> = ({ 
 
 const languages = ['Türkçe', 'English', 'Español', 'Français', 'Deutsch'];
 
+/* ─── Push notification row ─── */
+const PushNotifRow: React.FC<{
+  icon: React.FC<{ size?: number; color?: string }>;
+  label: string;
+  sub?: string;
+  iconBg?: string;
+  iconColor?: string;
+}> = ({ icon: Icon, label, sub, iconBg = 'var(--tab-bg)', iconColor = 'var(--text-muted)' }) => {
+  const { permission, subscribed, loading, error, supported, subscribe, unsubscribe } = usePushNotification();
+
+  let statusText = sub;
+  let buttonLabel = 'Bildirimleri Aç';
+  let buttonAction = subscribe;
+  let buttonColor = '#7B6EF6';
+  let disabled = loading || !supported;
+
+  if (!supported) {
+    statusText = 'Bu tarayıcı desteklenmiyor';
+    disabled = true;
+  } else if (permission === 'denied') {
+    statusText = 'İzin reddedildi — tarayıcı ayarlarından açın';
+    disabled = true;
+  } else if (subscribed) {
+    statusText = '✅ Bildirimler aktif';
+    buttonLabel = 'Kapat';
+    buttonAction = unsubscribe;
+    buttonColor = '#ef4444';
+  } else if (permission === 'granted') {
+    statusText = 'İzin verildi, abone olunmadı';
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderBottom: '2px solid var(--dark-border)' }}>
+      <div style={{ width: 38, height: 38, borderRadius: 12, background: iconBg, border: '2px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 0 var(--dark-border)' }}>
+        <Icon size={17} color={iconColor} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 1px' }}>{label}</p>
+        {statusText && <p style={{ fontSize: 11, color: error ? '#ef4444' : 'var(--text-muted)', margin: 0 }}>{error || statusText}</p>}
+      </div>
+      <button
+        onClick={() => { playSound('click'); buttonAction(); }}
+        disabled={disabled}
+        style={{
+          flexShrink: 0, padding: '7px 14px', borderRadius: 11, fontWeight: 900, fontSize: 12,
+          background: loading ? 'var(--tab-bg)' : subscribed ? 'rgba(239,68,68,0.10)' : `${buttonColor}15`,
+          color: loading ? 'var(--text-muted)' : buttonColor,
+          border: `2px solid ${loading ? 'var(--dark-border)' : buttonColor}`,
+          boxShadow: `0 2px 0 ${loading ? 'var(--dark-border)' : buttonColor}`,
+          cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled && !loading ? 0.5 : 1,
+          display: 'flex', alignItems: 'center', gap: 5,
+          transition: 'all 0.15s',
+        }}
+        onMouseDown={e => { if (!disabled) { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 transparent'; } }}
+        onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 0 ${buttonColor}`; }}
+      >
+        {loading
+          ? <><Loader size={12} style={{ animation: 'spin 0.7s linear infinite' }} /> Yükleniyor</>
+          : subscribed
+            ? <><BellOff size={12} /> {buttonLabel}</>
+            : permission === 'denied'
+              ? <><WifiOff size={12} /> Engellendi</>
+              : <><Bell size={12} /> {buttonLabel}</>
+        }
+      </button>
+    </div>
+  );
+};
+
 const Settings: React.FC = () => {
   const { theme, toggleTheme, soundEnabled, setSoundEnabled, notificationsEnabled, setNotificationsEnabled, setIsLoggedIn } = useApp();
   const navigate = useNavigate();
-  const [language, setLanguage] = useState(tr.settings.language);
+  const [language, setLanguage]         = useState(tr.settings.language);
   const [showLangPicker, setShowLangPicker] = useState(false);
-  const [pushNotifs, setPushNotifs] = useState(true);
-  const [emailNotifs, setEmailNotifs] = useState(false);
+  const [emailNotifs, setEmailNotifs]   = useState(false);
   const [activityAlerts, setActivityAlerts] = useState(true);
 
   const Section: React.FC<{ title: string; emoji: string; children: React.ReactNode }> = ({ title, emoji, children }) => (
@@ -54,8 +125,12 @@ const Settings: React.FC = () => {
     </div>
   );
 
-  const Row: React.FC<{ icon: React.FC<{ size?: number; color?: string }>; label: string; sub?: string; iconBg?: string; iconColor?: string; right?: React.ReactNode; onClick?: () => void }> =
-    ({ icon: Icon, label, sub, iconBg = 'var(--tab-bg)', iconColor = 'var(--text-muted)', right, onClick }) => (
+  const Row: React.FC<{
+    icon: React.FC<{ size?: number; color?: string }>;
+    label: string; sub?: string;
+    iconBg?: string; iconColor?: string;
+    right?: React.ReactNode; onClick?: () => void;
+  }> = ({ icon: Icon, label, sub, iconBg = 'var(--tab-bg)', iconColor = 'var(--text-muted)', right, onClick }) => (
     <div
       onClick={onClick}
       style={{
@@ -79,7 +154,6 @@ const Settings: React.FC = () => {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
-      {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{
           position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
@@ -90,7 +164,6 @@ const Settings: React.FC = () => {
 
       <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-lg mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
 
-        {/* ── Page header ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 16, flexShrink: 0,
@@ -115,8 +188,7 @@ const Settings: React.FC = () => {
             right={
               <div style={{ display: 'flex', background: 'var(--tab-bg)', borderRadius: 10, border: '2px solid var(--dark-border)', padding: 3, gap: 4 }}>
                 {[{ key: 'light', label: tr.settings.light || 'Açık' }, { key: 'dark', label: tr.settings.dark || 'Koyu' }].map(opt => (
-                  <button
-                    key={opt.key}
+                  <button key={opt.key}
                     onClick={e => { e.stopPropagation(); if (theme !== opt.key) { playSound('click'); toggleTheme(); } }}
                     style={{
                       padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 900,
@@ -165,7 +237,15 @@ const Settings: React.FC = () => {
 
         {/* ── Notifications ── */}
         <Section title={tr.settings.notifications} emoji="🔔">
-          <Row icon={Bell} label={tr.settings.pushNotifications || 'Anlık Bildirimler'} iconBg="rgba(123,110,246,0.15)" iconColor="#7B6EF6" right={<Toggle value={notificationsEnabled} onChange={setNotificationsEnabled} />} />
+          {/* Real push notification row */}
+          <PushNotifRow
+            icon={Smartphone}
+            label="Push Bildirimleri"
+            sub="Uygulama kapalıyken anlık bildirim al"
+            iconBg="rgba(123,110,246,0.15)"
+            iconColor="#7B6EF6"
+          />
+          <Row icon={Bell} label={tr.settings.pushNotifications || 'Anlık Bildirimler'} sub="Uygulama içi bildirimler" iconBg="rgba(123,110,246,0.12)" iconColor="#9b87f5" right={<Toggle value={notificationsEnabled} onChange={setNotificationsEnabled} />} />
           <Row icon={Bell} label={tr.settings.emailNotifications || 'E-posta Bildirimleri'} iconBg="rgba(59,130,246,0.15)" iconColor="#3b82f6" right={<Toggle value={emailNotifs} onChange={setEmailNotifs} />} />
           <Row icon={Bell} label={tr.settings.activityAlerts || 'Aktivite Uyarıları'} iconBg="rgba(34,197,94,0.15)" iconColor="#22c55e" right={<Toggle value={activityAlerts} onChange={setActivityAlerts} />} />
         </Section>
@@ -184,9 +264,9 @@ const Settings: React.FC = () => {
 
         {/* ── Account ── */}
         <Section title={tr.settings.account} emoji="👤">
-          <Row icon={User} label={tr.settings.editProfile || 'Profili Düzenle'} iconBg="rgba(107,114,128,0.12)" iconColor="var(--text-muted)" onClick={() => { playSound('click'); navigate('/profile'); }} />
-          <Row icon={Shield} label={tr.settings.privacySecurity || 'Gizlilik & Güvenlik'} iconBg="rgba(59,130,246,0.15)" iconColor="#3b82f6" onClick={() => playSound('click')} />
-          <Row icon={Shield} label={tr.settings.changePassword || 'Şifre Değiştir'} iconBg="rgba(245,158,11,0.15)" iconColor="#f59e0b" onClick={() => playSound('click')} />
+          <Row icon={User}   label={tr.settings.editProfile || 'Profili Düzenle'}       iconBg="rgba(107,114,128,0.12)" iconColor="var(--text-muted)" onClick={() => { playSound('click'); navigate('/profile'); }} />
+          <Row icon={Shield} label={tr.settings.privacySecurity || 'Gizlilik & Güvenlik'} iconBg="rgba(59,130,246,0.15)"   iconColor="#3b82f6"            onClick={() => playSound('click')} />
+          <Row icon={Shield} label={tr.settings.changePassword || 'Şifre Değiştir'}      iconBg="rgba(245,158,11,0.15)"  iconColor="#f59e0b"            onClick={() => playSound('click')} />
         </Section>
 
         {/* ── Logout ── */}
@@ -202,15 +282,13 @@ const Settings: React.FC = () => {
           <span style={{ fontWeight: 900, fontSize: 15, color: '#ef4444' }}>{tr.settings.logout}</span>
         </button>
 
-        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>NexReward v2.0.0 • {tr.settings.frontendDemo || 'Frontend Demo'}</p>
+        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>NexReward v2.0.0 · {tr.settings.frontendDemo || 'Frontend Demo'}</p>
 
       </div>
 
       <style>{`
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

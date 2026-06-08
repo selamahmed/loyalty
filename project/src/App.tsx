@@ -20,7 +20,6 @@ import RewardsShop from './pages/RewardsShop';
 import MiniGames from './pages/MiniGames';
 import ProgressPath from './pages/ProgressPath';
 import QRScanner from './pages/QRScanner';
-import RedeemPoints from './pages/RedeemPoints';
 import Achievements from './pages/Achievements';
 import Missions from './pages/Missions';
 import Notifications from './pages/Notifications';
@@ -82,7 +81,6 @@ function App() {
           <Route path="/games" element={<WrappedPage><MiniGames /></WrappedPage>} />
           <Route path="/progress" element={<WrappedPage><ProgressPath /></WrappedPage>} />
           <Route path="/qr" element={<WrappedPage><QRScanner /></WrappedPage>} />
-          <Route path="/redeem" element={<WrappedPage><RedeemPoints /></WrappedPage>} />
           <Route path="/achievements" element={<WrappedPage><Achievements /></WrappedPage>} />
           <Route path="/missions" element={<WrappedPage><Missions /></WrappedPage>} />
           <Route path="/notifications" element={<WrappedPage><Notifications /></WrappedPage>} />
