@@ -80,7 +80,7 @@ const Notifications: React.FC = () => {
             <p className="notif-empty-sub">Şimdilik hepsi bu kadar!</p>
           </div>
         ) : (
-          <div className="notif-list">
+          <div className="notif-list text-left justify-start items-center flex-col">
             {filtered.map((notif, index) => {
               const cfg = typeConfig[notif.type] || typeConfig.system;
               const isPriority = notif.type === 'achievement' || notif.type === 'reward';
