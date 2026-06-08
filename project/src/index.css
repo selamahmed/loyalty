@@ -20,7 +20,7 @@
   }
 
   :root {
-    --bg-color: #f5f3ff;
+    --bg-color: #FFFBEB;
     --card-bg: #ffffff;
     --primary-blue: #7c3aed;
     --gradient-start: #a78bfa;
@@ -28,9 +28,9 @@
     --dark-border: #1e1b4b;
     --text-dark: #1e1b4b;
     --text-muted: #6b7280;
-    --input-bg: #ede9fe;
-    --tab-bg: #e9e5ff;
-    --divider-dash: #c4b5fd;
+    --input-bg: #fef3c7;
+    --tab-bg: #fde68a;
+    --divider-dash: #fbbf24;
   }
 
   [data-theme="dark"] {
@@ -54,8 +54,15 @@
 
   body {
     background-color: var(--bg-color);
+    background-image: radial-gradient(circle, #d9770622 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
     color: var(--text-dark);
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  [data-theme="dark"] body {
+    background-image: radial-gradient(circle, #ffffff0d 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
   }
 }
 

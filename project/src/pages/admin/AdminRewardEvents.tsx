@@ -7,13 +7,13 @@ import AdminLayout from './AdminLayout';
 import { useRewardEvents, RewardEvent, RankReward, getRankLabel } from '../../context/RewardEventsContext';
 
 const EMOJI_OPTIONS = ['📱','🎧','🖱️','🎮','🕹️','💳','💡','🏆','🎁','💎','👟','👜','✈️','🍕','🎬','📷','⌚','💻','🖥️','🎵'];
-const GRADIENT_OPTIONS = [
-  { label: 'Sunset', value: 'from-orange-400 via-pink-400 to-purple-500' },
-  { label: 'Ocean', value: 'from-blue-400 via-cyan-400 to-teal-400' },
-  { label: 'Forest', value: 'from-green-400 via-emerald-400 to-teal-500' },
-  { label: 'Fire', value: 'from-red-400 via-orange-400 to-yellow-400' },
-  { label: 'Galaxy', value: 'from-purple-500 via-violet-500 to-indigo-500' },
-  { label: 'Rose', value: 'from-rose-400 via-pink-400 to-fuchsia-400' },
+const COLOR_OPTIONS = [
+  { label: 'Sunset',  value: '#FF6B35', text: '#000' },
+  { label: 'Ocean',   value: '#00D1FF', text: '#000' },
+  { label: 'Forest',  value: '#BFFF00', text: '#000' },
+  { label: 'Fire',    value: '#FFE500', text: '#000' },
+  { label: 'Galaxy',  value: '#7B6EF6', text: '#fff' },
+  { label: 'Rose',    value: '#FF3CAC', text: '#fff' },
 ];
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -34,7 +34,7 @@ const blankReward = (rank: number): RankReward => ({
 const blankEvent = (): Omit<RewardEvent, 'id' | 'createdAt'> => ({
   title: '',
   description: '',
-  banner: GRADIENT_OPTIONS[0].value,
+  banner: COLOR_OPTIONS[0].value,
   startDate: todayStr(),
   endDate: '',
   distributionDate: '',
@@ -161,7 +161,7 @@ const AdminRewardEvents: React.FC = () => {
                 <div key={ev.id} className={`card p-4 border-2 ${ev.active ? 'border-[#7B6EF6] dark:border-[#4F8EF7]' : 'border-black dark:border-gray-700'}`}>
                   <div className="flex items-start gap-3">
                     {/* Banner swatch */}
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${ev.banner} flex items-center justify-center text-2xl border-2 border-black dark:border-gray-600 flex-shrink-0`}>
+                    <div style={{ background: ev.banner }} className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border-2 border-black dark:border-gray-600 flex-shrink-0 box-shadow-[0_3px_0_#000]">
                       🏆
                     </div>
                     <div className="flex-1 min-w-0">
@@ -256,10 +256,18 @@ const AdminRewardEvents: React.FC = () => {
                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="input-field resize-none" rows={3} placeholder="Describe the event and how to participate..." />
               </div>
               <div>
-                <label className="block font-bold text-sm mb-1.5">Announcement Banner Style</label>
+                <label className="block font-bold text-sm mb-1.5">Banner Rengi</label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                  {GRADIENT_OPTIONS.map(g => (
-                    <button key={g.value} onClick={() => setForm(f => ({ ...f, banner: g.value }))} className={`h-10 rounded-xl bg-gradient-to-r ${g.value} border-2 transition-all ${form.banner === g.value ? 'border-black dark:border-white scale-105' : 'border-transparent'}`} title={g.label} />
+                  {COLOR_OPTIONS.map(c => (
+                    <button
+                      key={c.value}
+                      onClick={() => setForm(f => ({ ...f, banner: c.value }))}
+                      title={c.label}
+                      style={{ background: c.value }}
+                      className={`h-10 rounded-xl border-2 transition-all flex items-center justify-center font-black text-xs ${form.banner === c.value ? 'border-black scale-105 shadow-[0_3px_0_#000]' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                    >
+                      <span style={{ color: c.text, fontSize: 9, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{c.label}</span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -375,28 +383,33 @@ const AdminRewardEvents: React.FC = () => {
           <div className="space-y-5">
             <div className="card overflow-hidden border-2 border-black dark:border-gray-700">
               {/* Banner */}
-              <div className={`relative bg-gradient-to-r ${previewEvent.banner} p-6 text-white`}>
-                <div className="absolute inset-0 bg-black/20" />
-                <div className="relative">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold mb-2">
-                        <Trophy size={11} /> LEADERBOARD EVENT
+              {(() => {
+                const bannerColor = previewEvent.banner;
+                const isDark = bannerColor === '#7B6EF6' || bannerColor === '#FF3CAC';
+                const textColor = isDark ? '#fff' : '#000';
+                const subTextColor = isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.6)';
+                return (
+                  <div style={{ background: bannerColor, padding: 24, position: 'relative', borderBottom: '3px solid #000' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                      <div>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.15)', border: '1.5px solid rgba(0,0,0,0.2)', borderRadius: 999, padding: '3px 10px', fontSize: 10, fontWeight: 900, color: textColor, marginBottom: 8, letterSpacing: '0.08em' }}>
+                          <Trophy size={11} /> LEADERBOARD EVENT
+                        </div>
+                        <h2 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 4px', color: textColor, letterSpacing: '-0.03em' }}>{previewEvent.title || 'Event Title'}</h2>
+                        <p style={{ fontSize: 13, margin: 0, color: subTextColor, maxWidth: 380, fontWeight: 600 }}>{previewEvent.description || 'Event description goes here.'}</p>
                       </div>
-                      <h2 className="text-2xl font-black mb-1">{previewEvent.title || 'Event Title'}</h2>
-                      <p className="text-white/80 text-sm max-w-md">{previewEvent.description || 'Event description goes here.'}</p>
+                      <div style={{ flexShrink: 0, background: 'rgba(0,0,0,0.18)', border: '2px solid rgba(0,0,0,0.2)', borderRadius: 16, padding: '10px 16px', textAlign: 'right' }}>
+                        <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: subTextColor, margin: '0 0 2px', textTransform: 'uppercase' }}>Bitiş</p>
+                        <p style={{ fontWeight: 900, fontSize: 18, color: textColor, margin: 0 }}>10g 4s 20d</p>
+                      </div>
                     </div>
-                    <div className="text-right flex-shrink-0 bg-black/30 backdrop-blur-sm rounded-2xl px-4 py-3">
-                      <p className="text-white/70 text-xs font-bold uppercase tracking-wide mb-0.5">Ends In</p>
-                      <p className="font-black text-xl">10d 4h 20m</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 12, fontSize: 11, color: subTextColor, fontWeight: 700 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={11} />{previewEvent.startDate} → {previewEvent.endDate}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Trophy size={11} />{previewEvent.winnerCount} winners</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 mt-3 text-xs text-white/70">
-                    <span className="flex items-center gap-1"><Calendar size={11} />{previewEvent.startDate} → {previewEvent.endDate}</span>
-                    <span className="flex items-center gap-1"><Trophy size={11} />{previewEvent.winnerCount} winners</span>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Prize cards */}
               <div className="p-5">
