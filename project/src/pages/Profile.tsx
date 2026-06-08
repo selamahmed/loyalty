@@ -298,7 +298,7 @@ const Profile: React.FC = () => {
             </button>
           ))}
 
-          <button onClick={() => { setIsLoggedIn(false); playSound('click'); localStorage.removeItem('theme'); navigate('/'); }} style={{
+          <button onClick={() => { playSound('click'); setIsLoggedIn(false); navigate('/login'); }} style={{
             ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
             cursor: 'pointer', border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626',
             background: 'rgba(239,68,68,0.06)',

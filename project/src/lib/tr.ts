@@ -185,6 +185,7 @@ export const tr = {
     statistics: 'İstatistikler',
     personalInfo: 'Kişisel Bilgiler',
     preferences: 'Tercihler',
+    logout: 'Çıkış Yap',
   },
 
   // QR Scanner

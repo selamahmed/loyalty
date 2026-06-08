@@ -1,0 +1,42 @@
+You are an expert full-stack developer. I need you to refactor, fix bugs, and professionally polish my web application so it is 100% production-ready for deployment. Below is the breakdown of issues and the required structural changes.
+
+---
+
+## 1. Shop System Overhaul (Rename & Logic Update)
+*   **Rename & Concept:** Rename the "Rewards Shop" entirely to "Items Shop" (or simply "Shop") across the entire codebase (database tables, API endpoints, frontend text, and state management).
+*   **Product Logic:** The shop sells actual products/items (e.g., Tea). 
+*   **Inventory Flow:** When a user buys an item (like Tea) from the shop, the system must generate a corresponding **Ticket/Voucher** for that item and place it directly into the user's Inventory. 
+
+## 2. Professional Admin Dashboard Rewrite
+The current admin settings feel unprofessional and lack control. Implement a robust, corporate-grade Admin Console with the following features:
+
+### A. Shop Management
+*   Provide a dedicated interface for the Admin to fully manage the **Items Shop**.
+*   Admin must be able to Create, Read, Update, and Delete (CRUD) items, set prices, upload images, and toggle item availability.
+
+### B. User Inventory Management (Search & Edit)
+*   **User Search:** Implement a professional search bar or dropdown menu allowing the admin to search for a specific user by Name, Email, or User ID.
+*   **Inventory Control:** Once a user is selected, the admin must be able to view that specific user's inventory and manually add, remove, or edit items/tickets inside it.
+
+### C. Advanced Points Economy Management
+*   Build a dedicated "Points Control" panel.
+*   Admin must be able to professionally configure point values, set global earning rates, and manually adjust any user's point balance with audit logs or proper validation.
+
+## 3. Critical Bug Fixes
+
+### A. QR Code Generation Loop
+*   **Issue:** The user's QR code currently regenerates itself repeatedly with different codes.
+*   **Fix:** Fix the state/lifecycle logic. The QR code should be deterministic based on the user's unique static data (like User ID or a fixed token) or regenerate *only* on a strictly defined, secure time-based interval (like TOTP). Prevent infinite re-rendering loops.
+
+### B. User Logout Button
+*   **Issue:** The logout button in the User Profile is broken or misaligned.
+*   **Fix:** Repair the authentication state cleanup logic (clear tokens/sessions) and ensure the button successfully redirects the user to the landing/login page with clean UI state.
+
+## 4. Localization & Translation (Turkish Language)
+*   **Issue:** The sidebars, main layout texts, and footer are currently not in Turkish.
+*   **Fix:** Translate and hardcode (or use i18n localization keys) all sidebar navigation texts, footer elements, and core UI labels into **proper, professional Turkish**.
+
+---
+
+## Final Goal
+Ensure all components are typed correctly, API endpoints are secure, and the UI/UX is seamless. Make this project 100% stable and **ready to publish**.
