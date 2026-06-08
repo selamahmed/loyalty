@@ -29,6 +29,7 @@ const EMPTY_FORM: Omit<InventoryItem, 'id'> = {
   quantity: 1,
   image: '',
   points: 100,
+  barcode: '',
 };
 
 function genCode(type: string): string {
@@ -67,7 +68,7 @@ const AdminInventory: React.FC = () => {
 
   const openEdit = (item: InventoryItem) => {
     setEditingItem(item);
-    setForm({ type: item.type, title: item.title, description: item.description, expires: item.expires.slice(0, 10), code: item.code, used: item.used, quantity: item.quantity ?? 1, image: item.image ?? '', points: item.points ?? 0 });
+    setForm({ type: item.type, title: item.title, description: item.description, expires: item.expires.slice(0, 10), code: item.code, used: item.used, quantity: item.quantity ?? 1, image: item.image ?? '', points: item.points ?? 0, barcode: item.barcode ?? '' });
     setShowModal(true);
   };
 
@@ -167,6 +168,16 @@ const AdminInventory: React.FC = () => {
                     <QRPreview code={form.code} size={110} />
                   </div>
                 )}
+              </div>
+
+              {/* Barcode */}
+              <div>
+                <label className="block text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Barkod (EAN-13 / UPC / Code-128)</label>
+                <input type="text" placeholder="ör. 8690637000010" value={form.barcode ?? ''}
+                  onChange={e => setForm(f => ({ ...f, barcode: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl border-2 border-black dark:border-gray-600 bg-gray-50 dark:bg-gray-700 font-mono font-bold text-sm focus:outline-none dark:text-white shadow-[0_3px_0_#000] dark:shadow-[0_3px_0_#374151]"
+                />
+                <p className="text-xs text-gray-400 mt-1.5 font-medium">Kasada taranacak fiziksel ürün barkodu. Boş bırakılabilir.</p>
               </div>
 
               {/* Image URL */}

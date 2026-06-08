@@ -42,6 +42,7 @@ import AdminNotifications from './pages/admin/AdminNotifications';
 import AdminQR from './pages/admin/AdminQR';
 import AdminGames from './pages/admin/AdminGames';
 import AdminInventory from './pages/admin/AdminInventory';
+import AdminCheckout from './pages/admin/AdminCheckout';
 
 // Additional admin pages
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
@@ -103,6 +104,7 @@ function App() {
           <Route path="/admin/qr" element={<AdminQR />} />
           <Route path="/admin/games" element={<AdminGames />} />
           <Route path="/admin/inventory" element={<AdminInventory />} />
+          <Route path="/admin/checkout" element={<AdminCheckout />} />
 
           {/* New Admin Pages */}
           <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />

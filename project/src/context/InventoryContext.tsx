@@ -14,6 +14,7 @@ export interface InventoryItem {
   quantity: number;
   image: string;
   points: number;
+  barcode?: string;
 }
 
 interface InventoryContextType {
@@ -23,6 +24,7 @@ interface InventoryContextType {
   deleteItem: (id: string) => void;
   markUsed: (id: string) => void;
   getByCode: (code: string) => InventoryItem | undefined;
+  getByBarcode: (barcode: string) => InventoryItem | undefined;
 }
 
 const InventoryContext = createContext<InventoryContextType | null>(null);
@@ -58,8 +60,11 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const getByCode = (code: string) =>
     items.find(i => i.code.toUpperCase() === code.toUpperCase().trim());
 
+  const getByBarcode = (barcode: string) =>
+    items.find(i => i.barcode && i.barcode.trim() === barcode.trim());
+
   return (
-    <InventoryContext.Provider value={{ items, addItem, updateItem, deleteItem, markUsed, getByCode }}>
+    <InventoryContext.Provider value={{ items, addItem, updateItem, deleteItem, markUsed, getByCode, getByBarcode }}>
       {children}
     </InventoryContext.Provider>
   );
