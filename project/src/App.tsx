@@ -49,6 +49,7 @@ import AdminPointsEconomy from './pages/admin/AdminPointsEconomy';
 import AdminDashboard2 from './pages/admin/AdminDashboard2';
 import AdminUsers2 from './pages/admin/AdminUsers2';
 import AdminRewardEvents from './pages/admin/AdminRewardEvents';
+import AdminDailyRewards from './pages/admin/AdminDailyRewards';
 
 // Error pages
 import { NotFound, NoConnection, Maintenance } from './pages/ErrorPages';
@@ -110,6 +111,7 @@ function App() {
           <Route path="/admin/dashboard-v2" element={<AdminDashboard2 />} />
           <Route path="/admin/users-v2" element={<AdminUsers2 />} />
           <Route path="/admin/reward-events" element={<AdminRewardEvents />} />
+          <Route path="/admin/daily-rewards" element={<AdminDailyRewards />} />
 
           {/* Error Pages */}
           <Route path="/no-connection" element={<NoConnection />} />

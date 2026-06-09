@@ -6,6 +6,7 @@ import { rewards, missions, notifications } from '../data/mockData';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { WinningParticles } from '../components/WinningParticles';
+import { DailyRewardModal, useDailyReward } from '../components/DailyRewardModal';
 
 const card = {
   background: 'var(--card-bg)',
@@ -25,6 +26,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const { user, points } = useApp();
   const [showParticles, setShowParticles] = useState(false);
+  const { show: showDailyReward, setShow: setShowDailyReward } = useDailyReward();
   const xpPercent = Math.round((user.xp / user.xpToNext) * 100);
   const dailyMissions = missions.filter(m => m.category === 'daily');
   const completedToday = dailyMissions.filter(m => m.completed).length;
@@ -48,6 +50,7 @@ const Home: React.FC = () => {
       </div>
 
       <WinningParticles trigger={showParticles} emoji="🌟" />
+      {showDailyReward && <DailyRewardModal onClose={() => setShowDailyReward(false)} />}
 
       <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-4xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
 

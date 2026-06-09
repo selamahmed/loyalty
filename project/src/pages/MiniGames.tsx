@@ -261,129 +261,244 @@ const QuizGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
   );
 };
 
-// --- Catch Game (FIXED) ---
+// --- Cup Catch Game ---
+type FallingItem = { id: number; x: number; y: number; type: 'gift' | 'star' | 'bomb' };
+
 const CatchGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
-  const [active, setActive] = useState(false);
-  const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(15);
-  const [items, setItems] = useState<{ id: number; x: number; y: number; type: string }[]>([]);
-  const [finished, setFinished] = useState(false);
-  const gameRef = useRef<HTMLDivElement>(null);
-  const nextId = useRef(0);
+  const [gameState, setGameState] = useState<'idle' | 'playing' | 'done'>('idle');
+  const [displayItems, setDisplayItems] = useState<FallingItem[]>([]);
+  const [displayScore, setDisplayScore] = useState(0);
+  const [displayTime, setDisplayTime] = useState(20);
+  const [cupX, setCupX] = useState(50);
+
+  const gameAreaRef = useRef<HTMLDivElement>(null);
+  const cupXRef   = useRef(50);
+  const scoreRef  = useRef(0);
+  const itemsRef  = useRef<FallingItem[]>([]);
+  const nextIdRef = useRef(0);
+  const activeRef = useRef(false);
+  const timeRef   = useRef(20);
+  const holdDir   = useRef<-1 | 0 | 1>(0);
+
+  const CUP_HALF = 10; // % half-width of cup
+
+  const clampCup = (x: number) => Math.max(CUP_HALF + 1, Math.min(100 - CUP_HALF - 1, x));
 
   const start = () => {
-    setScore(0);
-    setTimeLeft(15);
-    setItems([]);
-    setFinished(false);
-    setActive(true);
-    nextId.current = 0;
+    scoreRef.current = 0; itemsRef.current = []; nextIdRef.current = 0; timeRef.current = 20;
+    setDisplayScore(0); setDisplayTime(20); setDisplayItems([]);
+    const cx = 50; cupXRef.current = cx; setCupX(cx);
+    setGameState('playing'); activeRef.current = true;
   };
 
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!gameAreaRef.current) return;
+    const rect = gameAreaRef.current.getBoundingClientRect();
+    const x = clampCup(((e.clientX - rect.left) / rect.width) * 100);
+    cupXRef.current = x; setCupX(x);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!gameAreaRef.current) return;
+    const rect = gameAreaRef.current.getBoundingClientRect();
+    const x = clampCup(((e.touches[0].clientX - rect.left) / rect.width) * 100);
+    cupXRef.current = x; setCupX(x);
+  };
+
+  // Hold-button movement
   useEffect(() => {
-    if (!active) return;
+    if (gameState !== 'playing') return;
+    const id = setInterval(() => {
+      if (holdDir.current !== 0) {
+        const nx = clampCup(cupXRef.current + holdDir.current * 4);
+        cupXRef.current = nx; setCupX(nx);
+      }
+    }, 40);
+    return () => clearInterval(id);
+  }, [gameState]);
 
-    // Create new items every 600ms
-    const itemInterval = setInterval(() => {
-      setItems(prev => {
-        const newItem = {
-          id: nextId.current++,
-          x: Math.random() * 85 + 7.5,
-          y: -8,
-          type: Math.random() > 0.8 ? '💣' : Math.random() > 0.5 ? '⭐' : '🎁',
-        };
-        return [...prev.slice(-8), newItem];
-      });
-    }, 600);
+  // Main game loop
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+    activeRef.current = true;
 
-    // Move items down every 40ms (smooth animation)
-    const moveInterval = setInterval(() => {
-      setItems(prev =>
-        prev
-          .map(item => ({ ...item, y: item.y + 2.5 }))
-          .filter(item => item.y <= 110)
-      );
+    const spawnId = setInterval(() => {
+      if (!activeRef.current) return;
+      const r = Math.random();
+      itemsRef.current = [...itemsRef.current, {
+        id: nextIdRef.current++,
+        x: Math.random() * 78 + 11,
+        y: -6,
+        type: r > 0.8 ? 'bomb' : r > 0.5 ? 'star' : 'gift',
+      }];
+    }, 750);
+
+    const loopId = setInterval(() => {
+      if (!activeRef.current) return;
+      const cup = cupXRef.current;
+      itemsRef.current = itemsRef.current
+        .map(i => ({ ...i, y: i.y + 2.4 }))
+        .filter(i => {
+          if (i.y >= 78 && i.y < 94) {
+            if (Math.abs(i.x - cup) <= CUP_HALF + 2) {
+              if (i.type === 'bomb')  scoreRef.current = Math.max(0, scoreRef.current - 3);
+              else if (i.type === 'star') scoreRef.current += 2;
+              else                    scoreRef.current += 1;
+              setDisplayScore(scoreRef.current);
+              return false;
+            }
+          }
+          return i.y < 102;
+        });
+      setDisplayItems([...itemsRef.current]);
     }, 40);
 
-    // Timer countdown
-    const timerInterval = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) {
-          setActive(false);
-          setFinished(true);
-          clearInterval(itemInterval);
-          clearInterval(moveInterval);
-          clearInterval(timerInterval);
-          return 0;
-        }
-        return t - 1;
-      });
+    const timerId = setInterval(() => {
+      if (!activeRef.current) return;
+      timeRef.current--;
+      setDisplayTime(timeRef.current);
+      if (timeRef.current <= 0) {
+        activeRef.current = false;
+        clearInterval(spawnId); clearInterval(loopId); clearInterval(timerId);
+        setGameState('done');
+        onWin(Math.max(0, scoreRef.current) * 5);
+      }
     }, 1000);
 
     return () => {
-      clearInterval(itemInterval);
-      clearInterval(moveInterval);
-      clearInterval(timerInterval);
+      activeRef.current = false;
+      clearInterval(spawnId); clearInterval(loopId); clearInterval(timerId);
     };
-  }, [active]);
+  }, [gameState, onWin]);
 
-  useEffect(() => {
-    if (finished) onWin(Math.max(0, score * 5));
-  }, [finished, score, onWin]);
-
-  const catchItem = (id: number, type: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
-    if (type === '💣') setScore(s => Math.max(0, s - 2));
-    else setScore(s => s + (type === '⭐' ? 2 : 1));
-  };
+  const emoji = (t: FallingItem['type']) => t === 'gift' ? '🎁' : t === 'star' ? '⭐' : '💣';
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {!active && !finished && (
+      {gameState === 'idle' && (
         <div className="text-center space-y-3">
-          <div className="text-5xl animate-float">🎁</div>
-          <p className="font-bold text-gray-700 dark:text-gray-300">Catch gifts, avoid bombs!</p>
-          <button onClick={start} className="btn-primary px-8">Start Game</button>
+          <div className="text-6xl">🏆</div>
+          <p className="font-black text-lg text-gray-900 dark:text-white">Düşen Ödülleri Yakala!</p>
+          <div className="flex justify-center gap-6 text-sm font-black">
+            <span className="px-2 py-1 rounded-lg border-2 border-black bg-white dark:bg-gray-800 shadow-[2px_2px_0_#000]">🎁 = +1</span>
+            <span className="px-2 py-1 rounded-lg border-2 border-black bg-white dark:bg-gray-800 shadow-[2px_2px_0_#000]">⭐ = +2</span>
+            <span className="px-2 py-1 rounded-lg border-2 border-black bg-white dark:bg-gray-800 shadow-[2px_2px_0_#000]">💣 = -3</span>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">🖱️ Fare veya parmağınla kupayı hareket ettir</p>
+          <button onClick={start} className="btn-primary px-8 py-3">Oyunu Başlat</button>
         </div>
       )}
-      {finished && (
+
+      {gameState === 'done' && (
         <div className="text-center space-y-3">
           <div className="text-5xl">🏆</div>
-          <p className="font-black text-2xl text-gray-900 dark:text-white">Score: {score}</p>
-          <p className="text-gray-500">Earned <span className="font-black text-amber-500">{Math.max(0, score * 5)} points</span></p>
-          <button onClick={start} className="btn-primary px-8">Play Again</button>
+          <p className="font-black text-2xl text-gray-900 dark:text-white">Skor: {displayScore}</p>
+          <p className="text-gray-500 dark:text-gray-400">Kazandın: <span className="font-black text-amber-500">{Math.max(0, displayScore) * 5} puan</span></p>
+          <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>
         </div>
       )}
-      {active && (
+
+      {gameState === 'playing' && (
         <div className="w-full max-w-xs">
-          <div className="flex justify-between mb-2 text-sm font-bold">
-            <span className="text-gray-700 dark:text-gray-300">Score: {score}</span>
-            <span className={timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-gray-700 dark:text-gray-300'}>{timeLeft}s</span>
+          {/* HUD */}
+          <div className="flex justify-between items-center mb-2 px-1">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-black dark:border-gray-400 bg-white dark:bg-gray-800 shadow-[3px_3px_0_#000] dark:shadow-[3px_3px_0_#374151] font-black text-sm text-gray-900 dark:text-white">
+              🏆 {displayScore}
+            </div>
+            <div className={`px-3 py-1.5 rounded-xl border-2 border-black dark:border-gray-400 shadow-[3px_3px_0_#000] dark:shadow-[3px_3px_0_#374151] font-black text-sm ${displayTime <= 5 ? 'bg-red-400 text-white animate-pulse' : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white'}`}>
+              ⏱ {displayTime}s
+            </div>
           </div>
+
+          {/* Game area */}
           <div
-            ref={gameRef}
-            className="relative w-full bg-gradient-to-b from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-3xl border-2 border-black dark:border-gray-600 overflow-hidden"
-            style={{ height: '320px' }}
+            ref={gameAreaRef}
+            onPointerMove={handlePointerMove}
+            onTouchMove={handleTouchMove}
+            style={{
+              position: 'relative', height: 360, width: '100%',
+              background: '#f0f9ff',
+              border: '3px solid #000',
+              borderRadius: 18, overflow: 'hidden',
+              cursor: 'none', touchAction: 'none',
+              boxShadow: '5px 5px 0 #000',
+              userSelect: 'none',
+            }}
           >
+            {/* Grid background (neo-brutalism) */}
+            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.07 }} xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="cgrid" width="28" height="28" patternUnits="userSpaceOnUse">
+                  <path d="M 28 0 L 0 0 0 28" fill="none" stroke="black" strokeWidth="1"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#cgrid)"/>
+            </svg>
+
+            {/* Catch zone indicator */}
+            <div style={{ position: 'absolute', bottom: '14%', left: 0, right: 0, height: 2, background: '#000', opacity: 0.12 }} />
+
             {/* Falling items */}
-            {items.map(item => (
-              <button
+            {displayItems.map(item => (
+              <div
                 key={item.id}
-                onClick={() => catchItem(item.id, item.type)}
-                className="absolute text-3xl hover:scale-125 transition-transform cursor-pointer active:scale-90"
                 style={{
+                  position: 'absolute',
                   left: `${item.x}%`,
                   top: `${item.y}%`,
-                  transform: 'translateX(-50%)',
+                  transform: 'translate(-50%, -50%)',
+                  fontSize: 30, lineHeight: 1,
+                  pointerEvents: 'none',
+                  filter: item.type === 'bomb' ? 'drop-shadow(0 0 5px rgba(239,68,68,0.8))' : 'drop-shadow(0 2px 2px rgba(0,0,0,0.3))',
                 }}
               >
-                {item.type}
-              </button>
+                {emoji(item.type)}
+              </div>
             ))}
-            {/* Bottom safe zone */}
-            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-green-200/30 to-transparent border-t-2 border-green-400 flex items-center justify-center">
-              <span className="text-xs font-bold text-green-600 dark:text-green-400">Safe Zone</span>
+
+            {/* Cup */}
+            <div style={{
+              position: 'absolute', bottom: '5%',
+              left: `${cupX}%`, transform: 'translateX(-50%)',
+              width: `${CUP_HALF * 2}%`, pointerEvents: 'none',
+            }}>
+              <svg viewBox="0 0 80 52" style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+                {/* Rim */}
+                <rect x="1" y="1" width="78" height="12" rx="5" fill="#fbbf24" stroke="#000" strokeWidth="3"/>
+                {/* Body */}
+                <path d="M 10 13 L 70 13 L 62 49 L 18 49 Z" fill="#fbbf24" stroke="#000" strokeWidth="3" strokeLinejoin="round"/>
+                {/* Shine stripe */}
+                <line x1="22" y1="18" x2="18" y2="44" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.5"/>
+                {/* Star */}
+                <text x="44" y="36" textAnchor="middle" dominantBaseline="middle" fontSize="15">⭐</text>
+              </svg>
             </div>
+
+            {/* Ground */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: '#000' }} />
+          </div>
+
+          {/* Mobile hold-buttons */}
+          <div className="flex gap-3 mt-3">
+            <button
+              onPointerDown={() => { holdDir.current = -1; }}
+              onPointerUp={() => { holdDir.current = 0; }}
+              onPointerLeave={() => { holdDir.current = 0; }}
+              className="flex-1 py-4 rounded-2xl font-black text-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white select-none"
+              style={{ border: '3px solid #000', boxShadow: '4px 4px 0 #000', touchAction: 'none' }}
+            >
+              ◀ Sol
+            </button>
+            <button
+              onPointerDown={() => { holdDir.current = 1; }}
+              onPointerUp={() => { holdDir.current = 0; }}
+              onPointerLeave={() => { holdDir.current = 0; }}
+              className="flex-1 py-4 rounded-2xl font-black text-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white select-none"
+              style={{ border: '3px solid #000', boxShadow: '4px 4px 0 #000', touchAction: 'none' }}
+            >
+              Sağ ▶
+            </button>
           </div>
         </div>
       )}
