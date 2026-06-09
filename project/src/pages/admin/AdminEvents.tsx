@@ -8,7 +8,7 @@ const nbCard = {
   border: '3px solid #000',
   boxShadow: '0 6px 0 #000',
   borderRadius: 18,
-  background: '#fff',
+  background: 'var(--card-bg)',
   overflow: 'hidden' as const,
 };
 
@@ -65,7 +65,7 @@ const AdminEvents: React.FC = () => {
                 </div>
                 <h3 style={{ fontWeight: 900, fontSize: 20, margin: 0, color: 'var(--text-dark)' }}>{editingEvent ? 'Edit Event' : 'Create Event'}</h3>
               </div>
-              <button onClick={() => setShowModal(false)} style={{ width: 36, height: 36, borderRadius: 10, border: '2.5px solid #000', boxShadow: '0 3px 0 #000', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <button onClick={() => setShowModal(false)} style={{ width: 36, height: 36, borderRadius: 10, border: '2.5px solid #000', boxShadow: '0 3px 0 #000', background: 'var(--card-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
@@ -96,7 +96,7 @@ const AdminEvents: React.FC = () => {
                     <button key={m} type="button" onClick={() => setForm({...form, multiplier: m})} style={{
                       flex: 1, padding: '8px 4px', fontWeight: 900, fontSize: 13, borderRadius: 10, cursor: 'pointer',
                       border: '2.5px solid #000', boxShadow: form.multiplier === m ? '0 4px 0 #000' : '0 2px 0 #000',
-                      background: form.multiplier === m ? multiplierColor[m] : '#fff',
+                      background: form.multiplier === m ? multiplierColor[m] : 'var(--card-bg)',
                       transform: form.multiplier === m ? 'translateY(-2px)' : '',
                     }}>{m}</button>
                   ))}
@@ -105,11 +105,11 @@ const AdminEvents: React.FC = () => {
               <button type="button" onClick={() => setForm({...form, active: !form.active})} style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
                 border: '2.5px solid #000', boxShadow: '0 3px 0 #000',
-                background: form.active ? '#FFE500' : '#fff', fontWeight: 900, fontSize: 13,
+                background: form.active ? '#FFE500' : 'var(--card-bg)', fontWeight: 900, fontSize: 13,
               }}>
                 <div style={{
                   width: 22, height: 22, borderRadius: 6, border: '2.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: form.active ? '#000' : '#fff',
+                  background: form.active ? '#000' : 'var(--tab-bg)',
                 }}>
                   {form.active && <Check size={13} color="#FFE500" />}
                 </div>
@@ -120,7 +120,7 @@ const AdminEvents: React.FC = () => {
             <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
               <button onClick={() => setShowModal(false)} style={{
                 flex: 1, padding: '11px 0', fontWeight: 900, fontSize: 13, borderRadius: 12, cursor: 'pointer',
-                border: '2.5px solid #000', boxShadow: '0 4px 0 #000', background: '#fff', color: '#000',
+                border: '2.5px solid #000', boxShadow: '0 4px 0 #000', background: 'var(--card-bg)', color: 'var(--text-dark)',
               }}>İptal</button>
               <button onClick={handleSave} style={{
                 flex: 1, padding: '11px 0', fontWeight: 900, fontSize: 13, borderRadius: 12, cursor: 'pointer',
@@ -212,7 +212,7 @@ const AdminEvents: React.FC = () => {
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                         <button onClick={() => openEdit(ev)} style={{
                           width: 34, height: 34, borderRadius: 10, border: '2.5px solid #000', boxShadow: '0 3px 0 #000',
-                          background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                          background: 'var(--card-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                         }}>
                           <Edit3 size={14} />
                         </button>

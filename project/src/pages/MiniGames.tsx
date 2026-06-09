@@ -580,41 +580,69 @@ const FlappyGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
       {!active && !gameOver && (
         <div className="text-center space-y-3">
           <div className="text-5xl animate-float">🐦</div>
-          <p className="font-bold text-gray-700 dark:text-gray-300">Tap to fly! Avoid pipes!</p>
-          <button onClick={start} className="btn-primary px-8">Start Game</button>
+          <p style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Tıkla ve uç! Borulardan kaç!</p>
+          <button onClick={start} className="btn-primary px-8">Oyunu Başlat</button>
         </div>
       )}
       {gameOver && (
         <div className="text-center space-y-3">
           <div className="text-5xl">💥</div>
-          <p className="font-black text-2xl text-gray-900 dark:text-white">Score: {score}</p>
-          <p className="text-gray-500">Earned <span className="font-black text-amber-500">{score * 10} points</span></p>
-          <button onClick={start} className="btn-primary px-8">Play Again</button>
+          <p style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)' }}>Skor: {score}</p>
+          <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Kazanıldı: <span style={{ fontWeight: 900, color: '#f59e0b' }}>{score * 10} puan</span></p>
+          <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>
         </div>
       )}
       {active && (
         <div className="w-full max-w-xs">
-          <div className="mb-2 text-sm font-bold text-gray-700 dark:text-gray-300">Score: {score}</div>
+          <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 900, color: 'var(--text-dark)' }}>Skor: {score}</div>
           <button
             onClick={flap}
-            className="relative w-full h-80 bg-gradient-to-b from-sky-200 to-sky-100 dark:from-sky-900/30 dark:to-sky-800/20 rounded-3xl border-2 border-black dark:border-gray-600 overflow-hidden"
+            style={{
+              position: 'relative', width: '100%', height: 320,
+              background: 'var(--card-bg)',
+              border: '3px solid var(--dark-border)',
+              boxShadow: '5px 5px 0 var(--dark-border)',
+              borderRadius: 18, overflow: 'hidden', display: 'block', cursor: 'pointer',
+            }}
           >
+            {/* Grid bg */}
+            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.06 }} xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="fgrid" width="28" height="28" patternUnits="userSpaceOnUse">
+                  <path d="M 28 0 L 0 0 0 28" fill="none" stroke="currentColor" strokeWidth="1"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#fgrid)"/>
+            </svg>
             {/* Bird */}
             <div
-              className="absolute left-8 text-3xl transition-all"
-              style={{ top: `${birdY}px` }}
+              style={{ position: 'absolute', left: 32, fontSize: 28, lineHeight: 1, top: `${birdY}px`, transition: 'top 0.05s' }}
             >
               🐦
             </div>
 
             {/* Pipes */}
             {pipes.map(pipe => (
-              <div key={pipe.id} className="absolute top-0 w-12 bg-green-500 border-2 border-green-700" style={{ left: `${pipe.x}px`, height: `${pipe.gapY}px` }} />
+              <div key={pipe.id} style={{
+                position: 'absolute', top: 0, width: 44,
+                background: '#22c55e', border: '3px solid #000',
+                boxShadow: '3px 0 0 #000',
+                left: `${pipe.x}px`, height: `${pipe.gapY}px`,
+              }} />
             ))}
             {pipes.map(pipe => (
-              <div key={`bottom-${pipe.id}`} className="absolute bottom-0 w-12 bg-green-500 border-2 border-green-700" style={{ left: `${pipe.x}px`, height: `${280 - pipe.gapY - 80}px` }} />
+              <div key={`bottom-${pipe.id}`} style={{
+                position: 'absolute', bottom: 0, width: 44,
+                background: '#22c55e', border: '3px solid #000',
+                boxShadow: '3px 0 0 #000',
+                left: `${pipe.x}px`, height: `${280 - pipe.gapY - 80}px`,
+              }} />
             ))}
+
+            {/* Ground line */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'var(--dark-border)' }} />
           </button>
+          <p style={{ textAlign: 'center', marginTop: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>Uçmak için tıkla</p>
         </div>
       )}
     </div>
@@ -690,22 +718,26 @@ const SnakeGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
       {!active && !gameOver && (
         <div className="text-center space-y-3">
           <div className="text-5xl animate-float">🐍</div>
-          <p className="font-bold text-gray-700 dark:text-gray-300">Use arrow keys or buttons to move</p>
-          <button onClick={start} className="btn-primary px-8">Start Game</button>
+          <p style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Yön tuşları veya butonlarla hareket et</p>
+          <button onClick={start} className="btn-primary px-8">Oyunu Başlat</button>
         </div>
       )}
       {gameOver && (
         <div className="text-center space-y-3">
           <div className="text-5xl">💀</div>
-          <p className="font-black text-2xl text-gray-900 dark:text-white">Score: {score}</p>
-          <p className="text-gray-500">Earned <span className="font-black text-amber-500">{score * 15} points</span></p>
-          <button onClick={start} className="btn-primary px-8">Play Again</button>
+          <p style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)' }}>Skor: {score}</p>
+          <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Kazanıldı: <span style={{ fontWeight: 900, color: '#f59e0b' }}>{score * 15} puan</span></p>
+          <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>
         </div>
       )}
       {active && (
         <div className="w-full max-w-xs space-y-4">
-          <div className="text-center text-sm font-bold text-gray-700 dark:text-gray-300">Score: {score}</div>
-          <div className="grid gap-0.5 bg-gray-800 p-2 rounded-2xl border-2 border-black dark:border-gray-600 mx-auto" style={{ gridTemplateColumns: 'repeat(15, 1fr)', maxWidth: '240px' }}>
+          <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 900, color: 'var(--text-dark)' }}>Skor: {score}</div>
+          <div style={{
+            display: 'grid', gap: 2, padding: 8, borderRadius: 18, border: '3px solid var(--dark-border)',
+            boxShadow: '4px 4px 0 var(--dark-border)', background: '#0c1220', margin: '0 auto',
+            gridTemplateColumns: 'repeat(15, 1fr)', maxWidth: '240px',
+          }}>
             {Array.from({ length: 15 * 15 }).map((_, i) => {
               const x = i % 15;
               const y = Math.floor(i / 15);
@@ -715,41 +747,59 @@ const SnakeGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
               return (
                 <div
                   key={i}
-                  className={`w-3 h-3 sm:w-4 sm:h-4 rounded-sm transition-colors ${
-                    isHead ? 'bg-green-400' : isSnake ? 'bg-green-500' : isFood ? 'bg-red-500' : 'bg-gray-700'
-                  }`}
+                  style={{
+                    width: 12, height: 12, borderRadius: 2,
+                    background: isHead ? '#4ade80' : isSnake ? '#22c55e' : isFood ? '#ef4444' : '#1e2a3a',
+                    transition: 'background 0.08s',
+                  }}
                 />
               );
             })}
           </div>
 
           {/* Touch Controls for Mobile */}
-          <div className="flex flex-col items-center gap-2">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <button
               onClick={() => changeDirection([0, -1])}
-              className="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-gray-700 border-2 border-black dark:border-gray-600 flex items-center justify-center text-2xl font-bold active:scale-95 hover:bg-gray-300 dark:hover:bg-gray-600 transition-transform"
-            >
-              ⬆️
-            </button>
-            <div className="flex gap-2">
+              style={{
+                width: 52, height: 52, borderRadius: 14,
+                background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)',
+                boxShadow: '0 4px 0 var(--dark-border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 22, fontWeight: 900, cursor: 'pointer',
+              }}
+            >▲</button>
+            <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={() => changeDirection([-1, 0])}
-                className="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-gray-700 border-2 border-black dark:border-gray-600 flex items-center justify-center text-2xl font-bold active:scale-95 hover:bg-gray-300 dark:hover:bg-gray-600 transition-transform"
-              >
-                ⬅️
-              </button>
+                style={{
+                  width: 52, height: 52, borderRadius: 14,
+                  background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)',
+                  boxShadow: '0 4px 0 var(--dark-border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 22, fontWeight: 900, cursor: 'pointer',
+                }}
+              >◀</button>
               <button
                 onClick={() => changeDirection([0, 1])}
-                className="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-gray-700 border-2 border-black dark:border-gray-600 flex items-center justify-center text-2xl font-bold active:scale-95 hover:bg-gray-300 dark:hover:bg-gray-600 transition-transform"
-              >
-                ⬇️
-              </button>
+                style={{
+                  width: 52, height: 52, borderRadius: 14,
+                  background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)',
+                  boxShadow: '0 4px 0 var(--dark-border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 22, fontWeight: 900, cursor: 'pointer',
+                }}
+              >▼</button>
               <button
                 onClick={() => changeDirection([1, 0])}
-                className="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-gray-700 border-2 border-black dark:border-gray-600 flex items-center justify-center text-2xl font-bold active:scale-95 hover:bg-gray-300 dark:hover:bg-gray-600 transition-transform"
-              >
-                ➡️
-              </button>
+                style={{
+                  width: 52, height: 52, borderRadius: 14,
+                  background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)',
+                  boxShadow: '0 4px 0 var(--dark-border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 22, fontWeight: 900, cursor: 'pointer',
+                }}
+              >▶</button>
             </div>
           </div>
         </div>

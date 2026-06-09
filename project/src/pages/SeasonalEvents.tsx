@@ -10,6 +10,17 @@ const card = {
   borderRadius: 20,
 };
 
+const solidEventColor = (c: string): string => {
+  if (c.includes('pink') || c.includes('rose')) return '#ec4899';
+  if (c.includes('blue') && !c.includes('slate')) return '#3b82f6';
+  if (c.includes('cyan')) return '#06b6d4';
+  if (c.includes('slate') || c.includes('gray')) return '#64748b';
+  if (c.includes('green') || c.includes('emerald')) return '#22c55e';
+  if (c.includes('amber') || c.includes('yellow')) return '#f59e0b';
+  if (c.includes('red') || c.includes('orange')) return '#ef4444';
+  return '#7B6EF6';
+};
+
 const eventRewards = [
   { id: '1', title: 'Yaz Bez Çantası',  points: 300,  unlocked: true,  icon: '👜' },
   { id: '2', title: 'Güneş Kremi Seti', points: 150,  unlocked: true,  icon: '🧴' },
@@ -38,7 +49,7 @@ const SeasonalEvents: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-            background: 'linear-gradient(180deg,#f87171,#dc2626)',
+            background: '#ef4444',
             border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
           }}>🌟</div>
@@ -64,8 +75,8 @@ const SeasonalEvents: React.FC = () => {
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
             >
               {/* Banner */}
-              <div className={`h-24 bg-gradient-to-br ${event.color} relative overflow-hidden`} style={{ borderBottom: '3px solid var(--dark-border)' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.15)' }} />
+              <div style={{ height: 96, background: solidEventColor(event.color), position: 'relative', overflow: 'hidden', borderBottom: '3px solid var(--dark-border)' }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.18)' }} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px', textAlign: 'center' }}>
                   <p style={{ fontWeight: 900, color: 'white', fontSize: 14, margin: '0 0 4px', textShadow: '0 2px 4px rgba(0,0,0,0.3)', lineHeight: 1.2 }}>{event.title}</p>
                   {event.active && (
@@ -91,7 +102,7 @@ const SeasonalEvents: React.FC = () => {
                   <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--primary-blue)' }}>{event.unlockedRewards}/{event.totalRewards}</span>
                 </div>
                 <div style={{ height: 6, borderRadius: 999, background: 'var(--tab-bg)', border: '1.5px solid var(--dark-border)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${event.progress}%`, background: 'linear-gradient(90deg,var(--gradient-start),var(--gradient-end))', borderRadius: 999 }} />
+                  <div style={{ height: '100%', width: `${event.progress}%`, background: 'var(--primary-blue)', borderRadius: 999 }} />
                 </div>
               </div>
             </div>
@@ -101,7 +112,7 @@ const SeasonalEvents: React.FC = () => {
         {/* ── Selected event hero ── */}
         {selectedEvent && (
           <>
-            <div className={`bg-gradient-to-br ${selectedEvent.color}`} style={{ ...card, padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ ...card, background: solidEventColor(selectedEvent.color), padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>

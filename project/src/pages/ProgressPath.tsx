@@ -410,11 +410,11 @@ const ProgressPath: React.FC = () => {
                 <div style={{
                   flex: 1, border: '3px solid #FF3CAC', boxShadow: '0 5px 0 #FF3CAC',
                   borderRadius: 16, padding: '12px 16px',
-                  background: '#ffe0f5', display: 'flex', alignItems: 'center', gap: 10,
+                  background: 'var(--card-bg)', display: 'flex', alignItems: 'center', gap: 10,
                 }}>
                   <div style={{ fontSize: 28 }}>👑</div>
                   <div>
-                    <p style={{ fontWeight: 900, fontSize: 14, color: '#000', margin: 0 }}>Maksimum Seviye</p>
+                    <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: 0 }}>Maksimum Seviye</p>
                     <p style={{ fontSize: 11, color: '#c026d3', margin: '2px 0 0', fontWeight: 700 }}>Efsane ol. Tarihe geç.</p>
                   </div>
                 </div>
