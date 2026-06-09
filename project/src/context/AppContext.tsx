@@ -32,7 +32,7 @@ const AppContext = createContext<AppContextType | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
   });
   const [points, setPoints] = useState(currentUser.currentPoints);
   const [isLoggedIn, setIsLoggedIn] = useState(true);

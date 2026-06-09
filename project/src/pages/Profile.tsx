@@ -148,25 +148,25 @@ const Profile: React.FC = () => {
         {/* ── Points card ── */}
         <div style={{
           ...card,
-          background: 'linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(217,119,6,0.1) 100%)',
-          border: '3px solid #f59e0b', boxShadow: '0 6px 0 #d97706',
+          background: 'linear-gradient(135deg,rgba(123,110,246,0.18) 0%,rgba(167,139,250,0.1) 100%)',
+          border: '3px solid #7B6EF6', boxShadow: '0 6px 0 #000',
           padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16,
         }}>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#d97706', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{tr.profile.availablePoints}</p>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{tr.profile.availablePoints}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Star size={28} fill="#f59e0b" color="#f59e0b" />
-              <span style={{ fontSize: 38, fontWeight: 900, color: '#d97706', lineHeight: 1 }}>{points.toLocaleString()}</span>
+              <Star size={28} fill="#a78bfa" color="#a78bfa" />
+              <span style={{ fontSize: 38, fontWeight: 900, color: 'var(--text-dark)', lineHeight: 1 }}>{points.toLocaleString()}</span>
             </div>
           </div>
           <button onClick={() => navigate('/redeem')} style={{
             padding: '12px 20px', borderRadius: 14, fontWeight: 900, fontSize: 14,
-            background: '#f59e0b', color: 'black',
-            border: '3px solid #d97706', boxShadow: '0 5px 0 #d97706',
+            background: '#7B6EF6', color: 'white',
+            border: '3px solid #000', boxShadow: '0 5px 0 #000',
             cursor: 'pointer', flexShrink: 0, transition: 'transform 0.1s, box-shadow 0.1s',
           }}
-            onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 #d97706'; }}
-            onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 5px 0 #d97706'; }}
+            onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 #000'; }}
+            onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 5px 0 #000'; }}
           >{tr.profile.redeem}</button>
         </div>
 

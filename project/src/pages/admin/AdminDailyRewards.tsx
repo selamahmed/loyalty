@@ -12,8 +12,8 @@ function loadConfig(): DayReward[] {
   return DEFAULT_REWARDS;
 }
 
-const DAY_COLORS = ['#fef08a','#fed7aa','#bbf7d0','#bfdbfe','#e9d5ff','#fecdd3','#fef08a'];
-const DAY_BORDERS = ['#eab308','#f97316','#22c55e','#3b82f6','#a855f7','#ef4444','#f59e0b'];
+const DAY_COLORS  = ['rgba(123,110,246,0.18)','rgba(34,197,94,0.15)','rgba(6,182,212,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)','rgba(236,72,153,0.15)','rgba(255,229,0,0.18)'];
+const DAY_BORDERS = ['#7B6EF6','#22c55e','#06b6d4','#f59e0b','#ef4444','#ec4899','#FFE500'];
 
 const EMOJIS = ['🌟','🎁','💎','🎯','🔥','⚡','👑','🏆','🎮','💰','🎪','🌈','🦄','🎉','✨','🚀','💫','🎊','🥇','🎖️'];
 
@@ -59,7 +59,7 @@ const AdminDailyRewards: React.FC = () => {
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ width: 48, height: 48, borderRadius: 16, background: '#fef08a', border: '2.5px solid #000', boxShadow: '0 4px 0 #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(123,110,246,0.18)', border: '2.5px solid #7B6EF6', boxShadow: '0 4px 0 #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
             🗓️
           </div>
           <div style={{ flex: 1 }}>
@@ -72,7 +72,7 @@ const AdminDailyRewards: React.FC = () => {
               onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #000'; }}>
               <RotateCcw size={13} /> Varsayılan
             </button>
-            <button onClick={saveAll} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: '2.5px solid #000', background: saved ? '#4ade80' : '#fef08a', fontWeight: 900, fontSize: 12, cursor: 'pointer', boxShadow: saved ? '0 3px 0 #16a34a' : '0 3px 0 #000', color: '#111' }}
+            <button onClick={saveAll} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: '2.5px solid #000', background: saved ? '#4ade80' : '#7B6EF6', fontWeight: 900, fontSize: 12, cursor: 'pointer', boxShadow: saved ? '0 3px 0 #16a34a' : '0 3px 0 #000', color: '#fff' }}
               onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 #000'; }}
               onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #000'; }}>
               {saved ? <><CheckCircle size={13} /> Kaydedildi</> : <><Save size={13} /> Kaydet</>}
