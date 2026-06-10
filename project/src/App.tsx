@@ -62,6 +62,7 @@ import AdminDailyRewards from './pages/admin/AdminDailyRewards';
 
 // Store Admin pages
 import StoreAdminDashboard from './pages/admin/store/StoreAdminDashboard';
+import StoreAdminCustomers from './pages/admin/store/StoreAdminCustomers';
 
 // Cashier pages
 import CashierDashboard from './pages/admin/cashier/CashierDashboard';
@@ -126,7 +127,7 @@ function App() {
 
           {/* ── Store Admin (/store-admin/*) ───────────────────────────── */}
           <Route path="/store-admin"             element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
-          <Route path="/store-admin/customers"   element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
+          <Route path="/store-admin/customers"   element={<StoreAdminRoute><StoreAdminCustomers /></StoreAdminRoute>} />
           <Route path="/store-admin/rewards"     element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
           <Route path="/store-admin/inventory"   element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
           <Route path="/store-admin/promotions"  element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
