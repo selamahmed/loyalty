@@ -12,9 +12,6 @@ import SuperAdminRoute from './components/guards/SuperAdminRoute';
 import StoreAdminRoute from './components/guards/StoreAdminRoute';
 import CashierRoute    from './components/guards/CashierRoute';
 
-// Layouts (small — always loaded)
-import StoreAdminLayout from './pages/admin/store/StoreAdminLayout';
-
 // Always-needed pages (tiny, keep eager)
 import LandingPage   from './pages/LandingPage';
 import Login         from './pages/Login';
@@ -94,7 +91,7 @@ const SA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 const STA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <StoreAdminRoute><StoreAdminLayout>{children}</StoreAdminLayout></StoreAdminRoute>
+  <StoreAdminRoute>{children}</StoreAdminRoute>
 );
 
 const CA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
