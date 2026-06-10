@@ -1,11 +1,43 @@
 import React, { useState, useCallback } from 'react';
-import { Search, CreditCard as Edit3, Slash, Eye, Plus, X, Check, Gift, Trash2, Package, Zap, CheckSquare, Square, Users } from 'lucide-react';
+import { Search, Slash, Eye, Plus, X, Check, Gift, Trash2, Package, Zap, CheckSquare, Square, Users, ShieldCheck, ShieldOff, CreditCard as Edit3 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { adminUsers } from '../../data/mockData';
 import { playSound } from '../../lib/sounds';
 import { tr } from '../../lib/tr';
 
-type UserType = typeof adminUsers[0];
+type RoleType = 'customer' | 'store_admin' | 'cashier';
+
+interface ManagedUser {
+  id: string;
+  username: string;
+  email: string;
+  level: number;
+  points: number;
+  status: string;
+  joinDate: string;
+  avatar: string;
+  role: RoleType;
+}
+
+const INITIAL_USERS: ManagedUser[] = [
+  { ...adminUsers[0], role: 'customer'   },
+  { ...adminUsers[1], role: 'store_admin'},
+  { ...adminUsers[2], role: 'cashier'    },
+  { ...adminUsers[3], role: 'customer'   },
+  { ...adminUsers[4], role: 'customer'   },
+];
+
+const roleLabel: Record<RoleType, string> = {
+  customer:    'Müşteri',
+  store_admin: 'Mağaza Yön.',
+  cashier:     'Kasiyer',
+};
+
+const roleColor: Record<RoleType, string> = {
+  customer:    '#6b7280',
+  store_admin: '#22c55e',
+  cashier:     '#3b82f6',
+};
 
 interface InventoryItem {
   id: string;
@@ -31,9 +63,124 @@ const generateMockInventory = (userId: string): InventoryItem[] => {
   return all.slice(0, (seed % 3) + 2);
 };
 
+/* ─────────────────── Promote / Revoke modal ─────────────────── */
+const PromoteModal: React.FC<{
+  user: ManagedUser;
+  onClose: () => void;
+  onSave: (id: string, role: RoleType) => void;
+}> = ({ user, onClose, onSave }) => {
+  const [selected, setSelected] = useState<RoleType>(user.role === 'customer' ? 'store_admin' : 'customer');
+  const [done, setDone] = useState(false);
+
+  const isPromotion = user.role === 'customer';
+
+  const handle = () => {
+    setDone(true);
+    setTimeout(() => { onSave(user.id, selected); onClose(); }, 900);
+  };
+
+  const ROLE_OPTIONS: { value: RoleType; label: string; desc: string; color: string }[] = isPromotion
+    ? [
+        { value: 'store_admin', label: 'Mağaza Yöneticisi', desc: 'Mağaza ürünlerini yönetebilir',             color: '#22c55e' },
+        { value: 'cashier',     label: 'Kasiyer',           desc: 'QR tarama ve işlem görüntüleme yapabilir',  color: '#3b82f6' },
+      ]
+    : [
+        { value: 'customer', label: 'Müşteri', desc: 'Yönetim yetkisi iptal edilir, normal müşteri olur', color: '#6b7280' },
+      ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+      <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+        style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 8px 0px var(--dark-border)' }}>
+
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '2px solid var(--dark-border)' }}>
+          <div>
+            <p className="font-black" style={{ color: 'var(--text-dark)' }}>
+              {isPromotion ? 'Yönetici Rolü Ver' : 'Yetkiyi İptal Et'}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{user.username}</p>
+          </div>
+          <button onClick={onClose} style={{ color: 'var(--text-muted)' }}><X size={18} /></button>
+        </div>
+
+        {done ? (
+          <div className="p-10 flex flex-col items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+              style={{ background: isPromotion ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.1)', border: `2px solid ${isPromotion ? '#22c55e' : '#ef4444'}` }}>
+              {isPromotion ? <ShieldCheck size={28} style={{ color: '#22c55e' }} /> : <ShieldOff size={28} style={{ color: '#ef4444' }} />}
+            </div>
+            <p className="font-black text-lg" style={{ color: 'var(--text-dark)' }}>
+              {isPromotion ? 'Yetki verildi!' : 'Yetki iptal edildi!'}
+            </p>
+          </div>
+        ) : (
+          <div className="p-5 space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--tab-bg)', border: '2px solid var(--dark-border)' }}>
+              <img src={user.avatar} alt={user.username} className="w-10 h-10 rounded-full object-cover flex-shrink-0" style={{ border: '2px solid var(--dark-border)' }} />
+              <div>
+                <p className="font-black text-sm" style={{ color: 'var(--text-dark)' }}>{user.username}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Şu anki rol: <span className="font-black" style={{ color: roleColor[user.role] }}>{roleLabel[user.role]}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black block" style={{ color: 'var(--text-muted)' }}>
+                {isPromotion ? 'YENİ ROL SEÇ' : 'DEĞİŞTİRİLECEK ROL'}
+              </label>
+              {ROLE_OPTIONS.map(opt => (
+                <button key={opt.value} onClick={() => setSelected(opt.value)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all"
+                  style={{
+                    background: selected === opt.value ? `${opt.color}12` : 'var(--tab-bg)',
+                    border: `2px solid ${selected === opt.value ? opt.color : 'var(--dark-border)'}`,
+                    boxShadow: selected === opt.value ? `0px 2px 0px ${opt.color}` : 'none',
+                  }}>
+                  <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                    style={{ borderColor: selected === opt.value ? opt.color : 'var(--text-muted)' }}>
+                    {selected === opt.value && <div className="w-2 h-2 rounded-full" style={{ background: opt.color }} />}
+                  </div>
+                  <div>
+                    <p className="font-black text-sm" style={{ color: opt.color }}>{opt.label}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{opt.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {!isPromotion && (
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(239,68,68,0.06)', border: '2px solid #ef4444' }}>
+                <p className="text-xs font-black" style={{ color: '#ef4444' }}>
+                  Bu kullanıcının yönetici yetkisi kaldırılacak ve normal müşteri statüsüne düşürülecektir.
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button onClick={onClose} className="flex-1 py-3 rounded-xl font-black text-sm"
+                style={{ background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2px solid var(--dark-border)' }}>
+                İptal
+              </button>
+              <button onClick={handle} className="flex-1 py-3 rounded-xl font-black text-sm text-white"
+                style={{
+                  background: isPromotion ? '#22c55e' : '#ef4444',
+                  border: '2.5px solid var(--dark-border)',
+                  boxShadow: '0px 3px 0px var(--dark-border)',
+                }}>
+                {isPromotion ? 'Yetki Ver' : 'Yetkiyi İptal Et'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 /* ─────────────────────────── User modal ─────────────────────────── */
 const UserModal: React.FC<{
-  user: UserType;
+  user: ManagedUser;
   onClose: () => void;
   mode: 'view' | 'edit' | 'suspend' | 'points' | 'inventory';
 }> = ({ user, onClose, mode }) => {
@@ -93,6 +240,7 @@ const UserModal: React.FC<{
             {[
               { label: 'Seviye',         value: `${user.level}` },
               { label: 'Toplam Puanlar', value: user.points.toLocaleString('tr-TR') },
+              { label: 'Rol',            value: roleLabel[user.role] },
               { label: 'Durum',          value: user.status === 'active' ? 'Aktif' : 'Askıya Alınmış' },
               { label: 'Katılım Tarihi', value: new Date(user.joinDate).toLocaleDateString('tr-TR') },
             ].map(row => (
@@ -222,7 +370,7 @@ const UserModal: React.FC<{
 
 /* ─────────────────────── Bulk Points Modal ─────────────────────── */
 const BulkPointsModal: React.FC<{
-  users: UserType[];
+  users: ManagedUser[];
   onClose: () => void;
   onDone: (msg: string) => void;
 }> = ({ users, onClose, onDone }) => {
@@ -253,7 +401,6 @@ const BulkPointsModal: React.FC<{
           <button onClick={onClose} className="p-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700"><X size={18} /></button>
         </div>
 
-        {/* Selected users preview */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 12px', borderRadius: 14, background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', marginBottom: 16 }}>
           {users.slice(0, 5).map(u => (
             <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 999, background: 'var(--card-bg)', border: '2px solid var(--dark-border)' }}>
@@ -272,20 +419,13 @@ const BulkPointsModal: React.FC<{
           <div>
             <label className="block font-black text-sm mb-2">Puan Miktarı</label>
             <p className="text-xs text-gray-500 mb-2">Pozitif değer = ödül ver · Negatif değer = puan düş</p>
-            <input
-              type="number"
-              placeholder="örn. 100 veya -50"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              className="input-field w-full text-lg font-black"
-            />
+            <input type="number" placeholder="örn. 100 veya -50" value={amount} onChange={e => setAmount(e.target.value)} className="input-field w-full text-lg font-black" />
             {pts !== 0 && (
               <p style={{ fontSize: 12, fontWeight: 900, marginTop: 6, color: pts > 0 ? '#16a34a' : '#dc2626' }}>
                 {pts > 0 ? '✅' : '⚠️'} Her kullanıcıya <strong>{pts > 0 ? '+' : ''}{pts}</strong> puan · Toplam: <strong>{(pts * users.length).toLocaleString('tr-TR')}</strong>
               </p>
             )}
           </div>
-
           <div>
             <label className="block font-black text-sm mb-2">İşlem Nedeni</label>
             <select value={reason} onChange={e => setReason(e.target.value)} className="input-field w-full">
@@ -297,8 +437,6 @@ const BulkPointsModal: React.FC<{
               <option value="penalty">Toplu Ceza</option>
             </select>
           </div>
-
-          {/* Preview bar */}
           {pts !== 0 && (
             <div style={{ padding: '10px 14px', borderRadius: 12, background: pts > 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: `2px solid ${pts > 0 ? '#22c55e' : '#ef4444'}` }}>
               <p style={{ fontSize: 12, fontWeight: 900, color: pts > 0 ? '#16a34a' : '#dc2626', margin: 0 }}>
@@ -306,15 +444,9 @@ const BulkPointsModal: React.FC<{
               </p>
             </div>
           )}
-
           <div className="flex gap-3">
             <button onClick={onClose} className="btn-secondary flex-1">İptal</button>
-            <button
-              onClick={apply}
-              disabled={!pts || saving}
-              style={{ opacity: (!pts || saving) ? 0.5 : 1 }}
-              className="btn-primary flex-1 flex items-center justify-center gap-2"
-            >
+            <button onClick={apply} disabled={!pts || saving} style={{ opacity: (!pts || saving) ? 0.5 : 1 }} className="btn-primary flex-1 flex items-center justify-center gap-2">
               {saving
                 ? <><div style={{ width: 14, height: 14, border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />Uygulanıyor...</>
                 : <><Zap size={14} />{pts > 0 ? 'Puan Ekle' : 'Puan Düş'}</>
@@ -329,17 +461,21 @@ const BulkPointsModal: React.FC<{
 
 /* ─────────────────────────── Main page ─────────────────────────── */
 const AdminUsers: React.FC = () => {
+  const [users, setUsers]             = useState<ManagedUser[]>(INITIAL_USERS);
   const [search, setSearch]           = useState('');
-  const [modal, setModal]             = useState<{ user: UserType; mode: 'view' | 'edit' | 'suspend' | 'points' | 'inventory' } | null>(null);
+  const [modal, setModal]             = useState<{ user: ManagedUser; mode: 'view' | 'edit' | 'suspend' | 'points' | 'inventory' } | null>(null);
+  const [promoteTarget, setPromoteTarget] = useState<ManagedUser | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterRole, setFilterRole]   = useState('all');
   const [selected, setSelected]       = useState<Set<string>>(new Set());
   const [showBulk, setShowBulk]       = useState(false);
   const [toast, setToast]             = useState<string | null>(null);
 
-  const filtered = adminUsers.filter(u => {
+  const filtered = users.filter(u => {
     const matchSearch = u.username.toLowerCase().includes(search.toLowerCase()) || u.email.includes(search);
     const matchStatus = filterStatus === 'all' || u.status === filterStatus;
-    return matchSearch && matchStatus;
+    const matchRole   = filterRole === 'all' || u.role === filterRole;
+    return matchSearch && matchStatus && matchRole;
   });
 
   const allSelected  = filtered.length > 0 && filtered.every(u => selected.has(u.id));
@@ -361,11 +497,24 @@ const AdminUsers: React.FC = () => {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  const selectedUsers = adminUsers.filter(u => selected.has(u.id));
+  const handleRoleChange = (id: string, newRole: RoleType) => {
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, role: newRole } : u));
+    const user = users.find(u => u.id === id);
+    if (user) showToast(`${user.username} → ${roleLabel[newRole]}`);
+  };
+
+  const selectedUsers = users.filter(u => selected.has(u.id));
 
   return (
     <AdminLayout>
       {modal && <UserModal user={modal.user} mode={modal.mode} onClose={() => setModal(null)} />}
+      {promoteTarget && (
+        <PromoteModal
+          user={promoteTarget}
+          onClose={() => setPromoteTarget(null)}
+          onSave={handleRoleChange}
+        />
+      )}
       {showBulk && (
         <BulkPointsModal
           users={selectedUsers}
@@ -374,14 +523,12 @@ const AdminUsers: React.FC = () => {
         />
       )}
 
-      {/* Toast */}
       {toast && (
         <div style={{ position: 'fixed', top: 24, right: 24, zIndex: 200, padding: '12px 20px', borderRadius: 16, background: 'rgba(34,197,94,0.95)', color: 'white', fontWeight: 900, fontSize: 14, border: '2px solid #16a34a', boxShadow: '0 4px 0 #15803d', display: 'flex', alignItems: 'center', gap: 8, animation: 'slideDown 0.25s ease-out' }}>
           <Check size={15} /> {toast}
         </div>
       )}
 
-      {/* ── Floating bulk action bar ── */}
       {selected.size > 0 && (
         <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 100, padding: '12px 20px', borderRadius: 20, background: 'var(--card-bg)', border: '3px solid var(--dark-border)', boxShadow: '0 8px 0 var(--dark-border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'center', animation: 'slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)', maxWidth: 'calc(100vw - 48px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -393,16 +540,10 @@ const AdminUsers: React.FC = () => {
             </span>
           </div>
           <div style={{ height: 24, width: 2, background: 'var(--dark-border)', borderRadius: 1 }} />
-          <button
-            onClick={() => setShowBulk(true)}
-            style={{ padding: '8px 16px', borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', color: 'white', border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
+          <button onClick={() => setShowBulk(true)} style={{ padding: '8px 16px', borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', color: 'white', border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Zap size={14} /> Toplu Puan İşlemi
           </button>
-          <button
-            onClick={clearSelection}
-            style={{ padding: '8px 14px', borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', cursor: 'pointer' }}
-          >
+          <button onClick={clearSelection} style={{ padding: '8px 14px', borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', cursor: 'pointer' }}>
             Seçimi Temizle
           </button>
         </div>
@@ -426,6 +567,12 @@ const AdminUsers: React.FC = () => {
             <option value="active">Aktif</option>
             <option value="suspended">Askıya Alınmış</option>
           </select>
+          <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="input-field py-1.5 sm:py-2 w-auto pr-8 text-sm">
+            <option value="all">Tüm Roller</option>
+            <option value="customer">Müşteri</option>
+            <option value="store_admin">Mağaza Yön.</option>
+            <option value="cashier">Kasiyer</option>
+          </select>
         </div>
 
         <div className="card overflow-hidden">
@@ -433,40 +580,29 @@ const AdminUsers: React.FC = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b-2 border-black dark:border-gray-700">
-                  {/* Select-all checkbox */}
                   <th className="p-3 sm:p-4 w-10">
                     <button onClick={toggleAll} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, cursor: 'pointer', background: 'none', border: 'none' }}>
-                      {allSelected
-                        ? <CheckSquare size={16} color="#7B6EF6" />
-                        : someSelected
-                          ? <CheckSquare size={16} color="#a78bfa" style={{ opacity: 0.5 }} />
-                          : <Square size={16} color="var(--text-muted)" />
-                      }
+                      {allSelected ? <CheckSquare size={16} color="#7B6EF6" /> : someSelected ? <CheckSquare size={16} color="#a78bfa" style={{ opacity: 0.5 }} /> : <Square size={16} color="var(--text-muted)" />}
                     </button>
                   </th>
                   <th className="text-left p-3 sm:p-4 text-xs font-black text-gray-500 uppercase tracking-wider">Kullanıcı</th>
                   <th className="text-left p-3 sm:p-4 text-xs font-black text-gray-500 uppercase tracking-wider hidden sm:table-cell">Seviye</th>
                   <th className="text-left p-3 sm:p-4 text-xs font-black text-gray-500 uppercase tracking-wider">Puanlar</th>
-                  <th className="text-left p-3 sm:p-4 text-xs font-black text-gray-500 uppercase tracking-wider">Durum</th>
-                  <th className="text-left p-3 sm:p-4 text-xs font-black text-gray-500 uppercase tracking-wider hidden md:table-cell">Katılım</th>
+                  <th className="text-left p-3 sm:p-4 text-xs font-black text-gray-500 uppercase tracking-wider">Rol</th>
+                  <th className="text-left p-3 sm:p-4 text-xs font-black text-gray-500 uppercase tracking-wider hidden md:table-cell">Durum</th>
                   <th className="p-3 sm:p-4" />
                 </tr>
               </thead>
               <tbody className="divide-y-2 divide-black dark:divide-gray-700">
                 {filtered.map(user => {
                   const isSelected = selected.has(user.id);
+                  const isAdmin = user.role !== 'customer';
                   return (
-                    <tr
-                      key={user.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                      style={{ background: isSelected ? 'rgba(123,110,246,0.06)' : '' }}
-                    >
+                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      style={{ background: isSelected ? 'rgba(123,110,246,0.06)' : '' }}>
                       <td className="p-3 sm:p-4 w-10">
                         <button onClick={() => toggleOne(user.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, cursor: 'pointer', background: 'none', border: 'none' }}>
-                          {isSelected
-                            ? <CheckSquare size={16} color="#7B6EF6" />
-                            : <Square size={16} color="var(--text-muted)" />
-                          }
+                          {isSelected ? <CheckSquare size={16} color="#7B6EF6" /> : <Square size={16} color="var(--text-muted)" />}
                         </button>
                       </td>
                       <td className="p-3 sm:p-4">
@@ -481,18 +617,20 @@ const AdminUsers: React.FC = () => {
                       <td className="p-3 sm:p-4 hidden sm:table-cell"><span className="font-bold text-xs sm:text-sm">Lv.{user.level}</span></td>
                       <td className="p-3 sm:p-4"><span className="font-bold text-xs sm:text-sm text-amber-600 dark:text-amber-400">{user.points.toLocaleString('tr-TR')}</span></td>
                       <td className="p-3 sm:p-4">
+                        <span className="badge text-xs font-black px-2 py-1 rounded-full"
+                          style={{ background: `${roleColor[user.role]}18`, color: roleColor[user.role], border: `1.5px solid ${roleColor[user.role]}` }}>
+                          {roleLabel[user.role]}
+                        </span>
+                      </td>
+                      <td className="p-3 sm:p-4 hidden md:table-cell">
                         <span className={`badge text-xs ${user.status === 'active' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-500'}`}>
                           {user.status === 'active' ? 'Aktif' : 'Askıya Alınmış'}
                         </span>
                       </td>
-                      <td className="p-3 sm:p-4 text-xs text-gray-500 hidden md:table-cell">{new Date(user.joinDate).toLocaleDateString('tr-TR')}</td>
                       <td className="p-3 sm:p-4">
                         <div className="flex items-center gap-0.5 sm:gap-1">
                           <button onClick={() => { playSound('click'); setModal({ user, mode: 'view' }); }} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-blue-500 transition-colors" title="Görüntüle">
                             <Eye size={12} className="sm:w-3.5 sm:h-3.5" />
-                          </button>
-                          <button onClick={() => { playSound('click'); setModal({ user, mode: 'inventory' }); }} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-purple-500 transition-colors" title="Envanteri Yönet">
-                            <Package size={12} className="sm:w-3.5 sm:h-3.5" />
                           </button>
                           <button onClick={() => { playSound('click'); setModal({ user, mode: 'points' }); }} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-amber-500 transition-colors" title="Puanları Yönet">
                             <Gift size={12} className="sm:w-3.5 sm:h-3.5" />
@@ -500,6 +638,19 @@ const AdminUsers: React.FC = () => {
                           <button onClick={() => { playSound('click'); setModal({ user, mode: 'edit' }); }} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-[#7B6EF6] transition-colors" title="Düzenle">
                             <Edit3 size={12} className="sm:w-3.5 sm:h-3.5" />
                           </button>
+                          {!isAdmin ? (
+                            <button onClick={() => { playSound('click'); setPromoteTarget(user); }}
+                              className="p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-gray-500 hover:text-green-500 transition-colors"
+                              title="Yönetici Rolü Ver">
+                              <ShieldCheck size={12} className="sm:w-3.5 sm:h-3.5" />
+                            </button>
+                          ) : (
+                            <button onClick={() => { playSound('click'); setPromoteTarget(user); }}
+                              className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-500 transition-colors"
+                              title="Yetkiyi İptal Et">
+                              <ShieldOff size={12} className="sm:w-3.5 sm:h-3.5" />
+                            </button>
+                          )}
                           <button onClick={() => { playSound('click'); setModal({ user, mode: 'suspend' }); }} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-red-500 transition-colors" title="Askıya Al">
                             <Slash size={12} className="sm:w-3.5 sm:h-3.5" />
                           </button>

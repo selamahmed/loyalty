@@ -1,21 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard, Users, Gift, QrCode, BarChart2,
-  Menu, X, Moon, Sun, LogOut, Store, Package, Tag, Bell
-} from 'lucide-react';
+import { ShoppingBag, Menu, X, Moon, Sun, LogOut, Store } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { useAuth } from '../../../context/AuthContext';
 
 const storeNavItems = [
-  { path: '/store-admin',               icon: LayoutDashboard, label: 'Kontrol Paneli' },
-  { path: '/store-admin/customers',     icon: Users,           label: 'Müşteriler'      },
-  { path: '/store-admin/rewards',       icon: Gift,            label: 'Ödüller'          },
-  { path: '/store-admin/inventory',     icon: Package,         label: 'Envanter'         },
-  { path: '/store-admin/promotions',    icon: Tag,             label: 'Promosyonlar'     },
-  { path: '/store-admin/qr',            icon: QrCode,          label: 'QR İşlemleri'    },
-  { path: '/store-admin/analytics',     icon: BarChart2,       label: 'Raporlar'         },
-  { path: '/store-admin/notifications', icon: Bell,            label: 'Bildirimler'      },
+  { path: '/store-admin/items', icon: ShoppingBag, label: 'Mağaza Ürünleri' },
 ];
 
 const ACCENT = '#22c55e';
@@ -28,7 +18,7 @@ const StoreAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
-  const currentLabel = storeNavItems.find(n => n.path === location.pathname)?.label || 'Mağaza Paneli';
+  const currentLabel = storeNavItems.find(n => n.path === location.pathname)?.label || 'Mağaza Ürünleri';
 
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--bg-color)' }}>
@@ -70,7 +60,7 @@ const StoreAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
         <nav className="flex-1 p-3 space-y-1">
           {storeNavItems.map(item => {
-            const active = location.pathname === item.path;
+            const active = location.pathname === item.path || location.pathname === '/store-admin';
             return (
               <button key={item.path}
                 onClick={() => { navigate(item.path); setSidebarOpen(false); }}
