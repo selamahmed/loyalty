@@ -1,9 +1,16 @@
 import React from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
+import { AuthProvider } from './context/AuthContext';
 import { RewardEventsProvider } from './context/RewardEventsContext';
 import { InventoryProvider } from './context/InventoryContext';
 import Layout from './components/Layout';
+
+// Route Guards
+import CustomerRoute from './components/guards/CustomerRoute';
+import SuperAdminRoute from './components/guards/SuperAdminRoute';
+import StoreAdminRoute from './components/guards/StoreAdminRoute';
+import CashierRoute from './components/guards/CashierRoute';
 
 // Auth pages
 import Login from './pages/Login';
@@ -12,7 +19,11 @@ import Register from './pages/Register';
 // Landing page
 import LandingPage from './pages/LandingPage';
 
-// Main pages
+// Error / Utility pages
+import Unauthorized from './pages/Unauthorized';
+import { NotFound, NoConnection, Maintenance } from './pages/ErrorPages';
+
+// Customer pages
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Inventory from './pages/Inventory';
@@ -30,7 +41,7 @@ import SeasonalEvents from './pages/SeasonalEvents';
 import Leaderboard from './pages/Leaderboard';
 import UserStats from './pages/UserStats';
 
-// Admin pages
+// Super Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminAnalytics from './pages/admin/AdminAnalytics';
@@ -42,8 +53,6 @@ import AdminQR from './pages/admin/AdminQR';
 import AdminGames from './pages/admin/AdminGames';
 import AdminInventory from './pages/admin/AdminInventory';
 import AdminCheckout from './pages/admin/AdminCheckout';
-
-// Additional admin pages
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import AdminPointsEconomy from './pages/admin/AdminPointsEconomy';
 import AdminDashboard2 from './pages/admin/AdminDashboard2';
@@ -51,77 +60,95 @@ import AdminUsers2 from './pages/admin/AdminUsers2';
 import AdminRewardEvents from './pages/admin/AdminRewardEvents';
 import AdminDailyRewards from './pages/admin/AdminDailyRewards';
 
-// Error pages
-import { NotFound, NoConnection, Maintenance } from './pages/ErrorPages';
+// Store Admin pages
+import StoreAdminDashboard from './pages/admin/store/StoreAdminDashboard';
 
-const WrappedPage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Layout>{children}</Layout>
+// Cashier pages
+import CashierDashboard from './pages/admin/cashier/CashierDashboard';
+
+const C: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <CustomerRoute><Layout>{children}</Layout></CustomerRoute>
 );
 
 function App() {
   return (
     <RewardEventsProvider>
+    <AuthProvider>
     <AppProvider>
     <InventoryProvider>
       <HashRouter>
         <Routes>
 
-          {/* Landing Page */}
-          <Route path="/" element={<LandingPage />} />
+          {/* ── Public ─────────────────────────────────────────────────── */}
+          <Route path="/"        element={<LandingPage />} />
           <Route path="/landing" element={<LandingPage />} />
-
-          {/* Auth */}
-          <Route path="/login" element={<Login />} />
+          <Route path="/login"   element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Main Pages */}
-          <Route path="/home" element={<WrappedPage><Home /></WrappedPage>} />
-          <Route path="/profile" element={<WrappedPage><Profile /></WrappedPage>} />
-          <Route path="/inventory" element={<WrappedPage><Inventory /></WrappedPage>} />
-          <Route path="/shop" element={<WrappedPage><RewardsShop /></WrappedPage>} />
-          <Route path="/games" element={<WrappedPage><MiniGames /></WrappedPage>} />
-          <Route path="/progress" element={<WrappedPage><ProgressPath /></WrappedPage>} />
-          <Route path="/qr" element={<WrappedPage><QRScanner /></WrappedPage>} />
-          <Route path="/achievements" element={<WrappedPage><Achievements /></WrappedPage>} />
-          <Route path="/missions" element={<WrappedPage><Missions /></WrappedPage>} />
-          <Route path="/notifications" element={<WrappedPage><Notifications /></WrappedPage>} />
-          <Route path="/history" element={<WrappedPage><History /></WrappedPage>} />
-          <Route path="/settings" element={<WrappedPage><Settings /></WrappedPage>} />
-          <Route path="/support" element={<WrappedPage><Support /></WrappedPage>} />
-          <Route path="/events" element={<WrappedPage><SeasonalEvents /></WrappedPage>} />
-          <Route path="/leaderboard" element={<WrappedPage><Leaderboard /></WrappedPage>} />
-          <Route path="/stats" element={<WrappedPage><UserStats /></WrappedPage>} />
+          {/* ── Customer (/app + legacy /home alias) ───────────────────── */}
+          <Route path="/app"           element={<C><Home /></C>} />
+          <Route path="/home"          element={<C><Home /></C>} />
+          <Route path="/profile"       element={<C><Profile /></C>} />
+          <Route path="/inventory"     element={<C><Inventory /></C>} />
+          <Route path="/shop"          element={<C><RewardsShop /></C>} />
+          <Route path="/games"         element={<C><MiniGames /></C>} />
+          <Route path="/progress"      element={<C><ProgressPath /></C>} />
+          <Route path="/qr"            element={<C><QRScanner /></C>} />
+          <Route path="/achievements"  element={<C><Achievements /></C>} />
+          <Route path="/missions"      element={<C><Missions /></C>} />
+          <Route path="/notifications" element={<C><Notifications /></C>} />
+          <Route path="/history"       element={<C><History /></C>} />
+          <Route path="/settings"      element={<C><Settings /></C>} />
+          <Route path="/support"       element={<C><Support /></C>} />
+          <Route path="/events"        element={<C><SeasonalEvents /></C>} />
+          <Route path="/leaderboard"   element={<C><Leaderboard /></C>} />
+          <Route path="/stats"         element={<C><UserStats /></C>} />
 
-          {/* Admin */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/rewards" element={<AdminRewards />} />
-          <Route path="/admin/events" element={<AdminEvents />} />
-          <Route path="/admin/notifications" element={<AdminNotifications />} />
-          <Route path="/admin/qr" element={<AdminQR />} />
-          <Route path="/admin/games" element={<AdminGames />} />
-          <Route path="/admin/inventory" element={<AdminInventory />} />
-          <Route path="/admin/checkout" element={<AdminCheckout />} />
+          {/* ── Super Admin (/admin/*) ─────────────────────────────────── */}
+          <Route path="/admin"                  element={<SuperAdminRoute><AdminDashboard /></SuperAdminRoute>} />
+          <Route path="/admin/dashboard-v2"     element={<SuperAdminRoute><AdminDashboard2 /></SuperAdminRoute>} />
+          <Route path="/admin/analytics"        element={<SuperAdminRoute><AdminAnalytics /></SuperAdminRoute>} />
+          <Route path="/admin/users"            element={<SuperAdminRoute><AdminUsers /></SuperAdminRoute>} />
+          <Route path="/admin/users-v2"         element={<SuperAdminRoute><AdminUsers2 /></SuperAdminRoute>} />
+          <Route path="/admin/rewards"          element={<SuperAdminRoute><AdminRewards /></SuperAdminRoute>} />
+          <Route path="/admin/reward-events"    element={<SuperAdminRoute><AdminRewardEvents /></SuperAdminRoute>} />
+          <Route path="/admin/events"           element={<SuperAdminRoute><AdminEvents /></SuperAdminRoute>} />
+          <Route path="/admin/notifications"    element={<SuperAdminRoute><AdminNotifications /></SuperAdminRoute>} />
+          <Route path="/admin/inventory"        element={<SuperAdminRoute><AdminInventory /></SuperAdminRoute>} />
+          <Route path="/admin/checkout"         element={<SuperAdminRoute><AdminCheckout /></SuperAdminRoute>} />
+          <Route path="/admin/qr"               element={<SuperAdminRoute><AdminQR /></SuperAdminRoute>} />
+          <Route path="/admin/games"            element={<SuperAdminRoute><AdminGames /></SuperAdminRoute>} />
+          <Route path="/admin/daily-rewards"    element={<SuperAdminRoute><AdminDailyRewards /></SuperAdminRoute>} />
+          <Route path="/admin/points-economy"   element={<SuperAdminRoute><AdminPointsEconomy /></SuperAdminRoute>} />
+          <Route path="/admin/audit-logs"       element={<SuperAdminRoute><AdminAuditLogs /></SuperAdminRoute>} />
+          <Route path="/admin/settings"         element={<SuperAdminRoute><AdminSettings /></SuperAdminRoute>} />
 
-          {/* New Admin Pages */}
-          <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-          <Route path="/admin/points-economy" element={<AdminPointsEconomy />} />
-          <Route path="/admin/dashboard-v2" element={<AdminDashboard2 />} />
-          <Route path="/admin/users-v2" element={<AdminUsers2 />} />
-          <Route path="/admin/reward-events" element={<AdminRewardEvents />} />
-          <Route path="/admin/daily-rewards" element={<AdminDailyRewards />} />
+          {/* ── Store Admin (/store-admin/*) ───────────────────────────── */}
+          <Route path="/store-admin"             element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
+          <Route path="/store-admin/customers"   element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
+          <Route path="/store-admin/rewards"     element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
+          <Route path="/store-admin/inventory"   element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
+          <Route path="/store-admin/promotions"  element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
+          <Route path="/store-admin/qr"          element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
+          <Route path="/store-admin/analytics"   element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
+          <Route path="/store-admin/notifications" element={<StoreAdminRoute><StoreAdminDashboard /></StoreAdminRoute>} />
 
-          {/* Error Pages */}
+          {/* ── Cashier (/cashier/*) ───────────────────────────────────── */}
+          <Route path="/cashier"         element={<CashierRoute><CashierDashboard /></CashierRoute>} />
+          <Route path="/cashier/scan"    element={<CashierRoute><CashierDashboard /></CashierRoute>} />
+          <Route path="/cashier/history" element={<CashierRoute><CashierDashboard /></CashierRoute>} />
+
+          {/* ── Error pages ────────────────────────────────────────────── */}
           <Route path="/no-connection" element={<NoConnection />} />
-          <Route path="/maintenance" element={<Maintenance />} />
-          <Route path="*" element={<NotFound />} />
+          <Route path="/maintenance"   element={<Maintenance />} />
+          <Route path="*"              element={<NotFound />} />
 
         </Routes>
       </HashRouter>
     </InventoryProvider>
     </AppProvider>
+    </AuthProvider>
     </RewardEventsProvider>
   );
 }
