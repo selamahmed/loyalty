@@ -13,11 +13,12 @@ import StoreAdminRoute from './components/guards/StoreAdminRoute';
 import CashierRoute    from './components/guards/CashierRoute';
 
 // Always-needed pages (tiny, keep eager)
-import LandingPage   from './pages/LandingPage';
-import Login         from './pages/Login';
-import Register      from './pages/Register';
-import Unauthorized  from './pages/Unauthorized';
+import LandingPage    from './pages/LandingPage';
+import Login          from './pages/Login';
+import Register       from './pages/Register';
+import Unauthorized   from './pages/Unauthorized';
 import { NotFound, NoConnection, Maintenance } from './pages/ErrorPages';
+import CookieConsent  from './components/CookieConsent';
 
 // ── Lazy: Customer pages ─────────────────────────────────────────────────────
 const Home           = React.lazy(() => import('./pages/Home'));
@@ -100,6 +101,7 @@ function App() {
     <AppProvider>
     <InventoryProvider>
       <HashRouter>
+        <CookieConsent />
         <Suspense fallback={<Spinner />}>
           <Routes>
 
