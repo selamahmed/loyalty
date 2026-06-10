@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import StoreAdminLayout from './StoreAdminLayout';
-import { Users, Star, ShoppingBag, TrendingUp, QrCode, Gift, ArrowRight } from 'lucide-react';
+import { Users, Star, ShoppingBag, TrendingUp, QrCode, Gift, ArrowRight, BarChart2 } from 'lucide-react';
 
 const ACCENT = '#22c55e';
 
