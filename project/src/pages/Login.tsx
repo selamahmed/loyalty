@@ -45,7 +45,7 @@ const Login: React.FC = () => {
       <div className="w-full max-w-sm space-y-4">
         <div className="card p-8 space-y-6">
           {/* Logo */}
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-3">
             <div
               className="w-16 h-16 rounded-button flex items-center justify-center font-black text-2xl"
               style={{
@@ -56,6 +56,10 @@ const Login: React.FC = () => {
               }}
             >
               N
+            </div>
+            <div className="text-center">
+              <h1 className="font-black text-xl" style={{ color: 'var(--text-dark)' }}>NexReward</h1>
+              <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Sadakat Platformu</p>
             </div>
           </div>
 
