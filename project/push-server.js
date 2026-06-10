@@ -21,37 +21,17 @@ if (pushEnabled) {
   );
   console.log('[push-server] VAPID configured — push notifications enabled.');
 } else {
-  console.warn('[push-server] VAPID keys not set — push notifications disabled. Set VAPID_PRIVATE_KEY secret to enable.');
+  console.warn('[push-server] VAPID keys not set — push notifications disabled.');
 }
 
 const subscriptions = new Map();
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', subscribers: subscriptions.size, pushEnabled });
-});
+/* ─── Broadcast helper ─── */
+async function broadcastToAll(title, message, url = '/', tag = 'broadcast') {
+  if (!pushEnabled || subscriptions.size === 0) return { sent: 0, failed: 0, skipped: !pushEnabled };
 
-app.post('/api/subscribe', (req, res) => {
-  if (!pushEnabled) return res.status(503).json({ error: 'Push notifications not configured' });
-  const sub = req.body;
-  if (!sub?.endpoint) return res.status(400).json({ error: 'Invalid subscription' });
-  subscriptions.set(sub.endpoint, sub);
-  console.log(`[push] Subscribed: ${sub.endpoint.slice(-30)}`);
-  res.status(201).json({ message: 'Subscribed', total: subscriptions.size });
-});
-
-app.post('/api/unsubscribe', (req, res) => {
-  const { endpoint } = req.body;
-  if (endpoint) subscriptions.delete(endpoint);
-  res.json({ message: 'Unsubscribed', total: subscriptions.size });
-});
-
-app.post('/api/broadcast', async (req, res) => {
-  if (!pushEnabled) return res.status(503).json({ error: 'Push notifications not configured' });
-  const { title = 'NexReward', message = '', url = '/', tag = 'broadcast', requireInteraction = false } = req.body;
-  if (!message) return res.status(400).json({ error: 'message is required' });
-
-  const payload = JSON.stringify({ title, message, url, tag, requireInteraction });
-  const dead    = [];
+  const payload = JSON.stringify({ title, message, url, tag, requireInteraction: false });
+  const dead = [];
 
   const results = await Promise.allSettled(
     [...subscriptions.entries()].map(async ([endpoint, sub]) => {
@@ -68,8 +48,66 @@ app.post('/api/broadcast', async (req, res) => {
 
   const sent   = results.filter(r => r.status === 'fulfilled').length;
   const failed = results.filter(r => r.status === 'rejected').length;
-  console.log(`[push] Broadcast done — sent:${sent} failed:${failed} expired:${dead.length}`);
-  res.json({ sent, failed, expired: dead.length });
+  console.log(`[push] Broadcast — sent:${sent} failed:${failed} expired:${dead.length}`);
+  return { sent, failed, expired: dead.length };
+}
+
+/* ─── Daily notification scheduler ─── */
+const DAILY_NOTIFICATIONS = [
+  { hour: 10, minute: 0,  title: '☀️ Günaydın!',             message: 'Bugünkü görevlerin seni bekliyor. Puan kazan!',              url: '/missions', tag: 'daily-morning' },
+  { hour: 18, minute: 0,  title: '⭐ Günlük hatırlatma',      message: 'Bugün henüz giriş yapmadıysan puanlarını kaybedebilirsin!', url: '/app',      tag: 'daily-evening' },
+  { hour: 20, minute: 30, title: '🎁 Akşam özel fırsatı',    message: 'Bu gece sınırlı süreli 2x puan etkinliği aktif!',           url: '/shop',     tag: 'daily-night'   },
+];
+
+function msUntil(hour, minute) {
+  const now  = new Date();
+  const next = new Date();
+  next.setHours(hour, minute, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1); // schedule for tomorrow if already passed
+  return next - now;
+}
+
+function scheduleDailyNotification({ hour, minute, title, message, url, tag }) {
+  const delay = msUntil(hour, minute);
+  const hhmm  = `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+  console.log(`[push-scheduler] "${title}" scheduled in ${Math.round(delay/60000)} min (fires daily at ${hhmm})`);
+
+  setTimeout(async () => {
+    console.log(`[push-scheduler] Firing daily notification: ${title}`);
+    await broadcastToAll(title, message, url, tag);
+    // Re-schedule for next day
+    setInterval(() => broadcastToAll(title, message, url, tag), 24 * 60 * 60 * 1000);
+  }, delay);
+}
+
+DAILY_NOTIFICATIONS.forEach(n => scheduleDailyNotification(n));
+
+/* ─── API routes ─── */
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', subscribers: subscriptions.size, pushEnabled, scheduledNotifications: DAILY_NOTIFICATIONS.length });
+});
+
+app.post('/api/subscribe', (req, res) => {
+  if (!pushEnabled) return res.status(503).json({ error: 'Push notifications not configured' });
+  const sub = req.body;
+  if (!sub?.endpoint) return res.status(400).json({ error: 'Invalid subscription' });
+  subscriptions.set(sub.endpoint, sub);
+  console.log(`[push] Subscribed: ${sub.endpoint.slice(-30)} — total: ${subscriptions.size}`);
+  res.status(201).json({ message: 'Subscribed', total: subscriptions.size });
+});
+
+app.post('/api/unsubscribe', (req, res) => {
+  const { endpoint } = req.body;
+  if (endpoint) subscriptions.delete(endpoint);
+  res.json({ message: 'Unsubscribed', total: subscriptions.size });
+});
+
+app.post('/api/broadcast', async (req, res) => {
+  if (!pushEnabled) return res.status(503).json({ error: 'Push notifications not configured' });
+  const { title = 'NexReward', message = '', url = '/', tag = 'broadcast', requireInteraction = false } = req.body;
+  if (!message) return res.status(400).json({ error: 'message is required' });
+  const result = await broadcastToAll(title, message, url, tag);
+  res.json(result);
 });
 
 app.post('/api/send', async (req, res) => {
@@ -89,6 +127,15 @@ app.post('/api/send', async (req, res) => {
   res.json({ sent, total: endpoints.length });
 });
 
+/* ─── Manual trigger (for testing) ─── */
+app.post('/api/trigger-daily', async (req, res) => {
+  const { index = 0 } = req.body;
+  const n = DAILY_NOTIFICATIONS[index];
+  if (!n) return res.status(404).json({ error: 'Notification index not found' });
+  const result = await broadcastToAll(n.title, n.message, n.url, n.tag);
+  res.json({ triggered: n.title, ...result });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[push-server] Running on port ${PORT} — pushEnabled:${pushEnabled}`);
+  console.log(`[push-server] Running on port ${PORT} — pushEnabled:${pushEnabled} — ${DAILY_NOTIFICATIONS.length} daily notifications scheduled`);
 });

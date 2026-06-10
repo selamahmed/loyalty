@@ -206,38 +206,38 @@ const AdminSettings: React.FC = () => {
         </div>
 
         {/* ── 1. Puan Ekonomisi ── */}
-        <Section icon={TrendingUp} title="Puan Ekonomisi" subtitle="TL ↔ Puan dönüşüm oranlarını ayarlayın" color="#7B6EF6">
+        <Section icon={TrendingUp} title="Puan Ekonomisi" subtitle="TL ↔ Puan dönüşüm oranlarını ayarlayın (ondalık değer desteklenir)" color="#7B6EF6">
           <SliderControl
             label="Harcama → Puan Oranı"
-            description="1 TL harcandığında kazanılan puan sayısı"
-            value={eco.spend_to_points} min={1} max={50} step={1} unit="puan/₺"
+            description="1 TL harcandığında kazanılan puan sayısı (ondalık desteklenir)"
+            value={eco.spend_to_points} min={0.1} max={50} step={0.1} unit="puan/₺"
             color="#7B6EF6"
-            preview={`100₺ alışveriş = ${100 * eco.spend_to_points} puan kazanılır`}
-            onChange={v => setEco({ spend_to_points: v })}
+            preview={`100₺ alışveriş = ${(100 * eco.spend_to_points).toFixed(1)} puan kazanılır`}
+            onChange={v => setEco({ spend_to_points: Math.round(v * 10) / 10 })}
           />
           <SliderControl
             label="Puan Değeri (Kullanım)"
-            description="Kaç puan 1 TL'ye eşit (kullanım anında)"
-            value={eco.points_to_tl} min={10} max={1000} step={10} unit="puan/₺"
+            description="Kaç puan 1 TL'ye eşit — ondalık girilebilir"
+            value={eco.points_to_tl} min={1} max={1000} step={0.5} unit="puan/₺"
             color="#4F8EF7"
             preview={`${eco.points_to_tl} puan = 1₺ · 1000 puan ≈ ${(1000 / eco.points_to_tl).toFixed(2)}₺`}
-            onChange={v => setEco({ points_to_tl: v })}
+            onChange={v => setEco({ points_to_tl: Math.round(v * 10) / 10 })}
           />
           <SliderControl
             label="Referral Bonusu"
             description="Yeni kullanıcı davet edildiğinde verilen puan"
-            value={eco.referral_bonus} min={0} max={1000} step={25} unit="puan"
+            value={eco.referral_bonus} min={0} max={1000} step={0.5} unit="puan"
             color="#f59e0b"
-            preview={`10 davet = ${10 * eco.referral_bonus} puan kazanılır`}
-            onChange={v => setEco({ referral_bonus: v })}
+            preview={`10 davet = ${(10 * eco.referral_bonus).toFixed(1)} puan kazanılır`}
+            onChange={v => setEco({ referral_bonus: Math.round(v * 10) / 10 })}
           />
           <SliderControl
             label="Hoşgeldin Bonusu"
             description="Yeni kayıt olan kullanıcıya verilen başlangıç puanı"
-            value={eco.welcome_bonus} min={0} max={500} step={10} unit="puan"
+            value={eco.welcome_bonus} min={0} max={500} step={0.5} unit="puan"
             color="#22c55e"
             preview={`Her yeni kullanıcı ${eco.welcome_bonus} puanla başlar`}
-            onChange={v => setEco({ welcome_bonus: v })}
+            onChange={v => setEco({ welcome_bonus: Math.round(v * 10) / 10 })}
           />
         </Section>
 

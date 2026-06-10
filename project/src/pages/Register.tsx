@@ -1,24 +1,33 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Check } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { tr } from '../lib/tr';
+import { useAuth } from '../context/AuthContext';
+
+const GoogleIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  </svg>
+);
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { setIsLoggedIn } = useApp();
-  const [form, setForm] = useState({ username: '', email: '', password: '', confirm: '', terms: false });
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { loginWithGoogle } = useAuth();
+  const [form, setForm]     = useState({ username: '', email: '', password: '', confirm: '', terms: false });
+  const [showPass, setShowPass]   = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.username) e.username = 'Username is required';
-    if (!form.email) e.email = 'Email is required';
-    if (form.password.length < 6) e.password = 'Password must be at least 6 characters';
-    if (form.password !== form.confirm) e.confirm = 'Passwords do not match';
-    if (!form.terms) e.terms = 'You must accept the terms';
+    if (!form.username) e.username = 'Kullanıcı adı zorunludur';
+    if (!form.email) e.email = 'E-posta zorunludur';
+    if (form.password.length < 6) e.password = 'Şifre en az 6 karakter olmalıdır';
+    if (form.password !== form.confirm) e.confirm = 'Şifreler eşleşmiyor';
+    if (!form.terms) e.terms = 'Şartları kabul etmelisiniz';
     return e;
   };
 
@@ -28,8 +37,15 @@ const Register: React.FC = () => {
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setLoading(true);
     await new Promise(r => setTimeout(r, 1200));
-    setIsLoggedIn(true);
-    navigate('/');
+    setLoading(false);
+    navigate('/login');
+  };
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    await loginWithGoogle();
+    setGoogleLoading(false);
+    navigate('/app', { replace: true });
   };
 
   const passwordStrength = () => {
@@ -45,43 +61,49 @@ const Register: React.FC = () => {
   };
 
   const strength = passwordStrength();
-  const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'][strength];
+  const strengthLabel  = ['', 'Zayıf', 'Orta', 'İyi', 'Güçlü', 'Çok Güçlü'][strength];
   const strengthColors = ['', '#ef4444', '#f59e0b', '#eab308', '#84cc16', '#22c55e'];
 
   return (
     <div className="min-h-screen page-container flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="card p-8 space-y-6">
+
           {/* Logo */}
-          <div className="flex justify-center">
-            <div
-              className="w-16 h-16 rounded-button flex items-center justify-center font-black text-2xl"
-              style={{
-                background: 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)',
-                color: 'white',
-                border: '3px solid var(--dark-border)',
-                boxShadow: '0px 6px 0px var(--dark-border)',
+          <div className="flex flex-col items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="NexReward"
+              className="w-16 h-16 object-contain rounded-2xl"
+              style={{ border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)' }}
+              onError={e => {
+                e.currentTarget.style.display = 'none';
+                (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute('style');
               }}
+            />
+            <div
+              className="w-16 h-16 rounded-2xl items-center justify-center font-black text-2xl"
+              style={{ display: 'none', background: 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)', color: 'white', border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)' }}
             >
               N
+            </div>
+            <div className="text-center">
+              <h1 className="font-black text-xl" style={{ color: 'var(--text-dark)' }}>NexReward</h1>
+              <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Sadakat Platformu</p>
             </div>
           </div>
 
           {/* Tab toggle */}
           <div
-            className="relative flex rounded-button border-2.5 p-1"
-            style={{
-              background: 'var(--tab-bg)',
-              borderColor: 'var(--dark-border)',
-              borderWidth: '2.5px',
-            }}
+            className="relative flex rounded-button p-1"
+            style={{ background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)' }}
           >
             <div
-              className="absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-xl border-2.5 tab-indicator"
+              className="absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-xl tab-indicator"
               style={{
                 left: 'calc(50% + 4px)',
-                background: 'white',
-                borderColor: 'var(--dark-border)',
+                background: 'var(--card-bg)',
+                border: '2px solid var(--dark-border)',
                 boxShadow: '0px 2px 0px var(--dark-border)',
               }}
             />
@@ -90,36 +112,41 @@ const Register: React.FC = () => {
               className="relative z-10 flex-1 py-2.5 rounded-button font-black text-sm"
               style={{ color: 'var(--text-muted)' }}
             >
-              Log In
+              Giriş Yap
             </button>
             <button className="relative z-10 flex-1 py-2.5 rounded-button font-black text-sm" style={{ color: 'var(--text-dark)' }}>
-              Sign Up
+              Kayıt Ol
             </button>
           </div>
 
           {/* Google */}
-          <button className="btn-secondary w-full flex items-center justify-center gap-3">
-            <svg viewBox="0 0 24 24" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Continue with Google
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={googleLoading || loading}
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-2xl font-black text-sm transition-all active:scale-[0.98] disabled:opacity-60"
+            style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)', color: 'var(--text-dark)' }}
+          >
+            {googleLoading ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <GoogleIcon />
+            )}
+            Google ile Kayıt Ol
           </button>
 
           <div className="flex items-center gap-4">
             <div className="flex-1 divider-dashed" />
-            <span style={{ color: 'var(--text-muted)' }} className="text-sm">or</span>
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>veya</span>
             <div className="flex-1 divider-dashed" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">Username</label>
+              <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">Kullanıcı Adı</label>
               <input
                 type="text"
-                placeholder="CoolPlayer123"
+                placeholder="HarikaBirKullanici"
                 value={form.username}
                 onChange={e => setForm({...form, username: e.target.value})}
                 className="input-field"
@@ -128,7 +155,7 @@ const Register: React.FC = () => {
             </div>
 
             <div>
-              <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">Email Address</label>
+              <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">E-posta Adresi</label>
               <input
                 type="email"
                 placeholder="you@example.com"
@@ -140,7 +167,7 @@ const Register: React.FC = () => {
             </div>
 
             <div>
-              <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">Password</label>
+              <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">Şifre</label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
@@ -167,7 +194,7 @@ const Register: React.FC = () => {
             </div>
 
             <div>
-              <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">Confirm Password</label>
+              <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">Şifreyi Onayla</label>
               <input
                 type="password"
                 placeholder="••••••••"
@@ -192,22 +219,28 @@ const Register: React.FC = () => {
                 {form.terms && <Check size={12} className="text-white" strokeWidth={3} />}
               </button>
               <span style={{ color: 'var(--text-dark)' }} className="text-sm">
-                I agree to the{' '}
-                <button type="button" style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">Terms of Service</button>
-                {' '}and{' '}
-                <button type="button" style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">Privacy Policy</button>
+                <button type="button" style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">Kullanım Şartları</button>
+                {' '}ve{' '}
+                <button type="button" style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">Gizlilik Politikası</button>
+                {' '}kabul ediyorum
               </span>
             </label>
             {errors.terms && <p className="text-red-500 text-xs">{errors.terms}</p>}
 
-            <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60">
-              {loading ? <div className="w-5 h-5 border-2.5 border-white border-t-transparent rounded-full animate-spin" /> : 'Create Account →'}
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {loading
+                ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                : 'Hesap Oluştur →'}
             </button>
           </form>
 
           <p style={{ color: 'var(--text-muted)' }} className="text-center text-sm">
-            Already have an account?{' '}
-            <button onClick={() => navigate('/login')} style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">Log in</button>
+            Zaten hesabın var mı?{' '}
+            <button onClick={() => navigate('/login')} style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">Giriş Yap</button>
           </p>
         </div>
       </div>
