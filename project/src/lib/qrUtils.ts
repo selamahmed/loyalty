@@ -30,8 +30,8 @@ export interface InventoryQRPayload {
 export type ParsedQR = CashierQRPayload | InventoryQRPayload | { type: 'unknown'; raw: string };
 
 const LS_KEY = 'loyalty_cashier_qrs';
-const POINTS_PER_TL = 1;
-const QR_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const POINTS_PER_TL = 10; // 10 points per ₺ spent
+const QR_TTL_MS = 7 * 60 * 1000; // 7 minutes
 
 /* ── ID generator ── */
 export function generateQRId(): string {
