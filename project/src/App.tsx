@@ -12,6 +12,9 @@ import SuperAdminRoute from './components/guards/SuperAdminRoute';
 import StoreAdminRoute from './components/guards/StoreAdminRoute';
 import CashierRoute    from './components/guards/CashierRoute';
 
+// Layouts (small — always loaded)
+import StoreAdminLayout from './pages/admin/store/StoreAdminLayout';
+
 // Always-needed pages (tiny, keep eager)
 import LandingPage   from './pages/LandingPage';
 import Login         from './pages/Login';
@@ -71,7 +74,7 @@ const CashierDashboard = React.lazy(() => import('./pages/admin/cashier/CashierD
 const CashierScan      = React.lazy(() => import('./pages/admin/cashier/CashierScan'));
 const CashierHistory   = React.lazy(() => import('./pages/admin/cashier/CashierHistory'));
 
-// ── Loading spinner ──────────────────────────────────────────────────────────
+// ── Loading spinner ────────────────────────────────────────────────────────
 const Spinner: React.FC = () => (
   <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-color, #0c0c0e)' }}>
     <div className="flex flex-col items-center gap-4">
@@ -81,7 +84,7 @@ const Spinner: React.FC = () => (
   </div>
 );
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────
 const C: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <CustomerRoute><Layout>{children}</Layout></CustomerRoute>
 );
@@ -91,14 +94,14 @@ const SA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 const STA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <StoreAdminRoute>{children}</StoreAdminRoute>
+  <StoreAdminRoute><StoreAdminLayout>{children}</StoreAdminLayout></StoreAdminRoute>
 );
 
 const CA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <CashierRoute>{children}</CashierRoute>
 );
 
-// ── App ──────────────────────────────────────────────────────────────────────
+// ── App ────────────────────────────────────────────────────────────────────
 function App() {
   return (
     <RewardEventsProvider>
