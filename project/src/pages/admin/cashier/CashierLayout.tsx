@@ -5,9 +5,9 @@ import { useApp } from '../../../context/AppContext';
 import { useAuth } from '../../../context/AuthContext';
 
 const cashierNavItems = [
-  { path: '/cashier',         icon: LayoutDashboard, label: 'Kasa Ekranı'      },
-  { path: '/cashier/scan',    icon: ScanLine,        label: 'QR Tara & Puan'  },
-  { path: '/cashier/history', icon: History,         label: 'İşlem Geçmişi'   },
+  { path: '/cashier',         icon: LayoutDashboard, label: 'Kasa Ekranı'     },
+  { path: '/cashier/scan',    icon: ScanLine,        label: 'QR Tara & Puan' },
+  { path: '/cashier/history', icon: History,         label: 'İşlem Geçmişi'  },
 ];
 
 const ACCENT = '#f59e0b';
@@ -19,46 +19,43 @@ const CashierLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
+  const handleLogout = () => { logout(); navigate('/login'); };
   const currentLabel = cashierNavItems.find(n => n.path === location.pathname)?.label || 'Kasa';
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#fffbeb' }}>
+    <div className="flex min-h-screen" style={{ background: 'var(--bg-color)' }}>
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <aside className={`fixed left-0 top-0 h-full w-60 z-50 flex flex-col overflow-y-auto transform transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static`}
-        style={{ background: 'white', borderRight: '2.5px solid #1e1b4b' }}>
-
-        <div className="p-5" style={{ borderBottom: '2.5px solid #1e1b4b' }}>
+      <aside
+        className={`fixed left-0 top-0 h-full w-60 z-50 flex flex-col overflow-y-auto transform transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static`}
+        style={{ background: 'var(--card-bg)', borderRight: '2.5px solid var(--dark-border)' }}
+      >
+        <div className="p-5" style={{ borderBottom: '2.5px solid var(--dark-border)' }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: ACCENT, border: '2.5px solid #1e1b4b', boxShadow: '0px 3px 0px #1e1b4b' }}>
+              style={{ background: ACCENT, border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)' }}>
               <Wallet size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="font-black text-sm" style={{ color: '#1e1b4b' }}>Kasa Paneli</h1>
-              <p className="text-xs font-medium" style={{ color: '#6b7280' }}>NexReward</p>
+              <h1 className="font-black text-sm" style={{ color: 'var(--text-dark)' }}>Kasa Paneli</h1>
+              <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>NexReward</p>
             </div>
-            <button onClick={() => setSidebarOpen(false)} className="ml-auto lg:hidden p-1 rounded-lg hover:bg-gray-100">
+            <button onClick={() => setSidebarOpen(false)} className="ml-auto lg:hidden p-1 rounded-lg" style={{ color: 'var(--text-muted)' }}>
               <X size={18} />
             </button>
           </div>
         </div>
 
         <div className="mx-3 mt-4 mb-2 px-3 py-2.5 rounded-xl flex items-center gap-2"
-          style={{ background: '#fffbeb', border: `2px solid ${ACCENT}` }}>
+          style={{ background: `${ACCENT}15`, border: `2px solid ${ACCENT}` }}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm text-white flex-shrink-0"
             style={{ background: ACCENT }}>
             {authUser?.name?.[0] ?? 'C'}
           </div>
           <div className="min-w-0">
-            <p className="font-black text-xs truncate" style={{ color: '#1e1b4b' }}>{authUser?.name}</p>
+            <p className="font-black text-xs truncate" style={{ color: 'var(--text-dark)' }}>{authUser?.name}</p>
             <p className="text-xs font-medium" style={{ color: ACCENT }}>Kasiyer</p>
           </div>
         </div>
@@ -72,9 +69,9 @@ const CashierLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-all"
                 style={{
                   background: active ? ACCENT : 'transparent',
-                  color: active ? 'white' : '#374151',
-                  border: active ? '2px solid #1e1b4b' : '2px solid transparent',
-                  boxShadow: active ? '0px 2px 0px #1e1b4b' : 'none',
+                  color: active ? 'white' : 'var(--text-muted)',
+                  border: active ? '2px solid var(--dark-border)' : '2px solid transparent',
+                  boxShadow: active ? '0px 2px 0px var(--dark-border)' : 'none',
                 }}>
                 <item.icon size={16} />
                 {item.label}
@@ -83,9 +80,9 @@ const CashierLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           })}
         </nav>
 
-        <div className="p-3" style={{ borderTop: '2px solid #e5e7eb' }}>
+        <div className="p-3" style={{ borderTop: '2px solid var(--dark-border)' }}>
           <button onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-red-50"
+            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all"
             style={{ color: '#ef4444' }}>
             <LogOut size={16} />
             Çıkış Yap
@@ -95,15 +92,15 @@ const CashierLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="sticky top-0 z-30 px-4 py-3 flex items-center gap-3"
-          style={{ background: 'white', borderBottom: '2.5px solid #1e1b4b' }}>
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-xl hover:bg-gray-100">
+          style={{ background: 'var(--card-bg)', borderBottom: '2.5px solid var(--dark-border)' }}>
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-xl transition-colors" style={{ color: 'var(--text-muted)' }}>
             <Menu size={18} />
           </button>
           <div className="flex-1 min-w-0">
             <span className="text-xs font-black uppercase tracking-widest" style={{ color: ACCENT }}>Kasa Paneli</span>
-            <p className="font-black text-sm truncate" style={{ color: '#1e1b4b' }}>{currentLabel}</p>
+            <p className="font-black text-sm truncate" style={{ color: 'var(--text-dark)' }}>{currentLabel}</p>
           </div>
-          <button onClick={toggleTheme} className="p-2 rounded-xl hover:bg-gray-100 transition-colors flex-shrink-0">
+          <button onClick={toggleTheme} className="p-2 rounded-xl transition-colors flex-shrink-0" style={{ background: 'var(--tab-bg)', color: 'var(--text-muted)' }}>
             {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
           </button>
           <button onClick={handleLogout}

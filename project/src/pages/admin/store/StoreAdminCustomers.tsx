@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import StoreAdminLayout from './StoreAdminLayout';
-import { Search, Filter, Star, Gift, ChevronDown, ChevronUp, Plus, Minus, CheckCircle, X, User, TrendingUp, Calendar, ShoppingBag } from 'lucide-react';
+import {
+  Search, Star, Gift, ChevronDown, ChevronUp,
+  Plus, Minus, CheckCircle, X, User, TrendingUp, Calendar, ShoppingBag
+} from 'lucide-react';
 
 const ACCENT = '#22c55e';
 
@@ -79,10 +82,10 @@ const MOCK_CUSTOMERS: Customer[] = [
   },
 ];
 
-const STATUS_LABELS: Record<CustomerStatus, { label: string; color: string; bg: string }> = {
-  vip:      { label: 'VIP',      color: '#f59e0b', bg: '#fffbeb' },
-  active:   { label: 'Aktif',    color: ACCENT,    bg: '#f0fdf4' },
-  inactive: { label: 'Pasif',    color: '#9ca3af', bg: '#f9fafb' },
+const STATUS_LABELS: Record<CustomerStatus, { label: string; color: string }> = {
+  vip:      { label: 'VIP',   color: '#f59e0b' },
+  active:   { label: 'Aktif', color: ACCENT    },
+  inactive: { label: 'Pasif', color: '#9ca3af' },
 };
 
 const AdjustModal: React.FC<{
@@ -104,58 +107,61 @@ const AdjustModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
-      <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: 'white', border: '2.5px solid #1e1b4b', boxShadow: '0px 8px 0px #1e1b4b' }}>
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '2px solid #f3f4f6' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+      <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+        style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 8px 0px var(--dark-border)' }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '2px solid var(--dark-border)' }}>
           <div>
-            <p className="font-black" style={{ color: '#1e1b4b' }}>Puan Düzenle</p>
-            <p className="text-xs font-medium" style={{ color: '#9ca3af' }}>{customer.name}</p>
+            <p className="font-black" style={{ color: 'var(--text-dark)' }}>Puan Düzenle</p>
+            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{customer.name}</p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100"><X size={18} /></button>
+          <button onClick={onClose} style={{ color: 'var(--text-muted)' }}><X size={18} /></button>
         </div>
 
         {done ? (
-          <div className="p-6 flex flex-col items-center gap-3">
+          <div className="p-8 flex flex-col items-center gap-3">
             <CheckCircle size={40} style={{ color: ACCENT }} />
-            <p className="font-black text-lg" style={{ color: '#1e1b4b' }}>Puan güncellendi!</p>
+            <p className="font-black text-lg" style={{ color: 'var(--text-dark)' }}>Puan güncellendi!</p>
           </div>
         ) : (
           <div className="p-5 space-y-4">
             <div className="flex gap-2">
-              <button onClick={() => setMode('add')}
-                className="flex-1 py-2.5 rounded-xl font-black text-sm transition-all"
-                style={{ background: mode === 'add' ? ACCENT : '#f9fafb', color: mode === 'add' ? 'white' : '#374151', border: `2px solid ${mode === 'add' ? '#1e1b4b' : '#e5e7eb'}`, boxShadow: mode === 'add' ? '0px 2px 0px #1e1b4b' : 'none' }}>
-                <Plus size={14} className="inline mr-1" /> Puan Ekle
-              </button>
-              <button onClick={() => setMode('subtract')}
-                className="flex-1 py-2.5 rounded-xl font-black text-sm transition-all"
-                style={{ background: mode === 'subtract' ? '#ef4444' : '#f9fafb', color: mode === 'subtract' ? 'white' : '#374151', border: `2px solid ${mode === 'subtract' ? '#1e1b4b' : '#e5e7eb'}`, boxShadow: mode === 'subtract' ? '0px 2px 0px #1e1b4b' : 'none' }}>
-                <Minus size={14} className="inline mr-1" /> Puan Düş
-              </button>
+              {(['add', 'subtract'] as const).map(m => (
+                <button key={m} onClick={() => setMode(m)}
+                  className="flex-1 py-2.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-1"
+                  style={{
+                    background: mode === m ? (m === 'add' ? ACCENT : '#ef4444') : 'var(--tab-bg)',
+                    color: mode === m ? 'white' : 'var(--text-muted)',
+                    border: '2px solid var(--dark-border)',
+                    boxShadow: mode === m ? '0px 2px 0px var(--dark-border)' : 'none',
+                  }}>
+                  {m === 'add' ? <><Plus size={13} /> Puan Ekle</> : <><Minus size={13} /> Puan Düş</>}
+                </button>
+              ))}
             </div>
 
-            <div className="p-3 rounded-xl flex items-center justify-between" style={{ background: '#f0fdf4', border: `2px solid ${ACCENT}` }}>
-              <span className="text-sm font-medium" style={{ color: '#6b7280' }}>Mevcut Puan</span>
+            <div className="p-3 rounded-xl flex items-center justify-between"
+              style={{ background: `${ACCENT}10`, border: `2px solid ${ACCENT}` }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Mevcut Puan</span>
               <span className="font-black" style={{ color: ACCENT }}>{customer.points.toLocaleString('tr-TR')} pts</span>
             </div>
 
             <div>
-              <label className="text-xs font-black block mb-1" style={{ color: '#6b7280' }}>MİKTAR</label>
+              <label className="text-xs font-black block mb-1" style={{ color: 'var(--text-muted)' }}>MİKTAR</label>
               <input type="number" placeholder="150" value={amount} onChange={e => setAmount(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl font-bold text-sm outline-none"
-                style={{ background: '#f9fafb', border: '2px solid #1e1b4b', color: '#1e1b4b' }} />
+                style={{ background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', color: 'var(--text-dark)' }} />
             </div>
-
             <div>
-              <label className="text-xs font-black block mb-1" style={{ color: '#6b7280' }}>AÇIKLAMA</label>
+              <label className="text-xs font-black block mb-1" style={{ color: 'var(--text-muted)' }}>AÇIKLAMA</label>
               <input type="text" placeholder="Manuel düzeltme, özel kampanya..." value={reason} onChange={e => setReason(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl font-bold text-sm outline-none"
-                style={{ background: '#f9fafb', border: '2px solid #1e1b4b', color: '#1e1b4b' }} />
+                style={{ background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', color: 'var(--text-dark)' }} />
             </div>
 
             <button onClick={handle}
               className="w-full py-3 rounded-xl font-black text-white transition-all active:translate-y-0.5"
-              style={{ background: mode === 'add' ? ACCENT : '#ef4444', border: '2.5px solid #1e1b4b', boxShadow: '0px 4px 0px #1e1b4b' }}>
+              style={{ background: mode === 'add' ? ACCENT : '#ef4444', border: '2.5px solid var(--dark-border)', boxShadow: '0px 4px 0px var(--dark-border)' }}>
               {mode === 'add' ? 'Puan Ekle' : 'Puan Düş'}
             </button>
           </div>
@@ -165,16 +171,13 @@ const AdjustModal: React.FC<{
   );
 };
 
-const CustomerRow: React.FC<{
-  customer: Customer;
-  onAdjust: (c: Customer) => void;
-}> = ({ customer, onAdjust }) => {
+const CustomerRow: React.FC<{ customer: Customer; onAdjust: (c: Customer) => void }> = ({ customer, onAdjust }) => {
   const [expanded, setExpanded] = useState(false);
   const st = STATUS_LABELS[customer.status];
 
   return (
     <>
-      <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+      <tr style={{ borderBottom: '1px solid var(--dark-border)' }} className="transition-colors hover:bg-black/5">
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-white text-sm flex-shrink-0"
@@ -182,36 +185,37 @@ const CustomerRow: React.FC<{
               {customer.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
             </div>
             <div>
-              <p className="font-black text-sm" style={{ color: '#1e1b4b' }}>{customer.name}</p>
-              <p className="text-xs font-medium" style={{ color: '#9ca3af' }}>{customer.phone}</p>
+              <p className="font-black text-sm" style={{ color: 'var(--text-dark)' }}>{customer.name}</p>
+              <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{customer.phone}</p>
             </div>
           </div>
         </td>
         <td className="px-4 py-3 text-center">
-          <span className="px-2.5 py-1 rounded-full text-xs font-black" style={{ background: st.bg, color: st.color, border: `1.5px solid ${st.color}` }}>
+          <span className="px-2.5 py-1 rounded-full text-xs font-black"
+            style={{ background: `${st.color}18`, color: st.color, border: `1.5px solid ${st.color}` }}>
             {st.label}
           </span>
         </td>
         <td className="px-4 py-3 text-center">
           <p className="font-black text-sm" style={{ color: ACCENT }}>{customer.points.toLocaleString('tr-TR')}</p>
-          <p className="text-xs" style={{ color: '#9ca3af' }}>Toplam: {customer.totalPoints.toLocaleString('tr-TR')}</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Toplam: {customer.totalPoints.toLocaleString('tr-TR')}</p>
         </td>
         <td className="px-4 py-3 text-center hidden sm:table-cell">
-          <p className="font-black text-sm" style={{ color: '#1e1b4b' }}>Seviye {customer.level}</p>
-          <p className="text-xs" style={{ color: '#9ca3af' }}>{customer.visitCount} ziyaret</p>
+          <p className="font-black text-sm" style={{ color: 'var(--text-dark)' }}>Seviye {customer.level}</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{customer.visitCount} ziyaret</p>
         </td>
         <td className="px-4 py-3 text-center hidden md:table-cell">
-          <p className="text-sm font-bold" style={{ color: '#6b7280' }}>{customer.lastVisit}</p>
+          <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>{customer.lastVisit}</p>
         </td>
         <td className="px-4 py-3">
           <div className="flex items-center justify-end gap-2">
             <button onClick={() => onAdjust(customer)}
               className="px-3 py-1.5 rounded-lg text-xs font-black transition-all active:translate-y-0.5"
-              style={{ background: ACCENT, color: 'white', border: '2px solid #1e1b4b', boxShadow: '0px 2px 0px #1e1b4b' }}>
+              style={{ background: ACCENT, color: 'white', border: '2px solid var(--dark-border)', boxShadow: '0px 2px 0px var(--dark-border)' }}>
               Puan
             </button>
-            <button onClick={() => setExpanded(e => !e)}
-              className="p-1.5 rounded-lg transition-all hover:bg-gray-100">
+            <button onClick={() => setExpanded(e => !e)} className="p-1.5 rounded-lg transition-all"
+              style={{ color: 'var(--text-muted)' }}>
               {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
           </div>
@@ -219,39 +223,36 @@ const CustomerRow: React.FC<{
       </tr>
 
       {expanded && (
-        <tr style={{ background: '#f8fafc' }}>
-          <td colSpan={6} className="px-4 py-4">
+        <tr>
+          <td colSpan={6} style={{ background: 'var(--tab-bg)', padding: '16px' }}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Stats */}
               <div className="space-y-2">
-                <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: '#9ca3af' }}>Müşteri Detayları</p>
+                <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Müşteri Detayları</p>
                 {[
-                  { icon: User,        label: 'E-posta',      value: customer.email },
-                  { icon: Calendar,    label: 'Üyelik',       value: customer.joinDate },
-                  { icon: ShoppingBag, label: 'Harcama',      value: `₺${customer.totalSpend.toLocaleString('tr-TR')}` },
-                  { icon: TrendingUp,  label: 'Toplam Puan',  value: customer.totalPoints.toLocaleString('tr-TR') },
+                  { icon: User,        label: 'E-posta',     value: customer.email },
+                  { icon: Calendar,    label: 'Üyelik',      value: customer.joinDate },
+                  { icon: ShoppingBag, label: 'Harcama',     value: `₺${customer.totalSpend.toLocaleString('tr-TR')}` },
+                  { icon: TrendingUp,  label: 'Toplam Puan', value: customer.totalPoints.toLocaleString('tr-TR') },
                 ].map((d, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <d.icon size={14} style={{ color: ACCENT }} />
-                    <span className="text-xs font-medium" style={{ color: '#6b7280' }}>{d.label}:</span>
-                    <span className="text-xs font-black" style={{ color: '#1e1b4b' }}>{d.value}</span>
+                    <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{d.label}:</span>
+                    <span className="text-xs font-black" style={{ color: 'var(--text-dark)' }}>{d.value}</span>
                   </div>
                 ))}
               </div>
-
-              {/* Transaction history */}
               <div className="sm:col-span-2">
-                <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: '#9ca3af' }}>Son İşlemler</p>
+                <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Son İşlemler</p>
                 <div className="space-y-2">
                   {customer.recentTransactions.map((t, i) => (
                     <div key={i} className="flex items-center justify-between p-2 rounded-xl"
-                      style={{ background: 'white', border: '1.5px solid #e5e7eb' }}>
-                      <span className="text-xs font-bold" style={{ color: '#374151' }}>{t.action}</span>
+                      style={{ background: 'var(--card-bg)', border: '1.5px solid var(--dark-border)' }}>
+                      <span className="text-xs font-bold" style={{ color: 'var(--text-dark)' }}>{t.action}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-black" style={{ color: t.points > 0 ? ACCENT : '#ef4444' }}>
                           {t.points > 0 ? '+' : ''}{t.points} pts
                         </span>
-                        <span className="text-xs" style={{ color: '#9ca3af' }}>{t.date}</span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t.date}</span>
                       </div>
                     </div>
                   ))}
@@ -278,7 +279,7 @@ const StoreAdminCustomers: React.FC = () => {
     return matchSearch && matchStatus;
   });
 
-  const handleAdjust = (id: string, delta: number, _reason: string) => {
+  const handleAdjust = (id: string, delta: number) => {
     setCustomers(cs => cs.map(c => c.id === id ? { ...c, points: Math.max(0, c.points + delta) } : c));
   };
 
@@ -303,7 +304,7 @@ const StoreAdminCustomers: React.FC = () => {
 
         {/* Header */}
         <div className="p-6 rounded-2xl text-white"
-          style={{ background: `linear-gradient(135deg, ${ACCENT} 0%, #16a34a 100%)`, border: '2.5px solid #1e1b4b', boxShadow: '0px 5px 0px #1e1b4b' }}>
+          style={{ background: `linear-gradient(135deg, ${ACCENT} 0%, #16a34a 100%)`, border: '2.5px solid var(--dark-border)', boxShadow: '0px 5px 0px var(--dark-border)' }}>
           <p className="font-black text-2xl">Müşteri Yönetimi 👥</p>
           <p className="text-white/80 text-sm mt-1">Müşteri profillerini görüntüle, puan düzenle ve satın alma geçmişini takip et</p>
         </div>
@@ -311,15 +312,15 @@ const StoreAdminCustomers: React.FC = () => {
         {/* Stats */}
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: 'Toplam',  value: totals.total,    color: '#7B6EF6' },
-            { label: 'VIP',     value: totals.vip,      color: '#f59e0b' },
-            { label: 'Aktif',   value: totals.active,   color: ACCENT    },
-            { label: 'Pasif',   value: totals.inactive, color: '#9ca3af' },
+            { label: 'Toplam', value: totals.total,    color: '#7B6EF6' },
+            { label: 'VIP',    value: totals.vip,      color: '#f59e0b' },
+            { label: 'Aktif',  value: totals.active,   color: ACCENT    },
+            { label: 'Pasif',  value: totals.inactive, color: '#9ca3af' },
           ].map((s, i) => (
             <div key={i} className="p-4 rounded-2xl text-center"
-              style={{ background: 'white', border: '2.5px solid #1e1b4b', boxShadow: '0px 3px 0px #1e1b4b' }}>
+              style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)' }}>
               <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-xs font-medium mt-0.5" style={{ color: '#9ca3af' }}>{s.label}</p>
+              <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
             </div>
           ))}
         </div>
@@ -327,26 +328,23 @@ const StoreAdminCustomers: React.FC = () => {
         {/* Search & Filter */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9ca3af' }} />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
             <input
-              type="text"
-              placeholder="İsim, telefon veya e-posta ara..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              type="text" placeholder="İsim, telefon veya e-posta ara..."
+              value={search} onChange={e => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl font-medium text-sm outline-none"
-              style={{ background: 'white', border: '2px solid #1e1b4b', color: '#1e1b4b' }}
+              style={{ background: 'var(--card-bg)', border: '2px solid var(--dark-border)', color: 'var(--text-dark)' }}
             />
           </div>
           <div className="flex gap-2 flex-wrap">
             {(['all', 'vip', 'active', 'inactive'] as const).map(f => (
-              <button key={f}
-                onClick={() => setStatusFilter(f)}
+              <button key={f} onClick={() => setStatusFilter(f)}
                 className="px-4 py-2.5 rounded-xl text-sm font-black transition-all"
                 style={{
-                  background: statusFilter === f ? '#1e1b4b' : 'white',
-                  color: statusFilter === f ? 'white' : '#374151',
-                  border: '2px solid #1e1b4b',
-                  boxShadow: statusFilter === f ? '0px 2px 0px #1e1b4b' : 'none',
+                  background: statusFilter === f ? 'var(--text-dark)' : 'var(--card-bg)',
+                  color: statusFilter === f ? 'white' : 'var(--text-muted)',
+                  border: '2px solid var(--dark-border)',
+                  boxShadow: statusFilter === f ? '0px 2px 0px var(--dark-border)' : 'none',
                 }}>
                 {f === 'all' ? 'Tümü' : STATUS_LABELS[f as CustomerStatus].label}
               </button>
@@ -356,14 +354,15 @@ const StoreAdminCustomers: React.FC = () => {
 
         {/* Table */}
         <div className="rounded-2xl overflow-hidden"
-          style={{ background: 'white', border: '2.5px solid #1e1b4b', boxShadow: '0px 4px 0px #1e1b4b' }}>
+          style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 4px 0px var(--dark-border)' }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
+                <tr style={{ borderBottom: '2px solid var(--dark-border)' }}>
                   {['Müşteri', 'Durum', 'Puanlar', 'Seviye', 'Son Ziyaret', ''].map((h, i) => (
-                    <th key={i} className={`px-4 py-3 text-left text-xs font-black uppercase tracking-widest ${i === 3 ? 'hidden sm:table-cell' : ''} ${i === 4 ? 'hidden md:table-cell' : ''}`}
-                      style={{ color: '#9ca3af' }}>
+                    <th key={i}
+                      className={`px-4 py-3 text-left text-xs font-black uppercase tracking-widest ${i === 3 ? 'hidden sm:table-cell' : ''} ${i === 4 ? 'hidden md:table-cell' : ''}`}
+                      style={{ color: 'var(--text-muted)' }}>
                       {h}
                     </th>
                   ))}
@@ -373,20 +372,18 @@ const StoreAdminCustomers: React.FC = () => {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center">
-                      <User size={32} className="mx-auto mb-2" style={{ color: '#e5e7eb' }} />
-                      <p className="font-bold text-sm" style={{ color: '#9ca3af' }}>Müşteri bulunamadı</p>
+                      <User size={32} className="mx-auto mb-2" style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
+                      <p className="font-bold text-sm" style={{ color: 'var(--text-muted)' }}>Müşteri bulunamadı</p>
                     </td>
                   </tr>
                 ) : (
-                  filtered.map(c => (
-                    <CustomerRow key={c.id} customer={c} onAdjust={setAdjustingCustomer} />
-                  ))
+                  filtered.map(c => <CustomerRow key={c.id} customer={c} onAdjust={setAdjustingCustomer} />)
                 )}
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-3" style={{ borderTop: '2px solid #f3f4f6' }}>
-            <p className="text-xs font-medium" style={{ color: '#9ca3af' }}>
+          <div className="px-4 py-3" style={{ borderTop: '2px solid var(--dark-border)' }}>
+            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
               {filtered.length} müşteri gösteriliyor (toplam {customers.length})
             </p>
           </div>
