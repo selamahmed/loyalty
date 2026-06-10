@@ -62,6 +62,7 @@ const StoreAdminItems = React.lazy(() => import('./pages/admin/store/StoreAdminI
 // ── Lazy: Cashier pages ──────────────────────────────────────────────────────
 const CashierDashboard = React.lazy(() => import('./pages/admin/cashier/CashierDashboard'));
 const CashierScan      = React.lazy(() => import('./pages/admin/cashier/CashierScan'));
+const CashierRedeem    = React.lazy(() => import('./pages/admin/cashier/CashierRedeem'));
 const CashierHistory   = React.lazy(() => import('./pages/admin/cashier/CashierHistory'));
 
 // ── Loading spinner ────────────────────────────────────────────────────────
@@ -152,9 +153,10 @@ function App() {
             <Route path="/store-admin/items" element={<STA><StoreAdminItems /></STA>} />
 
             {/* Cashier */}
-            <Route path="/cashier"         element={<CA><CashierDashboard /></CA>} />
-            <Route path="/cashier/scan"    element={<CA><CashierScan /></CA>} />
-            <Route path="/cashier/history" element={<CA><CashierHistory /></CA>} />
+            <Route path="/cashier"          element={<CA><CashierDashboard /></CA>} />
+            <Route path="/cashier/scan"     element={<CA><CashierScan /></CA>} />
+            <Route path="/cashier/redeem"   element={<CA><CashierRedeem /></CA>} />
+            <Route path="/cashier/history"  element={<CA><CashierHistory /></CA>} />
 
             {/* Error pages */}
             <Route path="/no-connection" element={<NoConnection />} />

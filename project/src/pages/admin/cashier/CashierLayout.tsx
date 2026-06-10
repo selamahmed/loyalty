@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ScanLine, History, LayoutDashboard, Menu, X, Moon, Sun, LogOut, Wallet } from 'lucide-react';
+import { ScanLine, History, LayoutDashboard, Menu, X, Moon, Sun, LogOut, Wallet, PackageCheck } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { useAuth } from '../../../context/AuthContext';
 
 const cashierNavItems = [
-  { path: '/cashier',         icon: LayoutDashboard, label: 'Kasa Ekranı'     },
-  { path: '/cashier/scan',    icon: ScanLine,        label: 'QR Tara & Puan' },
-  { path: '/cashier/history', icon: History,         label: 'İşlem Geçmişi'  },
+  { path: '/cashier',          icon: LayoutDashboard, label: 'Kasa Ekranı'      },
+  { path: '/cashier/scan',     icon: ScanLine,        label: 'QR Tara & Puan'  },
+  { path: '/cashier/redeem',   icon: PackageCheck,    label: 'Ürün Teslimi'     },
+  { path: '/cashier/history',  icon: History,         label: 'İşlem Geçmişi'   },
 ];
 
 const ACCENT = '#f59e0b';
