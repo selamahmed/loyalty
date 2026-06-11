@@ -1,10 +1,34 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { currentUser } from '../data/mockData';
 
+export type AppUser = typeof currentUser & {
+  phone?: string;
+  bio?: string;
+};
+
+export type PrivacySettings = {
+  publicProfile: boolean;
+  showOnLeaderboard: boolean;
+  shareActivity: boolean;
+  twoFactor: boolean;
+  loginAlerts: boolean;
+};
+
+const defaultPrivacySettings: PrivacySettings = {
+  publicProfile: true,
+  showOnLeaderboard: true,
+  shareActivity: false,
+  twoFactor: false,
+  loginAlerts: true,
+};
+
 interface AppContextType {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
-  user: typeof currentUser;
+  user: AppUser;
+  updateUser: (data: Partial<AppUser>) => void;
+  privacySettings: PrivacySettings;
+  updatePrivacySettings: (data: Partial<PrivacySettings>) => void;
   points: number;
   addPoints: (amount: number) => void;
   spendPoints: (amount: number) => boolean;
@@ -33,6 +57,22 @@ const AppContext = createContext<AppContextType | null>(null);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+  });
+  const [user, setUser] = useState<AppUser>(() => {
+    try {
+      const saved = localStorage.getItem('userProfile');
+      return saved ? { ...currentUser, ...JSON.parse(saved) } : currentUser;
+    } catch {
+      return currentUser;
+    }
+  });
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(() => {
+    try {
+      const saved = localStorage.getItem('privacySettings');
+      return saved ? { ...defaultPrivacySettings, ...JSON.parse(saved) } : defaultPrivacySettings;
+    } catch {
+      return defaultPrivacySettings;
+    }
   });
   const [points, setPoints] = useState(currentUser.currentPoints);
   const [isLoggedIn, setIsLoggedIn] = useState(true);
@@ -73,11 +113,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRewardPopup(null);
   };
 
+  const updateUser = (data: Partial<AppUser>) => {
+    setUser(prev => {
+      const next = { ...prev, ...data };
+      localStorage.setItem('userProfile', JSON.stringify({
+        username: next.username,
+        email: next.email,
+        phone: next.phone,
+        bio: next.bio,
+        avatar: next.avatar,
+      }));
+      return next;
+    });
+  };
+
+  const updatePrivacySettings = (data: Partial<PrivacySettings>) => {
+    setPrivacySettings(prev => {
+      const next = { ...prev, ...data };
+      localStorage.setItem('privacySettings', JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
     <AppContext.Provider value={{
       theme,
       toggleTheme,
-      user: currentUser,
+      user,
+      updateUser,
+      privacySettings,
+      updatePrivacySettings,
       points,
       addPoints,
       spendPoints,

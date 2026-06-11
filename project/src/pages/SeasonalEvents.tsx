@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Zap, Clock, Star, Lock, Trophy, Calendar, ArrowRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Zap, Star, Lock, Trophy, Calendar, Check, ChevronRight } from 'lucide-react';
 import { seasonalEvents } from '../data/mockData';
 import { tr } from '../lib/tr';
+import { playSound } from '../lib/sounds';
 
 const card = {
   background: 'var(--card-bg)',
@@ -10,195 +11,372 @@ const card = {
   borderRadius: 20,
 };
 
-const solidEventColor = (c: string): string => {
-  if (c.includes('pink') || c.includes('rose')) return '#ec4899';
-  if (c.includes('blue') && !c.includes('slate')) return '#3b82f6';
-  if (c.includes('cyan')) return '#06b6d4';
-  if (c.includes('slate') || c.includes('gray')) return '#64748b';
-  if (c.includes('green') || c.includes('emerald')) return '#22c55e';
-  if (c.includes('amber') || c.includes('yellow')) return '#f59e0b';
-  if (c.includes('red') || c.includes('orange')) return '#ef4444';
-  return '#7B6EF6';
+const eventColors: Record<string, string> = {
+  '1': '#06b6d4',
+  '2': '#ec4899',
+  '3': '#64748b',
 };
 
-const eventRewards = [
-  { id: '1', title: 'Yaz Bez Çantası',  points: 300,  unlocked: true,  icon: '👜' },
-  { id: '2', title: 'Güneş Kremi Seti', points: 150,  unlocked: true,  icon: '🧴' },
-  { id: '3', title: 'Plaj Havlusu',     points: 500,  unlocked: false, icon: '🏖️' },
-  { id: '4', title: 'Yaz Hediye Kutusu',points: 1000, unlocked: false, icon: '🎁' },
-  { id: '5', title: 'VIP Havuz Daveti', points: 2000, unlocked: false, icon: '🎪' },
-];
+const eventRewardsMap: Record<string, { id: string; title: string; points: number; unlocked: boolean; icon: string }[]> = {
+  '1': [
+    { id: '1', title: 'Yaz Bez Çantası', points: 300, unlocked: true, icon: '👜' },
+    { id: '2', title: 'Güneş Kremi Seti', points: 150, unlocked: true, icon: '🧴' },
+    { id: '3', title: 'Plaj Havlusu', points: 500, unlocked: false, icon: '🏖️' },
+    { id: '4', title: 'Yaz Hediye Kutusu', points: 1000, unlocked: false, icon: '🎁' },
+    { id: '5', title: 'VIP Havuz Daveti', points: 2000, unlocked: false, icon: '🎪' },
+  ],
+  '2': [
+    { id: '1', title: 'Bahar Çiçek Kupası', points: 200, unlocked: true, icon: '🌷' },
+    { id: '2', title: '%20 İndirim Kuponu', points: 100, unlocked: true, icon: '🏷️' },
+    { id: '3', title: 'Çiçek Buketi', points: 400, unlocked: true, icon: '💐' },
+    { id: '4', title: 'Bahar Rozeti', points: 0, unlocked: true, icon: '🏅' },
+  ],
+  '3': [
+    { id: '1', title: 'Kış Eldiveni', points: 250, unlocked: false, icon: '🧤' },
+    { id: '2', title: 'Sıcak Çikolata Kuponu', points: 120, unlocked: false, icon: '☕' },
+    { id: '3', title: 'Kar Tanesi Rozeti', points: 0, unlocked: false, icon: '❄️' },
+  ],
+};
+
+type EventStatus = 'active' | 'ended' | 'upcoming';
+
+const getEventStatus = (event: typeof seasonalEvents[0]): EventStatus => {
+  if (event.active) return 'active';
+  const now = new Date();
+  const start = new Date(event.startDate);
+  const end = new Date(event.endDate);
+  if (now < start) return 'upcoming';
+  if (now > end || event.progress >= 100) return 'ended';
+  return 'ended';
+};
+
+const statusConfig: Record<EventStatus, { label: string; color: string; bg: string }> = {
+  active: { label: 'Aktif', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
+  ended: { label: 'Bitti', color: 'var(--text-muted)', bg: 'var(--tab-bg)' },
+  upcoming: { label: 'Yakında', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+};
+
+const formatDate = (d: string) =>
+  new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+
+const formatShortDate = (d: string) =>
+  new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+
+const useCountdown = (endDate: string, active: boolean) => {
+  const [left, setLeft] = useState({ days: 0, hours: 0, mins: 0 });
+
+  useEffect(() => {
+    if (!active) return;
+    const tick = () => {
+      const diff = new Date(endDate).getTime() - Date.now();
+      if (diff <= 0) { setLeft({ days: 0, hours: 0, mins: 0 }); return; }
+      setLeft({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        mins: Math.floor((diff % 3600000) / 60000),
+      });
+    };
+    tick();
+    const id = setInterval(tick, 60000);
+    return () => clearInterval(id);
+  }, [endDate, active]);
+
+  return left;
+};
 
 const SeasonalEvents: React.FC = () => {
-  const [selectedEvent, setSelectedEvent] = useState(seasonalEvents[0]);
+  const activeEvent = seasonalEvents.find(e => e.active) ?? seasonalEvents[0];
+  const [selectedId, setSelectedId] = useState(activeEvent.id);
+  const selectedEvent = seasonalEvents.find(e => e.id === selectedId) ?? activeEvent;
+  const status = getEventStatus(selectedEvent);
+  const statusInfo = statusConfig[status];
+  const accent = eventColors[selectedEvent.id] ?? '#7B6EF6';
+  const rewards = eventRewardsMap[selectedEvent.id] ?? [];
+  const countdown = useCountdown(selectedEvent.endDate, status === 'active');
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
-      {/* Ghost watermark */}
+      <style>{`
+        .event-scroll {
+          display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px;
+          -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory;
+          scrollbar-width: none;
+        }
+        .event-scroll::-webkit-scrollbar { display: none; }
+        .event-chip { scroll-snap-align: start; flex-shrink: 0; }
+      `}</style>
+
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{
           position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
           fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
           opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
-        }}>ETKİNLİKLER</div>
+        }}>ETKİNLİK</div>
       </div>
 
-      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
+      <div
+        className="page-enter p-3 sm:p-4 max-w-lg mx-auto overflow-x-hidden"
+        style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}
+      >
+        {/* Header */}
+        <div>
+          <p className="section-label">🌟 SINIRLI SÜRE</p>
+          <h1 className="section-title" style={{ fontSize: 'clamp(24px,6vw,32px)' }}>{tr.events.title}</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '4px 0 0', lineHeight: 1.5 }}>
+            Belirli dönemlerde katıl, ekstra puan kazan ve özel ödülleri aç.
+          </p>
+        </div>
 
-        {/* ── Page header ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-            background: '#ef4444',
-            border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-          }}>🌟</div>
-          <div>
-            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>Mevsimsel Etkinlikler</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Sınırlı süreli etkinliklere katıl</p>
+        {/* How it works */}
+        <div style={{ ...card, padding: '16px 18px' }}>
+          <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>
+            Nasıl çalışır?
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { step: '1', text: 'Aktif etkinliği seç ve katıl' },
+              { step: '2', text: 'QR tara, oyun oyna veya görev tamamla' },
+              { step: '3', text: 'Çarpanlı puan kazan, ödülleri aç' },
+            ].map(s => (
+              <div key={s.step} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                  background: 'var(--tab-bg)', border: '2px solid var(--dark-border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 900, fontSize: 12, color: 'var(--primary-blue)',
+                }}>{s.step}</div>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text-dark)' }}>{s.text}</p>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* ── Event selector grid ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
-          {seasonalEvents.map(event => (
-            <div
-              key={event.id}
-              onClick={() => setSelectedEvent(event)}
-              style={{
-                ...card,
-                border: selectedEvent.id === event.id ? '3px solid var(--primary-blue)' : '3px solid var(--dark-border)',
-                boxShadow: selectedEvent.id === event.id ? '0 6px 0 var(--primary-blue)' : '0 6px 0 var(--dark-border)',
-                overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.1s, box-shadow 0.1s',
-              }}
-              onMouseEnter={e => { if (selectedEvent.id !== event.id) (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
-            >
-              {/* Banner */}
-              <div style={{ height: 96, background: solidEventColor(event.color), position: 'relative', overflow: 'hidden', borderBottom: '3px solid var(--dark-border)' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.18)' }} />
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px', textAlign: 'center' }}>
-                  <p style={{ fontWeight: 900, color: 'white', fontSize: 14, margin: '0 0 4px', textShadow: '0 2px 4px rgba(0,0,0,0.3)', lineHeight: 1.2 }}>{event.title}</p>
-                  {event.active && (
-                    <span style={{ padding: '2px 8px', background: 'rgba(255,255,255,0.25)', border: '1.5px solid rgba(255,255,255,0.4)', borderRadius: 999, fontSize: 9, fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <Zap size={8} /> {event.multiplier}
-                    </span>
-                  )}
-                  {!event.active && (
-                    <span style={{ padding: '2px 8px', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 999, fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,0.8)' }}>
-                      {event.progress === 100 ? 'Bitti' : 'Yakında'}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div style={{ padding: '10px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Calendar size={10} color="var(--text-muted)" />
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>
-                      {new Date(event.startDate).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                  <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--primary-blue)' }}>{event.unlockedRewards}/{event.totalRewards}</span>
-                </div>
-                <div style={{ height: 6, borderRadius: 999, background: 'var(--tab-bg)', border: '1.5px solid var(--dark-border)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${event.progress}%`, background: 'var(--primary-blue)', borderRadius: 999 }} />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Event picker */}
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px', paddingLeft: 2 }}>
+            Etkinlikler
+          </p>
+          <div className="event-scroll">
+            {seasonalEvents.map(event => {
+              const st = getEventStatus(event);
+              const stInfo = statusConfig[st];
+              const selected = selectedId === event.id;
+              const color = eventColors[event.id] ?? '#7B6EF6';
 
-        {/* ── Selected event hero ── */}
-        {selectedEvent && (
-          <>
-            <div style={{ ...card, background: solidEventColor(selectedEvent.color), padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-              <div style={{ position: 'relative' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {selectedEvent.active && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', background: 'rgba(255,255,255,0.25)', borderRadius: 999, border: '1.5px solid rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 900, color: 'white', marginBottom: 8 }}>
-                        🔴 AKTİF ETKİNLİK
-                      </span>
-                    )}
-                    <h2 style={{ color: 'white', fontWeight: 900, fontSize: 22, margin: '0 0 6px', textShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>{selectedEvent.title}</h2>
-                    <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>{selectedEvent.description}</p>
-                  </div>
-                  {selectedEvent.active && (
-                    <span style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.25)', border: '2px solid rgba(255,255,255,0.4)', borderRadius: 12, fontSize: 16, fontWeight: 900, color: 'white', flexShrink: 0 }}>
-                      <Zap size={14} style={{ display: 'inline', marginRight: 4 }} />{selectedEvent.multiplier}
-                    </span>
-                  )}
-                </div>
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.75)', marginBottom: 6, fontWeight: 700 }}>
-                    <span>Etkinlik İlerlemesi</span>
-                    <span>{selectedEvent.progress}%</span>
-                  </div>
-                  <div style={{ height: 12, borderRadius: 999, background: 'rgba(255,255,255,0.25)', border: '1.5px solid rgba(255,255,255,0.4)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${selectedEvent.progress}%`, background: 'white', borderRadius: 999, transition: 'width 0.5s ease' }} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.8)' }}>
-                    <Calendar size={12} />
-                    <span style={{ fontSize: 12, fontWeight: 600 }}>Bitiş: {new Date(selectedEvent.endDate).toLocaleDateString('tr-TR')}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.8)' }}>
-                    <Trophy size={12} />
-                    <span style={{ fontSize: 12, fontWeight: 600 }}>{selectedEvent.unlockedRewards}/{selectedEvent.totalRewards} ödül kilidi açıldı</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Event rewards ── */}
-            <div>
-              <h2 style={{ fontWeight: 900, fontSize: 17, color: 'var(--text-dark)', margin: '0 0 12px' }}>Etkinlik Ödülleri</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {eventRewards.map(reward => (
-                  <div key={reward.id} style={{
-                    ...card,
-                    border: reward.unlocked ? '3px solid #22c55e' : '3px solid var(--dark-border)',
-                    boxShadow: reward.unlocked ? '0 6px 0 #16a34a' : '0 6px 0 var(--dark-border)',
-                    padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14,
-                    opacity: reward.unlocked ? 1 : 0.75,
+              return (
+                <button
+                  key={event.id}
+                  className="event-chip press-card"
+                  onClick={() => { playSound('click'); setSelectedId(event.id); }}
+                  style={{
+                    width: 140, padding: 0, cursor: 'pointer', textAlign: 'left',
+                    background: 'var(--card-bg)',
+                    border: `2.5px solid ${selected ? color : 'var(--dark-border)'}`,
+                    boxShadow: selected ? `0 5px 0 ${color}` : '0 3px 0 var(--dark-border)',
+                    borderRadius: 16, overflow: 'hidden',
+                  }}
+                >
+                  <div style={{
+                    height: 56, background: color, position: 'relative',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 28, borderBottom: '2px solid var(--dark-border)',
                   }}>
-                    <div style={{
-                      width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-                      background: reward.unlocked ? 'rgba(34,197,94,0.12)' : 'var(--tab-bg)',
-                      border: reward.unlocked ? '2.5px solid #22c55e' : '2.5px solid var(--dark-border)',
-                      boxShadow: reward.unlocked ? '0 3px 0 #16a34a44' : '0 3px 0 var(--dark-border)',
-                    }}>
-                      {reward.unlocked ? reward.icon : <Lock size={20} color="var(--text-muted)" />}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 4px' }}>{reward.title}</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Star size={11} fill="#f59e0b" color="#f59e0b" />
-                        <span style={{ fontSize: 12, fontWeight: 900, color: '#f59e0b' }}>{reward.points.toLocaleString()} puan gerekli</span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                      {reward.unlocked ? (
-                        <>
-                          <span style={{ fontSize: 20 }}>✅</span>
-                          <span style={{ fontSize: 11, fontWeight: 900, color: '#22c55e' }}>Açık</span>
-                        </>
-                      ) : (
-                        <>
-                          <Lock size={14} color="var(--text-muted)" />
-                          <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)' }}>Kilitli</span>
-                        </>
+                    {(event as typeof event & { emoji?: string }).emoji ?? '🎉'}
+                  </div>
+                  <div style={{ padding: '10px 12px' }}>
+                    <p style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-dark)', margin: '0 0 4px', lineHeight: 1.2 }}>
+                      {event.title}
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                      <span style={{
+                        fontSize: 9, fontWeight: 900, padding: '2px 7px', borderRadius: 999,
+                        background: stInfo.bg, color: stInfo.color,
+                        border: `1.5px solid ${stInfo.color}44`,
+                      }}>
+                        {stInfo.label}
+                      </span>
+                      {st === 'active' && (
+                        <span style={{ fontSize: 9, fontWeight: 900, color: color, display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Zap size={8} /> {event.multiplier}
+                        </span>
                       )}
                     </div>
                   </div>
-                ))}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Selected event hero */}
+        <div style={{ ...card, overflow: 'hidden', padding: 0 }}>
+          <div style={{
+            padding: '18px 20px',
+            background: `${accent}18`,
+            borderBottom: '2px solid var(--dark-border)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 900, padding: '3px 10px', borderRadius: 999,
+                    background: statusInfo.bg, color: statusInfo.color,
+                    border: `1.5px solid ${statusInfo.color}55`,
+                  }}>
+                    {status === 'active' ? '🔴 ' : ''}{statusInfo.label}
+                  </span>
+                  {status === 'active' && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 900, padding: '3px 10px', borderRadius: 999,
+                      background: accent, color: '#000', border: '2px solid var(--dark-border)',
+                      display: 'flex', alignItems: 'center', gap: 4,
+                    }}>
+                      <Zap size={10} /> {selectedEvent.multiplier} puan
+                    </span>
+                  )}
+                </div>
+                <h2 style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)', margin: '0 0 6px', lineHeight: 1.1 }}>
+                  {selectedEvent.title}
+                </h2>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.55, fontWeight: 600 }}>
+                  {selectedEvent.description}
+                </p>
+              </div>
+              <div style={{ fontSize: 40, flexShrink: 0, lineHeight: 1 }}>
+                {(selectedEvent as typeof selectedEvent & { emoji?: string }).emoji ?? '🎉'}
               </div>
             </div>
-          </>
+
+            {status === 'active' && (
+              <div style={{
+                display: 'flex', gap: 8, marginBottom: 14,
+              }}>
+                {[
+                  { val: countdown.days, label: 'Gün' },
+                  { val: countdown.hours, label: 'Saat' },
+                  { val: countdown.mins, label: 'Dk' },
+                ].map(u => (
+                  <div key={u.label} style={{
+                    flex: 1, textAlign: 'center', padding: '8px 4px', borderRadius: 12,
+                    background: 'var(--card-bg)', border: '2px solid var(--dark-border)',
+                    boxShadow: '0 2px 0 var(--dark-border)',
+                  }}>
+                    <p style={{ fontWeight: 900, fontSize: 20, color: 'var(--text-dark)', margin: 0, lineHeight: 1 }}>{u.val}</p>
+                    <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-muted)', margin: '2px 0 0', textTransform: 'uppercase' }}>{u.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Calendar size={12} />
+                {formatShortDate(selectedEvent.startDate)} – {formatShortDate(selectedEvent.endDate)}
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Trophy size={12} />
+                {selectedEvent.unlockedRewards}/{selectedEvent.totalRewards} ödül açıldı
+              </span>
+            </div>
+          </div>
+
+          {/* Progress */}
+          <div style={{ padding: '16px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-dark)' }}>Etkinlik ilerlemen</span>
+              <span style={{ fontSize: 12, fontWeight: 900, color: accent }}>%{selectedEvent.progress}</span>
+            </div>
+            <div style={{
+              height: 12, borderRadius: 999, background: 'var(--tab-bg)',
+              border: '2.5px solid var(--dark-border)', overflow: 'hidden',
+              boxShadow: '0 2px 0 var(--dark-border)',
+            }}>
+              <div style={{
+                height: '100%', width: `${selectedEvent.progress}%`,
+                background: accent, borderRadius: 999,
+                transition: 'width 0.6s ease',
+              }} />
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '8px 0 0', fontWeight: 600, textAlign: 'center' }}>
+              {status === 'active'
+                ? 'Görevleri tamamlayarak ilerlemeni artır'
+                : status === 'upcoming'
+                  ? `${formatDate(selectedEvent.startDate)} tarihinde başlıyor`
+                  : 'Bu etkinlik sona erdi'}
+            </p>
+          </div>
+        </div>
+
+        {/* Rewards */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <h2 style={{ fontWeight: 900, fontSize: 18, color: 'var(--text-dark)', margin: 0 }}>{tr.events.rewards}</h2>
+            <span style={{
+              fontSize: 10, fontWeight: 900, padding: '4px 10px',
+              background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', borderRadius: 999,
+              color: 'var(--text-muted)',
+            }}>
+              {rewards.filter(r => r.unlocked).length}/{rewards.length}
+            </span>
+          </div>
+
+          <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+            {rewards.map((reward, i) => (
+              <div
+                key={reward.id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
+                  borderBottom: i < rewards.length - 1 ? '2px solid var(--dark-border)' : 'none',
+                  opacity: reward.unlocked ? 1 : 0.7,
+                  background: reward.unlocked ? 'rgba(34,197,94,0.04)' : 'transparent',
+                }}
+              >
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+                  background: reward.unlocked ? 'rgba(34,197,94,0.12)' : 'var(--tab-bg)',
+                  border: `2px solid ${reward.unlocked ? '#22c55e' : 'var(--dark-border)'}`,
+                }}>
+                  {reward.unlocked ? reward.icon : <Lock size={18} color="var(--text-muted)" />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 2px' }}>{reward.title}</p>
+                  {reward.points > 0 ? (
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', margin: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <Star size={10} fill="#f59e0b" color="#f59e0b" />
+                      {reward.points.toLocaleString()} puan
+                    </p>
+                  ) : (
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', margin: 0 }}>Rozet ödülü</p>
+                  )}
+                </div>
+                {reward.unlocked ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                    <Check size={14} color="#22c55e" strokeWidth={3} />
+                    <span style={{ fontSize: 11, fontWeight: 900, color: '#22c55e' }}>Açık</span>
+                  </div>
+                ) : (
+                  <ChevronRight size={16} color="var(--text-muted)" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {status === 'active' && (
+          <button
+            className="press-card"
+            onClick={() => playSound('success')}
+            style={{
+              width: '100%', padding: '14px', borderRadius: 16, fontWeight: 900, fontSize: 15,
+              background: `linear-gradient(180deg, ${accent}cc, ${accent})`,
+              color: '#000', border: '3px solid var(--dark-border)',
+              boxShadow: '0 5px 0 var(--dark-border)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            <Zap size={18} /> Etkinliğe Katıl — {selectedEvent.multiplier} Puan
+          </button>
         )}
       </div>
     </div>

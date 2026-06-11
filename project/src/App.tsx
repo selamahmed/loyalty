@@ -33,7 +33,13 @@ const Missions       = React.lazy(() => import('./pages/Missions'));
 const Notifications  = React.lazy(() => import('./pages/Notifications'));
 const History        = React.lazy(() => import('./pages/History'));
 const Settings       = React.lazy(() => import('./pages/Settings'));
+const EditProfile    = React.lazy(() => import('./pages/EditProfile'));
+const PrivacySecurity = React.lazy(() => import('./pages/PrivacySecurity'));
+const ChangePassword = React.lazy(() => import('./pages/ChangePassword'));
 const Support        = React.lazy(() => import('./pages/Support'));
+const LiveChat       = React.lazy(() => import('./pages/support/LiveChat'));
+const SupportEmail   = React.lazy(() => import('./pages/support/SupportEmail'));
+const SupportCall    = React.lazy(() => import('./pages/support/SupportCall'));
 const SeasonalEvents = React.lazy(() => import('./pages/SeasonalEvents'));
 const Leaderboard    = React.lazy(() => import('./pages/Leaderboard'));
 const UserStats      = React.lazy(() => import('./pages/UserStats'));
@@ -125,8 +131,14 @@ function App() {
             <Route path="/missions"      element={<C><Missions /></C>} />
             <Route path="/notifications" element={<C><Notifications /></C>} />
             <Route path="/history"       element={<C><History /></C>} />
-            <Route path="/settings"      element={<C><Settings /></C>} />
-            <Route path="/support"       element={<C><Support /></C>} />
+            <Route path="/settings"                  element={<C><Settings /></C>} />
+            <Route path="/settings/edit-profile"    element={<C><EditProfile /></C>} />
+            <Route path="/settings/privacy"         element={<C><PrivacySecurity /></C>} />
+            <Route path="/settings/change-password" element={<C><ChangePassword /></C>} />
+            <Route path="/support"              element={<C><Support /></C>} />
+            <Route path="/support/live-chat"     element={<C><LiveChat /></C>} />
+            <Route path="/support/email"         element={<C><SupportEmail /></C>} />
+            <Route path="/support/call"          element={<C><SupportCall /></C>} />
             <Route path="/events"        element={<C><SeasonalEvents /></C>} />
             <Route path="/leaderboard"   element={<C><Leaderboard /></C>} />
             <Route path="/stats"         element={<C><UserStats /></C>} />

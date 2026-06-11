@@ -264,9 +264,9 @@ const Settings: React.FC = () => {
 
         {/* ── Account ── */}
         <Section title={tr.settings.account} emoji="👤">
-          <Row icon={User}   label={tr.settings.editProfile || 'Profili Düzenle'}       iconBg="rgba(107,114,128,0.12)" iconColor="var(--text-muted)" onClick={() => { playSound('click'); navigate('/profile'); }} />
-          <Row icon={Shield} label={tr.settings.privacySecurity || 'Gizlilik & Güvenlik'} iconBg="rgba(59,130,246,0.15)"   iconColor="#3b82f6"            onClick={() => playSound('click')} />
-          <Row icon={Shield} label={tr.settings.changePassword || 'Şifre Değiştir'}      iconBg="rgba(245,158,11,0.15)"  iconColor="#f59e0b"            onClick={() => playSound('click')} />
+          <Row icon={User}   label={tr.settings.editProfile || 'Profili Düzenle'}       iconBg="rgba(107,114,128,0.12)" iconColor="var(--text-muted)" onClick={() => { playSound('click'); navigate('/settings/edit-profile'); }} />
+          <Row icon={Shield} label={tr.settings.privacySecurity || 'Gizlilik & Güvenlik'} iconBg="rgba(59,130,246,0.15)"   iconColor="#3b82f6"            onClick={() => { playSound('click'); navigate('/settings/privacy'); }} />
+          <Row icon={Shield} label={tr.settings.changePassword || 'Şifre Değiştir'}      iconBg="rgba(245,158,11,0.15)"  iconColor="#f59e0b"            onClick={() => { playSound('click'); navigate('/settings/change-password'); }} />
         </Section>
 
         {/* ── Logout ── */}

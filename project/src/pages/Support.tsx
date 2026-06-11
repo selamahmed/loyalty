@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HelpCircle, ChevronDown, ChevronUp, Mail, MessageSquare, Phone, Check, Send } from 'lucide-react';
 import { tr } from '../lib/tr';
+import { playSound } from '../lib/sounds';
 
 const card = {
   background: 'var(--card-bg)',
@@ -19,7 +21,14 @@ const faqs = [
   { q: 'Mini oyun puanları nasıl çalışır?', a: 'Her mini oyun performansına göre puan verir. Puanlar kazandığında anında bakiyene eklenir.' },
 ];
 
+const contactOptions = [
+  { icon: MessageSquare, label: 'Canlı Sohbet', sub: 'Ort. 2 dk', color: '#22c55e', bg: 'rgba(34,197,94,0.12)', emoji: '💬', path: '/support/live-chat' },
+  { icon: Mail, label: 'E-posta', sub: '24 saat içinde', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', emoji: '📧', path: '/support/email' },
+  { icon: Phone, label: 'Bizi Ara', sub: 'Pzt-Cum', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', emoji: '📞', path: '/support/call' },
+];
+
 const Support: React.FC = () => {
+  const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
@@ -68,12 +77,11 @@ const Support: React.FC = () => {
 
         {/* ── Contact options ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-          {[
-            { icon: MessageSquare, label: 'Canlı Sohbet', sub: 'Ort. 2 dk', color: '#22c55e', bg: 'rgba(34,197,94,0.12)', emoji: '💬' },
-            { icon: Mail, label: 'E-posta', sub: '24 saat içinde', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', emoji: '📧' },
-            { icon: Phone, label: 'Bizi Ara', sub: 'Pzt-Cum', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', emoji: '📞' },
-          ].map(c => (
-            <button key={c.label} style={{
+          {contactOptions.map(c => (
+            <button
+              key={c.label}
+              onClick={() => { playSound('click'); navigate(c.path); }}
+              style={{
               ...card, padding: '16px 10px', textAlign: 'center', cursor: 'pointer',
               transition: 'transform 0.1s, box-shadow 0.1s',
             }}

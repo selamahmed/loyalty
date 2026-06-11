@@ -127,8 +127,8 @@ export const progressLevels = [
 export const seasonalEvents = [
   {
     id: '1',
-    title: 'Summer Splash',
-    description: 'Earn 2x points on all activities during Summer Splash! Complete special missions and unlock exclusive summer rewards.',
+    title: 'Yaz Şenliği',
+    description: 'Yaz boyunca tüm aktivitelerden 2 kat puan kazan! Özel görevleri tamamla, yaz temalı ödülleri aç.',
     image: 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=400',
     startDate: '2026-06-01',
     endDate: '2026-08-31',
@@ -138,11 +138,12 @@ export const seasonalEvents = [
     totalRewards: 5,
     unlockedRewards: 2,
     color: 'from-blue-400 to-cyan-300',
+    emoji: '☀️',
   },
   {
     id: '2',
-    title: 'Spring Bloom',
-    description: 'Celebrate spring with special floral-themed rewards and bonus missions.',
+    title: 'Bahar Çiçekleri',
+    description: 'Baharın gelişini kutla! Çiçek temalı görevlerle bonus puanlar ve özel kuponlar kazan.',
     image: 'https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&w=400',
     startDate: '2026-03-01',
     endDate: '2026-05-31',
@@ -152,11 +153,12 @@ export const seasonalEvents = [
     totalRewards: 4,
     unlockedRewards: 4,
     color: 'from-pink-400 to-rose-300',
+    emoji: '🌸',
   },
   {
     id: '3',
-    title: 'Winter Wonderland',
-    description: 'Cozy up with winter-themed events and earn massive bonus points.',
+    title: 'Kış Masalı',
+    description: 'Kış aylarında özel etkinliklere katıl, 3 kat puan kazanma şansını yakala!',
     image: 'https://images.pexels.com/photos/688660/pexels-photo-688660.jpeg?auto=compress&cs=tinysrgb&w=400',
     startDate: '2026-12-01',
     endDate: '2026-12-31',
@@ -166,6 +168,7 @@ export const seasonalEvents = [
     totalRewards: 8,
     unlockedRewards: 0,
     color: 'from-blue-300 to-slate-300',
+    emoji: '❄️',
   },
 ];
 
