@@ -288,5 +288,97 @@
 
 /* Toggle tab animation */
 .tab-indicator {
-  transition: transform 0.2s ease;
+  transition: left 0.2s ease, width 0.2s ease;
+}
+
+/* ── Page enter animation ── */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: pageEnter 0.35s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+/* ── Stagger children ── */
+@keyframes itemEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stagger-children > * {
+  opacity: 0;
+  animation: itemEnter 0.3s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0.04s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.08s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.16s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.20s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.24s; }
+
+/* ── Active press effect for all interactive cards ── */
+.press-card {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  cursor: pointer;
+}
+.press-card:active {
+  transform: translateY(4px) !important;
+  box-shadow: 0px 2px 0px var(--dark-border) !important;
+}
+
+/* ── Section header micro-label ── */
+.section-label {
+  font-size: 10px;
+  font-weight: 900;
+  color: var(--primary-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 0 0 2px;
+  line-height: 1;
+}
+.section-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text-dark);
+  margin: 0;
+  line-height: 1.1;
+}
+
+/* ── Safe area for iPhone notch ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ── Focus visible ring ── */
+:focus-visible {
+  outline: 3px solid var(--primary-blue);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Smooth card transitions ── */
+.card {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease !important;
+}
+
+/* ── Tap highlight removal on mobile ── */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Hide scrollbar on category rows ── */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
