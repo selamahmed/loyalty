@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="420" viewBox="0 0 420 420">
+  <!-- NESVE NEXT text -->
+  <text
+    x="210" y="158"
+    text-anchor="middle"
+    font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
+    font-weight="900"
+    font-size="38"
+    letter-spacing="7"
+    fill="#000">NESVE NEXT</text>
+
+  <!-- Circular N logo -->
+  <circle cx="210" cy="262" r="34" fill="none" stroke="#000" stroke-width="2.8"/>
+  <text
+    x="210" y="277"
+    text-anchor="middle"
+    font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
+    font-weight="900"
+    font-size="36"
+    fill="#000">N</text>
+</svg>

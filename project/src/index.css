@@ -68,6 +68,7 @@
     background-size: 24px 24px;
     color: var(--text-dark);
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    isolation: isolate;
   }
 
   [data-theme="dark"] body {
@@ -399,6 +400,8 @@ button, a {
 }
 
 /* ── Global branded watermark ── */
+/* isolation: isolate on body (set above) ensures z-index: -1 sits
+   between body's background and body's content — never above any UI */
 body::before {
   content: '';
   position: fixed;
@@ -406,18 +409,17 @@ body::before {
   left: 50%;
   width: 200vmax;
   height: 200vmax;
-  transform: translate(-50%, -50%) rotate(-45deg);
+  transform: translate(-50%, -50%) rotate(-35deg);
   pointer-events: none;
-  z-index: 9999;
-  filter: blur(0.4px);
-  opacity: 0.10;
-  background-image: url('/watermark-light.svg');
+  z-index: -1;
+  opacity: 0.03;
+  background-image: url('/nesve-next-watermark.svg');
   background-repeat: repeat;
-  background-size: 660px 720px;
+  background-size: 420px 420px;
   will-change: transform;
 }
 
 [data-theme="dark"] body::before {
-  opacity: 0.13;
-  background-image: url('/watermark-dark.svg');
+  opacity: 0.05;
+  filter: invert(1);
 }
