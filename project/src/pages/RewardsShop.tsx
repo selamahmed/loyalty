@@ -14,11 +14,12 @@ const card = {
 };
 
 const categories = [
-  { id: 'all',      label: 'Tümü',    emoji: '🛍️' },
-  { id: 'coffee',   label: 'Kahve',   emoji: '☕' },
-  { id: 'pastries', label: 'Pastane', emoji: '🥐' },
-  { id: 'food',     label: 'Yemek',   emoji: '🍔' },
-  { id: 'drinks',   label: 'İçecek',  emoji: '🥤' },
+  { id: 'all',      label: 'Tümü',        emoji: '🛍️' },
+  { id: 'coffee',   label: 'Kahve',       emoji: '☕' },
+  { id: 'hot',      label: 'Sıcak İçecek', emoji: '🫖' },
+  { id: 'drinks',   label: 'Soğuk İçecek', emoji: '🥤' },
+  { id: 'pastries', label: 'Pastane',     emoji: '🥐' },
+  { id: 'food',     label: 'Yemek',       emoji: '🍔' },
 ];
 
 /* ── Buy modal ── */
