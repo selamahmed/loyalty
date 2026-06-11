@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const VAPID_PUBLIC_KEY =
-  'BBy897o-OhOrQ6Rij8KzKhdIxmGnGiJEHS5jiPmvyYGY4dLzXk74iZQ0-1hUvU-WujmTsL79kM9GHPNjht2ytbM';
+  'BD_vwh5zUKHGdwNUzWoUpfBx4xMwNaCcrdrYSOSKzo9ZnoPr2XScpRFKwLARCEJLvN2OpRRlOefZ4zEPkOhpU_g';
 
-const PUSH_BASE =
-  typeof window !== 'undefined'
-    ? `${window.location.protocol}//${window.location.hostname}:3001`
-    : 'http://localhost:3001';
+const PUSH_BASE = '';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);

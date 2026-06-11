@@ -1,9 +1,15 @@
 import express from 'express';
 import webpush from 'web-push';
 import cors from 'cors';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isProd = process.env.NODE_ENV === 'production';
 
 const app  = express();
-const PORT = process.env.PUSH_PORT || 3001;
+const PORT = isProd ? (process.env.PORT || 5000) : (process.env.PUSH_PORT || 3001);
 
 app.use(cors({ origin: '*' }));
 app.use(express.json());
@@ -63,7 +69,7 @@ function msUntil(hour, minute) {
   const now  = new Date();
   const next = new Date();
   next.setHours(hour, minute, 0, 0);
-  if (next <= now) next.setDate(next.getDate() + 1); // schedule for tomorrow if already passed
+  if (next <= now) next.setDate(next.getDate() + 1);
   return next - now;
 }
 
@@ -75,7 +81,6 @@ function scheduleDailyNotification({ hour, minute, title, message, url, tag }) {
   setTimeout(async () => {
     console.log(`[push-scheduler] Firing daily notification: ${title}`);
     await broadcastToAll(title, message, url, tag);
-    // Re-schedule for next day
     setInterval(() => broadcastToAll(title, message, url, tag), 24 * 60 * 60 * 1000);
   }, delay);
 }
@@ -127,7 +132,6 @@ app.post('/api/send', async (req, res) => {
   res.json({ sent, total: endpoints.length });
 });
 
-/* ─── Manual trigger (for testing) ─── */
 app.post('/api/trigger-daily', async (req, res) => {
   const { index = 0 } = req.body;
   const n = DAILY_NOTIFICATIONS[index];
@@ -136,6 +140,15 @@ app.post('/api/trigger-daily', async (req, res) => {
   res.json({ triggered: n.title, ...result });
 });
 
+/* ─── Serve static frontend in production ─── */
+if (isProd) {
+  const distPath = path.join(__dirname, 'dist');
+  app.use(express.static(distPath));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[push-server] Running on port ${PORT} — pushEnabled:${pushEnabled} — ${DAILY_NOTIFICATIONS.length} daily notifications scheduled`);
+  console.log(`[push-server] Running on port ${PORT} — pushEnabled:${pushEnabled} — ${DAILY_NOTIFICATIONS.length} daily notifications scheduled — mode:${isProd ? 'production' : 'development'}`);
 });
