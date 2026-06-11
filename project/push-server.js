@@ -6,10 +6,11 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const isProd = process.env.NODE_ENV === 'production';
+// Replit autoscale injects PORT; use that to detect production
+const isProd = !!process.env.PORT;
 
 const app  = express();
-const PORT = isProd ? (process.env.PORT || 5000) : (process.env.PUSH_PORT || 3001);
+const PORT = process.env.PORT || process.env.PUSH_PORT || 3001;
 
 app.use(cors({ origin: '*' }));
 app.use(express.json());
@@ -86,6 +87,9 @@ function scheduleDailyNotification({ hour, minute, title, message, url, tag }) {
 }
 
 DAILY_NOTIFICATIONS.forEach(n => scheduleDailyNotification(n));
+
+/* ─── Health check (required by Replit autoscale) ─── */
+app.get('/health', (_req, res) => res.status(200).send('ok'));
 
 /* ─── API routes ─── */
 app.get('/api/health', (_req, res) => {
