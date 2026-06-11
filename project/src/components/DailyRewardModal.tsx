@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Flame, Gift, Zap } from 'lucide-react';
+import { X, Check, Flame, Gift, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 /* ─────────────────────────────────────────────
@@ -23,32 +23,15 @@ export const DEFAULT_REWARDS: DayReward[] = [
   { day: 7, emoji: '👑', label: 'MEGA ÖDÜL',      points: 1000, isBig: true  },
 ];
 
-/* ─── Day colour themes matching landing palette ─── */
 const DAY_THEME = [
-  { bg: '#7B6EF6', text: '#fff', dim: 'rgba(123,110,246,0.18)' },
-  { bg: '#22c55e', text: '#000', dim: 'rgba(34,197,94,0.15)'   },
-  { bg: '#06b6d4', text: '#000', dim: 'rgba(6,182,212,0.15)'   },
-  { bg: '#f59e0b', text: '#000', dim: 'rgba(245,158,11,0.15)'  },
-  { bg: '#ef4444', text: '#fff', dim: 'rgba(239,68,68,0.15)'   },
-  { bg: '#ec4899', text: '#fff', dim: 'rgba(236,72,153,0.15)'  },
-  { bg: '#FFE500', text: '#000', dim: 'rgba(255,229,0,0.18)'   },
+  { bg: 'var(--gradient-end)',   text: '#fff', accent: '#9122FF' },
+  { bg: 'var(--neo-lime)',       text: '#000', accent: '#8ACC00' },
+  { bg: 'var(--neo-sky)',        text: '#000', accent: '#2AABE8' },
+  { bg: 'var(--neo-yellow)',     text: '#000', accent: '#D4B800' },
+  { bg: 'var(--neo-orange)',     text: '#000', accent: '#E05520' },
+  { bg: 'var(--neo-pink)',       text: '#000', accent: '#E02080' },
+  { bg: 'var(--neo-yellow)',     text: '#000', accent: '#D4B800' },
 ];
-
-/* ─── Landing-page SVG decorations ─── */
-const DecoStar = () => (
-  <svg width="90" height="90" viewBox="0 0 56 56" fill="none"
-    style={{ position: 'absolute', top: -18, right: -18, opacity: 0.13, pointerEvents: 'none', transform: 'rotate(18deg)', zIndex: 0 }}>
-    <polygon points="28,3 33,21 52,21 37,33 43,51 28,40 13,51 19,33 4,21 23,21"
-      fill="#a78bfa" stroke="#000" strokeWidth="3" strokeLinejoin="round" />
-  </svg>
-);
-const DecoBolt = () => (
-  <svg width="70" height="70" viewBox="0 0 48 48" fill="none"
-    style={{ position: 'absolute', bottom: -14, left: -14, opacity: 0.1, pointerEvents: 'none', transform: 'rotate(-12deg)', zIndex: 0 }}>
-    <polygon points="28,2 15,26 24,26 19,46 36,22 27,22"
-      fill="#FFE500" stroke="#000" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
-  </svg>
-);
 
 const CONFIG_KEY = 'nexreward_daily_config';
 const STATE_KEY  = 'nexreward_daily_state';
@@ -77,52 +60,74 @@ function computeAvailableDay(state: DailyState): { day: number; alreadyClaimed: 
   return { day: state.lastClaimDate === null ? 1 : next, alreadyClaimed: false };
 }
 
+const brutal = {
+  border: '3px solid var(--dark-border)',
+  shadow: '6px 6px 0 var(--dark-border)',
+  shadowSm: '3px 3px 0 var(--dark-border)',
+  radius: 20,
+  radiusLg: 28,
+  font: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Space Grotesk', system-ui, sans-serif",
+};
+
 /* ─── Day Card ─── */
 const DayCard: React.FC<{ reward: DayReward; status: 'past' | 'today' | 'future' }> = ({ reward, status }) => {
   const theme = DAY_THEME[(reward.day - 1) % DAY_THEME.length];
-
-  const cardStyle: React.CSSProperties = {
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    borderRadius: 14, padding: '9px 5px',
-    minWidth: reward.isBig ? 62 : 48,
-    maxWidth: reward.isBig ? 62 : 48,
-    flexShrink: 0,
-    position: 'relative',
-    cursor: 'default',
-    transition: 'transform 0.2s',
-    border: status === 'today'
-      ? `3px solid ${theme.bg}`
-      : status === 'past'
-        ? '3px solid #22c55e'
-        : '3px solid #2a2d50',
-    background: status === 'today'
-      ? theme.dim
-      : status === 'past'
-        ? 'rgba(34,197,94,0.08)'
-        : 'rgba(255,255,255,0.03)',
-    boxShadow: status === 'today'
-      ? `0 4px 0 ${theme.bg}, 0 0 16px ${theme.dim}`
-      : status === 'past'
-        ? '0 3px 0 #22c55e'
-        : '0 3px 0 #1a1d3a',
-    transform: status === 'today' ? 'scale(1.1) translateY(-3px)' : 'scale(1)',
-    opacity: status === 'future' ? 0.38 : 1,
-  };
+  const isToday = status === 'today';
+  const isPast = status === 'past';
 
   return (
-    <div style={cardStyle}>
-      {reward.isBig && status === 'today' && (
-        <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: '#FFE500', border: '2px solid #000', borderRadius: 99, padding: '2px 7px', whiteSpace: 'nowrap', boxShadow: '2px 2px 0 #000' }}>
-          <span style={{ fontSize: 8, fontWeight: 900, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>MEGA</span>
+    <div
+      style={{
+        flex: '1 1 0',
+        minWidth: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
+        padding: isToday ? '9px 2px 8px' : '7px 2px 6px',
+        position: 'relative',
+        transition: 'transform 0.2s ease, box-shadow 0.2s',
+        border: isToday ? '2.5px solid var(--dark-border)' : '2px solid var(--dark-border)',
+        background: isToday ? theme.bg : isPast ? 'var(--tab-bg)' : 'var(--card-bg)',
+        boxShadow: isToday ? '0 4px 0 var(--dark-border)' : 'none',
+        transform: isToday ? 'translateY(-2px)' : 'none',
+        opacity: status === 'future' ? 0.5 : 1,
+      }}
+    >
+      {reward.isBig && isToday && (
+        <div style={{
+          position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--neo-yellow)', border: '1.5px solid var(--dark-border)',
+          borderRadius: 99, padding: '1px 5px', whiteSpace: 'nowrap',
+        }}>
+          <span style={{ fontSize: 6, fontWeight: 800, color: '#000', letterSpacing: '0.08em' }}>MEGA</span>
         </div>
       )}
-      <span style={{ fontSize: reward.isBig && status === 'today' ? 22 : 18, lineHeight: 1, marginBottom: 4 }}>{reward.emoji}</span>
-      <span style={{ fontSize: 8, fontWeight: 900, color: status === 'today' ? theme.bg : status === 'past' ? '#22c55e' : '#5a5680', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>G{reward.day}</span>
-      <span style={{ fontSize: 9, fontWeight: 900, color: status === 'today' ? '#f0edff' : status === 'past' ? '#4ade80' : '#3d3a60' }}>+{reward.points}</span>
 
-      {status === 'past' && (
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 11, background: 'rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Check size={16} color="#4ade80" strokeWidth={3} />
+      <span style={{ fontSize: isToday ? 17 : 14, lineHeight: 1, marginBottom: 2 }}>{reward.emoji}</span>
+      <span style={{
+        fontSize: 7, fontWeight: 700, color: isToday ? theme.text : 'var(--text-muted)',
+        letterSpacing: '0.04em', marginBottom: 1,
+      }}>
+        G{reward.day}
+      </span>
+      <span style={{
+        fontSize: reward.points >= 1000 ? 7 : 8, fontWeight: 800,
+        color: isToday ? theme.text : isPast ? '#16a34a' : 'var(--text-muted)',
+        whiteSpace: 'nowrap',
+      }}>
+        +{reward.points}
+      </span>
+
+      {isPast && (
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 10,
+          background: 'rgba(34,197,94,0.88)',
+          border: '2px solid var(--dark-border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Check size={12} color="#fff" strokeWidth={3} />
         </div>
       )}
     </div>
@@ -166,142 +171,242 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
     setTimeout(() => setClaimAnim(false), 1000);
   };
 
+  const isDone = alreadyClaimed || claimed;
+
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(8px)' }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+        background: 'rgba(0,0,0,0.55)',
+        backdropFilter: 'blur(12px) saturate(1.4)',
+        WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
+        fontFamily: brutal.font,
+      }}
       onClick={onClose}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#0f1124',
-          border: '3px solid #2a2d50',
-          borderRadius: 24,
-          boxShadow: '8px 8px 0 #000',
-          maxWidth: 420,
+          background: 'var(--card-bg)',
+          border: brutal.border,
+          borderRadius: brutal.radiusLg,
+          boxShadow: brutal.shadow,
+          maxWidth: 400,
           width: '100%',
           overflow: 'hidden',
-          animation: 'dailyIn 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+          animation: 'dailyIn 0.42s cubic-bezier(0.34,1.56,0.64,1)',
           position: 'relative',
         }}
       >
         {/* ── Header ── */}
-        <div style={{ padding: '22px 20px 18px', background: '#131629', borderBottom: '3px solid #2a2d50', position: 'relative', overflow: 'hidden' }}>
-          <DecoStar />
-          <DecoBolt />
-          {/* Close */}
-          <button onClick={onClose}
-            style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, border: '2px solid #2a2d50', borderRadius: 9, background: '#0f1124', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#1e1a3a'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#0f1124'; }}>
-            <X size={13} color="#8b87b8" />
+        <div style={{
+          padding: '24px 22px 20px',
+          background: 'linear-gradient(160deg, var(--gradient-start) 0%, var(--gradient-end) 100%)',
+          borderBottom: brutal.border,
+          position: 'relative',
+          color: '#fff',
+        }}>
+          <button
+            onClick={onClose}
+            aria-label="Kapat"
+            style={{
+              position: 'absolute', top: 16, right: 16,
+              width: 32, height: 32,
+              border: '2.5px solid var(--dark-border)',
+              borderRadius: 10,
+              background: 'var(--card-bg)',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '2px 2px 0 var(--dark-border)',
+              transition: 'transform 0.15s',
+            }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'translate(1px,1px)'; e.currentTarget.style.boxShadow = '1px 1px 0 var(--dark-border)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '2px 2px 0 var(--dark-border)'; }}
+          >
+            <X size={14} color="var(--text-dark)" strokeWidth={2.5} />
           </button>
 
-          {/* Pill tag */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(123,110,246,0.15)', color: '#a78bfa', border: '2px solid #2a2d50', borderRadius: 999, padding: '4px 12px', fontSize: 10, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 10, position: 'relative', zIndex: 1 }}>
-            ✦ GÜNLÜK GİRİŞ ÖDÜLÜ
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            background: 'var(--neo-yellow)', color: '#000',
+            border: '2px solid var(--dark-border)', borderRadius: 99,
+            padding: '4px 11px', fontSize: 10, fontWeight: 800,
+            letterSpacing: '0.08em', marginBottom: 12,
+            boxShadow: '2px 2px 0 var(--dark-border)',
+          }}>
+            <Sparkles size={11} strokeWidth={2.5} />
+            GÜNLÜK GİRİŞ ÖDÜLÜ
           </div>
 
-          {/* Title */}
-          <h2 style={{ fontWeight: 900, fontSize: 26, color: '#f0edff', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '-0.03em', lineHeight: 1, position: 'relative', zIndex: 1 }}>
-            Seri Bonusun<br />
-            <span style={{ color: theme.bg }}>Hazır!</span>
+          <h2 className="font-display" style={{
+            fontWeight: 900, fontSize: 28, margin: '0 0 6px',
+            letterSpacing: '-0.04em', lineHeight: 1.05,
+          }}>
+            Seri Bonusun Hazır!
           </h2>
-          <p style={{ fontSize: 12, fontWeight: 600, color: '#8b87b8', margin: '6px 0 0', position: 'relative', zIndex: 1 }}>
+          <p style={{ fontSize: 13, fontWeight: 500, opacity: 0.88, margin: 0, lineHeight: 1.4 }}>
             Her gün giriş yap, puanlar biriksin.
           </p>
 
-          {/* Streak pill */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, background: 'rgba(239,68,68,0.12)', border: '2px solid rgba(239,68,68,0.35)', borderRadius: 999, padding: '5px 12px', position: 'relative', zIndex: 1 }}>
-            <Flame size={13} color="#f87171" />
-            <span style={{ fontWeight: 900, fontSize: 12, color: '#f87171' }}>{streakCount} Günlük Seri</span>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 14,
+            background: 'var(--card-bg)', color: 'var(--text-dark)',
+            border: '2.5px solid var(--dark-border)', borderRadius: 99,
+            padding: '6px 14px', boxShadow: '3px 3px 0 var(--dark-border)',
+          }}>
+            <Flame size={14} color="var(--neo-orange)" fill="var(--neo-orange)" />
+            <span style={{ fontWeight: 800, fontSize: 13 }}>{streakCount} Günlük Seri</span>
           </div>
         </div>
 
-        {/* ── Day cards row ── */}
-        <div style={{ padding: '16px 16px 12px', background: '#0f1124' }}>
-          <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 2, justifyContent: 'center', alignItems: 'flex-end', scrollbarWidth: 'none' }}>
+        {/* ── Day progress strip ── */}
+        <div style={{ padding: '18px 18px 10px', background: 'var(--card-bg)' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: 10, padding: '0 2px',
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+              7 GÜNLÜK SERİ
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-dark)' }}>
+              Gün {currentDay}/7
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 4, width: '100%', alignItems: 'flex-end' }}>
             {rewards.map(r => <DayCard key={r.day} reward={r} status={getStatus(r)} />)}
           </div>
+
+          <div style={{
+            marginTop: 10, height: 8, borderRadius: 99,
+            background: 'var(--tab-bg)', border: '2px solid var(--dark-border)',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', borderRadius: 99,
+              width: `${Math.min((currentDay / 7) * 100, 100)}%`,
+              background: 'var(--neo-lime)',
+              transition: 'width 0.4s cubic-bezier(0.34,1.56,0.64,1)',
+            }} />
+          </div>
         </div>
 
-        {/* ── Today's reward highlight ── */}
-        <div style={{ margin: '0 16px', borderRadius: 18, border: `3px solid ${theme.bg}`, background: theme.dim, padding: '16px 18px', position: 'relative', overflow: 'hidden', boxShadow: `0 4px 0 #000, 0 0 24px ${theme.dim}` }}>
-          {/* Corner deco */}
-          <svg width="60" height="60" viewBox="0 0 56 56" fill="none"
-            style={{ position: 'absolute', top: -12, right: -12, opacity: 0.22, pointerEvents: 'none', transform: 'rotate(12deg)' }}>
-            <polygon points="28,3 33,21 52,21 37,33 43,51 28,40 13,51 19,33 4,21 23,21"
-              fill={theme.bg} stroke="#000" strokeWidth="3" strokeLinejoin="round" />
-          </svg>
+        {/* ── Today's reward ── */}
+        <div style={{ padding: '0 18px 16px' }}>
+          <div style={{
+            borderRadius: 18, border: brutal.border,
+            background: 'var(--tab-bg)',
+            padding: '18px 20px', position: 'relative', overflow: 'hidden',
+            boxShadow: brutal.shadowSm,
+          }}>
+            {todayReward.isBig && (
+              <div style={{
+                position: 'absolute', top: 12, right: 12,
+                background: 'var(--neo-yellow)', border: '2px solid var(--dark-border)',
+                borderRadius: 99, padding: '3px 10px', boxShadow: '2px 2px 0 var(--dark-border)',
+              }}>
+                <span style={{ fontSize: 9, fontWeight: 800, color: '#000', letterSpacing: '0.06em' }}>
+                  👑 MEGA ÖDÜL
+                </span>
+              </div>
+            )}
 
-          {todayReward.isBig && (
-            <div style={{ position: 'absolute', top: 10, left: 10, background: '#FFE500', border: '2px solid #000', borderRadius: 99, padding: '3px 10px', boxShadow: '2px 2px 0 #000' }}>
-              <span style={{ fontSize: 9, fontWeight: 900, color: '#000', textTransform: 'uppercase', letterSpacing: '0.07em' }}>👑 Mega Ödül!</span>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: 18, background: theme.bg,
-              border: '3px solid #000', boxShadow: `0 4px 0 #000`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 32, flexShrink: 0,
-            }}>
-              {todayReward.emoji}
-            </div>
-            <div>
-              <p style={{ fontSize: 10, fontWeight: 900, color: theme.bg, textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 2px' }}>
-                Gün {todayReward.day} · {todayReward.label}
-              </p>
-              <p style={{ fontWeight: 900, fontSize: 34, color: '#f0edff', margin: 0, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                +{todayReward.points.toLocaleString('tr-TR')}
-              </p>
-              <p style={{ fontWeight: 700, fontSize: 12, color: '#8b87b8', margin: '2px 0 0' }}>puan</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{
+                width: 68, height: 68, borderRadius: 18,
+                background: theme.bg,
+                border: brutal.border,
+                boxShadow: brutal.shadowSm,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 34, flexShrink: 0,
+              }}>
+                {todayReward.emoji}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{
+                  fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
+                  textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px',
+                }}>
+                  Gün {todayReward.day} · {todayReward.label}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <p className="font-display" style={{
+                    fontWeight: 900, fontSize: 36, color: 'var(--text-dark)',
+                    margin: 0, letterSpacing: '-0.04em', lineHeight: 1,
+                  }}>
+                    +{todayReward.points.toLocaleString('tr-TR')}
+                  </p>
+                  <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-muted)' }}>puan</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ── Claim button ── */}
-        <div style={{ padding: '14px 16px 18px', background: '#0f1124' }}>
-          {(alreadyClaimed || claimed) ? (
+        {/* ── CTA ── */}
+        <div style={{ padding: '0 18px 22px' }}>
+          {isDone ? (
             <div style={{
-              textAlign: 'center', padding: '14px 16px',
-              background: 'rgba(34,197,94,0.1)', border: '3px solid #22c55e',
-              borderRadius: 16, boxShadow: '0 4px 0 #15803d',
+              textAlign: 'center', padding: '15px 16px',
+              background: 'var(--tab-bg)',
+              border: brutal.border, borderRadius: 16,
+              boxShadow: brutal.shadowSm,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <Check size={18} color="#4ade80" strokeWidth={3} />
-                <span style={{ fontWeight: 900, fontSize: 14, color: '#4ade80' }}>Bugün Alındı! Yarın Geri Gelin 👋</span>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: '#22c55e', border: '2px solid var(--dark-border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '2px 2px 0 var(--dark-border)',
+                }}>
+                  <Check size={15} color="#fff" strokeWidth={3} />
+                </div>
+                <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-dark)' }}>
+                  Bugün alındı — yarın geri gelin
+                </span>
               </div>
             </div>
           ) : (
             <button
               onClick={handleClaim}
+              className="btn-primary"
               style={{
-                width: '100%', padding: '16px 20px', borderRadius: 16,
-                border: '3px solid #000',
-                background: claimAnim ? '#22c55e' : theme.bg,
-                fontWeight: 900, fontSize: 16,
-                color: claimAnim ? '#000' : theme.text,
-                cursor: 'pointer',
-                boxShadow: claimAnim ? '0 4px 0 #15803d' : '0 4px 0 #000',
-                transform: claimAnim ? 'translateY(3px)' : 'none',
-                transition: 'background 0.2s, transform 0.1s, box-shadow 0.1s',
-                textTransform: 'uppercase', letterSpacing: '0.06em',
+                width: '100%', padding: '15px 20px', borderRadius: 16,
+                fontWeight: 800, fontSize: 15, letterSpacing: '0.02em',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                background: claimAnim
+                  ? 'var(--neo-lime)'
+                  : 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)',
+                color: claimAnim ? '#000' : '#fff',
+                transform: claimAnim ? 'translateY(3px)' : undefined,
+                boxShadow: claimAnim ? '0 2px 0 var(--dark-border)' : undefined,
+                transition: 'background 0.2s, transform 0.12s, box-shadow 0.12s',
               }}
-              onMouseEnter={e => { if (!claimAnim) (e.currentTarget as HTMLElement).style.filter = 'brightness(1.12)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.filter = ''; }}
-              onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 #000'; }}
-              onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = claimAnim ? 'translateY(3px)' : ''; (e.currentTarget as HTMLElement).style.boxShadow = claimAnim ? '0 4px 0 #15803d' : '0 4px 0 #000'; }}
+              onMouseDown={e => {
+                if (!claimAnim) {
+                  e.currentTarget.style.transform = 'translateY(3px)';
+                  e.currentTarget.style.boxShadow = '0 2px 0 var(--dark-border)';
+                }
+              }}
+              onMouseUp={e => {
+                if (!claimAnim) {
+                  e.currentTarget.style.transform = '';
+                  e.currentTarget.style.boxShadow = '';
+                }
+              }}
             >
               {claimAnim
-                ? <><Check size={18} strokeWidth={3} /> +{todayReward.points} Puan Kazandın!</>
-                : <><Gift size={18} /> Ödülü Topla!</>
+                ? <><Check size={18} strokeWidth={3} /> +{todayReward.points} puan kazandın!</>
+                : <><Gift size={18} strokeWidth={2.5} /> Ödülü Topla</>
               }
             </button>
           )}
-          <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#5a5680', marginTop: 10, marginBottom: 0 }}>
+          <p style={{
+            textAlign: 'center', fontSize: 11, fontWeight: 500,
+            color: 'var(--text-muted)', marginTop: 12, marginBottom: 0, lineHeight: 1.4,
+          }}>
             Her gün giriş yaparak serinizi sürdürün
           </p>
         </div>
@@ -309,7 +414,7 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
 
       <style>{`
         @keyframes dailyIn {
-          from { opacity: 0; transform: scale(0.82) translateY(24px); }
+          from { opacity: 0; transform: scale(0.9) translateY(20px); }
           to   { opacity: 1; transform: scale(1) translateY(0); }
         }
         ::-webkit-scrollbar { display: none; }
