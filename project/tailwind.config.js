@@ -16,7 +16,8 @@ export default {
         dividerDash: 'var(--divider-dash)',
       },
       fontFamily: {
-        sans: ['Fredoka', 'system-ui', 'sans-serif'],
+        sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        display: ['Archivo Black', 'Space Grotesk', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         'brutalish': '32px',

@@ -7,6 +7,7 @@ import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { WinningParticles } from '../components/WinningParticles';
 import { DailyRewardModal, useDailyReward } from '../components/DailyRewardModal';
+import { HeroMascot, PointsBolt, GameDoodle, GiftDoodle, TargetDoodle } from '../components/neo/NeoBrutalIllustrations';
 
 /* ── Design tokens ── */
 const card = {
@@ -16,11 +17,13 @@ const card = {
   borderRadius: 20,
 };
 
+const quickActionIllus = [PointsBolt, GameDoodle, GiftDoodle, TargetDoodle];
+
 const quickActions = [
-  { icon: QrCode,   label: tr.home.scanQr,   path: '/qr',       bg: 'linear-gradient(180deg,#a78bfa,#6d28d9)', emoji: '📱' },
-  { icon: Gamepad2, label: tr.home.playGames, path: '/games',    bg: 'linear-gradient(180deg,#4ade80,#16a34a)', emoji: '🎮' },
-  { icon: Gift,     label: tr.home.rewards,   path: '/shop',     bg: 'linear-gradient(180deg,#fbbf24,#d97706)', emoji: '🎁' },
-  { icon: Target,   label: tr.home.missions,  path: '/missions', bg: 'linear-gradient(180deg,#f87171,#dc2626)', emoji: '🎯' },
+  { icon: QrCode,   label: tr.home.scanQr,   path: '/qr',       bg: '#9122FF', emoji: '📱' },
+  { icon: Gamepad2, label: tr.home.playGames, path: '/games',    bg: '#FF3E9D', emoji: '🎮' },
+  { icon: Gift,     label: tr.home.rewards,   path: '/shop',     bg: '#FF6B35', emoji: '🎁' },
+  { icon: Target,   label: tr.home.missions,  path: '/missions', bg: '#56C8FF', emoji: '🎯' },
 ];
 
 /* ── Section header ── */
@@ -169,65 +172,61 @@ const Home: React.FC = () => {
         </div>
 
         {/* ── Illustration banner ── */}
-        <div style={{ ...card, overflow: 'hidden', position: 'relative', height: 120 }}>
-          <img
-            src="https://picsum.photos/seed/homehero11/900/280"
-            alt="Kazanmaya başla"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.5) saturate(1.1)' }}
-          />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(109,40,217,0.9) 0%, rgba(109,40,217,0.1) 70%)' }} />
-          <div style={{ position: 'absolute', top: '50%', left: 20, transform: 'translateY(-50%)' }}>
+        <div style={{ ...card, overflow: 'hidden', position: 'relative', minHeight: 140, background: '#9122FF' }}>
+          <div style={{ position: 'absolute', right: -10, top: '50%', transform: 'translateY(-50%)', opacity: 0.9 }}>
+            <HeroMascot size={160} />
+          </div>
+          <div style={{ position: 'relative', zIndex: 1, padding: '24px 20px' }}>
             <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 7,
-              background: '#FFE500', color: '#000', borderRadius: 999,
-              padding: '2px 9px', fontSize: 9, fontWeight: 900, letterSpacing: '0.1em',
+              display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 10,
+              background: '#C8FF00', color: '#000', borderRadius: 999,
+              padding: '4px 12px', fontSize: 10, fontWeight: 900, letterSpacing: '0.1em',
+              border: '2px solid #000', boxShadow: '2px 2px 0 #000',
             }}>⚡ BUGÜN KAZAN</div>
-            <p style={{ color: 'white', fontSize: 'clamp(14px,3.5vw,20px)', fontWeight: 900, margin: 0, lineHeight: 1.2 }}>
+            <p className="font-display" style={{ color: '#fff', fontSize: 'clamp(18px,4vw,24px)', fontWeight: 900, margin: 0, lineHeight: 1.2, textTransform: 'uppercase', maxWidth: '55%' }}>
               Alışveriş yap,<br />puan topla!
             </p>
           </div>
-          <div style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', fontSize: 'clamp(40px,8vw,56px)', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>🎁</div>
         </div>
 
         {/* ── Quick actions ── */}
         <div>
           <SectionHeader micro="HIZLI ERİŞİM" title={tr.home.quickActions} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-            {quickActions.map(action => (
-              <button
-                key={action.path}
-                onClick={() => { playSound('click'); navigate(action.path); }}
-                className="press-card"
-                style={{
-                  ...card, padding: 0, cursor: 'pointer',
-                  display: 'flex', flexDirection: 'column', alignItems: 'stretch',
-                  overflow: 'hidden', textAlign: 'left',
-                }}
-              >
-                {/* Illustration */}
-                <div style={{ position: 'relative', height: 80, overflow: 'hidden' }}>
-                  <img
-                    src={`https://picsum.photos/seed/${action.path.replace('/','')}_ill/280/150`}
-                    alt={action.label}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.55) saturate(1.1)' }}
-                  />
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, var(--card-bg) 100%)' }} />
+            {quickActions.map((action, idx) => {
+              const Illus = quickActionIllus[idx];
+              return (
+                <button
+                  key={action.path}
+                  onClick={() => { playSound('click'); navigate(action.path); }}
+                  className="press-card"
+                  style={{
+                    ...card, padding: 0, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'stretch',
+                    overflow: 'hidden', textAlign: 'left',
+                  }}
+                >
                   <div style={{
-                    position: 'absolute', top: 10, left: 12,
-                    width: 38, height: 38, borderRadius: 12,
+                    position: 'relative', height: 90, overflow: 'hidden',
                     background: action.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
                   }}>
-                    <action.icon size={18} color="white" />
+                    <Illus size={72} />
+                    <div style={{
+                      position: 'absolute', top: 10, left: 12,
+                      width: 38, height: 38, borderRadius: 12,
+                      background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: '2.5px solid #000', boxShadow: '2px 2px 0 #000',
+                    }}>
+                      <action.icon size={18} color={action.bg} />
+                    </div>
                   </div>
-                </div>
-                {/* Label */}
-                <div style={{ padding: '10px 12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-dark)', fontSize: 13, fontWeight: 900 }}>{action.label}</span>
-                  <span style={{ fontSize: 18 }}>{action.emoji}</span>
-                </div>
-              </button>
-            ))}
+                  <div style={{ padding: '10px 12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span className="font-display" style={{ color: 'var(--text-dark)', fontSize: 12, fontWeight: 900, textTransform: 'uppercase' }}>{action.label}</span>
+                    <span style={{ fontSize: 18 }}>{action.emoji}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 

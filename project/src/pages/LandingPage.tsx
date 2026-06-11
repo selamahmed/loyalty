@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Star, Sun, Moon, ChevronDown, Menu, X } from 'lucide-react';
+import {
+  HeroMascot, PhoneMockup, SpeechBubble, NotepadDoodle, featureIllustrations,
+  GiftDoodle, PointsBolt, GameDoodle, SocialDoodle,
+} from '../components/neo/NeoBrutalIllustrations';
+import { DoodleField, SectionBadge } from '../components/neo/NeoBrutalDecor';
 
 /* ═══════════════════════════════════════════════════════════════
    HERO INLINE CIRCULAR STICKER — responsive via CSS class
@@ -128,13 +133,18 @@ const BannerBurst = ({ color = '#000', opacity = 0.12 }) => (
 /* ═══════════════════════════════════════════════════════════════
    DATA
 ═══════════════════════════════════════════════════════════════ */
-const features = [
-  { emoji: '⚡', title: 'Anında Ödüller',    desc: 'Her etkileşimde anında puan kazan.',             color: '#7B6EF6', Shape: NBolt,    sOpacity: 0.2, sRotate: 15,  img: 'https://picsum.photos/seed/lightning99/600/240' },
-  { emoji: '🎮', title: 'Eğlenceli Oyunlar', desc: 'Oyunlar oyna, görevleri tamamla, bonus kazan.',  color: '#22c55e', Shape: NStar5,   sOpacity: 0.2, sRotate: -10, img: 'https://picsum.photos/seed/gaming44/600/240' },
-  { emoji: '🎁', title: 'Özel Ödüller',      desc: 'Puanlarını harika ödüllerle değiştir.',           color: '#f59e0b', Shape: NHeart,   sOpacity: 0.2, sRotate: 8,   img: 'https://picsum.photos/seed/gifts77/600/240' },
-  { emoji: '🎯', title: 'Günlük Görevler',   desc: 'Günlük zorlukları tamamla, serini koru.',         color: '#ef4444', Shape: NBurst,   sOpacity: 0.18, sRotate: -12, img: 'https://picsum.photos/seed/target55/600/240' },
-  { emoji: '🏆', title: 'Liderlik Tablosu',  desc: 'Diğerleriyle yarış ve sıralamada yüksel.',        color: '#06b6d4', Shape: NStar4,   sOpacity: 0.2, sRotate: 20,  img: 'https://picsum.photos/seed/trophy22/600/240' },
-  { emoji: '💖', title: 'Sosyal Ödüller',    desc: 'Arkadaşlarınla paylaş, ekstra puan kazan.',       color: '#ec4899', Shape: NDiamond, sOpacity: 0.2, sRotate: -8,  img: 'https://picsum.photos/seed/social88/600/240' },
+type FeatureIllus = keyof typeof featureIllustrations;
+
+const features: {
+  emoji: string; title: string; desc: string; color: string;
+  illus: FeatureIllus; Shape: React.FC<ShapeProps>; sOpacity: number; sRotate: number;
+}[] = [
+  { emoji: '⚡', title: 'Anında Ödüller',    desc: 'Her etkileşimde anında puan kazan.',             color: '#9122FF', illus: 'bolt',   Shape: NBolt,    sOpacity: 0.2, sRotate: 15  },
+  { emoji: '🎮', title: 'Eğlenceli Oyunlar', desc: 'Oyunlar oyna, görevleri tamamla, bonus kazan.',  color: '#FF3E9D', illus: 'game',   Shape: NStar5,   sOpacity: 0.2, sRotate: -10 },
+  { emoji: '🎁', title: 'Özel Ödüller',      desc: 'Puanlarını harika ödüllerle değiştir.',           color: '#FF6B35', illus: 'gift',   Shape: NHeart,   sOpacity: 0.2, sRotate: 8   },
+  { emoji: '🎯', title: 'Günlük Görevler',   desc: 'Günlük zorlukları tamamla, serini koru.',         color: '#56C8FF', illus: 'target', Shape: NBurst,   sOpacity: 0.18, sRotate: -12 },
+  { emoji: '🏆', title: 'Liderlik Tablosu',  desc: 'Diğerleriyle yarış ve sıralamada yüksel.',        color: '#FFE500', illus: 'trophy', Shape: NStar4,   sOpacity: 0.2, sRotate: 20  },
+  { emoji: '💖', title: 'Sosyal Ödüller',    desc: 'Arkadaşlarınla paylaş, ekstra puan kazan.',       color: '#C8FF00', illus: 'social', Shape: NDiamond, sOpacity: 0.2, sRotate: -8  },
 ];
 
 const tickerHero: TickerItem[] = [
@@ -202,35 +212,35 @@ const testimonials = [
 ═══════════════════════════════════════════════════════════════ */
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const t = {
-    pageBg:        isDark ? '#0c0e1e' : '#f0eeff',
-    heroText:      isDark ? '#ffffff' : '#0c0e1e',
-    sideText:      isDark ? 'rgba(255,255,255,0.28)' : 'rgba(12,14,30,0.35)',
-    navBg:         isDark ? 'rgba(12,14,30,0.92)' : 'rgba(240,238,255,0.92)',
-    navBorder:     isDark ? 'rgba(255,255,255,0.1)' : 'rgba(12,14,30,0.12)',
-    cardBg:        isDark ? '#131629' : '#ffffff',
-    cardBg2:       isDark ? '#0f1124' : '#f0eeff',
-    border:        isDark ? '#2a2d50' : '#1e1b4b',
-    shadow:        isDark ? '#000000' : '#1e1b4b',
-    textPrimary:   isDark ? '#f0edff' : '#1e1b4b',
-    textSecondary: isDark ? '#8b87b8' : '#6b7280',
-    textMuted:     isDark ? '#5a5680' : '#9ca3af',
-    pillBg:        isDark ? 'rgba(123,110,246,0.15)' : '#ede9fe',
-    ghostColor:    isDark ? 'rgba(123,110,246,0.055)' : 'rgba(123,110,246,0.04)',
-    footerBg:      isDark ? '#0a0c1a' : '#f0eeff',
-    howBg:         isDark ? '#0f1124' : '#ffffff',
-    tickerBg2:     isDark ? '#131629' : '#ffffff',
-    decoOp:        isDark ? 0.2 : 0.24,
+    pageBg:        isDark ? '#1A0A2E' : '#FFF8F0',
+    heroText:      isDark ? '#ffffff' : '#000000',
+    sideText:      isDark ? 'rgba(200,255,0,0.35)' : 'rgba(145,34,255,0.4)',
+    navBg:         isDark ? 'rgba(26,10,46,0.95)' : 'rgba(255,248,240,0.95)',
+    navBorder:     '#000000',
+    cardBg:        isDark ? '#2A1045' : '#ffffff',
+    cardBg2:       isDark ? '#351A58' : '#F5F0FF',
+    border:        '#000000',
+    shadow:        '#000000',
+    textPrimary:   isDark ? '#ffffff' : '#000000',
+    textSecondary: isDark ? '#C4B5D8' : '#333333',
+    textMuted:     isDark ? '#9A8AB8' : '#666666',
+    pillBg:        isDark ? 'rgba(200,255,0,0.15)' : '#C8FF00',
+    ghostColor:    isDark ? 'rgba(200,255,0,0.04)' : 'rgba(145,34,255,0.05)',
+    footerBg:      isDark ? '#120820' : '#FFF8F0',
+    howBg:         isDark ? '#2A1045' : '#F0E8FF',
+    tickerBg2:     isDark ? '#351A58' : '#ffffff',
+    decoOp:        isDark ? 0.2 : 0.28,
     cssVars: {
-      '--l-border':  isDark ? '#2a2d50' : '#1e1b4b',
-      '--l-shadow':  isDark ? '#000000' : '#1e1b4b',
-      '--l-card-bg': isDark ? '#131629' : '#ffffff',
-      '--l-text':    isDark ? '#f0edff' : '#1e1b4b',
-      '--l-tab-bg':  isDark ? '#1e1a3a' : '#e9e5ff',
+      '--l-border':  '#000000',
+      '--l-shadow':  '#000000',
+      '--l-card-bg': isDark ? '#2A1045' : '#ffffff',
+      '--l-text':    isDark ? '#ffffff' : '#000000',
+      '--l-tab-bg':  isDark ? '#351A58' : '#F5F0FF',
     } as React.CSSProperties,
   };
 
@@ -330,54 +340,73 @@ const LandingPage: React.FC = () => {
         </nav>
 
         {/* ══ HERO ══ */}
-        <section style={{ minHeight: '90vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', padding: '40px 0 0' }}>
-          {/* Side annotations */}
-          <div className="side-text" style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', color: t.sideText, fontWeight: 700, fontSize: 10, letterSpacing: '0.09em', lineHeight: 2.4, textTransform: 'uppercase' }}>
-            <div>PUAN KAZAN</div>
-            <div>ÖDÜL AL</div>
-            <div>SIK OYNA</div>
-            <div>TEKRARLA</div>
-          </div>
-          <div className="side-text" style={{ position: 'absolute', right: 20, top: '42%', transform: 'translateY(-50%)', color: t.sideText, fontWeight: 700, fontSize: 10, letterSpacing: '0.09em', lineHeight: 2.4, textTransform: 'uppercase', textAlign: 'right' }}>
-            <div>OYUN, GÖREV</div>
-            <div>PUAN, ÖDÜL</div>
-            <div>LİDERLİK</div>
-          </div>
+        <section style={{ minHeight: '90vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', padding: '40px 0 0', overflow: 'hidden' }}>
+          <DoodleField opacity={isDark ? 0.5 : 0.85} />
 
-          {/* Massive headline */}
-          <div style={{ padding: '0 clamp(14px, 4vw, 72px)', textAlign: 'center' }}>
-            <div className="hero-headline">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 2px', marginBottom: '0.04em' }}>
-                <span>ALIŞVERİŞ</span>
-                <Sticker emoji="⭐" bg="#f59e0b" rotate={-8} />
-                <span>YAPARKEN</span>
+          <div className="hero-layout" style={{ padding: '0 clamp(14px, 4vw, 72px)', position: 'relative', zIndex: 1 }}>
+            <div className="hero-copy">
+              <SpeechBubble bg="#C8FF00" style={{ marginBottom: 20, display: 'inline-block', transform: 'rotate(-2deg)' }}>
+                WE ARE LIVE! 🎉
+              </SpeechBubble>
+
+              <div className="hero-headline font-display">
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0 2px', marginBottom: '0.04em' }}>
+                  <span>ALIŞVERİŞ</span>
+                  <Sticker emoji="⭐" bg="#FFE500" rotate={-8} />
+                  <span>YAPARKEN</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0 2px', marginBottom: '0.04em' }}>
+                  <span>PUAN</span>
+                  <InlinePill label="HEMEN BAŞLA" bg="#FF3E9D" color="#fff" onClick={() => navigate('/home')} />
+                  <span>KAZAN</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0 2px', marginBottom: '0.04em' }}>
+                  <Sticker emoji="🏆" bg="#9122FF" rotate={6} />
+                  <span>VE ÖDÜL</span>
+                  <Sticker emoji="🎮" bg="#56C8FF" rotate={-4} />
+                  <span>AL</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0 2px' }}>
+                  <span>HER</span>
+                  <Sticker emoji="💎" bg="#FF6B35" rotate={10} />
+                  <span>GÜN EĞLEN</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 2px', marginBottom: '0.04em' }}>
-                <span>PUAN</span>
-                <InlinePill label="HEMEN BAŞLA" bg="#22c55e" color="#000" onClick={() => navigate('/home')} />
-                <span>KAZAN</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 2px', marginBottom: '0.04em' }}>
-                <Sticker emoji="🏆" bg="#7B6EF6" rotate={6} />
-                <span>VE ÖDÜL</span>
-                <Sticker emoji="🎮" bg="#ec4899" rotate={-4} />
-                <span>AL</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0 2px' }}>
-                <span>HER</span>
-                <Sticker emoji="💎" bg="#06b6d4" rotate={10} />
-                <span>GÜN EĞLEN</span>
+
+              <p style={{ marginTop: 24, color: t.textSecondary, fontWeight: 600, fontSize: 'clamp(13px, 1.5vw, 17px)', maxWidth: 460, lineHeight: 1.6 }}>
+                Binlerce kullanıcıyla birlikte puan kazan, özel ödüller aç ve her gün eğlen.
+              </p>
+
+              <div style={{ marginTop: 28, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                <button onClick={() => navigate('/register')} className="lbtn-primary-sm" style={{ padding: '12px 24px', fontSize: 14 }}>
+                  Ücretsiz Başla <ArrowRight size={14} />
+                </button>
+                <button onClick={() => navigate('/login')} className="lbtn-secondary-sm" style={{ padding: '12px 24px', fontSize: 14 }}>
+                  Giriş Yap
+                </button>
               </div>
             </div>
-            <p style={{ marginTop: 24, color: t.textSecondary, fontWeight: 600, fontSize: 'clamp(13px, 1.5vw, 17px)', maxWidth: 460, marginInline: 'auto', lineHeight: 1.6 }}>
-              Binlerce kullanıcıyla birlikte puan kazan, özel ödüller aç ve her gün eğlen.
-            </p>
+
+            <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <div style={{
+                position: 'absolute', inset: '-10%',
+                background: isDark ? '#9122FF' : '#F0E8FF',
+                borderRadius: '50%', border: '3px solid #000',
+                opacity: isDark ? 0.25 : 0.6, zIndex: 0,
+              }} />
+              <HeroMascot size={320} style={{ position: 'relative', zIndex: 1, maxWidth: '100%', height: 'auto' }} />
+              <SpeechBubble
+                bg="#9122FF" color="#C8FF00" tail="right"
+                style={{ position: 'absolute', bottom: '8%', right: '-4%', transform: 'rotate(3deg)', zIndex: 2, fontSize: 13 }}
+              >
+                +500 PUAN! ⚡
+              </SpeechBubble>
+            </div>
           </div>
 
-          {/* Scroll cue */}
-          <div style={{ textAlign: 'center', marginTop: 36, marginBottom: 8 }}>
+          <div style={{ textAlign: 'center', marginTop: 36, marginBottom: 8, position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 5, color: t.sideText }}>
-              <span style={{ fontSize: 24 }}>🐾</span>
+              <span style={{ fontSize: 24 }}>✨</span>
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Kaydır ve keşfet</span>
               <ChevronDown size={14} style={{ opacity: 0.5, animation: 'bounce 1.8s ease-in-out infinite' }} />
             </div>
@@ -385,8 +414,8 @@ const LandingPage: React.FC = () => {
         </section>
 
         {/* ══ HERO TICKERS ══ */}
-        <TickerStrip items={tickerHero} direction="left" bg="#7B6EF6" textColor="white"
-          borderTop={`2px solid ${t.border}`} borderBottom={`2px solid ${t.border}`} speed={30} />
+        <TickerStrip items={tickerHero} direction="left" bg="#9122FF" textColor="#C8FF00"
+          borderTop={`3px solid ${t.border}`} borderBottom={`3px solid ${t.border}`} speed={30} />
         <TickerStrip
           items={[
             { text:'PUAN KAZAN',emoji:'⭐' },{text:'ÖDÜL AL',emoji:'🎁' },
@@ -394,78 +423,27 @@ const LandingPage: React.FC = () => {
             { text:'PAYLAŞ',   emoji:'💜' },{text:'KEŞFET', emoji:'🔮' },
             { text:'YÜKSEL',   emoji:'🚀' },{text:'KAZAN',  emoji:'💰' },
           ]}
-          direction="right" bg={t.tickerBg2} textColor={isDark ? '#a78bfa' : '#7B6EF6'}
-          borderBottom={`2px solid ${t.border}`} speed={22}
+          direction="right" bg={isDark ? '#351A58' : '#C8FF00'} textColor={isDark ? '#C8FF00' : '#000'}
+          borderBottom={`3px solid ${t.border}`} speed={22}
         />
 
         {/* ══ APP PREVIEW ══ */}
-        <section style={{ padding: '80px clamp(14px, 4vw, 64px)', maxWidth: 1280, margin: '0 auto', overflow: 'hidden' }}>
+        <section style={{ padding: '80px clamp(14px, 4vw, 64px)', maxWidth: 1280, margin: '0 auto', overflow: 'hidden', position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: t.pillBg, color: '#a78bfa',
-              border: `2px solid ${t.border}`,
-              borderRadius: 999, padding: '5px 16px',
-              fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 14,
-            }}>✦ UYGULAMA</div>
-            <h2 style={{ fontSize: 'clamp(26px, 5vw, 58px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
+            <SectionBadge label="UYGULAMA" bg="#FF3E9D" />
+            <h2 className="font-display" style={{ fontSize: 'clamp(26px, 5vw, 58px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
               GÖRSELİN ÖTESİNDE{' '}
-              <span style={{ background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>DENEYİM</span>
+              <span style={{ color: '#9122FF', WebkitTextStroke: isDark ? '1px #C8FF00' : 'none' }}>DENEYİM</span>
             </h2>
             <p style={{ color: t.textSecondary, fontWeight: 600, fontSize: 15, marginTop: 12, marginBottom: 0, maxWidth: 460, marginInline: 'auto' }}>
               Sezgisel tasarım, hızlı ödüller ve sürekli eğlence — tek uygulamada.
             </p>
           </div>
 
-          {/* Phone frames */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 'clamp(12px, 3vw, 32px)', flexWrap: 'wrap' }}>
-            {[
-              { img: 'https://picsum.photos/seed/appview1/390/760', label: 'Puan Paneli', color: '#7B6EF6', rotate: -4, scale: 0.88 },
-              { img: 'https://picsum.photos/seed/appview2/390/760', label: 'Ödül Mağazası', color: '#22c55e', rotate: 0, scale: 1 },
-              { img: 'https://picsum.photos/seed/appview3/390/760', label: 'Liderlik Tablosu', color: '#f59e0b', rotate: 4, scale: 0.88 },
-            ].map((ph, i) => (
-              <div key={i} style={{ flexShrink: 0, transform: `rotate(${ph.rotate}deg) scale(${ph.scale})`, transformOrigin: 'bottom center' }}>
-                {/* Phone shell */}
-                <div style={{
-                  width: 'clamp(140px, 20vw, 210px)',
-                  borderRadius: 28,
-                  border: `3px solid #000`,
-                  boxShadow: `0 8px 0 #000, 0 16px 40px rgba(0,0,0,0.35)`,
-                  overflow: 'hidden',
-                  background: '#111',
-                  position: 'relative',
-                }}>
-                  {/* Notch */}
-                  <div style={{ height: 26, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: 56, height: 10, background: '#1a1a1a', borderRadius: 99 }} />
-                  </div>
-                  {/* Screenshot */}
-                  <img src={ph.img} alt={ph.label}
-                    style={{ width: '100%', aspectRatio: '9/18', objectFit: 'cover', display: 'block',
-                      filter: isDark ? 'brightness(0.88) saturate(1.1)' : 'brightness(0.94)' }} />
-                  {/* Color overlay accent */}
-                  <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, ${ph.color}18 0%, transparent 35%)`, pointerEvents: 'none' }} />
-                  {/* Bottom bar */}
-                  <div style={{ height: 20, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: 36, height: 5, background: '#333', borderRadius: 99 }} />
-                  </div>
-                </div>
-                {/* Label */}
-                <div style={{ textAlign: 'center', marginTop: 14 }}>
-                  <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    background: t.cardBg, color: t.textPrimary,
-                    border: `2px solid ${t.border}`,
-                    borderRadius: 999, padding: '4px 12px',
-                    fontSize: 11, fontWeight: 900,
-                    boxShadow: `0 3px 0 ${t.shadow}`,
-                  }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: ph.color }} />
-                    {ph.label}
-                  </div>
-                </div>
-              </div>
-            ))}
+            <PhoneMockup variant="points" label="Puan Paneli" accent="#9122FF" rotate={-4} scale={0.88} />
+            <PhoneMockup variant="shop" label="Ödül Mağazası" accent="#FF6B35" rotate={0} scale={1} />
+            <PhoneMockup variant="leaderboard" label="Liderlik Tablosu" accent="#FFE500" rotate={4} scale={0.88} />
           </div>
         </section>
 
@@ -552,67 +530,58 @@ const LandingPage: React.FC = () => {
         {/* ══ FEATURES ══ */}
         <section id="features" style={{ padding: '80px clamp(14px, 4vw, 64px)', maxWidth: 1280, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: t.pillBg, color: '#a78bfa',
-              border: `2px solid ${t.border}`,
-              borderRadius: 999, padding: '5px 16px',
-              fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 14,
-            }}>✦ ÖZELLİKLER</div>
-            <h2 style={{ fontSize: 'clamp(28px, 5vw, 60px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, lineHeight: 1.1, textTransform: 'uppercase' }}>
+            <SectionBadge label="ÖZELLİKLER" bg="#56C8FF" />
+            <h2 className="font-display" style={{ fontSize: 'clamp(28px, 5vw, 60px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, lineHeight: 1.1, textTransform: 'uppercase' }}>
               NEDEN BİZİ{' '}
-              <span style={{ background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                SEVECEKSİNİZ
-              </span>
+              <span style={{ color: '#FF3E9D' }}>SEVECEKSİNİZ</span>
             </h2>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 18 }}>
-            {features.map((f, i) => (
-              <div key={i}
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
-                style={{
-                  position: 'relative', padding: 0, borderRadius: 20, overflow: 'hidden',
-                  background: t.cardBg,
-                  border: `2.5px solid ${t.border}`,
-                  boxShadow: hovered === i ? `0 8px 0 ${t.shadow}` : `0 4px 0 ${t.shadow}`,
-                  transform: hovered === i ? 'translateY(-4px)' : 'none',
-                  transition: 'all 0.15s ease', cursor: 'pointer',
-                }}>
-                {/* Cover image */}
-                <div style={{ position: 'relative', height: 148, overflow: 'hidden' }}>
-                  <img src={f.img} alt={f.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-                      filter: isDark ? 'brightness(0.78) saturate(1.15)' : 'brightness(0.92) saturate(1.1)',
-                      transition: 'transform 0.3s',
-                      transform: hovered === i ? 'scale(1.05)' : 'scale(1)',
-                    }} />
-                  <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, transparent 35%, ${t.cardBg} 100%)` }} />
-                  {/* Color accent stripe on left */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', background: f.color }} />
-                  {/* Emoji badge floating at bottom of image */}
+            {features.map((f, i) => {
+              const Illus = featureIllustrations[f.illus];
+              return (
+                <div key={i}
+                  onMouseEnter={() => setHovered(i)}
+                  onMouseLeave={() => setHovered(null)}
+                  style={{
+                    position: 'relative', padding: 0, borderRadius: 20, overflow: 'hidden',
+                    background: f.color,
+                    border: '3px solid #000',
+                    boxShadow: hovered === i ? '8px 8px 0 #000' : '5px 5px 0 #000',
+                    transform: hovered === i ? 'translateY(-4px) rotate(-1deg)' : 'none',
+                    transition: 'all 0.15s ease', cursor: 'pointer',
+                  }}>
                   <div style={{
-                    position: 'absolute', bottom: -20, left: 20, zIndex: 2,
-                    width: 44, height: 44, borderRadius: 13, fontSize: 20,
-                    background: t.cardBg, border: `2.5px solid ${f.color}`,
-                    boxShadow: `0 3px 0 ${f.color}80`,
+                    position: 'relative', height: 160, overflow: 'hidden',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'transform 0.15s',
-                    transform: hovered === i ? 'scale(1.15) rotate(-6deg)' : 'scale(1)',
-                  }}>{f.emoji}</div>
-                </div>
-                {/* Content */}
-                <div style={{ position: 'relative', padding: '32px 22px 22px', zIndex: 1 }}>
-                  <f.Shape color={f.color} size={96} opacity={t.decoOp} rotate={f.sRotate} />
-                  <h3 style={{ fontWeight: 900, fontSize: 16, color: t.textPrimary, margin: '0 0 6px' }}>{f.title}</h3>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: t.textMuted, margin: '0 0 14px', lineHeight: 1.5 }}>{f.desc}</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 900, fontSize: 12, color: f.color }}>
-                    Keşfet <ArrowRight size={12} />
+                    background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.25)',
+                  }}>
+                    <Illus size={130} style={{
+                      transition: 'transform 0.3s',
+                      transform: hovered === i ? 'scale(1.1) rotate(6deg)' : 'scale(1)',
+                    }} />
+                    <div style={{
+                      position: 'absolute', top: 12, right: 12,
+                      width: 40, height: 40, borderRadius: 12, fontSize: 18,
+                      background: '#fff', border: '2.5px solid #000',
+                      boxShadow: '3px 3px 0 #000',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{f.emoji}</div>
+                  </div>
+                  <div style={{
+                    position: 'relative', padding: '20px 22px 22px', zIndex: 1,
+                    background: t.cardBg, borderTop: '3px solid #000',
+                  }}>
+                    <h3 className="font-display" style={{ fontWeight: 900, fontSize: 16, color: t.textPrimary, margin: '0 0 6px', textTransform: 'uppercase' }}>{f.title}</h3>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: t.textMuted, margin: '0 0 14px', lineHeight: 1.5 }}>{f.desc}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 900, fontSize: 12, color: f.color }}>
+                      Keşfet <ArrowRight size={12} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -628,17 +597,16 @@ const LandingPage: React.FC = () => {
         />
 
         {/* ══ HOW IT WORKS ══ */}
-        <section id="how" style={{ padding: '80px clamp(14px, 4vw, 64px)', background: t.howBg, borderTop: `2px solid ${t.border}`, borderBottom: `2px solid ${t.border}`, transition: 'background 0.3s' }}>
+        <section id="how" style={{ padding: '80px clamp(14px, 4vw, 64px)', background: t.howBg, borderTop: `3px solid ${t.border}`, borderBottom: `3px solid ${t.border}`, transition: 'background 0.3s', position: 'relative', overflow: 'hidden' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: 48 }}>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: t.pillBg, color: '#a78bfa',
-                border: `2px solid ${t.border}`,
-                borderRadius: 999, padding: '5px 16px',
-                fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 14,
-              }}>✦ NASIL ÇALIŞIR</div>
-              <h2 style={{ fontSize: 'clamp(24px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase' }}>4 ADIMDA BAŞLA</h2>
+            <div className="how-header" style={{ marginBottom: 48 }}>
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <SectionBadge label="NASIL ÇALIŞIR" bg="#9122FF" color="#C8FF00" />
+                <h2 className="font-display" style={{ fontSize: 'clamp(24px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase' }}>4 ADIMDA BAŞLA</h2>
+              </div>
+              <div className="how-notepad" style={{ display: 'none' }}>
+                <NotepadDoodle size={200} />
+              </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 18 }}>
               {[
@@ -726,67 +694,48 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* ══ LIFESTYLE GALLERY ══ */}
+        {/* ══ LIFESTYLE GALLERY — illustrated cards ══ */}
         <section style={{ padding: '0 clamp(14px, 4vw, 64px) 80px', maxWidth: 1280, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 44 }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: t.pillBg, color: '#a78bfa',
-              border: `2px solid ${t.border}`,
-              borderRadius: 999, padding: '5px 16px',
-              fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 14,
-            }}>✦ YAŞAM TARZI</div>
-            <h2 style={{ fontSize: 'clamp(24px, 4.5vw, 54px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase' }}>
+            <SectionBadge label="YAŞAM TARZI" bg="#FFE500" />
+            <h2 className="font-display" style={{ fontSize: 'clamp(24px, 4.5vw, 54px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase' }}>
               KAZANMAK BİR{' '}
-              <span style={{ background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>YAŞAM BİÇİMİ</span>
+              <span style={{ color: '#9122FF' }}>YAŞAM BİÇİMİ</span>
             </h2>
           </div>
 
-          {/* Masonry-style photo grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gridTemplateRows: 'auto', gap: 14 }}>
-            {/* Big left photo */}
-            <div style={{ gridColumn: '1 / 6', gridRow: '1 / 3', position: 'relative', borderRadius: 20, overflow: 'hidden', border: `2.5px solid ${t.border}`, boxShadow: `0 6px 0 ${t.shadow}`, minHeight: 280 }}>
-              <img src="https://picsum.photos/seed/lifestyle11/700/520" alt="Alışveriş keyfi"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: isDark ? 'brightness(0.72)' : 'brightness(0.82)' }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%)' }} />
-              <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#FFE500', color: '#000', borderRadius: 999, padding: '3px 10px', fontSize: 10, fontWeight: 900, marginBottom: 8 }}>⭐ ALIŞVERIŞ</div>
-                <p style={{ color: 'white', fontWeight: 800, fontSize: 'clamp(14px, 1.8vw, 18px)', margin: 0, lineHeight: 1.35 }}>Her alışverişte puan kazan, ödüllerle zenginleş.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 14 }}>
+            {[
+              { col: '1 / 6', row: '1 / 3', bg: '#9122FF', badge: '⭐ ALIŞVERIŞ', badgeBg: '#FFE500', text: 'Her alışverişte puan kazan, ödüllerle zenginleş.', Illus: GiftDoodle, minH: 280 },
+              { col: '6 / 10', row: '1 / 2', bg: '#C8FF00', badge: '⚡ ANINDA', badgeBg: '#000', text: 'Ödülünü saniyeler içinde al.', Illus: PointsBolt, minH: 140, textColor: '#000' },
+              { col: '10 / 13', row: '1 / 2', bg: '#FF3E9D', badge: '🎮 OYUN', badgeBg: '#fff', text: 'Eğlenerek kazan.', Illus: GameDoodle, minH: 140 },
+              { col: '6 / 13', row: '2 / 3', bg: '#56C8FF', badge: '👥 TOPLULUK', badgeBg: '#FF6B35', text: '50.000+ mutlu kullanıcıyla birlikte büyüyoruz.', Illus: SocialDoodle, minH: 140 },
+            ].map((card, i) => (
+              <div key={i} style={{
+                gridColumn: card.col, gridRow: card.row,
+                position: 'relative', borderRadius: 20, overflow: 'hidden',
+                border: '3px solid #000', boxShadow: '6px 6px 0 #000',
+                minHeight: card.minH, background: card.bg,
+                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '20px 0 0' }}>
+                  <card.Illus size={card.minH > 200 ? 160 : 100} />
+                </div>
+                <div style={{ padding: '16px 20px 20px', background: 'rgba(0,0,0,0.08)' }}>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    background: card.badgeBg, color: card.badgeBg === '#fff' ? '#000' : (card.badgeBg === '#000' ? '#C8FF00' : '#000'),
+                    borderRadius: 999, padding: '3px 10px', fontSize: 10, fontWeight: 900,
+                    border: '2px solid #000', marginBottom: 8,
+                  }}>{card.badge}</div>
+                  <p style={{
+                    color: card.textColor ?? '#fff', fontWeight: 800,
+                    fontSize: card.minH > 200 ? 'clamp(14px, 1.8vw, 18px)' : 14,
+                    margin: 0, lineHeight: 1.35,
+                  }}>{card.text}</p>
+                </div>
               </div>
-            </div>
-
-            {/* Top right photo */}
-            <div style={{ gridColumn: '6 / 10', gridRow: '1 / 2', position: 'relative', borderRadius: 20, overflow: 'hidden', border: `2.5px solid ${t.border}`, boxShadow: `0 6px 0 ${t.shadow}`, minHeight: 140 }}>
-              <img src="https://picsum.photos/seed/lifestyle22/600/320" alt="Ödül kazanma"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: isDark ? 'brightness(0.72)' : 'brightness(0.82)' }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)' }} />
-              <div style={{ position: 'absolute', bottom: 14, left: 16 }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#BFFF00', color: '#000', borderRadius: 999, padding: '3px 10px', fontSize: 10, fontWeight: 900, marginBottom: 6 }}>⚡ ANINDA</div>
-                <p style={{ color: 'white', fontWeight: 800, fontSize: 14, margin: 0 }}>Ödülünü saniyeler içinde al.</p>
-              </div>
-            </div>
-
-            {/* Top far-right photo */}
-            <div style={{ gridColumn: '10 / 13', gridRow: '1 / 2', position: 'relative', borderRadius: 20, overflow: 'hidden', border: `2.5px solid ${t.border}`, boxShadow: `0 6px 0 ${t.shadow}`, minHeight: 140 }}>
-              <img src="https://picsum.photos/seed/lifestyle33/400/320" alt="Oyun oyna"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: isDark ? 'brightness(0.72)' : 'brightness(0.82)' }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 60%)' }} />
-              <div style={{ position: 'absolute', bottom: 14, left: 16 }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#FF3E9D', color: '#fff', borderRadius: 999, padding: '3px 10px', fontSize: 10, fontWeight: 900, marginBottom: 6 }}>🎮 OYUN</div>
-                <p style={{ color: 'white', fontWeight: 800, fontSize: 14, margin: 0 }}>Eğlenerek kazan.</p>
-              </div>
-            </div>
-
-            {/* Bottom right wide photo */}
-            <div style={{ gridColumn: '6 / 13', gridRow: '2 / 3', position: 'relative', borderRadius: 20, overflow: 'hidden', border: `2.5px solid ${t.border}`, boxShadow: `0 6px 0 ${t.shadow}`, minHeight: 140 }}>
-              <img src="https://picsum.photos/seed/lifestyle44/900/340" alt="Topluluk"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: isDark ? 'brightness(0.72)' : 'brightness(0.82)' }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 55%)' }} />
-              <div style={{ position: 'absolute', bottom: 14, left: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#FF6B35', color: '#fff', borderRadius: 999, padding: '3px 10px', fontSize: 10, fontWeight: 900 }}>👥 TOPLULUK</div>
-                <p style={{ color: 'white', fontWeight: 800, fontSize: 14, margin: 0 }}>50.000+ mutlu kullanıcıyla birlikte büyüyoruz.</p>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
 
@@ -796,7 +745,7 @@ const LandingPage: React.FC = () => {
             position: 'relative', maxWidth: 960, margin: '0 auto', textAlign: 'center',
             padding: 'clamp(40px, 7vw, 72px) clamp(20px, 5vw, 72px)',
             borderRadius: 24, overflow: 'hidden',
-            background: 'linear-gradient(135deg,#7B6EF6 0%,#4F8EF7 100%)',
+            background: 'linear-gradient(135deg,#9122FF 0%,#FF3E9D 100%)',
             border: '3px solid #000', boxShadow: '0 10px 0 #000',
           }}>
             <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', borderRadius: 'inherit' }}>
@@ -878,6 +827,39 @@ const LandingPage: React.FC = () => {
           from{transform:translateX(calc(-100% / 3))} to{transform:translateX(0)}
         }
 
+        /* ── Hero layout ── */
+        .hero-layout {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 32px;
+          text-align: center;
+        }
+        .hero-copy { max-width: 720px; }
+        .hero-art { width: 100%; max-width: 380px; }
+        @media (min-width: 900px) {
+          .hero-layout {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            text-align: left;
+            gap: 48px;
+          }
+          .hero-copy { flex: 1; }
+          .hero-art { flex: 0 0 42%; max-width: 420px; }
+        }
+
+        .how-header {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 24px;
+        }
+        @media (min-width: 768px) {
+          .how-header { flex-direction: row; align-items: center; }
+          .how-notepad { display: flex !important; flex-shrink: 0; }
+        }
+
         /* ── Hero headline ── */
         .hero-headline {
           font-weight: 900;
@@ -893,7 +875,7 @@ const LandingPage: React.FC = () => {
           width: clamp(42px, 7.5vw, 94px);
           height: clamp(42px, 7.5vw, 94px);
           font-size: clamp(18px, 3.2vw, 40px);
-          border: 3px solid rgba(255,255,255,0.88);
+          border: 3px solid #000;
           border-radius: 50%;
           margin: 0 clamp(3px, 0.6vw, 9px);
           display: inline-flex;
@@ -914,7 +896,7 @@ const LandingPage: React.FC = () => {
           padding: clamp(7px, 1.2vw, 12px) clamp(14px, 2.5vw, 26px);
           font-size: clamp(0.38em, 1.2vw, 0.54em);
           letter-spacing: 0.04em;
-          border: 2.5px solid rgba(255,255,255,0.55);
+          border: 2.5px solid #000;
           margin: 0 clamp(6px, 1vw, 12px);
           vertical-align: middle;
           box-shadow: 0 4px 0 rgba(0,0,0,0.32);
@@ -978,8 +960,8 @@ const LandingPage: React.FC = () => {
         /* ── Nav buttons ── */
         .lbtn-primary-sm {
           display: inline-flex; align-items: center; gap: 5px;
-          background: linear-gradient(180deg,#a78bfa 0%,#6d28d9 100%);
-          color: white; font-weight: 700; font-family: inherit;
+          background: #9122FF;
+          color: #C8FF00; font-weight: 700; font-family: inherit;
           border: 2.5px solid var(--l-border,#2a2d50);
           border-radius: 13px; padding: 8px 15px; font-size: 12px;
           box-shadow: 0 4px 0 var(--l-shadow,#000);
