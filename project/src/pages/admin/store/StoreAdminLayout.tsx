@@ -1,14 +1,43 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Moon, Sun, LogOut, Store } from 'lucide-react';
+import { ShoppingBag, Menu, X, Moon, Sun, LogOut, Store, LayoutDashboard, Users, Gift, BarChart2, QrCode, Bell, Tag, ChevronRight, Package } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { useAuth } from '../../../context/AuthContext';
 
-const storeNavItems = [
-  { path: '/store-admin/items', icon: ShoppingBag, label: 'Mağaza Ürünleri' },
-];
+const GREEN = '#22c55e';
+const GREEN_DARK = '#16a34a';
 
-const ACCENT = '#22c55e';
+const navGroups = [
+  {
+    label: 'ANA',
+    items: [
+      { path: '/store-admin',           icon: LayoutDashboard, label: 'Dashboard',       desc: 'Genel bakış'       },
+    ],
+  },
+  {
+    label: 'MAĞAZA',
+    items: [
+      { path: '/store-admin/items',     icon: ShoppingBag, label: 'Mağaza Ürünleri',  desc: 'Ürün yönetimi'     },
+      { path: '/store-admin/rewards',   icon: Gift,        label: 'Ödüller',           desc: 'Puan ödülleri'     },
+      { path: '/store-admin/inventory', icon: Package,     label: 'Stok & Envanter',   desc: 'Stok takibi'       },
+      { path: '/store-admin/promotions',icon: Tag,         label: 'Promosyonlar',      desc: 'Kampanyalar'       },
+    ],
+  },
+  {
+    label: 'MÜŞTERİLER',
+    items: [
+      { path: '/store-admin/customers', icon: Users,       label: 'Müşteriler',        desc: 'Üye listesi'       },
+      { path: '/store-admin/qr',        icon: QrCode,      label: 'QR Yönetimi',       desc: 'QR üret & izle'    },
+      { path: '/store-admin/notifications', icon: Bell,    label: 'Bildirimler',       desc: 'Push mesajları'    },
+    ],
+  },
+  {
+    label: 'ANALİTİK',
+    items: [
+      { path: '/store-admin/analytics', icon: BarChart2,   label: 'Raporlar',          desc: 'Performans verileri' },
+    ],
+  },
+];
 
 const StoreAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { theme, toggleTheme } = useApp();
@@ -18,98 +47,134 @@ const StoreAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
-  const currentLabel = storeNavItems.find(n => n.path === location.pathname)?.label || 'Mağaza Ürünleri';
+
+  const allItems = navGroups.flatMap(g => g.items);
+  const currentItem = allItems.find(n => {
+    if (n.path === '/store-admin') return location.pathname === '/store-admin' || location.pathname === '/store-admin/';
+    return location.pathname.startsWith(n.path);
+  });
+  const currentLabel = currentItem?.label || 'Mağaza Paneli';
+
+  const isActive = (path: string) => {
+    if (path === '/store-admin') return location.pathname === '/store-admin' || location.pathname === '/store-admin/';
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--bg-color)' }}>
+
+      {/* Backdrop */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 z-40 lg:hidden"
+          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
+      {/* ── Sidebar ── */}
       <aside
-        className={`fixed left-0 top-0 h-full w-64 z-50 flex flex-col overflow-y-auto transform transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static`}
-        style={{ background: 'var(--card-bg)', borderRight: '2.5px solid var(--dark-border)' }}
+        className={`fixed left-0 top-0 h-full z-50 flex flex-col overflow-y-auto transform transition-transform duration-300 lg:translate-x-0 lg:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ width: 260, background: 'var(--card-bg)', borderRight: '3px solid var(--dark-border)' }}
       >
-        <div className="p-5" style={{ borderBottom: '2.5px solid var(--dark-border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: ACCENT, border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)' }}>
-              <Store size={18} className="text-white" />
+        {/* Brand header */}
+        <div style={{ padding: '20px 20px 16px', background: `linear-gradient(135deg,${GREEN},${GREEN_DARK})`, borderBottom: '3px solid var(--dark-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.2)', border: '2.5px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Store size={20} color="white" />
             </div>
-            <div>
-              <h1 className="font-black text-sm" style={{ color: 'var(--text-dark)' }}>Mağaza Paneli</h1>
-              <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>NexReward</p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontWeight: 900, fontSize: 15, color: 'white', margin: 0, lineHeight: 1 }}>Mağaza Paneli</p>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', margin: '2px 0 0', fontWeight: 600 }}>NexReward</p>
             </div>
-            <button onClick={() => setSidebarOpen(false)} className="ml-auto lg:hidden p-1 rounded-lg" style={{ color: 'var(--text-muted)' }}>
-              <X size={18} />
+            <button onClick={() => setSidebarOpen(false)} className="lg:hidden" style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <X size={16} color="white" />
             </button>
           </div>
         </div>
 
-        <div className="mx-3 mt-4 mb-2 px-3 py-2.5 rounded-xl flex items-center gap-2"
-          style={{ background: `${ACCENT}15`, border: `2px solid ${ACCENT}` }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm text-white flex-shrink-0"
-            style={{ background: ACCENT }}>
-            {authUser?.name?.[0] ?? 'S'}
-          </div>
-          <div className="min-w-0">
-            <p className="font-black text-xs truncate" style={{ color: 'var(--text-dark)' }}>{authUser?.name}</p>
-            <p className="text-xs font-medium" style={{ color: ACCENT }}>Mağaza Yöneticisi</p>
+        {/* User card */}
+        <div style={{ margin: '12px 12px 4px', padding: '10px 14px', borderRadius: 14, background: `${GREEN}12`, border: `2.5px solid ${GREEN}`, boxShadow: `0px 3px 0px ${GREEN}40` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: GREEN, border: '2.5px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 15, color: 'white', flexShrink: 0 }}>
+              {(authUser?.name?.[0] ?? 'M').toUpperCase()}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{authUser?.name ?? 'Mağaza Yöneticisi'}</p>
+              <p style={{ fontSize: 11, color: GREEN, fontWeight: 700, margin: 0 }}>● Mağaza Yöneticisi</p>
+            </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
-          {storeNavItems.map(item => {
-            const active = location.pathname === item.path || location.pathname === '/store-admin';
-            return (
-              <button key={item.path}
-                onClick={() => { navigate(item.path); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-all"
-                style={{
-                  background: active ? ACCENT : 'transparent',
-                  color: active ? 'white' : 'var(--text-muted)',
-                  border: active ? '2px solid var(--dark-border)' : '2px solid transparent',
-                  boxShadow: active ? '0px 2px 0px var(--dark-border)' : 'none',
-                }}>
-                <item.icon size={16} />
-                {item.label}
-              </button>
-            );
-          })}
+        {/* Navigation groups */}
+        <nav style={{ flex: 1, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+          {navGroups.map(group => (
+            <div key={group.label} style={{ marginBottom: 6 }}>
+              <p style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '8px 8px 4px', margin: 0 }}>{group.label}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {group.items.map(item => {
+                  const active = isActive(item.path);
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => { navigate(item.path); setSidebarOpen(false); }}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                        background: active ? `linear-gradient(135deg,${GREEN},${GREEN_DARK})` : 'transparent',
+                        border: active ? '2.5px solid var(--dark-border)' : '2.5px solid transparent',
+                        boxShadow: active ? '0px 3px 0px var(--dark-border)' : 'none',
+                        transition: 'all 0.12s',
+                      }}
+                    >
+                      <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'rgba(255,255,255,0.2)' : `${GREEN}12`, border: `2px solid ${active ? 'rgba(255,255,255,0.3)' : GREEN + '30'}` }}>
+                        <item.icon size={14} color={active ? 'white' : GREEN} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: 900, fontSize: 12, margin: 0, lineHeight: 1.2, color: active ? 'white' : 'var(--text-dark)' }}>{item.label}</p>
+                        <p style={{ fontSize: 10, margin: '1px 0 0', color: active ? 'rgba(255,255,255,0.65)' : 'var(--text-muted)', fontWeight: 600 }}>{item.desc}</p>
+                      </div>
+                      {active && <ChevronRight size={12} color="rgba(255,255,255,0.6)" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        <div className="p-3" style={{ borderTop: '2px solid var(--dark-border)' }}>
-          <button onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all"
-            style={{ color: '#ef4444' }}>
-            <LogOut size={16} />
-            Çıkış Yap
+        {/* Footer */}
+        <div style={{ padding: '10px', borderTop: '2.5px dashed var(--divider-dash)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <button onClick={toggleTheme} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, cursor: 'pointer', background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', boxShadow: '0px 2px 0px var(--dark-border)', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>
+            {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+            {theme === 'light' ? 'Karanlık Mod' : 'Açık Mod'}
+          </button>
+          <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, cursor: 'pointer', background: 'rgba(239,68,68,0.06)', border: '2px solid #fca5a5', boxShadow: '0px 2px 0px #fca5a5', fontSize: 12, fontWeight: 900, color: '#ef4444' }}>
+            <LogOut size={15} /> Çıkış Yap
           </button>
         </div>
       </aside>
 
+      {/* ── Content ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="sticky top-0 z-30 px-4 py-3 flex items-center gap-3"
-          style={{ background: 'var(--card-bg)', borderBottom: '2.5px solid var(--dark-border)' }}>
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-xl transition-colors" style={{ color: 'var(--text-muted)' }}>
+
+        {/* Header */}
+        <header style={{ position: 'sticky', top: 0, zIndex: 30, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'var(--card-bg)', borderBottom: '3px solid var(--dark-border)' }}>
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden" style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-dark)', flexShrink: 0 }}>
             <Menu size={18} />
           </button>
-          <div className="flex-1 min-w-0">
-            <span className="text-xs font-black uppercase tracking-widest" style={{ color: ACCENT }}>Mağaza Paneli</span>
-            <p className="font-black text-sm truncate" style={{ color: 'var(--text-dark)' }}>{currentLabel}</p>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 10, fontWeight: 900, color: GREEN, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>MAĞAZA PANELİ</p>
+            <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentLabel}</p>
           </div>
-          <button onClick={toggleTheme} className="p-2 rounded-xl transition-colors flex-shrink-0"
-            style={{ background: 'var(--tab-bg)', color: 'var(--text-muted)' }}>
+          <button onClick={toggleTheme} style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', flexShrink: 0 }}>
             {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
           </button>
-          <button onClick={handleLogout}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-black transition-all active:translate-y-0.5"
-            style={{ background: '#fee2e2', color: '#ef4444', border: '2px solid #fca5a5', boxShadow: '0px 2px 0px #fca5a5' }}>
-            <LogOut size={14} />
-            Çıkış
+          <button onClick={handleLogout} className="hidden sm:flex" style={{ alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 12, fontSize: 13, fontWeight: 900, color: '#ef4444', background: 'rgba(239,68,68,0.06)', border: '2.5px solid #fca5a5', boxShadow: '0px 3px 0px #fca5a5', cursor: 'pointer', flexShrink: 0 }}>
+            <LogOut size={14} /> Çıkış
           </button>
         </header>
-        <main className="flex-1 overflow-y-auto overflow-x-auto">
+
+        <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           {children}
         </main>
       </div>
