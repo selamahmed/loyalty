@@ -148,7 +148,7 @@ app.post('/api/trigger-daily', async (req, res) => {
 if (isProd) {
   const distPath = path.join(__dirname, 'dist');
   app.use(express.static(distPath));
-  app.get('*', (_req, res) => {
+  app.get(/.*/, (_req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
