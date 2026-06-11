@@ -397,3 +397,27 @@ button, a {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ── Global branded watermark ── */
+body::before {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 200vmax;
+  height: 200vmax;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  pointer-events: none;
+  z-index: 9999;
+  filter: blur(0.4px);
+  opacity: 0.10;
+  background-image: url('/watermark-light.svg');
+  background-repeat: repeat;
+  background-size: 660px 720px;
+  will-change: transform;
+}
+
+[data-theme="dark"] body::before {
+  opacity: 0.13;
+  background-image: url('/watermark-dark.svg');
+}
