@@ -120,9 +120,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       return { success: false, error: error.message };
+    }
+    // Eagerly hydrate authUser so navigate(dashboardPath) works on the first attempt.
+    // Without this, onAuthStateChange fires after the caller already called navigate,
+    // leaving authUser=null → ProtectedRoute bounces the user back to /login.
+    if (data.user) {
+      await refreshProfile(data.user);
     }
     return { success: true };
   };

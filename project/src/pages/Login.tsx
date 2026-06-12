@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -15,13 +15,20 @@ const GoogleIcon = () => (
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, loginWithGoogle, dashboardPath } = useAuth();
+  const { login, loginWithGoogle, dashboardPath, isAuthenticated, isLoading } = useAuth();
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [showPass, setShowPass]   = useState(false);
   const [loading, setLoading]     = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError]         = useState('');
+
+  // If already authenticated (e.g. page refresh), redirect immediately
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate(dashboardPath, { replace: true });
+    }
+  }, [isAuthenticated, isLoading, dashboardPath, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
