@@ -210,6 +210,7 @@ const QRScanner: React.FC = () => {
   const { authUser, profile } = useAuth();
 
   const [mode, setMode]         = useState<'idle' | 'camera' | 'fake' | 'manual'>('idle');
+  const [cameraReady, setCameraReady] = useState(false);   // true once video is actually playing
   const [result, setResult]     = useState<QRResult | null>(null);
   const [cashierQRResult, setCashierQRResult] = useState<CashierQRPayload | null>(null);
   const [inventoryMatch, setInventoryMatch] = useState<ReturnType<typeof getByCode>>(undefined);
@@ -235,6 +236,7 @@ const QRScanner: React.FC = () => {
     scanningRef.current = false;
     cancelAnimationFrame(rafRef.current);
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    setCameraReady(false);
     setMode('idle');
   }, []);
 
@@ -295,42 +297,54 @@ const QRScanner: React.FC = () => {
 
   useEffect(() => () => stopCamera(), [stopCamera]);
 
+  /* ── Helper: attach stream to video and start playing ── */
+  const attachStream = useCallback(async (stream: MediaStream) => {
+    streamRef.current = stream;
+    const video = videoRef.current;
+    if (!video) { stream.getTracks().forEach(t => t.stop()); setMode('idle'); return; }
+
+    video.srcObject = stream;
+    // Some browsers need a tiny delay after setting srcObject before play() works
+    await new Promise(r => setTimeout(r, 50));
+
+    try {
+      await video.play();
+    } catch (e) {
+      // play() may throw on some browsers even when it actually starts — safe to ignore
+      console.warn('[QRScanner] play():', e);
+    }
+
+    setCameraReady(true);
+    scanningRef.current = true;
+    tickScan();
+  }, [tickScan]);
+
   /* 4. startCamera — depends on tickScan (now declared above) */
   const startCamera = useCallback(async () => {
-    setCamError(''); setResult(null); setCashierQRResult(null); setError('');
+    setCamError(''); setResult(null); setCashierQRResult(null); setError(''); setCameraReady(false);
 
     // Check browser support (requires HTTPS or localhost)
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (!navigator.mediaDevices?.getUserMedia) {
       setCamError('__no_media_devices__');
-      setMode('idle');
       return;
     }
 
-    // Pre-check permission state — avoids silent denial on already-blocked sites
+    // Pre-check permission — avoids silent denial on already-blocked sites
     try {
       const perm = await navigator.permissions.query({ name: 'camera' as PermissionName });
-      if (perm.state === 'denied') {
-        setCamError('__denied__');
-        setMode('idle');
-        return;
-      }
-    } catch { /* permissions API not available on some browsers — continue */ }
+      if (perm.state === 'denied') { setCamError('__denied__'); return; }
+    } catch { /* permissions API not available — continue */ }
 
-    // Actually request camera
+    // Show camera viewport immediately (with loading spinner) so the video element
+    // is in the DOM and visible BEFORE we call getUserMedia + play()
+    setMode('camera');
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.style.display = 'block';
-        try { await videoRef.current.play(); } catch { /* non-fatal */ }
-      }
-      setMode('camera');
-      scanningRef.current = true;
-      tickScan();
+      await attachStream(stream);
     } catch (err: unknown) {
       const name = (err as { name?: string }).name;
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
@@ -340,25 +354,30 @@ const QRScanner: React.FC = () => {
       } else if (name === 'NotReadableError' || name === 'TrackStartError') {
         setCamError('__in_use__');
       } else if (name === 'OverconstrainedError') {
+        // Retry without constraints
         try {
-          const stream2 = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          streamRef.current = stream2;
-          if (videoRef.current) { videoRef.current.srcObject = stream2; videoRef.current.style.display = 'block'; try { await videoRef.current.play(); } catch { /**/ } }
-          setMode('camera'); scanningRef.current = true; tickScan(); return;
-        } catch { /**/ }
-        setCamError('__overconstrained__');
+          const s2 = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          await attachStream(s2);
+          return;
+        } catch { setCamError('__overconstrained__'); }
       } else {
         setCamError('__unknown__');
       }
       setMode('idle');
     }
-  }, [facingMode, tickScan]);
+  }, [facingMode, tickScan, attachStream]);
 
-  const flipCamera = async () => {
+  // Keep a ref so flipCamera always calls the latest startCamera
+  const startCameraRef = useRef(startCamera);
+  useEffect(() => { startCameraRef.current = startCamera; }, [startCamera]);
+
+  const flipCamera = () => {
     stopCamera();
-    const next = facingMode === 'environment' ? 'user' : 'environment';
-    setFacingMode(next);
-    setTimeout(() => startCamera(), 200);
+    setFacingMode(prev => {
+      const next = prev === 'environment' ? 'user' : 'environment';
+      setTimeout(() => startCameraRef.current(), 300);
+      return next;
+    });
   };
 
   /* ── Demo scan (shows UI flow without a real QR) ── */
@@ -485,10 +504,19 @@ const QRScanner: React.FC = () => {
           {/* Video / placeholder area */}
           <div style={{ aspectRatio: '4/3', width: '100%', maxWidth: 360, margin: '0 auto 14px', background: '#0f172a', borderRadius: 18, overflow: 'hidden', position: 'relative', border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)' }}>
 
-            <video ref={videoRef} playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: mode === 'camera' ? 'block' : 'none' }} />
+            {/* autoPlay is required on many mobile browsers; display is ALWAYS controlled here */}
+            <video ref={videoRef} playsInline autoPlay muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: mode === 'camera' ? 'block' : 'none' }} />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-            {mode === 'camera' && (
+            {/* Loading spinner — shown while waiting for stream to start */}
+            {mode === 'camera' && !cameraReady && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'rgba(0,0,0,0.85)' }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', border: '4px solid rgba(167,139,250,0.3)', borderTopColor: '#a78bfa', animation: 'spin 0.8s linear infinite' }} />
+                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: 700, margin: 0 }}>Kamera başlatılıyor…</p>
+              </div>
+            )}
+
+            {mode === 'camera' && cameraReady && (
               <>
                 {[{ top: 20, left: 20 }, { top: 20, right: 20 }, { bottom: 20, left: 20 }, { bottom: 20, right: 20 }].map((pos, i) => (
                   <div key={i} style={{ position: 'absolute', width: 30, height: 30, borderTop: i < 2 ? '4px solid #a78bfa' : 'none', borderBottom: i >= 2 ? '4px solid #a78bfa' : 'none', borderLeft: i % 2 === 0 ? '4px solid #a78bfa' : 'none', borderRight: i % 2 !== 0 ? '4px solid #a78bfa' : 'none', ...pos }} />
@@ -502,6 +530,12 @@ const QRScanner: React.FC = () => {
                   <X size={18} color="white" />
                 </button>
               </>
+            )}
+            {/* Cancel button shown even while loading */}
+            {mode === 'camera' && !cameraReady && (
+              <button onClick={stopCamera} style={{ position: 'absolute', top: 12, left: 12, width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.7)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                <X size={18} color="white" />
+              </button>
             )}
 
             {mode === 'fake' && (
@@ -736,6 +770,10 @@ const QRScanner: React.FC = () => {
         @keyframes qrPulse {
           0%,100% { opacity: 0.3; }
           50%      { opacity: 0.7; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
       `}</style>
     </div>
