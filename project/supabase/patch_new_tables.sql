@@ -287,27 +287,30 @@ alter table public.events
   add column if not exists distribution_date date;
 
 -- ── Fix events RLS: drop old policies and recreate with both using + with check ──
+-- NOTE: user_role enum values are: customer, super_admin, store_admin, cashier  (no 'admin')
 drop policy if exists "Admins manage events"       on public.events;
 drop policy if exists "Anyone reads active events" on public.events;
+drop policy if exists "Anyone reads events"        on public.events;
 
--- Helper: checks profiles table OR JWT metadata
+-- SELECT: everyone can see active events, admins see all
 create policy "Anyone reads events"
   on public.events for select
   using (
     active = true
-    or exists (select 1 from public.profiles where id = auth.uid() and role in ('super_admin','store_admin','admin','cashier'))
-    or (auth.jwt() -> 'user_metadata' ->> 'role') in ('super_admin','store_admin','admin')
+    or exists (select 1 from public.profiles where id = auth.uid() and role in ('super_admin','store_admin','cashier'))
+    or (auth.jwt() -> 'user_metadata' ->> 'role') in ('super_admin','store_admin')
   );
 
+-- INSERT / UPDATE / DELETE: only super_admin and store_admin
 create policy "Admins manage events"
   on public.events for all
   using (
-    exists (select 1 from public.profiles where id = auth.uid() and role in ('super_admin','store_admin','admin'))
-    or (auth.jwt() -> 'user_metadata' ->> 'role') in ('super_admin','store_admin','admin')
+    exists (select 1 from public.profiles where id = auth.uid() and role in ('super_admin','store_admin'))
+    or (auth.jwt() -> 'user_metadata' ->> 'role') in ('super_admin','store_admin')
   )
   with check (
-    exists (select 1 from public.profiles where id = auth.uid() and role in ('super_admin','store_admin','admin'))
-    or (auth.jwt() -> 'user_metadata' ->> 'role') in ('super_admin','store_admin','admin')
+    exists (select 1 from public.profiles where id = auth.uid() and role in ('super_admin','store_admin'))
+    or (auth.jwt() -> 'user_metadata' ->> 'role') in ('super_admin','store_admin')
   );
 
 -- ── Points: add weekly/monthly helper view ────────────────────────────────────
