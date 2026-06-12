@@ -35,6 +35,58 @@ export async function activateUser(userId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function deleteUser(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ status: 'deleted', updated_at: new Date().toISOString() })
+    .eq('id', userId);
+  if (error) throw error;
+}
+
+export async function saveAdminNote(userId: string, note: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ bio: note, updated_at: new Date().toISOString() })
+    .eq('id', userId);
+  if (error) throw error;
+}
+
+export async function getAllUsersUnpaged(search?: string): Promise<Profile[]> {
+  let query = supabase
+    .from('profiles')
+    .select('*')
+    .order('updated_at', { ascending: false });
+  if (search) {
+    query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getUserDetailStats(userId: string): Promise<{
+  achievementsCount: number;
+  missionsCount: number;
+  qrScansCount: number;
+  redemptionsCount: number;
+  highRiskLogs: number;
+}> {
+  const [ach, mis, qr, red, risk] = await Promise.all([
+    supabase.from('user_achievements').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('completed', true),
+    supabase.from('user_missions').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('completed', true),
+    supabase.from('qr_scans').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from('redemptions').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from('activity_logs').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('risk_level', 'high'),
+  ]);
+  return {
+    achievementsCount: ach.count ?? 0,
+    missionsCount: mis.count ?? 0,
+    qrScansCount: qr.count ?? 0,
+    redemptionsCount: red.count ?? 0,
+    highRiskLogs: risk.count ?? 0,
+  };
+}
+
 export async function getDashboardStats(): Promise<{
   totalUsers: number;
   activeToday: number;
