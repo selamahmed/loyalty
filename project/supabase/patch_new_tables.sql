@@ -281,9 +281,17 @@ create policy "Anyone insert logs"
 
 -- ── Events: add published & win_count columns for leaderboard events ──────────
 alter table public.events
-  add column if not exists published   boolean not null default false,
-  add column if not exists win_count   int     not null default 3,
-  add column if not exists rewards_json jsonb  default '[]'::jsonb;
+  add column if not exists published         boolean not null default false,
+  add column if not exists win_count         int     not null default 3,
+  add column if not exists rewards_json      jsonb   default '[]'::jsonb,
+  add column if not exists distribution_date date;
+
+-- Grant super_admin / store_admin to manage events
+drop policy if exists "Admins manage events" on public.events;
+create policy "Admins manage events"
+  on public.events for all
+  using  (auth.jwt() -> 'user_metadata' ->> 'role' in ('super_admin','store_admin','admin'))
+  with check (auth.jwt() -> 'user_metadata' ->> 'role' in ('super_admin','store_admin','admin'));
 
 -- ── Points: add weekly/monthly helper view ────────────────────────────────────
 create or replace view public.leaderboard_weekly as

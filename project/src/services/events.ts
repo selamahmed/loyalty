@@ -1,7 +1,24 @@
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/supabase';
 
-export type AppEvent = Database['public']['Tables']['events']['Row'];
+export type RewardPrize = {
+  rank: number;
+  label: string;
+  rewardName: string;
+  rewardImage: string;
+  quantity: number;
+  pointsRequired: number;
+};
+
+// Extend the generated type with columns added by patch_new_tables.sql
+export type AppEvent = Database['public']['Tables']['events']['Row'] & {
+  published?:         boolean;
+  win_count?:         number;
+  rewards_json?:      RewardPrize[] | null;
+  distribution_date?: string | null;
+};
+
+type EventInsert = Omit<AppEvent, 'id' | 'created_at'>;
 
 export async function getActiveEvents(): Promise<AppEvent[]> {
   const now = new Date().toISOString();
@@ -13,7 +30,7 @@ export async function getActiveEvents(): Promise<AppEvent[]> {
     .gte('end_date', now)
     .order('start_date', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as unknown as AppEvent[];
 }
 
 export async function getAllEvents(): Promise<AppEvent[]> {
@@ -22,28 +39,28 @@ export async function getAllEvents(): Promise<AppEvent[]> {
     .select('*')
     .order('start_date', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as unknown as AppEvent[];
 }
 
-export async function createEvent(event: Omit<AppEvent, 'id' | 'created_at'>): Promise<AppEvent> {
+export async function createEvent(event: EventInsert): Promise<AppEvent> {
   const { data, error } = await supabase
     .from('events')
-    .insert(event)
+    .insert(event as unknown as Parameters<ReturnType<typeof supabase.from>['insert']>[0])
     .select()
     .single();
   if (error) throw error;
-  return data;
+  return data as unknown as AppEvent;
 }
 
 export async function updateEvent(id: string, updates: Partial<AppEvent>): Promise<AppEvent> {
   const { data, error } = await supabase
     .from('events')
-    .update(updates)
+    .update(updates as unknown as Parameters<ReturnType<typeof supabase.from>['update']>[0])
     .eq('id', id)
     .select()
     .single();
   if (error) throw error;
-  return data;
+  return data as unknown as AppEvent;
 }
 
 export async function deleteEvent(id: string): Promise<void> {
