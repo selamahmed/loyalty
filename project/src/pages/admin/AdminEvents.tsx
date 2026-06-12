@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, CreditCard as Edit3, Trash2, X, Check, Calendar, Zap, Flame, Clock, Star } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { seasonalEvents } from '../../data/mockData';
+import { getAllEvents, createEvent, updateEvent, deleteEvent } from '../../services/events';
+import type { AppEvent } from '../../services/events';
 import { tr } from '../../lib/tr';
 
 const nbCard = {
@@ -12,11 +13,9 @@ const nbCard = {
   overflow: 'hidden' as const,
 };
 
-const getEventAccent = (ev: { active: boolean; progress: number }) => {
-  if (ev.active)          return { bg: '#FFE500', badge: '#000',   badgeText: '#FFE500', label: 'AKTİF',     icon: '🔴' };
-  if (ev.progress >= 100) return { bg: '#BFFF00', badge: '#000',   badgeText: '#BFFF00', label: 'TAMAMLANDI', icon: '✅' };
-  if (ev.progress === 0)  return { bg: '#00D1FF', badge: '#000',   badgeText: '#00D1FF', label: 'YAKINDA',   icon: '🕐' };
-  return                         { bg: '#FF6B35', badge: '#000',   badgeText: '#FF6B35', label: 'DEVAM EDİYOR', icon: '⚡' };
+const getEventAccent = (ev: { active: boolean }) => {
+  if (ev.active) return { bg: '#FFE500', badge: '#000', badgeText: '#FFE500', label: 'AKTİF', icon: '🔴' };
+  return { bg: '#e2e8f0', badge: '#000', badgeText: '#e2e8f0', label: 'PASİF', icon: '⏸️' };
 };
 
 const multiplierColor: Record<string, string> = {
@@ -24,11 +23,15 @@ const multiplierColor: Record<string, string> = {
 };
 
 const AdminEvents: React.FC = () => {
-  const [events, setEvents] = useState(seasonalEvents.map(e => ({ ...e })));
+  const [events, setEvents] = useState<AppEvent[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<typeof seasonalEvents[0] | null>(null);
+  const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null);
   const [form, setForm] = useState({ title: '', description: '', startDate: '', endDate: '', multiplier: '2x', active: false });
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    getAllEvents().then(setEvents).catch(() => setEvents([]));
+  }, []);
 
   const openNew = () => {
     setEditingEvent(null);
@@ -36,18 +39,24 @@ const AdminEvents: React.FC = () => {
     setShowModal(true);
   };
 
-  const openEdit = (ev: typeof seasonalEvents[0]) => {
+  const openEdit = (ev: AppEvent) => {
     setEditingEvent(ev);
-    setForm({ title: ev.title, description: ev.description, startDate: ev.startDate, endDate: ev.endDate, multiplier: ev.multiplier, active: ev.active });
+    setForm({ title: ev.title, description: ev.description, startDate: ev.start_date.split('T')[0], endDate: ev.end_date.split('T')[0], multiplier: ev.multiplier ?? '1x', active: ev.active });
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaved(true);
-    if (editingEvent) {
-      setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, ...form } : e));
-    } else {
-      setEvents(prev => [...prev, { ...form, id: Date.now().toString(), image: 'https://picsum.photos/seed/newev/400/200', progress: 0, totalRewards: 0, unlockedRewards: 0, color: 'from-blue-400 to-cyan-300' }]);
+    try {
+      if (editingEvent) {
+        const updated = await updateEvent(editingEvent.id, { title: form.title, description: form.description, start_date: form.startDate, end_date: form.endDate, multiplier: form.multiplier, active: form.active });
+        setEvents(prev => prev.map(e => e.id === editingEvent.id ? updated : e));
+      } else {
+        const created = await createEvent({ title: form.title, description: form.description, start_date: form.startDate, end_date: form.endDate, multiplier: form.multiplier, active: form.active, image: null, color: null, emoji: null });
+        setEvents(prev => [...prev, created]);
+      }
+    } catch (err) {
+      console.error('Failed to save event:', err);
     }
     setTimeout(() => { setSaved(false); setShowModal(false); }, 800);
   };
@@ -179,20 +188,24 @@ const AdminEvents: React.FC = () => {
                 <div style={{ display: 'flex', gap: 0 }}>
                   {/* ── Cover photo ── */}
                   <div style={{ width: 120, flexShrink: 0, position: 'relative', borderRight: '3px solid #000', overflow: 'hidden' }}>
-                    <img
-                      src={ev.image}
-                      alt={ev.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'grayscale(15%) contrast(1.05)' }}
-                    />
+                    {ev.image ? (
+                      <img
+                        src={ev.image}
+                        alt={ev.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'grayscale(15%) contrast(1.05)' }}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎉</div>
+                    )}
                     {/* Multiplier stamp */}
                     <div style={{
                       position: 'absolute', top: 8, left: 8,
-                      background: multiplierColor[ev.multiplier] || '#FFE500', color: '#000',
+                      background: multiplierColor[ev.multiplier ?? '1x'] || '#FFE500', color: '#000',
                       fontWeight: 900, fontSize: 13, padding: '3px 8px', borderRadius: 8,
                       border: '2px solid #000', boxShadow: '0 2px 0 #000',
                       display: 'flex', alignItems: 'center', gap: 4,
                     }}>
-                      <Zap size={10} />{ev.multiplier}
+                      <Zap size={10} />{ev.multiplier ?? '1x'}
                     </div>
                   </div>
 
@@ -216,7 +229,7 @@ const AdminEvents: React.FC = () => {
                         }}>
                           <Edit3 size={14} />
                         </button>
-                        <button onClick={() => setEvents(prev => prev.filter(e => e.id !== ev.id))} style={{
+                        <button onClick={() => { deleteEvent(ev.id).then(() => setEvents(prev => prev.filter(e => e.id !== ev.id))).catch(() => {}); }} style={{
                           width: 34, height: 34, borderRadius: 10, border: '2.5px solid #000', boxShadow: '0 3px 0 #000',
                           background: '#FF6B6B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                         }}>
@@ -228,28 +241,8 @@ const AdminEvents: React.FC = () => {
                     {/* Date row */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
-                        <Calendar size={11} />{ev.startDate} → {ev.endDate}
+                        <Calendar size={11} />{ev.start_date?.split('T')[0]} → {ev.end_date?.split('T')[0]}
                       </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 900, color: 'var(--text-dark)' }}>
-                        <Star size={10} fill="#f59e0b" color="#f59e0b" />
-                        {ev.unlockedRewards}/{ev.totalRewards} ödül
-                      </span>
-                    </div>
-
-                    {/* Progress bar — neo-brutalism */}
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 900, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        <span>İlerleme</span>
-                        <span style={{ color: ev.progress >= 100 ? '#22c55e' : 'var(--text-dark)' }}>{ev.progress}%</span>
-                      </div>
-                      <div style={{ height: 10, borderRadius: 999, background: 'var(--tab-bg)', border: '2px solid #000', overflow: 'hidden', boxShadow: '0 2px 0 #000' }}>
-                        <div style={{
-                          height: '100%', borderRadius: 999,
-                          width: `${ev.progress}%`,
-                          background: accent.bg,
-                          transition: 'width 0.6s ease',
-                        }} />
-                      </div>
                     </div>
                   </div>
                 </div>

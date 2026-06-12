@@ -14,12 +14,13 @@ const GoogleIcon = () => (
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle, register } = useAuth();
   const [form, setForm]     = useState({ username: '', email: '', password: '', confirm: '', terms: false });
   const [showPass, setShowPass]   = useState(false);
   const [loading, setLoading]     = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successMsg, setSuccessMsg] = useState('');
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -36,9 +37,13 @@ const Register: React.FC = () => {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
+    const result = await register(form.email, form.password, form.username);
     setLoading(false);
-    navigate('/login');
+    if (!result.success) {
+      setErrors({ submit: result.error ?? 'Kayıt başarısız.' });
+      return;
+    }
+    setSuccessMsg('Hesabınız oluşturuldu! Lütfen e-postanızı doğrulayın.');
   };
 
   const handleGoogle = async () => {
@@ -72,7 +77,7 @@ const Register: React.FC = () => {
           {/* Logo */}
           <div className="flex flex-col items-center gap-3">
             <img
-              src="/logo.png"
+              src="/assets/icons/logo.png"
               alt="NexReward"
               className="w-16 h-16 object-contain rounded-2xl"
               style={{ border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)' }}
@@ -226,16 +231,23 @@ const Register: React.FC = () => {
               </span>
             </label>
             {errors.terms && <p className="text-red-500 text-xs">{errors.terms}</p>}
+            {errors.submit && <p className="text-red-500 text-xs p-2 rounded" style={{ background: '#ef444422', border: '1px solid #ef4444' }}>{errors.submit}</p>}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {loading
-                ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : 'Hesap Oluştur →'}
-            </button>
+            {successMsg ? (
+              <div className="p-3 rounded-button text-sm font-600 text-center" style={{ background: '#22c55e22', border: '2px solid #22c55e', color: '#22c55e' }}>
+                {successMsg}
+              </div>
+            ) : (
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {loading
+                  ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : 'Hesap Oluştur →'}
+              </button>
+            )}
           </form>
 
           <p style={{ color: 'var(--text-muted)' }} className="text-center text-sm">
@@ -249,3 +261,4 @@ const Register: React.FC = () => {
 };
 
 export default Register;
+

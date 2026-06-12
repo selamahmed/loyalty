@@ -1,164 +1,226 @@
-# Loyalty Web - GitHub Pages Deployment Edition
+# NexReward — Loyalty & Rewards Platform
 
-A comprehensive loyalty program web application built with React, TypeScript, and Vite.
+A production-ready loyalty and rewards platform built with React, TypeScript, Vite, and Supabase. Deployed on Cloudflare Pages.
 
-## 🚀 Quick Deployment Guide
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, TypeScript, Vite 5 |
+| Routing | React Router 7 (HashRouter) |
+| Backend / Auth | Supabase (PostgreSQL + Auth) |
+| Styling | TailwindCSS + inline neo-brutalism styles |
+| Charts | Recharts |
+| Icons | Lucide React |
+| QR / Barcode | @zxing/browser, jsqr, qrcode |
+| Deployment | Cloudflare Pages |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- A [Supabase](https://supabase.com) project (free tier works)
 
 ### 1. Install Dependencies
-```bash
-npm install
-```
-
-### 2. Deploy to GitHub Pages
-```bash
-npm run deploy
-```
-
-This will:
-- Build your React app
-- Push the build to the `gh-pages` branch
-- Make your app accessible online
-
-### 3. Enable GitHub Pages
-1. Go to your repository **Settings** → **Pages**
-2. Set **Source** to "Deploy from a branch"
-3. Select the `gh-pages` branch
-4. Click **Save**
-
-### 4. Access Your App
-Your deployed application will be available at:
-```
-https://Parasayte.github.io/loyaltyweb/
-```
-
----
-
-## 📋 Available Scripts
-
-- `npm run dev` - Start development server (localhost:5173)
-- `npm run build` - Build for production
-- `npm run deploy` - Build and deploy to GitHub Pages
-- `npm run preview` - Preview the production build
-- `npm run lint` - Run ESLint
-- `npm run typecheck` - Check TypeScript types
-
----
-
-## ⚙️ Configuration for GitHub Pages
-
-✅ **Vite Config** - Base path set to `/loyaltyweb/`
-✅ **Router** - Uses HashRouter for client-side routing (URLs include `#`)
-✅ **Build Output** - Configured to output to `dist/` folder
-✅ **Deploy Script** - Automatic deployment using `gh-pages`
-
----
-
-## 🎯 Features
-
-- **Loyalty Program Management** - Track user points and rewards
-- **User Authentication** - Secure login and registration
-- **Points & Rewards System** - Earn and redeem points
-- **Admin Dashboard** - Manage users, rewards, and analytics
-- **QR Code Scanning** - Scan QR codes to earn points
-- **Mini Games** - Interactive games for engagement
-- **Leaderboards** - Competitive rankings
-- **User Analytics** - Track user statistics
-- **Seasonal Events** - Time-limited special events
-- **Notifications** - Real-time user notifications
-
----
-
-## 🛠️ Tech Stack
-
-- **React** 18.3.1 - UI framework
-- **TypeScript** - Type-safe JavaScript
-- **Vite** 5.4.2 - Fast build tool
-- **React Router** 7.15.1 - Client-side routing
-- **TailwindCSS** - Utility-first CSS
-- **Supabase** - Backend services
-- **Recharts** - Data visualization
-- **Lucide Icons** - Icon library
-- **ESLint** - Code quality
-
----
-
-## 📦 Dependencies
-
-### Main Dependencies
-```json
-{
-  "@supabase/supabase-js": "^2.57.4",
-  "lucide-react": "^0.344.0",
-  "react": "^18.3.1",
-  "react-dom": "^18.3.1",
-  "react-router-dom": "^7.15.1",
-  "recharts": "^3.8.1"
-}
-```
-
-### Dev Dependencies
-- Vite and related plugins
-- TypeScript and ESLint
-- Tailwind CSS and PostCSS
-- gh-pages for deployment
-
----
-
-## 🔍 Important Notes
-
-### HashRouter vs BrowserRouter
-This app uses **HashRouter** instead of BrowserRouter. This means:
-- Routes include `#` in the URL (e.g., `/#/profile` instead of `/profile`)
-- This is required for GitHub Pages to work properly with client-side routing
-- It works seamlessly - users won't notice the difference
-
-### Base Path
-All assets and routes are configured with the base path `/loyaltyweb/`. This is automatically handled by Vite, so you don't need to manually adjust links.
-
----
-
-## 🚨 Troubleshooting
-
-### App loads but routes don't work
-- Verify that HashRouter is being used in `src/App.tsx` ✓
-- Check that `base: '/loyaltyweb/'` is set in `vite.config.ts` ✓
-
-### Deploy fails
-- Run `npm install` to ensure all dependencies are installed
-- Check for TypeScript errors: `npm run typecheck`
-- Ensure you have push permissions on the repository
-
-### GitHub Pages not showing
-- Wait 1-2 minutes after first deploy
-- Check that the `gh-pages` branch exists in your repository
-- Verify Settings → Pages shows the `gh-pages` branch as the source
-
----
-
-## 📝 Local Development
-
-To test the app locally before deploying:
 
 ```bash
 npm install
+```
+
+### 2. Configure Environment Variables
+
+Copy the example file and fill in your Supabase credentials:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local`:
+
+```env
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key_here
+```
+
+> Never use the service role key in the frontend. Only the publishable (anon) key is safe.
+
+### 3. Set Up the Database
+
+1. Go to your Supabase Dashboard → SQL Editor → New Query
+2. Paste the entire contents of `supabase/schema.sql`
+3. Click **Run**
+
+This creates all tables, indexes, RPCs, triggers, and Row Level Security policies.
+
+### 4. Start Development Server
+
+```bash
 npm run dev
 ```
 
-Then open `http://localhost:5173` in your browser.
+Open [http://localhost:5173](http://localhost:5173).
 
 ---
 
-## 🤝 Contributing
+## Available Scripts
 
-This is a personal project. For questions about the deployment setup, refer to this README.
+| Script | Description |
+|---|---|
+| `npm run dev` | Start local dev server on port 5173 |
+| `npm run build` | Production build → `dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run typecheck` | TypeScript type check (no emit) |
 
 ---
 
-## 📄 License
+## Deploying to Cloudflare Pages
 
-This project is private and personal.
+### Build Settings
+
+| Setting | Value |
+|---|---|
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Node version | `18` (or higher) |
+
+### Environment Variables
+
+Set these in Cloudflare Pages → Settings → Environment Variables:
+
+```
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key_here
+```
+
+### SPA Routing
+
+The `public/_redirects` file is already included:
+
+```
+/* /index.html 200
+```
+
+This ensures that page refreshes on any route (e.g. `/#/dashboard`) work correctly.
+
+The app uses **HashRouter**, so all routes include `#` in the URL — no additional Cloudflare configuration is needed for routing.
 
 ---
 
-**Last Updated**: June 5, 2026
-**Deployment Ready**: ✅ Yes
+## Supabase Manual Steps (After Schema Run)
+
+1. **Set Site URL** — Authentication → URL Configuration → Site URL = your production domain (e.g. `https://nexreward.pages.dev`)
+2. **Add Redirect URLs** — Authentication → URL Configuration → add your domain to Redirect URLs (needed for Google OAuth and password reset emails)
+3. **Enable Google OAuth** (optional) — Authentication → Providers → Google → enable and add your Google OAuth credentials
+4. **Create first super admin** — After signing up with your admin email, go to Table Editor → `profiles` → find your row → change `role` to `super_admin`
+
+---
+
+## Project Structure
+
+```
+src/
+├── components/         # Shared UI components (guards, modals, layout)
+├── context/            # React Context providers (Auth, App, Inventory, Admin)
+├── hooks/              # Custom hooks (push notifications, QR scanner)
+├── lib/                # Supabase client, translations (tr.ts), sound utils
+├── pages/              # Route-level page components
+│   ├── admin/          # Super admin and store admin pages
+│   └── ...             # Customer-facing pages
+├── services/           # Supabase data access layer
+│   ├── profile.ts
+│   ├── rewards.ts
+│   ├── redemptions.ts
+│   ├── points.ts
+│   ├── missions.ts
+│   ├── achievements.ts
+│   ├── notifications.ts
+│   ├── events.ts
+│   ├── activityLogs.ts
+│   └── admin.ts
+└── App.tsx             # Root component + routes
+supabase/
+└── schema.sql          # Complete production database schema
+public/
+└── _redirects          # Cloudflare Pages SPA routing rule
+```
+
+---
+
+## Database Tables
+
+| Table | Description |
+|---|---|
+| `profiles` | User profiles (extends Supabase auth.users) |
+| `rewards` | Redeemable rewards catalog |
+| `redemptions` | User reward redemptions with QR/barcode codes |
+| `points_transactions` | Full points history (earned / spent / adjusted) |
+| `achievements` | Achievement definitions |
+| `user_achievements` | Per-user achievement progress |
+| `missions` | Daily / weekly / special missions |
+| `user_missions` | Per-user mission completion state |
+| `notifications` | In-app notifications per user |
+| `events` | Seasonal events and campaigns |
+| `activity_logs` | Audit log of all user actions |
+| `qr_codes` | QR codes for cashier/store use |
+| `qr_scans` | Log of QR code scans per user |
+
+All tables have Row Level Security (RLS) enabled. Users can only access their own data.
+
+---
+
+## User Roles
+
+| Role | Access |
+|---|---|
+| `customer` | Personal dashboard, rewards shop, missions, achievements |
+| `cashier` | QR scanner, checkout/redemption validation |
+| `store_admin` | Store-level users, rewards, analytics |
+| `super_admin` | Full platform management, all users, all data |
+
+Roles are stored in the `profiles.role` column and enforced by Supabase RLS policies.
+
+---
+
+## Security
+
+- No service role key is used anywhere in the frontend
+- All sensitive data access is protected by Supabase RLS
+- Auth sessions are managed by Supabase Auth with auto-refresh
+- `VITE_SUPABASE_PUBLISHABLE_KEY` is the only key exposed to the browser
+
+---
+
+## Features
+
+- **Authentication** — Email/password signup & login, Google OAuth, forgot/reset password
+- **Points System** — Earn and spend points via atomic Supabase RPCs
+- **Rewards Shop** — Browse and redeem rewards with real-time point deduction
+- **Missions** — Daily, weekly, and special missions with completion tracking
+- **Achievements** — Unlockable achievements with progress tracking
+- **Leaderboard** — Real-time ranking by total points
+- **Inventory** — Personal redeemed items with QR and barcode codes
+- **QR Scanner** — Camera-based QR scanning to earn points
+- **Notifications** — In-app notification system with unread badge
+- **Seasonal Events** — Time-limited events with point multipliers
+- **Mini Games** — Engagement mini-games
+- **Progress Path** — Visual level progression
+- **Admin Dashboard** — KPIs, user management, reward management
+- **Audit Logs** — Full activity log with risk levels
+- **Cashier Interface** — Validate and mark redemptions as used
+
+---
+
+## License
+
+Private project. All rights reserved.
+
+---
+
+**Last Updated**: June 12, 2026
+**Build Status**: Production Ready
+**Deployment**: Cloudflare Pages

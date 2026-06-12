@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QrCode, Plus, Trash2, X, Check, Copy, Edit2, Save, RefreshCw, ToggleLeft, ToggleRight, ShoppingCart, Clock, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { inventory as initialInventory } from '../../data/mockData';
+import { getQRCodes, createQRCode, toggleQRCode } from '../../services/admin';
 import {
   createCashierQRPayload, saveCashierQR, loadCashierQRs, markCashierQRUsed,
   isQRExpired, msRemaining, appendAuditLog,
@@ -16,7 +16,7 @@ const initialQRCodes = [
   { id: '4', code: 'PROMO-SALE',        location: 'Online Özel',            points: 100, scans: 156, active: false },
 ];
 
-type InvItem = typeof initialInventory[0] & { code: string };
+type InvItem = { id: string; title: string; description: string; points: number; category: string; image: string | null | undefined; code: string; type?: string; used?: boolean; expires?: string };
 type TabType = 'purchase' | 'inventory' | 'store';
 
 const typeColor: Record<string, string> = { coupon: '#3b82f6', ticket: '#f59e0b', reward: '#22c55e' };
@@ -112,7 +112,7 @@ const AdminQR: React.FC = () => {
   const [previewCode, setPreviewCode] = useState<string | null>(null);
 
   /* ── Inventory code state ── */
-  const [invItems, setInvItems]   = useState<InvItem[]>(initialInventory as InvItem[]);
+  const [invItems, setInvItems]   = useState<InvItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editCode, setEditCode]   = useState('');
   const [invCopied, setInvCopied] = useState<string | null>(null);
@@ -459,20 +459,20 @@ const AdminQR: React.FC = () => {
             </div>
             <div className="space-y-3">
               {invItems.map(item => {
-                const color = typeColor[item.type] || '#7B6EF6';
-                const label = typeLabel[item.type] || item.type;
+                const color = typeColor[item.type ?? ''] || '#7B6EF6';
+                const label = typeLabel[item.type ?? ''] || item.type || '';
                 const isEditing = editingId === item.id;
                 return (
                   <div key={item.id} className={`${card} p-4`}>
                     <div className="flex items-start gap-4">
-                      <img src={item.image} alt={item.title} className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border-2 border-black dark:border-gray-600" style={{ opacity: item.used ? 0.5 : 1 }} />
+                      <img src={item.image ?? undefined} alt={item.title} className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border-2 border-black dark:border-gray-600" style={{ opacity: item.used ? 0.5 : 1 }} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <p className="font-black text-sm" style={{ textDecoration: item.used ? 'line-through' : 'none', opacity: item.used ? 0.6 : 1 }}>{item.title}</p>
                           <span className="text-xs font-black px-2 py-0.5 rounded-full border" style={{ color, borderColor: color, background: `${color}18` }}>{label}</span>
                           {item.used && <span className="text-xs font-black px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500">Kullanıldı</span>}
                         </div>
-                        <p className="text-xs text-gray-400 mb-2">Son kullanım: {new Date(item.expires).toLocaleDateString('tr-TR')}</p>
+                        <p className="text-xs text-gray-400 mb-2">Son kullanım: {item.expires ? new Date(item.expires).toLocaleDateString('tr-TR') : 'N/A'}</p>
                         {isEditing ? (
                           <div className="flex gap-2 items-center">
                             <input value={editCode} onChange={e => setEditCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && saveEdit(item.id)}
@@ -498,7 +498,7 @@ const AdminQR: React.FC = () => {
                                 </button>
                               )}
                               {!item.used && (
-                                <button onClick={() => regenCode(item.id, item.type)} title="Kodu Yenile" className="w-8 h-8 rounded-xl border-2 border-black dark:border-gray-600 shadow-[0_2px_0_#000] dark:shadow-[0_2px_0_#374151] flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 hover:shadow-none hover:translate-y-0.5 transition-all">
+                                <button onClick={() => regenCode(item.id, item.type ?? 'reward')} title="Kodu Yenile" className="w-8 h-8 rounded-xl border-2 border-black dark:border-gray-600 shadow-[0_2px_0_#000] dark:shadow-[0_2px_0_#374151] flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 hover:shadow-none hover:translate-y-0.5 transition-all">
                                   <RefreshCw size={13} className="text-blue-600" />
                                 </button>
                               )}

@@ -20,7 +20,7 @@ const card = 'rounded-2xl border-2 border-black dark:border-gray-600 bg-white da
 
 const typeColor: Record<string, string> = { coupon: '#3b82f6', ticket: '#f59e0b', reward: '#22c55e' };
 const typeLabel: Record<string, string> = { coupon: 'Kupon', ticket: 'Bilet', reward: 'Ödül' };
-const typeIcon: Record<string, React.FC<{ size?: number }>> = { coupon: Tag, ticket: Ticket, reward: Gift };
+const typeIcon: Record<string, React.ElementType> = { coupon: Tag, ticket: Ticket, reward: Gift };
 
 function now() {
   return new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -500,7 +500,7 @@ const AdminCheckout: React.FC = () => {
                       <div key={h.id} className="flex items-center gap-3 p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                           style={{ background: typeColor[h.item.type] + '18' }}>
-                          <Ico size={14} style={{ color: typeColor[h.item.type] }} />
+                          <Ico size={14} color={typeColor[h.item.type]} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-black text-xs text-gray-900 dark:text-white truncate">{h.item.title}</p>

@@ -3,13 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const DEMO_ACCOUNTS = [
-  { label: 'Müşteri',           email: 'customer@nexreward.com', role: 'customer',    color: '#7B6EF6' },
-  { label: 'Süper Admin',       email: 'admin@nexreward.com',    role: 'super_admin', color: '#ef4444' },
-  { label: 'Mağaza Yöneticisi', email: 'store@nexreward.com',   role: 'store_admin', color: '#22c55e' },
-  { label: 'Kasiyer',           email: 'cashier@nexreward.com', role: 'cashier',     color: '#f59e0b' },
-];
-
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -49,8 +42,6 @@ const Login: React.FC = () => {
     navigate('/app', { replace: true });
   };
 
-  const fillDemo = (demoEmail: string) => { setEmail(demoEmail); setPassword('123456'); setError(''); };
-
   return (
     <div className="min-h-screen page-container flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-4">
@@ -59,7 +50,7 @@ const Login: React.FC = () => {
           {/* Logo */}
           <div className="flex flex-col items-center gap-3">
             <img
-              src="/logo.png"
+              src="/assets/icons/logo.png"
               alt="NexReward"
               className="w-16 h-16 object-contain rounded-2xl"
               style={{ border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)' }}
@@ -183,28 +174,10 @@ const Login: React.FC = () => {
           </button>
         </div>
 
-        {/* Demo accounts */}
-        <div className="card p-4 space-y-2">
-          <p className="text-xs font-black uppercase tracking-widest text-center mb-3" style={{ color: 'var(--text-muted)' }}>
-            Demo Hesaplar (şifre: 123456)
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {DEMO_ACCOUNTS.map(acc => (
-              <button
-                key={acc.email}
-                onClick={() => fillDemo(acc.email)}
-                className="px-3 py-2.5 rounded-xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: `${acc.color}14`, border: `2px solid ${acc.color}`, boxShadow: `0px 2px 0px ${acc.color}` }}
-              >
-                <p className="font-black text-xs" style={{ color: acc.color }}>{acc.label}</p>
-                <p className="text-xs font-medium truncate" style={{ color: 'var(--text-muted)' }}>{acc.email}</p>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
 };
 
 export default Login;
+

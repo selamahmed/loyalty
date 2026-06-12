@@ -120,6 +120,7 @@ const AdminDashboard: React.FC = () => {
 
     const flowData = Array.from({ length: 7 }, (_, i) => ({
       date: new Date(Date.now() - (6 - i) * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      value: [12000, 14500, 13200, 15800, 14100, 16200, 15500][i],
       earned: [12000, 14500, 13200, 15800, 14100, 16200, 15500][i],
       spent: [8500, 9200, 8800, 10200, 9500, 11800, 10400][i],
     }));

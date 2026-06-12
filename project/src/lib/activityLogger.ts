@@ -1,433 +1,78 @@
-export interface ActivityLog {
-  id: string;
+import { logActivity, getActivityLogs, getLogStats } from '../services/activityLogs';
+
+export type { ActivityLog } from '../services/activityLogs';
+
+export interface ActivityLogInput {
   userId?: string;
   username: string;
   email: string;
   role: string;
   action: string;
   actionType: 'login' | 'logout' | 'points_earned' | 'points_spent' | 'purchase' | 'achievement' | 'mission' | 'qr_scan' | 'profile_update' | 'settings_change' | 'admin_action' | 'security_alert' | 'password_change' | 'account_suspended' | 'account_deleted';
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   ipAddress?: string;
-  userAgent?: string;
   deviceType?: string;
   deviceName?: string;
   browser?: string;
   os?: string;
   country?: string;
   city?: string;
-  region?: string;
-  isp?: string;
-  timezone?: string;
   amount?: number;
-  createdAt: string;
-  sessionId?: string;
   riskLevel?: 'low' | 'medium' | 'high';
 }
 
-// Comprehensive mock activity logs for SaaS admin demo
-const mockLogs: ActivityLog[] = [
-  {
-    id: '1',
-    userId: 'user-1',
-    username: 'PixelKing',
-    email: 'pixelking@email.com',
-    role: 'user',
-    action: 'User logged in from Chrome on Windows',
-    actionType: 'login',
-    ipAddress: '192.168.1.105',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    deviceType: 'desktop',
-    deviceName: 'Dell XPS 15',
-    browser: 'Chrome 125.0',
-    os: 'Windows 11',
-    country: 'United States',
-    city: 'San Francisco',
-    region: 'California',
-    isp: 'Comcast Cable',
-    timezone: 'America/Los_Angeles',
-    createdAt: new Date(Date.now() - 300000).toISOString(),
-    sessionId: 'sess_abc123',
-    riskLevel: 'low',
-  },
-  {
-    id: '2',
-    userId: 'user-1',
-    username: 'PixelKing',
-    email: 'pixelking@email.com',
-    role: 'user',
-    action: 'Earned 75 points from QR scan at downtown store',
-    actionType: 'qr_scan',
-    ipAddress: '192.168.1.105',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    deviceType: 'desktop',
-    deviceName: 'Dell XPS 15',
-    browser: 'Chrome 125.0',
-    os: 'Windows 11',
-    country: 'United States',
-    city: 'San Francisco',
-    region: 'California',
-    amount: 75,
-    createdAt: new Date(Date.now() - 600000).toISOString(),
-    sessionId: 'sess_abc123',
-    riskLevel: 'low',
-    details: { storeId: 'store-001', qrCode: 'DOWNTOWN-BONUS-75' },
-  },
-  {
-    id: '3',
-    userId: 'user-2',
-    username: 'NeonGamer',
-    email: 'neon@email.com',
-    role: 'user',
-    action: 'User logged in from Safari on iPhone 15 Pro',
-    actionType: 'login',
-    ipAddress: '10.0.0.45',
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
-    deviceType: 'mobile',
-    deviceName: 'iPhone 15 Pro',
-    browser: 'Safari 17.5',
-    os: 'iOS 17.5',
-    country: 'United States',
-    city: 'New York',
-    region: 'New York',
-    isp: 'Verizon Wireless',
-    timezone: 'America/New_York',
-    createdAt: new Date(Date.now() - 900000).toISOString(),
-    sessionId: 'sess_def456',
-    riskLevel: 'low',
-  },
-  {
-    id: '4',
-    userId: 'user-3',
-    username: 'StarPlayer99',
-    email: 'star@email.com',
-    role: 'user',
-    action: 'Redeemed Iced Latte for 300 points',
-    actionType: 'purchase',
-    ipAddress: '172.16.0.88',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    deviceType: 'desktop',
-    deviceName: 'MacBook Pro 14"',
-    browser: 'Chrome 125.0',
-    os: 'macOS Sonoma 14.5',
-    country: 'Canada',
-    city: 'Toronto',
-    region: 'Ontario',
-    isp: 'Bell Canada',
-    timezone: 'America/Toronto',
-    amount: 300,
-    createdAt: new Date(Date.now() - 1200000).toISOString(),
-    sessionId: 'sess_ghi789',
-    riskLevel: 'low',
-    details: { productId: 'prod-iced-latte', rewardName: 'Iced Latte' },
-  },
-  {
-    id: '5',
-    userId: 'user-4',
-    username: 'CosmicQueen',
-    email: 'cosmic@email.com',
-    role: 'user',
-    action: 'Completed "Daily Login Streak" achievement',
-    actionType: 'achievement',
-    ipAddress: '192.168.0.201',
-    userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
-    deviceType: 'mobile',
-    deviceName: 'Samsung Galaxy S24 Ultra',
-    browser: 'Chrome 125.0',
-    os: 'Android 14',
-    country: 'United Kingdom',
-    city: 'London',
-    region: 'England',
-    isp: 'BT Group',
-    timezone: 'Europe/London',
-    amount: 50,
-    createdAt: new Date(Date.now() - 1800000).toISOString(),
-    sessionId: 'sess_jkl012',
-    riskLevel: 'low',
-    details: { achievementId: 'ach-streak-7', achievementName: '7-Day Streak Champion' },
-  },
-  {
-    id: '6',
-    userId: 'user-5',
-    username: 'ThunderBlast',
-    email: 'thunder@email.com',
-    role: 'user',
-    action: 'Suspicious login attempt detected from unknown device',
-    actionType: 'security_alert',
-    ipAddress: '185.220.101.42',
-    userAgent: 'Mozilla/5.0 (Windows NT 6.1; rv:109.0) Gecko/20100101 Firefox/115.0',
-    deviceType: 'desktop',
-    deviceName: 'Unknown Device',
-    browser: 'Firefox 115.0',
-    os: 'Windows 7',
-    country: 'Russia',
-    city: 'Moscow',
-    region: 'Moscow Oblast',
-    isp: 'Unknown ISP',
-    timezone: 'Europe/Moscow',
-    createdAt: new Date(Date.now() - 2400000).toISOString(),
-    sessionId: 'sess_mno345',
-    riskLevel: 'high',
-    details: { reason: 'Unusual location', previousCountry: 'United States', blocked: true },
-  },
-  {
-    id: '7',
-    userId: 'admin-1',
-    username: 'AdminUser',
-    email: 'admin@example.com',
-    role: 'super_admin',
-    action: 'Admin accessed user management panel',
-    actionType: 'admin_action',
-    ipAddress: '10.10.10.1',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    deviceType: 'desktop',
-    deviceName: 'HP Workstation Z8',
-    browser: 'Chrome 125.0',
-    os: 'Windows 11 Enterprise',
-    country: 'United States',
-    city: 'Austin',
-    region: 'Texas',
-    isp: 'AT&T Fiber',
-    timezone: 'America/Chicago',
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    sessionId: 'sess_pqr678',
-    riskLevel: 'low',
-    details: { adminAction: 'view_users', targetUsers: 2847 },
-  },
-  {
-    id: '8',
-    userId: 'user-6',
-    username: 'MysticWolf',
-    email: 'mystic@email.com',
-    role: 'user',
-    action: 'User account suspended for policy violation',
-    actionType: 'account_suspended',
-    ipAddress: '192.168.50.77',
-    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/122.0.0.0 Chrome/122.0.0.0 Safari/537.36',
-    deviceType: 'desktop',
-    deviceName: 'Custom Linux PC',
-    browser: 'Chromium 122.0',
-    os: 'Ubuntu 24.04 LTS',
-    country: 'Germany',
-    city: 'Berlin',
-    region: 'Berlin',
-    isp: 'Deutsche Telekom',
-    timezone: 'Europe/Berlin',
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-    sessionId: 'sess_stu901',
-    riskLevel: 'medium',
-    details: { reason: 'Multiple failed transactions', suspendedBy: 'admin-1' },
-  },
-  {
-    id: '9',
-    userId: 'user-2',
-    username: 'NeonGamer',
-    email: 'neon@email.com',
-    role: 'user',
-    action: 'Password changed successfully',
-    actionType: 'password_change',
-    ipAddress: '10.0.0.45',
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
-    deviceType: 'mobile',
-    deviceName: 'iPhone 15 Pro',
-    browser: 'Safari 17.5',
-    os: 'iOS 17.5',
-    country: 'United States',
-    city: 'New York',
-    region: 'New York',
-    isp: 'Verizon Wireless',
-    timezone: 'America/New_York',
-    createdAt: new Date(Date.now() - 10800000).toISOString(),
-    sessionId: 'sess_vwx234',
-    riskLevel: 'low',
-    details: { twoFactorEnabled: true },
-  },
-  {
-    id: '10',
-    userId: 'user-7',
-    username: 'CrystalMage',
-    email: 'crystal@email.com',
-    role: 'user',
-    action: 'Earned 150 bonus points from Weekend Promo campaign',
-    actionType: 'points_earned',
-    ipAddress: '172.20.10.5',
-    userAgent: 'Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
-    deviceType: 'tablet',
-    deviceName: 'iPad Pro 12.9"',
-    browser: 'Safari 17.5',
-    os: 'iPadOS 17.5',
-    country: 'Australia',
-    city: 'Sydney',
-    region: 'New South Wales',
-    isp: 'Telstra',
-    timezone: 'Australia/Sydney',
-    amount: 150,
-    createdAt: new Date(Date.now() - 14400000).toISOString(),
-    sessionId: 'sess_yza567',
-    riskLevel: 'low',
-    details: { campaignId: 'camp-weekend-promo', multiplier: 2.0 },
-  },
-  {
-    id: '11',
-    userId: 'user-1',
-    username: 'PixelKing',
-    email: 'pixelking@email.com',
-    role: 'user',
-    action: 'User logged out',
-    actionType: 'logout',
-    ipAddress: '192.168.1.105',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    deviceType: 'desktop',
-    deviceName: 'Dell XPS 15',
-    browser: 'Chrome 125.0',
-    os: 'Windows 11',
-    country: 'United States',
-    city: 'San Francisco',
-    region: 'California',
-    isp: 'Comcast Cable',
-    timezone: 'America/Los_Angeles',
-    createdAt: new Date(Date.now() - 18000000).toISOString(),
-    sessionId: 'sess_abc123',
-    riskLevel: 'low',
-  },
-  {
-    id: '12',
-    userId: 'user-8',
-    username: 'ShadowRider',
-    email: 'shadow@email.com',
-    role: 'user',
-    action: 'Account permanently deleted by user request',
-    actionType: 'account_deleted',
-    ipAddress: '192.168.100.50',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0',
-    deviceType: 'desktop',
-    deviceName: 'ASUS ROG Strix',
-    browser: 'Firefox 126.0',
-    os: 'Windows 11',
-    country: 'Japan',
-    city: 'Tokyo',
-    region: 'Tokyo',
-    isp: 'NTT Communications',
-    timezone: 'Asia/Tokyo',
-    createdAt: new Date(Date.now() - 21600000).toISOString(),
-    sessionId: 'sess_bcd890',
-    riskLevel: 'medium',
-    details: { reason: 'User request', dataRetention: false, supportTicketId: 'TKT-12345' },
-  },
-  {
-    id: '13',
-    userId: 'user-3',
-    username: 'StarPlayer99',
-    email: 'star@email.com',
-    role: 'user',
-    action: 'Profile updated - added profile picture',
-    actionType: 'profile_update',
-    ipAddress: '172.16.0.88',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    deviceType: 'desktop',
-    deviceName: 'MacBook Pro 14"',
-    browser: 'Chrome 125.0',
-    os: 'macOS Sonoma 14.5',
-    country: 'Canada',
-    city: 'Toronto',
-    region: 'Ontario',
-    isp: 'Bell Canada',
-    timezone: 'America/Toronto',
-    createdAt: new Date(Date.now() - 25200000).toISOString(),
-    sessionId: 'sess_ghi789',
-    riskLevel: 'low',
-    details: { fieldsChanged: ['avatar'], previousValue: null },
-  },
-  {
-    id: '14',
-    userId: 'admin-1',
-    username: 'AdminUser',
-    email: 'admin@example.com',
-    role: 'super_admin',
-    action: 'Admin created new bonus campaign "Summer Special"',
-    actionType: 'admin_action',
-    ipAddress: '10.10.10.1',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    deviceType: 'desktop',
-    deviceName: 'HP Workstation Z8',
-    browser: 'Chrome 125.0',
-    os: 'Windows 11 Enterprise',
-    country: 'United States',
-    city: 'Austin',
-    region: 'Texas',
-    isp: 'AT&T Fiber',
-    timezone: 'America/Chicago',
-    createdAt: new Date(Date.now() - 28800000).toISOString(),
-    sessionId: 'sess_pqr678',
-    riskLevel: 'low',
-    details: { adminAction: 'create_campaign', campaignId: 'camp-summer-2026', multiplier: 1.5 },
-  },
-  {
-    id: '15',
-    userId: 'user-5',
-    username: 'ThunderBlast',
-    email: 'thunder@email.com',
-    role: 'user',
-    action: 'Daily mission completed - Scan 3 QR codes',
-    actionType: 'mission',
-    ipAddress: '45.67.89.123',
-    userAgent: 'Mozilla/5.0 (Windows NT 6.1; rv:109.0) Gecko/20100101 Firefox/115.0',
-    deviceType: 'desktop',
-    deviceName: 'Lenovo ThinkPad T480',
-    browser: 'Firefox 115.0',
-    os: 'Windows 7',
-    country: 'United States',
-    city: 'Seattle',
-    region: 'Washington',
-    isp: 'CenturyLink',
-    timezone: 'America/Los_Angeles',
-    amount: 100,
-    createdAt: new Date(Date.now() - 32400000).toISOString(),
-    sessionId: 'sess_efg234',
-    riskLevel: 'low',
-    details: { missionId: 'mission-scan-3', progress: '3/3', completed: true },
-  },
-];
-
 class ActivityLogService {
-  async logActivity(log: Omit<ActivityLog, 'id' | 'createdAt'>): Promise<boolean> {
-    console.log('Activity logged:', log);
-    return true;
+  async logActivity(log: ActivityLogInput): Promise<boolean> {
+    try {
+      await logActivity({
+        user_id: log.userId ?? null,
+        username: log.username,
+        email: log.email,
+        role: log.role,
+        action: log.action,
+        action_type: log.actionType,
+        details: log.details ?? null,
+        ip_address: log.ipAddress ?? null,
+        device_type: log.deviceType ?? null,
+        device_name: log.deviceName ?? null,
+        browser: log.browser ?? null,
+        os: log.os ?? null,
+        country: log.country ?? null,
+        city: log.city ?? null,
+        amount: log.amount ?? null,
+        risk_level: log.riskLevel ?? 'low',
+      });
+      return true;
+    } catch (err) {
+      console.error('Activity log failed:', err);
+      return false;
+    }
   }
 
-  async getActivityLogs(userId?: string, actionType?: string, limit: number = 100, offset: number = 0): Promise<ActivityLog[]> {
-    let filtered = [...mockLogs];
-    if (userId) filtered = filtered.filter(l => l.userId === userId);
-    if (actionType) filtered = filtered.filter(l => l.actionType === actionType);
-    return filtered.slice(offset, offset + limit);
+  async getActivityLogs(userId?: string, actionType?: string, limit = 100, offset = 0) {
+    return getActivityLogs({ userId, actionType, page: Math.floor(offset / limit), pageSize: limit });
   }
 
-  async getAdminLogs(limit: number = 100, offset: number = 0): Promise<ActivityLog[]> {
-    return mockLogs.filter(l => l.role.includes('admin') || l.actionType === 'admin_action').slice(offset, offset + limit);
+  async getAdminLogs(limit = 100, offset = 0) {
+    return getActivityLogs({ actionType: 'admin_action', page: Math.floor(offset / limit), pageSize: limit });
   }
 
-  async searchLogs(query: string, limit: number = 50): Promise<ActivityLog[]> {
-    const q = query.toLowerCase();
-    return mockLogs.filter(log =>
-      log.username.toLowerCase().includes(q) ||
-      log.email.toLowerCase().includes(q) ||
-      log.ipAddress?.toLowerCase().includes(q) ||
-      log.deviceName?.toLowerCase().includes(q) ||
-      log.city?.toLowerCase().includes(q) ||
-      log.country?.toLowerCase().includes(q)
-    ).slice(0, limit);
+  async searchLogs(query: string, limit = 50) {
+    return getActivityLogs({ search: query, pageSize: limit });
   }
 
   async getIpAddress(): Promise<string> {
-    return '192.168.1.1';
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const json = await res.json();
+      return json.ip ?? '0.0.0.0';
+    } catch {
+      return '0.0.0.0';
+    }
   }
 
-  async getStats(): Promise<{ total: number; today: number; uniqueUsers: number; highRisk: number }> {
-    return {
-      total: mockLogs.length,
-      today: mockLogs.filter(l => new Date(l.createdAt) > new Date(Date.now() - 86400000)).length,
-      uniqueUsers: new Set(mockLogs.map(l => l.userId)).size,
-      highRisk: mockLogs.filter(l => l.riskLevel === 'high').length,
-    };
+  async getStats() {
+    return getLogStats();
   }
 }
 

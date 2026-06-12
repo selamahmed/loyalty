@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, QrCode, Gamepad2, Target, Star, Gift, Users, Clock } from 'lucide-react';
-import { pointsHistory } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import { getPointsHistory } from '../services/points';
+import type { PointsTransaction } from '../services/points';
 import { tr } from '../lib/tr';
 
 const card = {
@@ -12,7 +14,7 @@ const card = {
 
 type CategoryKey = 'qr' | 'game' | 'daily' | 'achievement' | 'redeem' | 'referral';
 
-const categoryConfig: Record<CategoryKey, { icon: React.FC<{ size?: number; color?: string }>; color: string; bg: string; emoji: string }> = {
+const categoryConfig: Record<CategoryKey, { icon: React.ElementType; color: string; bg: string; emoji: string }> = {
   qr:          { icon: QrCode,    color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  emoji: '📱' },
   game:        { icon: Gamepad2,  color: '#22c55e', bg: 'rgba(34,197,94,0.12)',   emoji: '🎮' },
   daily:       { icon: Target,    color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  emoji: '📅' },
@@ -22,13 +24,26 @@ const categoryConfig: Record<CategoryKey, { icon: React.FC<{ size?: number; colo
 };
 
 const History: React.FC = () => {
-  const [filter, setFilter] = useState<'all' | 'earned' | 'redeemed'>('all');
-  const filtered = filter === 'all' ? pointsHistory : pointsHistory.filter(h => h.type === filter);
-  const totalEarned   = pointsHistory.filter(h => h.type === 'earned').reduce((s, h) => s + h.points, 0);
-  const totalRedeemed = pointsHistory.filter(h => h.type === 'redeemed').reduce((s, h) => s + Math.abs(h.points), 0);
+  const { authUser } = useAuth();
+  const [filter, setFilter] = useState<'all' | 'earned' | 'spent'>('all');
+  const [history, setHistory] = useState<PointsTransaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const grouped = filtered.reduce<Record<string, typeof filtered>>((acc, h) => {
-    const date = new Date(h.date).toLocaleDateString('tr-TR', { weekday: 'long', month: 'long', day: 'numeric' });
+  useEffect(() => {
+    if (!authUser?.id) return;
+    setIsLoading(true);
+    getPointsHistory(authUser.id)
+      .then(setHistory)
+      .catch(() => setHistory([]))
+      .finally(() => setIsLoading(false));
+  }, [authUser?.id]);
+
+  const filtered = filter === 'all' ? history : history.filter(h => h.type === filter);
+  const totalEarned   = history.filter(h => h.type === 'earned').reduce((s, h) => s + h.amount, 0);
+  const totalRedeemed = history.filter(h => h.type === 'spent').reduce((s, h) => s + Math.abs(h.amount), 0);
+
+  const grouped = filtered.reduce<Record<string, PointsTransaction[]>>((acc, h) => {
+    const date = new Date(h.created_at).toLocaleDateString('tr-TR', { weekday: 'long', month: 'long', day: 'numeric' });
     if (!acc[date]) acc[date] = [];
     acc[date].push(h);
     return acc;
@@ -87,8 +102,8 @@ const History: React.FC = () => {
 
         {/* ── Filter tabs ── */}
         <div style={{ display: 'flex', gap: 8 }}>
-          {(['all', 'earned', 'redeemed'] as const).map(f => {
-            const labels = { all: 'Tümü', earned: 'Kazanılan', redeemed: 'Harcanan' };
+          {(['all', 'earned', 'spent'] as const).map(f => {
+            const labels = { all: 'Tümü', earned: 'Kazanılan', spent: 'Harcanan' };
             return (
               <button key={f} onClick={() => setFilter(f)} style={{
                 flex: 1, padding: '11px', borderRadius: 12, fontWeight: 900, fontSize: 12,
@@ -103,7 +118,12 @@ const History: React.FC = () => {
         </div>
 
         {/* ── Timeline ── */}
-        {Object.entries(grouped).length === 0 ? (
+        {isLoading ? (
+          <div style={{ ...card, padding: 48, textAlign: 'center' }}>
+            <div className="w-8 h-8 rounded-full border-4 border-violet-400 border-t-transparent animate-spin mx-auto mb-3" />
+            <p style={{ color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>Yükleniyor...</p>
+          </div>
+        ) : Object.entries(grouped).length === 0 ? (
           <div style={{ ...card, padding: 48, textAlign: 'center' }}>
             <p style={{ fontSize: 40, margin: '0 0 10px' }}>📭</p>
             <p style={{ color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>Henüz geçmiş yok</p>
@@ -119,7 +139,7 @@ const History: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {items.map(item => {
-                    const cat = categoryConfig[item.category as CategoryKey] || categoryConfig.daily;
+                    const cat = categoryConfig[(item.category ?? 'daily') as CategoryKey] || categoryConfig.daily;
                     const IconComp = cat.icon;
                     const isEarned = item.type === 'earned';
                     return (
@@ -134,12 +154,12 @@ const History: React.FC = () => {
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.description}</p>
-                          <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 999, background: cat.bg, color: cat.color, textTransform: 'capitalize' }}>{item.category}</span>
+                          <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 999, background: cat.bg, color: cat.color, textTransform: 'capitalize' }}>{item.category ?? 'other'}</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                           {isEarned ? <TrendingUp size={14} color="#22c55e" /> : <TrendingDown size={14} color="#ef4444" />}
                           <span style={{ fontWeight: 900, fontSize: 15, color: isEarned ? '#22c55e' : '#ef4444' }}>
-                            {isEarned ? '+' : ''}{item.points}
+                            {isEarned ? '+' : '-'}{Math.abs(item.amount)}
                           </span>
                         </div>
                       </div>
@@ -156,3 +176,4 @@ const History: React.FC = () => {
 };
 
 export default History;
+

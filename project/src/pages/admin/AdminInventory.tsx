@@ -1,15 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Copy, Check, RefreshCw, QrCode, Package, Search, Tag, Ticket, Gift, ArrowLeft, User, ChevronRight } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { adminUsers } from '../../data/mockData';
+import { getAllUsers } from '../../services/admin';
 
-type UserType = typeof adminUsers[0];
+type UserType = { id: string; username: string; email: string; level: number; current_points: number; status: string; created_at: string; avatar_url: string | null; role: string };
 
 const card = 'rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 shadow-[0_4px_0_#000] dark:shadow-[0_4px_0_#374151]';
 
 const typeColor: Record<string, string> = { coupon: '#3b82f6', ticket: '#f59e0b', reward: '#22c55e' };
 const typeLabel: Record<string, string> = { coupon: 'Kupon', ticket: 'Bilet', reward: 'Ödül' };
-const typeIcon: Record<string, React.FC<{ size?: number; color?: string }>> = { coupon: Tag, ticket: Ticket, reward: Gift };
+const typeIcon: Record<string, React.ElementType> = { coupon: Tag, ticket: Ticket, reward: Gift };
 
 export interface InvItem {
   id: string;
@@ -58,9 +58,25 @@ const QRPreview: React.FC<{ code: string; size?: number }> = ({ code, size = 120
 /* ─── User selection screen ─── */
 const UserPickerScreen: React.FC<{ onSelect: (u: UserType) => void }> = ({ onSelect }) => {
   const [search, setSearch] = useState('');
-  const filtered = adminUsers.filter(u =>
-    u.username.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const [allUsers, setAllUsers] = useState<UserType[]>([]);
+
+  useEffect(() => {
+    getAllUsers(0, 50, search || undefined).then(profiles => {
+      setAllUsers(profiles.map(p => ({
+        id: p.id,
+        username: p.username ?? p.email.split('@')[0],
+        email: p.email,
+        level: p.level,
+        current_points: p.current_points,
+        status: p.status,
+        created_at: p.created_at,
+        avatar_url: p.avatar_url,
+        role: p.role,
+      })));
+    }).catch(() => setAllUsers([]));
+  }, [search]);
+
+  const filtered = allUsers;
 
   return (
     <div className="p-4 lg:p-6 space-y-5 max-w-3xl mx-auto">
@@ -99,14 +115,14 @@ const UserPickerScreen: React.FC<{ onSelect: (u: UserType) => void }> = ({ onSel
             onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0px 0 var(--dark-border)'; }}
             onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 var(--dark-border)'; }}
           >
-            <img src={user.avatar} alt={user.username} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid var(--dark-border)', flexShrink: 0 }} />
+            <img src={user.avatar_url ?? ""} alt={user.username} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid var(--dark-border)', flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.username}</p>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: 12, fontWeight: 900, color: '#f59e0b', margin: 0 }}>{user.points.toLocaleString('tr-TR')} puan</p>
+                <p style={{ fontSize: 12, fontWeight: 900, color: '#f59e0b', margin: 0 }}>{user.current_points.toLocaleString('tr-TR')} puan</p>
                 <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0 }}>Lv. {user.level}</p>
               </div>
               <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(123,110,246,0.12)', border: '2px solid #7B6EF6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -244,10 +260,10 @@ const InventoryScreen: React.FC<{
             <ArrowLeft size={15} /> Kullanıcılar
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-            <img src={user.avatar} alt={user.username} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid var(--dark-border)', flexShrink: 0 }} />
+            <img src={user.avatar_url ?? ""} alt={user.username} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid var(--dark-border)', flexShrink: 0 }} />
             <div>
               <p style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: 0 }}>{user.username}</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>{user.email} · Lv.{user.level} · {user.points.toLocaleString('tr-TR')} puan</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>{user.email} · Lv.{user.level} · {user.current_points.toLocaleString('tr-TR')} puan</p>
             </div>
           </div>
           <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-black font-black text-sm text-white shadow-[0_4px_0_#000] active:translate-y-[4px] active:shadow-none"

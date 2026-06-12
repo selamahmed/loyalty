@@ -111,7 +111,7 @@ const StoreAdminAnalytics: React.FC = () => {
               <YAxis hide />
               <Tooltip
                 contentStyle={{ background: 'var(--card-bg)', border: '2px solid var(--dark-border)', borderRadius: 12, fontWeight: 700, color: 'var(--text-dark)' }}
-                formatter={(v: number) => [`${v.toLocaleString('tr-TR')} puan`, 'Puan']}
+                formatter={(v: unknown) => [`${(v as number).toLocaleString('tr-TR')} puan`, 'Puan']}
               />
               <Bar dataKey="points" fill={ACCENT} radius={[6, 6, 0, 0]} />
             </BarChart>
@@ -132,7 +132,7 @@ const StoreAdminAnalytics: React.FC = () => {
                 <YAxis hide />
                 <Tooltip
                   contentStyle={{ background: 'var(--card-bg)', border: '2px solid var(--dark-border)', borderRadius: 12, fontWeight: 700, color: 'var(--text-dark)' }}
-                  formatter={(v: number) => [v, 'Müşteri']}
+                  formatter={(v: unknown) => [String(v), 'Müşteri']}
                 />
                 <Line type="monotone" dataKey="customers" stroke="#7B6EF6" strokeWidth={2.5} dot={false} />
               </LineChart>
@@ -203,3 +203,5 @@ const StoreAdminAnalytics: React.FC = () => {
 };
 
 export default StoreAdminAnalytics;
+
+

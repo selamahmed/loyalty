@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, ArrowRight, CheckCircle, RefreshCw } from 'lucide-react';
-
-/* Mock accounts that have registered emails */
-const MOCK_EMAILS = [
-  'customer@nexreward.com',
-  'admin@nexreward.com',
-  'store@nexreward.com',
-  'cashier@nexreward.com',
-];
+import { supabase } from '../lib/supabase';
 
 type Phase = 'form' | 'sent';
 
@@ -28,14 +21,19 @@ const ForgotPassword: React.FC = () => {
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!valid) { setError('Geçerli bir e-posta adresi girin.'); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
+    const { error: supaErr } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}${window.location.pathname}#/reset-password`,
+    });
     setLoading(false);
+    if (supaErr) { setError(supaErr.message); return; }
     setPhase('sent');
   };
 
   const handleResend = async () => {
     setResend(true);
-    await new Promise(r => setTimeout(r, 1000));
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}${window.location.pathname}#/reset-password`,
+    });
     setResend(false);
     setResent(true);
     setTimeout(() => setResent(false), 3000);
@@ -234,32 +232,6 @@ const ForgotPassword: React.FC = () => {
             </button>
           </form>
 
-          {/* Demo hint */}
-          <div style={{ marginTop: 20, paddingTop: 18, borderTop: '2px dashed var(--divider-dash)' }}>
-            <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
-              Demo E-postalar
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {MOCK_EMAILS.map(em => (
-                <button
-                  key={em}
-                  onClick={() => { setEmail(em); setError(''); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
-                    background: email === em ? '#9122FF14' : 'var(--tab-bg)',
-                    border: `2px solid ${email === em ? '#9122FF' : 'var(--dark-border)'}`,
-                    fontFamily: 'inherit', transition: 'all 0.12s',
-                    color: email === em ? '#9122FF' : 'var(--text-muted)',
-                    fontWeight: email === em ? 900 : 600, fontSize: 12,
-                    boxShadow: email === em ? '0 2px 0 #6b19c0' : '0 2px 0 var(--dark-border)',
-                  }}
-                >
-                  <Mail size={12} /> {em}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 

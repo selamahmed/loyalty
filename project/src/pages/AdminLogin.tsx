@@ -13,7 +13,7 @@ const ROLES: {
   sublabel: string;
   color: string;
   shadow: string;
-  icon: React.FC<{ size: number; color?: string }>;
+  icon: React.ElementType;
   email: string;
   badge: string;
 }[] = [
@@ -347,3 +347,4 @@ const AdminLogin: React.FC = () => {
 };
 
 export default AdminLogin;
+

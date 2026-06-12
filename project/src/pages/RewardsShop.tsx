@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Star, ShoppingCart, X, Check, ArrowRight, Package } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
-import { rewards } from '../data/mockData';
+import { getRewards } from '../services/rewards';
+import { redeemReward } from '../services/redemptions';
+import { spendPoints as spendPointsService } from '../services/points';
+import type { Reward } from '../services/rewards';
 import { playSound } from '../lib/sounds';
 import { WinningParticles } from '../components/WinningParticles';
 
@@ -24,7 +28,7 @@ const categories = [
 
 /* ── Buy modal ── */
 interface BuyModalProps {
-  reward: typeof rewards[0];
+  reward: Reward;
   onConfirm: () => void;
   onClose: () => void;
   canAfford: boolean;
@@ -52,7 +56,11 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
 
       {/* Product image */}
       <div style={{ height: 160, borderRadius: 14, overflow: 'hidden', border: '3px solid var(--dark-border)', marginBottom: 16, boxShadow: '0 4px 0 var(--dark-border)' }}>
-        <img src={reward.image} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {reward.image ? (
+          <img src={reward.image} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>🎁</div>
+        )}
       </div>
 
       <h4 style={{ fontWeight: 900, fontSize: 17, color: 'var(--text-dark)', margin: '0 0 5px' }}>{reward.title}</h4>
@@ -109,12 +117,21 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
 /* ── Main page ── */
 const RewardsShop: React.FC = () => {
   const { points, spendPoints, showRewardPopup } = useApp();
-  const { addItem } = useInventory();
+  const { authUser } = useAuth();
+  const { reload: reloadInventory } = useInventory();
   const [search, setSearch]             = useState('');
   const [category, setCategory]         = useState('all');
-  const [selectedReward, setSelectedReward] = useState<typeof rewards[0] | null>(null);
+  const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [success, setSuccess]           = useState<string | null>(null);
   const [showParticles, setShowParticles] = useState(false);
+  const [rewards, setRewards]           = useState<Reward[]>([]);
+  const [isLoading, setIsLoading]       = useState(true);
+  const [buyLoading, setBuyLoading]     = useState(false);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getRewards().then(setRewards).catch(() => setRewards([])).finally(() => setIsLoading(false));
+  }, []);
 
   const filtered = rewards.filter(r => {
     const matchSearch = r.title.toLowerCase().includes(search.toLowerCase());
@@ -122,34 +139,24 @@ const RewardsShop: React.FC = () => {
     return matchSearch && matchCat;
   });
 
-  const handleBuy = () => {
-    if (!selectedReward) return;
+  const handleBuy = async () => {
+    if (!selectedReward || !authUser?.id) return;
     const spent = spendPoints(selectedReward.points);
     if (!spent) return;
-
-    const expiryDate = selectedReward.expiresAt
-      ? selectedReward.expiresAt
-      : new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
-
-    addItem({
-      type: 'ticket',
-      title: selectedReward.title,
-      description: selectedReward.description,
-      expires: expiryDate,
-      code: `TKT-${selectedReward.id.toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-      used: false,
-      quantity: 1,
-      image: selectedReward.image,
-      points: selectedReward.points,
-      barcode: `BC${Date.now()}`,
-    });
-
-    showRewardPopup({ type: 'reward', title: '🎉 Satın Alındı!', subtitle: `${selectedReward.title} envanterinize eklendi`, points: selectedReward.points });
-    playSound('level-up');
-    setShowParticles(true);
-    setSuccess(selectedReward.title);
-    setSelectedReward(null);
-    setTimeout(() => { setShowParticles(false); setSuccess(null); }, 3000);
+    setBuyLoading(true);
+    try {
+      const expiryDate = selectedReward.expires_at ?? new Date(Date.now() + 90 * 86400000).toISOString();
+      await spendPointsService(authUser.id, selectedReward.points, `Ödül: ${selectedReward.title}`, selectedReward.id);
+      await redeemReward(authUser.id, selectedReward.id, selectedReward.points, expiryDate);
+      await reloadInventory();
+      setSuccess(selectedReward.title);
+      setSelectedReward(null);
+      setTimeout(() => { setShowParticles(false); setSuccess(null); }, 3000);
+    } catch (err) {
+      console.error('Purchase failed:', err);
+    } finally {
+      setBuyLoading(false);
+    }
   };
 
   const canAffordCount = rewards.filter(r => points >= r.points).length;
@@ -161,11 +168,11 @@ const RewardsShop: React.FC = () => {
       </div>
 
       <WinningParticles trigger={showParticles} emoji="🛍️" />
-      {selectedReward && (
+        {selectedReward && (
         <BuyModal
           reward={selectedReward}
-          onConfirm={handleBuy}
-          onClose={() => setSelectedReward(null)}
+          onConfirm={() => void handleBuy()}
+          onClose={() => !buyLoading && setSelectedReward(null)}
           canAfford={points >= selectedReward.points}
         />
       )}
@@ -272,7 +279,12 @@ const RewardsShop: React.FC = () => {
         </div>
 
         {/* ── Products grid ── */}
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div style={{ ...card, padding: '56px 24px', textAlign: 'center' }}>
+            <div className="w-8 h-8 rounded-full border-4 border-violet-400 border-t-transparent animate-spin mx-auto mb-3" />
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Yükleniyor...</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div style={{ ...card, padding: '56px 24px', textAlign: 'center' }}>
             <p style={{ fontSize: 48, margin: '0 0 12px' }}>🔍</p>
             <p style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: '0 0 6px' }}>Ürün bulunamadı</p>
@@ -295,7 +307,11 @@ const RewardsShop: React.FC = () => {
                 >
                   {/* Product image */}
                   <div style={{ position: 'relative', height: 130, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)' }}>
-                    <img src={reward.image} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {reward.image ? (
+                      <img src={reward.image} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🎁</div>
+                    )}
                     {reward.limited && (
                       <span style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 999, background: '#ef4444', color: 'white', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>SINIRLI</span>
                     )}

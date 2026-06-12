@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Clock, Tag, Ticket, Gift, Package, AlertCircle, QrCode } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { InventoryItem, useInventory } from '../context/InventoryContext';
 import { InventoryQRCode } from './QRCodeDisplay';
 
@@ -11,7 +12,7 @@ const brutal = {
   font: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Space Grotesk', system-ui, sans-serif",
 };
 
-const typeConfig: Record<string, { color: string; bg: string; icon: React.FC<{ size?: number; color?: string }>; label: string }> = {
+const typeConfig: Record<string, { color: string; bg: string; icon: LucideIcon; label: string }> = {
   coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: Tag,    label: 'Kupon' },
   ticket: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: Ticket, label: 'Bilet' },
   reward: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  icon: Gift,   label: 'Ödül'  },

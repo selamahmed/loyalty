@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, TrendingUp, Calendar, Package, Ticket, Tag, Gift, Check, Copy, Clock, CreditCard as Edit3 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { achievements, inventory } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import { useInventory } from '../context/InventoryContext';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 
@@ -34,11 +35,13 @@ const SectionHeader: React.FC<{
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { user, points, setIsLoggedIn } = useApp();
+  const { user, points } = useApp();
+  const { logout } = useAuth();
+  const { items: inventoryItems } = useInventory();
   const [showAllInventory, setShowAllInventory] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const xpPercent = Math.round((user.xp / user.xpToNext) * 100);
-  const completedAchievements = achievements.filter(a => a.completed);
+  const xpPercent = Math.round((user.xpToNext > 0 ? (user.xp / user.xpToNext) * 100 : 0));
+  const completedAchievements: { id: string; title: string; icon: string }[] = [];
 
   const typeConfig: Record<string, { color: string; bg: string; accent: string; icon: LucideIcon }> = {
     coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', accent: '#3b82f6', icon: Tag },
@@ -54,7 +57,7 @@ const Profile: React.FC = () => {
   };
 
   const isExpired = (date: string) => new Date(date) < new Date();
-  const activeInventory = inventory.filter(i => !i.used);
+  const activeInventory = inventoryItems.filter(i => !i.used);
   const displayedInventory = showAllInventory ? activeInventory : activeInventory.slice(0, 3);
   const recentAchievements = completedAchievements.slice(0, 4);
 
@@ -322,7 +325,7 @@ const Profile: React.FC = () => {
             ))}
 
             <button
-              onClick={() => { playSound('click'); setIsLoggedIn(false); navigate('/login'); }}
+              onClick={() => { playSound('click'); logout().then(() => navigate('/login', { replace: true })).catch(() => navigate('/login', { replace: true })); }}
               style={{
                 ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
                 cursor: 'pointer', border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626',

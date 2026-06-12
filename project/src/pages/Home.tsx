@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, QrCode, Gamepad2, Gift, ChevronRight, Zap, Target, ArrowRight } from 'lucide-react';
+import { Star, QrCode, Gamepad2, Gift, Target, ArrowRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { rewards, missions, notifications } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import { getFeaturedRewards } from '../services/rewards';
+import { getMissionsWithStatus } from '../services/missions';
+import { getNotifications } from '../services/notifications';
+import type { Reward } from '../services/rewards';
+import type { MissionWithStatus } from '../services/missions';
+import type { Notification } from '../services/notifications';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { WinningParticles } from '../components/WinningParticles';
@@ -56,13 +62,27 @@ const SectionHeader: React.FC<{
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { user, points } = useApp();
+  const { authUser } = useAuth();
   const [showParticles, setShowParticles] = useState(false);
   const { show: showDailyReward, setShow: setShowDailyReward } = useDailyReward();
-  const xpPercent    = Math.round((user.xp / user.xpToNext) * 100);
-  const dailyMissions = missions.filter(m => m.category === 'daily');
+  const xpPercent = Math.round((user.xpToNext > 0 ? (user.xp / user.xpToNext) * 100 : 0));
+
+  const [dailyMissions, setDailyMissions] = useState<MissionWithStatus[]>([]);
+  const [featuredRewards, setFeaturedRewards] = useState<Reward[]>([]);
+  const [unreadNotifs, setUnreadNotifs] = useState<Notification[]>([]);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    getFeaturedRewards().then(setFeaturedRewards).catch(() => setFeaturedRewards([]));
+    getMissionsWithStatus(authUser.id)
+      .then(all => setDailyMissions(all.filter(m => m.category === 'daily')))
+      .catch(() => setDailyMissions([]));
+    getNotifications(authUser.id, 0, 5)
+      .then(all => setUnreadNotifs(all.filter(n => !n.read).slice(0, 2)))
+      .catch(() => setUnreadNotifs([]));
+  }, [authUser?.id]);
+
   const completedToday = dailyMissions.filter(m => m.completed).length;
-  const featuredRewards = rewards.filter(r => r.featured).slice(0, 3);
-  const unreadNotifs  = notifications.filter(n => !n.read);
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
@@ -308,7 +328,7 @@ const Home: React.FC = () => {
                 style={{ ...card, overflow: 'hidden', cursor: 'pointer' }}
               >
                 <div style={{ height: 110, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)', position: 'relative' }}>
-                  <img src={reward.image} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={reward.image ?? undefined} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   {reward.limited && (
                     <div style={{
                       position: 'absolute', top: 8, left: 8,
@@ -360,7 +380,7 @@ const Home: React.FC = () => {
                     <p style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 13, margin: '0 0 3px' }}>{notif.title}</p>
                     <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{notif.message}</p>
                   </div>
-                  <span style={{ color: 'var(--text-muted)', fontSize: 10, whiteSpace: 'nowrap', fontWeight: 700, flexShrink: 0, marginTop: 2 }}>{notif.time}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 10, whiteSpace: 'nowrap', fontWeight: 700, flexShrink: 0, marginTop: 2 }}>{new Date(notif.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               ))}
             </div>

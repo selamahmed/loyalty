@@ -2,8 +2,13 @@ import React from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Star, Gamepad2, QrCode, Target, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { statsData } from '../data/mockData';
 import { tr } from '../lib/tr';
+
+const statsData = {
+  pointsOverTime: [] as { month: string; points: number }[],
+  activityBreakdown: [] as { name: string; value: number; color: string }[],
+  rewardUsage: [] as { month: string; redeemed: number }[],
+};
 
 const card = {
   background: 'var(--card-bg)',
@@ -102,7 +107,7 @@ const UserStats: React.FC = () => {
                     <Cell key={i} fill={entry.color} stroke="var(--card-bg)" strokeWidth={2} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(val: number) => `${val}%`} contentStyle={{ background: 'var(--card-bg)', border: '3px solid var(--dark-border)', borderRadius: 14, fontSize: 12, fontWeight: 900 }} />
+                <Tooltip formatter={(val: unknown) => `${val}%`} contentStyle={{ background: 'var(--card-bg)', border: '3px solid var(--dark-border)', borderRadius: 14, fontSize: 12, fontWeight: 900 }} />
               </PieChart>
             </ResponsiveContainer>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>

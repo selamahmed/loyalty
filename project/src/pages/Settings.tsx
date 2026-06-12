@@ -38,7 +38,7 @@ const languages = ['Türkçe', 'English', 'Español', 'Français', 'Deutsch'];
 
 /* ─── Push notification row ─── */
 const PushNotifRow: React.FC<{
-  icon: React.FC<{ size?: number; color?: string }>;
+  icon: React.ElementType;
   label: string;
   sub?: string;
   iconBg?: string;
@@ -126,7 +126,7 @@ const Settings: React.FC = () => {
   );
 
   const Row: React.FC<{
-    icon: React.FC<{ size?: number; color?: string }>;
+    icon: React.ElementType;
     label: string; sub?: string;
     iconBg?: string; iconColor?: string;
     right?: React.ReactNode; onClick?: () => void;
@@ -295,3 +295,4 @@ const Settings: React.FC = () => {
 };
 
 export default Settings;
+

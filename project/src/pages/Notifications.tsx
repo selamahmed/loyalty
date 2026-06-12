@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Trash2, Sparkles } from 'lucide-react';
-import { notifications as initialNotifs } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import { getNotifications, markRead as markReadService, markAllRead as markAllReadService } from '../services/notifications';
+import type { Notification } from '../services/notifications';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 
@@ -17,16 +19,35 @@ const filterLabels: Record<string, string> = {
 };
 
 const Notifications: React.FC = () => {
-  const [notifs, setNotifs] = useState(initialNotifs);
+  const { authUser } = useAuth();
+  const [notifs, setNotifs] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    setIsLoading(true);
+    getNotifications(authUser.id)
+      .then(setNotifs)
+      .catch(() => setNotifs([]))
+      .finally(() => setIsLoading(false));
+  }, [authUser?.id]);
 
   const filtered = filter === 'all' ? notifs
     : filter === 'unread' ? notifs.filter(n => !n.read)
     : notifs.filter(n => n.type === filter);
   const unreadCount = notifs.filter(n => !n.read).length;
 
-  const markRead = (id: string) => { playSound('click'); setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n)); };
-  const markAllRead = () => { playSound('success'); setNotifs(prev => prev.map(n => ({ ...n, read: true }))); };
+  const markRead = (id: string) => {
+    playSound('click');
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    if (authUser?.id) markReadService(id, authUser.id).catch(() => {});
+  };
+  const markAllRead = () => {
+    playSound('success');
+    setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+    if (authUser?.id) markAllReadService(authUser.id).catch(() => {});
+  };
   const deleteNotif = (id: string) => { playSound('click'); setNotifs(prev => prev.filter(n => n.id !== id)); };
 
   return (
@@ -73,7 +94,12 @@ const Notifications: React.FC = () => {
         </div>
 
         {/* ── Notification list ── */}
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="notif-empty">
+            <div className="w-8 h-8 rounded-full border-4 border-violet-400 border-t-transparent animate-spin mx-auto mb-3" />
+            <p className="notif-empty-sub">Yükleniyor...</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="notif-empty">
             <p style={{ fontSize: 44, margin: '0 0 12px' }}>🔔</p>
             <p className="notif-empty-title">{tr.notifications.empty}</p>
@@ -116,7 +142,7 @@ const Notifications: React.FC = () => {
                         )}
                       </div>
                       <p className="notif-message">{notif.message}</p>
-                      <span className="notif-time">{notif.time}</span>
+                      <span className="notif-time">{new Date(notif.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
 
                     {/* Actions */}

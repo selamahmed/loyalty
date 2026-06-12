@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { useAdmin } from '../../context/AdminContext';
+import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, Users, TrendingUp, ShoppingBag, QrCode, Gamepad2, Bell, TicketCheck, Settings, LogOut, Menu, X, ChevronDown, BarChart2, Activity, Shield, Zap, FileText } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { admin, logout } = useAdmin();
+  const { authUser, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -83,8 +83,8 @@ const AdminLayout: React.FC = () => {
         <div className="p-4 border-t-2 border-black dark:border-gray-700 space-y-3">
           <div className="p-3 rounded-2xl bg-gray-100 dark:bg-gray-700">
             <p className="text-xs text-gray-600 dark:text-gray-400">Admin</p>
-            <p className="font-bold text-gray-900 dark:text-white text-sm">{admin?.full_name}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{admin?.role}</p>
+            <p className="font-bold text-gray-900 dark:text-white text-sm">{authUser?.username ?? authUser?.email}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{authUser?.role}</p>
           </div>
           <button
             onClick={handleLogout}

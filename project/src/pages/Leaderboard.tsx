@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Star, Crown, TrendingUp, Gift, Sparkles, Timer } from 'lucide-react';
-import { leaderboard } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import { getLeaderboard } from '../services/points';
 import { useRewardEvents, RewardEvent, Winner } from '../context/RewardEventsContext';
 
 const card = {
@@ -155,6 +156,18 @@ const ActiveEventBanner: React.FC<{ event: RewardEvent }> = ({ event }) => {
 const Leaderboard: React.FC = () => {
   const [tab, setTab] = useState<'weekly' | 'monthly' | 'alltime'>('weekly');
   const { events } = useRewardEvents();
+  const { authUser } = useAuth();
+  const [leaderboard, setLeaderboard] = useState<{ rank: number; username: string; total_points: number; level: number; avatar_url: string | null; id: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getLeaderboard(50)
+      .then(setLeaderboard)
+      .catch(() => setLeaderboard([]))
+      .finally(() => setIsLoading(false));
+  }, [tab]);
+
   const top3 = leaderboard.slice(0, 3);
   const rest = leaderboard.slice(3);
   const podiumOrder = [top3[1], top3[0], top3[2]];
@@ -227,21 +240,24 @@ const Leaderboard: React.FC = () => {
               const badge = player?.rank === 1 ? '👑' : player?.rank === 2 ? '🥈' : '🥉';
               return (
                 <div key={player?.rank} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                  <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative' }}>
                     <div style={{
                       width: isFirst ? 72 : 58, height: isFirst ? 72 : 58,
                       borderRadius: '50%', overflow: 'hidden',
                       border: `${isFirst ? 4 : 3}px solid ${podiumColors[i]}`,
                       boxShadow: `0 4px 0 ${podiumColors[i]}88`,
                     }}>
-                      {player?.avatar && <img src={player.avatar} alt={player.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                      {player?.avatar_url
+                        ? <img src={player.avatar_url} alt={player.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>👤</div>
+                      }
                     </div>
                     <div style={{ position: 'absolute', top: -8, right: -6, fontSize: isFirst ? 22 : 18 }}>{badge}</div>
                   </div>
                   <p style={{ fontWeight: 900, fontSize: isFirst ? 14 : 12, color: 'var(--text-dark)', textAlign: 'center', margin: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player?.username}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                     <Star size={10} fill="#f59e0b" color="#f59e0b" />
-                    <span style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b' }}>{player?.points.toLocaleString()}</span>
+                    <span style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b' }}>{player?.total_points.toLocaleString()}</span>
                   </div>
                   {/* Podium block */}
                   <div style={{
@@ -260,56 +276,73 @@ const Leaderboard: React.FC = () => {
         </div>
 
         {/* ── Rest of rankings ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {rest.map(player => (
-            <div key={player.rank} style={{
-              ...card,
-              border: player.isCurrentUser ? '3px solid var(--primary-blue)' : '3px solid var(--dark-border)',
-              boxShadow: player.isCurrentUser ? '0 6px 0 var(--primary-blue)' : '0 6px 0 var(--dark-border)',
-              background: player.isCurrentUser ? 'rgba(123,110,246,0.07)' : 'var(--card-bg)',
-              padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
-            }}>
-              <div style={{ width: 32, textAlign: 'center', flexShrink: 0 }}>
-                <span style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)' }}>#{player.rank}</span>
-              </div>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2.5px solid var(--dark-border)', flexShrink: 0 }}>
-                <img src={player.avatar} alt={player.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${player.username}&background=7B6EF6&color=fff`; }} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <p style={{ fontWeight: 900, fontSize: 13, color: player.isCurrentUser ? 'var(--primary-blue)' : 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.username}</p>
-                  {player.isCurrentUser && (
-                    <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 999, background: 'var(--primary-blue)', color: 'white', flexShrink: 0 }}>SEN</span>
-                  )}
+        {isLoading ? (
+          <div style={{ ...card, padding: 40, textAlign: 'center' }}>
+            <div className="w-8 h-8 rounded-full border-4 border-violet-400 border-t-transparent animate-spin mx-auto mb-3" />
+            <p style={{ color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>Yükleniyor...</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {rest.map(player => {
+              const isCurrentUser = player.id === authUser?.id;
+              return (
+                <div key={player.rank} style={{
+                  ...card,
+                  border: isCurrentUser ? '3px solid var(--primary-blue)' : '3px solid var(--dark-border)',
+                  boxShadow: isCurrentUser ? '0 6px 0 var(--primary-blue)' : '0 6px 0 var(--dark-border)',
+                  background: isCurrentUser ? 'rgba(123,110,246,0.07)' : 'var(--card-bg)',
+                  padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                }}>
+                  <div style={{ width: 32, textAlign: 'center', flexShrink: 0 }}>
+                    <span style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)' }}>#{player.rank}</span>
+                  </div>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2.5px solid var(--dark-border)', flexShrink: 0 }}>
+                    {player.avatar_url
+                      ? <img src={player.avatar_url} alt={player.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
+                    }
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <p style={{ fontWeight: 900, fontSize: 13, color: isCurrentUser ? 'var(--primary-blue)' : 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.username}</p>
+                      {isCurrentUser && (
+                        <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 999, background: 'var(--primary-blue)', color: 'white', flexShrink: 0 }}>SEN</span>
+                      )}
+                    </div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0, fontWeight: 600 }}>Seviye {player.level}</p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                    <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                    <span style={{ fontWeight: 900, fontSize: 13, color: '#f59e0b' }}>{player.total_points.toLocaleString()}</span>
+                  </div>
                 </div>
-                <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0, fontWeight: 600 }}>Seviye {player.level}</p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                <Star size={12} fill="#f59e0b" color="#f59e0b" />
-                <span style={{ fontWeight: 900, fontSize: 13, color: '#f59e0b' }}>{player.points.toLocaleString()}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* ── Your ranking ── */}
-        <div style={{
-          ...card,
-          border: '3px solid var(--primary-blue)', boxShadow: '0 6px 0 var(--primary-blue)',
-          padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14,
-          background: 'rgba(123,110,246,0.06)',
-        }}>
-          <Trophy size={24} color="var(--primary-blue)" />
-          <div style={{ flex: 1 }}>
-            <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 2px' }}>Senin Sıralaman</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <TrendingUp size={12} color="#22c55e" />
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>+2 bu hafta</span>
+        {authUser && (() => {
+          const myRank = leaderboard.find(p => p.id === authUser.id);
+          return myRank ? (
+            <div style={{
+              ...card,
+              border: '3px solid var(--primary-blue)', boxShadow: '0 6px 0 var(--primary-blue)',
+              padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14,
+              background: 'rgba(123,110,246,0.06)',
+            }}>
+              <Trophy size={24} color="var(--primary-blue)" />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 2px' }}>Senin Sıralaman</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <TrendingUp size={12} color="#22c55e" />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>{myRank.total_points.toLocaleString()} puan</span>
+                </div>
+              </div>
+              <p style={{ fontWeight: 900, fontSize: 32, color: 'var(--primary-blue)', margin: 0 }}>#{myRank.rank}</p>
             </div>
-          </div>
-          <p style={{ fontWeight: 900, fontSize: 32, color: 'var(--primary-blue)', margin: 0 }}>#3</p>
-        </div>
+          ) : null;
+        })()}
 
       </div>
     </div>

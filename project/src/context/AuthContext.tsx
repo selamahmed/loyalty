@@ -1,49 +1,31 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { User, Session } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
 export type UserRole = 'customer' | 'super_admin' | 'store_admin' | 'cashier';
 
 export interface AuthUser {
   id: string;
   name: string;
+  username?: string;
   email: string;
   role: UserRole;
   avatar?: string;
-  provider?: 'email' | 'google';
+  provider?: string;
 }
 
 interface AuthContextType {
   authUser: AuthUser | null;
+  session: Session | null;
   role: UserRole | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   dashboardPath: string;
 }
-
-const STORAGE_KEY = 'nexreward_auth';
-
-const MOCK_ACCOUNTS: (AuthUser & { password: string })[] = [
-  {
-    id: '1', name: 'StarPlayer99', email: 'customer@nexreward.com', password: '123456',
-    role: 'customer', provider: 'email',
-    avatar: 'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg?auto=compress&cs=tinysrgb&w=200',
-  },
-  {
-    id: '2', name: 'Super Admin', email: 'admin@nexreward.com', password: '123456',
-    role: 'super_admin', provider: 'email',
-  },
-  {
-    id: '3', name: 'Store Manager', email: 'store@nexreward.com', password: '123456',
-    role: 'store_admin', provider: 'email',
-  },
-  {
-    id: '4', name: 'Cashier Ali', email: 'cashier@nexreward.com', password: '123456',
-    role: 'cashier', provider: 'email',
-  },
-];
-
-const GOOGLE_MOCK_NAMES = ['Alex Johnson', 'Jamie Smith', 'Jordan Lee', 'Taylor Brown', 'Morgan Davis'];
 
 export const getDashboardPath = (role: UserRole | null): string => {
   switch (role) {
@@ -57,63 +39,124 @@ export const getDashboardPath = (role: UserRole | null): string => {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+function mapSupabaseUser(user: User): AuthUser {
+  const meta = user.user_metadata ?? {};
+  const role: UserRole = (meta.role as UserRole) ?? 'customer';
+  return {
+    id: user.id,
+    name: meta.full_name ?? meta.name ?? meta.username ?? user.email?.split('@')[0] ?? 'User',
+    username: meta.username ?? undefined,
+    email: user.email ?? '',
+    role,
+    avatar: meta.avatar_url ?? meta.picture ?? undefined,
+    provider: user.app_metadata?.provider ?? 'email',
+  };
+}
 
-  const role = authUser?.role ?? null;
-  const isAuthenticated = authUser !== null;
-  const dashboardPath = getDashboardPath(role);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const refreshProfile = useCallback(async (user: User) => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, username, avatar_url')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const base = mapSupabaseUser(user);
+    if (profile) {
+      setAuthUser({
+        ...base,
+        role: (profile.role as UserRole) ?? base.role,
+        name: profile.username ?? base.name,
+        username: profile.username ?? base.username,
+        avatar: profile.avatar_url ?? base.avatar,
+      });
+    } else {
+      setAuthUser(base);
+    }
+  }, []);
 
   useEffect(() => {
-    if (authUser) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(authUser));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      if (s?.user) {
+        refreshProfile(s.user).finally(() => setIsLoading(false));
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      if (s?.user) {
+        refreshProfile(s.user);
+      } else {
+        setAuthUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [refreshProfile]);
+
+  const role = authUser?.role ?? null;
+  const isAuthenticated = authUser !== null && session !== null;
+  const dashboardPath = getDashboardPath(role);
+
+  const register = async (email: string, password: string, username: string): Promise<{ success: boolean; error?: string }> => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: username, username, role: 'customer' },
+      },
+    });
+    if (error) {
+      return { success: false, error: error.message };
     }
-  }, [authUser]);
+    return { success: true };
+  };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    await new Promise(r => setTimeout(r, 800));
-    const account = MOCK_ACCOUNTS.find(
-      a => a.email.toLowerCase() === email.toLowerCase() && a.password === password
-    );
-    if (!account) {
-      return { success: false, error: 'Geçersiz e-posta veya şifre.' };
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      return { success: false, error: error.message };
     }
-    const { password: _pw, ...user } = account;
-    setAuthUser(user);
     return { success: true };
   };
 
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
-    await new Promise(r => setTimeout(r, 1200));
-    const name   = GOOGLE_MOCK_NAMES[Math.floor(Math.random() * GOOGLE_MOCK_NAMES.length)];
-    const suffix = Math.floor(Math.random() * 9000 + 1000);
-    const googleUser: AuthUser = {
-      id:       `google-${suffix}`,
-      name,
-      email:    `${name.toLowerCase().replace(' ', '.')}@gmail.com`,
-      role:     'customer',
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      avatar:   `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4285F4&color=fff&size=200`,
-    };
-    setAuthUser(googleUser);
+      options: { redirectTo: `${window.location.origin}${window.location.pathname}` },
+    });
+    if (error) {
+      return { success: false, error: error.message };
+    }
     return { success: true };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setAuthUser(null);
+    setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ authUser, role, isAuthenticated, login, loginWithGoogle, logout, dashboardPath }}>
+    <AuthContext.Provider value={{
+      authUser,
+      session,
+      role,
+      isAuthenticated,
+      isLoading,
+      login,
+      register,
+      loginWithGoogle,
+      logout,
+      dashboardPath,
+    }}>
       {children}
     </AuthContext.Provider>
   );

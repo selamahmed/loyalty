@@ -186,6 +186,7 @@ export const tr = {
     personalInfo: 'Kişisel Bilgiler',
     preferences: 'Tercihler',
     logout: 'Çıkış Yap',
+    expires: 'Son kullanım:',
   },
 
   // QR Scanner

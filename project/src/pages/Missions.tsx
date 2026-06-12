@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, Check, Clock, Trophy, ArrowRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { missions } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import { getMissionsWithStatus, completeMission } from '../services/missions';
+import type { MissionWithStatus } from '../services/missions';
+import { addPoints as addPointsService } from '../services/points';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
 import { WinningParticles } from '../components/WinningParticles';
@@ -20,9 +23,20 @@ const categoryImages = {
 
 const Missions: React.FC = () => {
   const { addPoints, showRewardPopup } = useApp();
-  const [missionState, setMissionState] = useState(missions.map(m => ({ ...m })));
+  const { authUser } = useAuth();
+  const [missionState, setMissionState] = useState<MissionWithStatus[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [tab, setTab] = useState<'daily' | 'weekly'>('daily');
   const [showParticles, setShowParticles] = useState(false);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    setIsLoading(true);
+    getMissionsWithStatus(authUser.id)
+      .then(setMissionState)
+      .catch(() => setMissionState([]))
+      .finally(() => setIsLoading(false));
+  }, [authUser?.id]);
 
   const filtered = missionState.filter(m => m.category === tab);
   const completed = filtered.filter(m => m.completed).length;
@@ -31,18 +45,19 @@ const Missions: React.FC = () => {
   const progressPct = filtered.length > 0 ? (completed / filtered.length) * 100 : 0;
 
   const handleComplete = (id: string) => {
-    setMissionState(prev => prev.map(m => {
-      if (m.id === id && !m.completed) {
-        addPoints(m.points);
-        playSound('level-up');
-        showRewardPopup({ type: 'reward', title: 'Mission Complete!', subtitle: m.title, points: m.points });
-        const allAfterCompletion = prev.map(ms => ms.id === id ? { ...ms, completed: true } : ms);
-        const allCompleted = allAfterCompletion.filter(ms => ms.category === tab && ms.completed).length === filtered.length;
-        if (allCompleted) { setShowParticles(true); playSound('success'); setTimeout(() => setShowParticles(false), 2000); }
-        return { ...m, completed: true };
-      }
-      return m;
-    }));
+    const mission = missionState.find(m => m.id === id);
+    if (!mission || mission.completed || !authUser?.id) return;
+    setMissionState(prev => {
+      const next = prev.map(m => m.id === id ? { ...m, completed: true, completed_at: new Date().toISOString() } : m);
+      const allCompleted = next.filter(ms => ms.category === tab && ms.completed).length === filtered.length;
+      if (allCompleted) { setShowParticles(true); playSound('success'); setTimeout(() => setShowParticles(false), 2000); }
+      return next;
+    });
+    addPoints(mission.points);
+    playSound('level-up');
+    showRewardPopup({ type: 'reward', title: 'Mission Complete!', subtitle: mission.title, points: mission.points });
+    completeMission(authUser.id, id).catch(() => {});
+    addPointsService(authUser.id, mission.points, `Görev: ${mission.title}`, 'mission', id).catch(() => {});
   };
 
   return (

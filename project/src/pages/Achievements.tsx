@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trophy, Lock, Star } from 'lucide-react';
-import { achievements } from '../data/mockData';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
+import { getAchievementsWithProgress } from '../services/achievements';
+import type { AchievementWithProgress } from '../services/achievements';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { WinningParticles } from '../components/WinningParticles';
@@ -22,9 +24,21 @@ const rarityConfig = {
 
 const Achievements: React.FC = () => {
   const { user } = useApp();
+  const { authUser } = useAuth();
   const [filter, setFilter] = useState<'all' | 'completed' | 'locked'>('all');
   const [category, setCategory] = useState('all');
   const [showParticles, setShowParticles] = useState(false);
+  const [achievements, setAchievements] = useState<AchievementWithProgress[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    setIsLoading(true);
+    getAchievementsWithProgress(authUser.id)
+      .then(setAchievements)
+      .catch(() => setAchievements([]))
+      .finally(() => setIsLoading(false));
+  }, [authUser?.id]);
 
   const categories = ['all', ...Array.from(new Set(achievements.map(a => a.category)))];
   const filtered = achievements.filter(a => {
@@ -34,7 +48,7 @@ const Achievements: React.FC = () => {
   });
   const completedCount = achievements.filter(a => a.completed).length;
   const totalPoints = achievements.filter(a => a.completed).reduce((s, a) => s + a.points, 0);
-  const progressPct = (completedCount / achievements.length) * 100;
+  const progressPct = achievements.length > 0 ? (completedCount / achievements.length) * 100 : 0;
 
   const filterLabels: Record<string, string> = { all: tr.achievements.title, completed: tr.home.completed, locked: tr.achievements.locked };
 

@@ -413,7 +413,7 @@ body::before {
   pointer-events: none;
   z-index: -1;
   opacity: 0.03;
-  background-image: url('/nesve-next-watermark.svg');
+  background-image: url('/assets/images/nesve-next-watermark.svg');
   background-repeat: repeat;
   background-size: 420px 420px;
   will-change: transform;
@@ -423,3 +423,4 @@ body::before {
   opacity: 0.05;
   filter: invert(1);
 }
+

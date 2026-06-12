@@ -53,20 +53,20 @@ const AdminAuditLogs: React.FC = () => {
       filtered = filtered.filter(log =>
         log.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.ipAddress?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.ip_address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.deviceName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.device_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.country?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     if (filterAction !== 'all') {
-      filtered = filtered.filter(log => log.actionType === filterAction);
+      filtered = filtered.filter(log => log.action_type === filterAction);
     }
 
     if (filterRisk !== 'all') {
-      filtered = filtered.filter(log => log.riskLevel === filterRisk);
+      filtered = filtered.filter(log => log.risk_level === filterRisk);
     }
 
     setFilteredLogs(filtered);
@@ -115,26 +115,26 @@ const AdminAuditLogs: React.FC = () => {
     const csv = [
       ['Date', 'Username', 'Email', 'Role', 'Action', 'Action Type', 'IP Address', 'Device Name', 'Device Type', 'Browser', 'OS', 'Country', 'City', 'Region', 'ISP', 'Timezone', 'Amount', 'Risk Level', 'Session ID', 'User Agent'],
       ...filteredLogs.map(log => [
-        log.createdAt,
+        log.created_at,
         log.username,
         log.email,
         log.role,
         log.action,
-        log.actionType,
-        log.ipAddress || 'N/A',
-        log.deviceName || 'N/A',
-        log.deviceType || 'N/A',
+        log.action_type,
+        log.ip_address || 'N/A',
+        log.device_name || 'N/A',
+        log.device_type || 'N/A',
         log.browser || 'N/A',
         log.os || 'N/A',
         log.country || 'N/A',
         log.city || 'N/A',
-        log.region || 'N/A',
-        log.isp || 'N/A',
-        log.timezone || 'N/A',
+        "N/A",
+        "N/A",
+        "N/A",
         log.amount || '',
-        log.riskLevel || 'N/A',
-        log.sessionId || 'N/A',
-        log.userAgent || 'N/A',
+        log.risk_level || 'N/A',
+        "N/A",
+        "N/A",
       ]),
     ]
       .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
@@ -151,9 +151,9 @@ const AdminAuditLogs: React.FC = () => {
 
   const stats = {
     total: logs.length,
-    today: logs.filter(l => new Date(l.createdAt) > new Date(Date.now() - 86400000)).length,
-    highRisk: logs.filter(l => l.riskLevel === 'high').length,
-    uniqueUsers: new Set(logs.map(l => l.userId)).size,
+    today: logs.filter(l => new Date(l.created_at) > new Date(Date.now() - 86400000)).length,
+    highRisk: logs.filter(l => l.risk_level === 'high').length,
+    uniqueUsers: new Set(logs.map(l => l.user_id)).size,
   };
 
   if (loading) {
@@ -301,10 +301,10 @@ const AdminAuditLogs: React.FC = () => {
                   <td className="py-2 px-2">
                     <div className="flex flex-col">
                       <span className="text-xs font-mono text-gray-900 dark:text-white whitespace-nowrap">
-                        {new Date(log.createdAt).toLocaleDateString()}
+                        {new Date(log.created_at).toLocaleDateString()}
                       </span>
                       <span className="text-xs font-mono text-gray-400">
-                        {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </td>
@@ -321,8 +321,8 @@ const AdminAuditLogs: React.FC = () => {
                   </td>
                   <td className="py-2 px-2">
                     <div className="flex flex-col gap-0.5">
-                      <span className={`px-1.5 py-0.5 rounded text-xs font-bold w-fit whitespace-nowrap ${getActionColor(log.actionType)}`}>
-                        {log.actionType.replace(/_/g, ' ').toUpperCase()}
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-bold w-fit whitespace-nowrap ${getActionColor(log.action_type)}`}>
+                        {log.action_type.replace(/_/g, ' ').toUpperCase()}
                       </span>
                       {log.amount && (
                         <span className="text-xs font-bold text-amber-600 dark:text-amber-400">+{log.amount} pts</span>
@@ -331,9 +331,9 @@ const AdminAuditLogs: React.FC = () => {
                   </td>
                   <td className="py-2 px-2 hidden lg:table-cell">
                     <div className="flex items-center gap-1">
-                      {log.deviceType === 'mobile' ? <Smartphone size={12} className="text-gray-400 flex-shrink-0" /> : <Monitor size={12} className="text-gray-400 flex-shrink-0" />}
+                      {log.device_type === 'mobile' ? <Smartphone size={12} className="text-gray-400 flex-shrink-0" /> : <Monitor size={12} className="text-gray-400 flex-shrink-0" />}
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-[100px]">{log.deviceName || 'Unknown'}</p>
+                        <p className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-[100px]">{log.device_name || 'Unknown'}</p>
                         <p className="text-xs text-gray-400 truncate max-w-[100px]">{log.browser}</p>
                       </div>
                     </div>
@@ -341,19 +341,19 @@ const AdminAuditLogs: React.FC = () => {
                   <td className="py-2 px-2 hidden md:table-cell">
                     <div className="min-w-0">
                       <p className="text-xs text-gray-900 dark:text-white truncate max-w-[110px]">{log.city}, {log.country}</p>
-                      <p className="text-xs text-gray-400 truncate max-w-[110px]">{log.isp}</p>
+                      <p className="text-xs text-gray-400 truncate max-w-[110px]">{"N/A"}</p>
                     </div>
                   </td>
                   <td className="py-2 px-2">
                     <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
-                      {log.ipAddress || 'N/A'}
+                      {log.ip_address || 'N/A'}
                     </code>
                   </td>
                   <td className="py-2 px-2">
-                    {log.riskLevel && (
-                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-0.5 w-fit ${getRiskBadge(log.riskLevel)}`}>
-                        {log.riskLevel === 'high' && <AlertTriangle size={10} />}
-                        {log.riskLevel.toUpperCase()}
+                    {log.risk_level && (
+                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-0.5 w-fit ${getRiskBadge(log.risk_level)}`}>
+                        {log.risk_level === 'high' && <AlertTriangle size={10} />}
+                        {log.risk_level.toUpperCase()}
                       </span>
                     )}
                   </td>
@@ -388,7 +388,7 @@ const AdminAuditLogs: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-3xl border-2 border-black dark:border-gray-700 p-4 sm:p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto space-y-4 sm:space-y-6">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
-                {selectedLog.riskLevel === 'high' ? (
+                {selectedLog.risk_level === 'high' ? (
                   <AlertTriangle className="text-red-500 flex-shrink-0" size={22} />
                 ) : (
                   <Shield className="text-[#7B6EF6] flex-shrink-0" size={22} />
@@ -399,7 +399,7 @@ const AdminAuditLogs: React.FC = () => {
             </div>
 
             {/* Risk Alert */}
-            {selectedLog.riskLevel === 'high' && (
+            {selectedLog.risk_level === 'high' && (
               <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-2xl p-4">
                 <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
                   <AlertTriangle size={20} />
@@ -432,16 +432,16 @@ const AdminAuditLogs: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">User ID</p>
-                  <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{selectedLog.userId}</code>
+                  <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{selectedLog.user_id}</code>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Session ID</p>
-                  <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{selectedLog.sessionId || 'N/A'}</code>
+                  <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{"N/A"}</code>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Date & Time</p>
                   <p className="font-bold text-gray-900 dark:text-white text-sm">
-                    {new Date(selectedLog.createdAt).toLocaleString()}
+                    {new Date(selectedLog.created_at).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -450,17 +450,17 @@ const AdminAuditLogs: React.FC = () => {
             {/* Device Info Section */}
             <div className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-4 space-y-4">
               <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                {selectedLog.deviceType === 'mobile' ? <Smartphone size={18} /> : <Monitor size={18} />}
+                {selectedLog.device_type === 'mobile' ? <Smartphone size={18} /> : <Monitor size={18} />}
                 Device Information
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <p className="text-xs text-gray-500">Device Name</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.deviceName || 'Unknown'}</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.device_name || 'Unknown'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Device Type</p>
-                  <p className="font-bold text-gray-900 dark:text-white capitalize">{selectedLog.deviceType || 'Unknown'}</p>
+                  <p className="font-bold text-gray-900 dark:text-white capitalize">{selectedLog.device_type || 'Unknown'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Browser</p>
@@ -473,7 +473,7 @@ const AdminAuditLogs: React.FC = () => {
                 <div className="col-span-2">
                   <p className="text-xs text-gray-500">User Agent</p>
                   <p className="font-mono text-xs text-gray-600 dark:text-gray-400 break-all">
-                    {selectedLog.userAgent || 'N/A'}
+                    {"N/A"}
                   </p>
                 </div>
               </div>
@@ -496,19 +496,19 @@ const AdminAuditLogs: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Region</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.region || 'Unknown'}</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{"N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">IP Address</p>
-                  <code className="text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono">{selectedLog.ipAddress || 'N/A'}</code>
+                  <code className="text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono">{selectedLog.ip_address || 'N/A'}</code>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">ISP</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.isp || 'Unknown'}</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{"N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Timezone</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.timezone || 'Unknown'}</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{"N/A"}</p>
                 </div>
               </div>
             </div>
@@ -517,12 +517,12 @@ const AdminAuditLogs: React.FC = () => {
             <div className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-4 space-y-4">
               <h3 className="font-bold text-gray-900 dark:text-white">Action Details</h3>
               <div className="flex items-center gap-3 mb-4">
-                <span className={`px-3 py-1 rounded-full text-sm font-bold ${getActionColor(selectedLog.actionType)}`}>
-                  {selectedLog.actionType.replace('_', ' ').toUpperCase()}
+                <span className={`px-3 py-1 rounded-full text-sm font-bold ${getActionColor(selectedLog.action_type)}`}>
+                  {selectedLog.action_type.replace('_', ' ').toUpperCase()}
                 </span>
-                {selectedLog.riskLevel && (
-                  <span className={`px-3 py-1 rounded-full text-sm font-bold ${getRiskBadge(selectedLog.riskLevel)}`}>
-                    Risk: {selectedLog.riskLevel.toUpperCase()}
+                {selectedLog.risk_level && (
+                  <span className={`px-3 py-1 rounded-full text-sm font-bold ${getRiskBadge(selectedLog.risk_level)}`}>
+                    Risk: {selectedLog.risk_level.toUpperCase()}
                   </span>
                 )}
               </div>
@@ -555,7 +555,7 @@ const AdminAuditLogs: React.FC = () => {
                 <Mail size={18} />
                 Contact User
               </button>
-              {selectedLog.userId && (
+              {selectedLog.user_id && (
                 <button className="flex items-center gap-2 px-4 py-3 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-colors">
                   <Ban size={18} />
                   Suspend
@@ -571,3 +571,8 @@ const AdminAuditLogs: React.FC = () => {
 };
 
 export default AdminAuditLogs;
+
+
+
+
+

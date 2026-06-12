@@ -1,57 +1,21 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AdminUser, adminAuthService } from '../lib/adminAuth';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
 interface AdminContextType {
-  admin: AdminUser | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  loading: boolean;
   hasRole: (role: string) => boolean;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [admin, setAdmin] = useState<AdminUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { authUser, isLoading } = useAuth();
 
-  useEffect(() => {
-    const initAdmin = async () => {
-      try {
-        const currentAdmin = await adminAuthService.getCurrentAdmin();
-        setAdmin(currentAdmin);
-      } catch (error) {
-        console.error('Failed to restore admin session:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    initAdmin();
-  }, []);
-
-  const handleLogin = async (email: string, password: string) => {
-    const session = await adminAuthService.login(email, password);
-    const currentAdmin = await adminAuthService.getCurrentAdmin();
-    setAdmin(currentAdmin);
-  };
-
-  const handleLogout = async () => {
-    await adminAuthService.logout();
-    setAdmin(null);
-  };
-
-  const value: AdminContextType = {
-    admin,
-    loading,
-    login: handleLogin,
-    logout: handleLogout,
-    isAuthenticated: !!admin,
-    hasRole: adminAuthService.hasRole.bind(adminAuthService),
-  };
+  const hasRole = (role: string) => authUser?.role === role;
 
   return (
-    <AdminContext.Provider value={value}>
+    <AdminContext.Provider value={{ isAuthenticated: !!authUser, loading: isLoading, hasRole }}>
       {children}
     </AdminContext.Provider>
   );
@@ -59,8 +23,6 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
 export const useAdmin = () => {
   const context = useContext(AdminContext);
-  if (!context) {
-    throw new Error('useAdmin must be used within AdminProvider');
-  }
+  if (!context) throw new Error('useAdmin must be used within AdminProvider');
   return context;
 };

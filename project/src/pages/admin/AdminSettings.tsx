@@ -124,7 +124,7 @@ const FlagRow: React.FC<{ label: string; sub: string; value: boolean; color: str
 );
 
 /* ─── Section wrapper ─── */
-const Section: React.FC<{ icon: React.FC<{ size?: number; color?: string }>; title: string; subtitle: string; color: string; children: React.ReactNode }> =
+const Section: React.FC<{ icon: React.ElementType; title: string; subtitle: string; color: string; children: React.ReactNode }> =
   ({ icon: Icon, title, subtitle, color, children }) => (
     <div style={{ borderRadius: 18, border: '2.5px solid var(--dark-border)', background: 'var(--card-bg)', boxShadow: '0 4px 0 var(--dark-border)', overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: '2.5px solid var(--dark-border)', background: `${color}0a`, display: 'flex', alignItems: 'center', gap: 12 }}>

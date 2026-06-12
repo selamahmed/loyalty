@@ -9,14 +9,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 5000,
-    allowedHosts: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-    },
+    port: 5173,
   },
   build: {
     outDir: 'dist',
@@ -36,7 +29,6 @@ export default defineConfig({
             id.includes('node_modules/recharts/') ||
             id.includes('node_modules/d3-') ||
             id.includes('node_modules/d3/') ||
-            id.includes('node_modules/victory-') ||
             id.includes('node_modules/internmap/') ||
             id.includes('node_modules/robust-predicates/')
           ) {
@@ -44,6 +36,12 @@ export default defineConfig({
           }
           if (id.includes('node_modules/lucide-react/')) {
             return 'vendor-icons';
+          }
+          if (
+            id.includes('node_modules/@supabase/') ||
+            id.includes('node_modules/isows/')
+          ) {
+            return 'vendor-supabase';
           }
           if (
             id.includes('node_modules/@zxing/') ||

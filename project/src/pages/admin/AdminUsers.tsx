@@ -1,11 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Search, Slash, Eye, Plus, X, Check, Gift, Trash2, Package, Zap, CheckSquare, Square, Users, ShieldCheck, ShieldOff, CreditCard as Edit3 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { adminUsers } from '../../data/mockData';
+import { getAllUsers, suspendUser, activateUser } from '../../services/admin';
 import { playSound } from '../../lib/sounds';
 import { tr } from '../../lib/tr';
 
-type RoleType = 'customer' | 'store_admin' | 'cashier';
+type RoleType = 'customer' | 'store_admin' | 'cashier' | 'super_admin';
 
 interface ManagedUser {
   id: string;
@@ -19,24 +19,20 @@ interface ManagedUser {
   role: RoleType;
 }
 
-const INITIAL_USERS: ManagedUser[] = [
-  { ...adminUsers[0], role: 'customer'   },
-  { ...adminUsers[1], role: 'store_admin'},
-  { ...adminUsers[2], role: 'cashier'    },
-  { ...adminUsers[3], role: 'customer'   },
-  { ...adminUsers[4], role: 'customer'   },
-];
+const INITIAL_USERS: ManagedUser[] = [];
 
 const roleLabel: Record<RoleType, string> = {
   customer:    'Müşteri',
   store_admin: 'Mağaza Yön.',
   cashier:     'Kasiyer',
+  super_admin: 'Süper Admin',
 };
 
 const roleColor: Record<RoleType, string> = {
   customer:    '#6b7280',
   store_admin: '#22c55e',
   cashier:     '#3b82f6',
+  super_admin: '#f59e0b',
 };
 
 interface InventoryItem {
@@ -462,6 +458,7 @@ const BulkPointsModal: React.FC<{
 /* ─────────────────────────── Main page ─────────────────────────── */
 const AdminUsers: React.FC = () => {
   const [users, setUsers]             = useState<ManagedUser[]>(INITIAL_USERS);
+  const [isLoading, setIsLoading]     = useState(true);
   const [search, setSearch]           = useState('');
   const [modal, setModal]             = useState<{ user: ManagedUser; mode: 'view' | 'edit' | 'suspend' | 'points' | 'inventory' } | null>(null);
   const [promoteTarget, setPromoteTarget] = useState<ManagedUser | null>(null);
@@ -470,6 +467,23 @@ const AdminUsers: React.FC = () => {
   const [selected, setSelected]       = useState<Set<string>>(new Set());
   const [showBulk, setShowBulk]       = useState(false);
   const [toast, setToast]             = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getAllUsers(0, 50, search || undefined).then(profiles => {
+      setUsers(profiles.map(p => ({
+        id: p.id,
+        username: p.username ?? p.email.split('@')[0],
+        email: p.email,
+        level: p.level,
+        points: p.current_points,
+        status: p.status,
+        joinDate: p.created_at.split('T')[0],
+        avatar: p.avatar_url ?? '',
+        role: (p.role as RoleType),
+      })));
+    }).catch(() => setUsers([])).finally(() => setIsLoading(false));
+  }, [search]);
 
   const filtered = users.filter(u => {
     const matchSearch = u.username.toLowerCase().includes(search.toLowerCase()) || u.email.includes(search);

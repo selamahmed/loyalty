@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Zap, Star, Lock, Trophy, Calendar, Check, ChevronRight } from 'lucide-react';
-import { seasonalEvents } from '../data/mockData';
+import { getAllEvents } from '../services/events';
+import type { AppEvent } from '../services/events';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
 
@@ -40,14 +41,14 @@ const eventRewardsMap: Record<string, { id: string; title: string; points: numbe
 
 type EventStatus = 'active' | 'ended' | 'upcoming';
 
-const getEventStatus = (event: typeof seasonalEvents[0]): EventStatus => {
-  if (event.active) return 'active';
+const getEventStatus = (event: AppEvent): EventStatus => {
   const now = new Date();
-  const start = new Date(event.startDate);
-  const end = new Date(event.endDate);
+  const start = new Date(event.start_date);
+  const end = new Date(event.end_date);
+  if (!event.active) return 'ended';
   if (now < start) return 'upcoming';
-  if (now > end || event.progress >= 100) return 'ended';
-  return 'ended';
+  if (now > end) return 'ended';
+  return 'active';
 };
 
 const statusConfig: Record<EventStatus, { label: string; color: string; bg: string }> = {
@@ -85,14 +86,22 @@ const useCountdown = (endDate: string, active: boolean) => {
 };
 
 const SeasonalEvents: React.FC = () => {
-  const activeEvent = seasonalEvents.find(e => e.active) ?? seasonalEvents[0];
-  const [selectedId, setSelectedId] = useState(activeEvent.id);
-  const selectedEvent = seasonalEvents.find(e => e.id === selectedId) ?? activeEvent;
-  const status = getEventStatus(selectedEvent);
+  const [events, setEvents] = useState<AppEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getAllEvents().then(setEvents).catch(() => setEvents([])).finally(() => setIsLoading(false));
+  }, []);
+
+  const activeEvent = events.find(e => e.active) ?? events[0];
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedEvent = events.find(e => e.id === (selectedId ?? activeEvent?.id)) ?? activeEvent;
+  const status: EventStatus = selectedEvent ? getEventStatus(selectedEvent) : 'upcoming';
   const statusInfo = statusConfig[status];
-  const accent = eventColors[selectedEvent.id] ?? '#7B6EF6';
-  const rewards = eventRewardsMap[selectedEvent.id] ?? [];
-  const countdown = useCountdown(selectedEvent.endDate, status === 'active');
+  const accent = selectedEvent ? (eventColors[selectedEvent.id] ?? '#7B6EF6') : '#7B6EF6';
+  const rewards: { id: string; title: string; points: number; unlocked: boolean; icon: string }[] = selectedEvent ? (eventRewardsMap[selectedEvent.id] ?? []) : [];
+  const countdown = useCountdown(selectedEvent?.end_date ?? '', status === 'active');
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
@@ -157,7 +166,7 @@ const SeasonalEvents: React.FC = () => {
             Etkinlikler
           </p>
           <div className="event-scroll">
-            {seasonalEvents.map(event => {
+            {events.map(event => {
               const st = getEventStatus(event);
               const stInfo = statusConfig[st];
               const selected = selectedId === event.id;
@@ -231,19 +240,19 @@ const SeasonalEvents: React.FC = () => {
                       background: accent, color: '#000', border: '2px solid var(--dark-border)',
                       display: 'flex', alignItems: 'center', gap: 4,
                     }}>
-                      <Zap size={10} /> {selectedEvent.multiplier} puan
+                      <Zap size={10} /> {selectedEvent?.multiplier ?? '1x'} puan
                     </span>
                   )}
                 </div>
                 <h2 style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)', margin: '0 0 6px', lineHeight: 1.1 }}>
-                  {selectedEvent.title}
+                  {selectedEvent?.title}
                 </h2>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.55, fontWeight: 600 }}>
-                  {selectedEvent.description}
+                  {selectedEvent?.description}
                 </p>
               </div>
               <div style={{ fontSize: 40, flexShrink: 0, lineHeight: 1 }}>
-                {(selectedEvent as typeof selectedEvent & { emoji?: string }).emoji ?? '🎉'}
+                {selectedEvent?.emoji ?? '🎉'}
               </div>
             </div>
 
@@ -271,37 +280,21 @@ const SeasonalEvents: React.FC = () => {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <Calendar size={12} />
-                {formatShortDate(selectedEvent.startDate)} – {formatShortDate(selectedEvent.endDate)}
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Trophy size={12} />
-                {selectedEvent.unlockedRewards}/{selectedEvent.totalRewards} ödül açıldı
+                {selectedEvent ? `${formatShortDate(selectedEvent.start_date)} – ${formatShortDate(selectedEvent.end_date)}` : ''}
               </span>
             </div>
           </div>
 
-          {/* Progress */}
+          {/* Progress placeholder */}
           <div style={{ padding: '16px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-dark)' }}>Etkinlik ilerlemen</span>
-              <span style={{ fontSize: 12, fontWeight: 900, color: accent }}>%{selectedEvent.progress}</span>
-            </div>
-            <div style={{
-              height: 12, borderRadius: 999, background: 'var(--tab-bg)',
-              border: '2.5px solid var(--dark-border)', overflow: 'hidden',
-              boxShadow: '0 2px 0 var(--dark-border)',
-            }}>
-              <div style={{
-                height: '100%', width: `${selectedEvent.progress}%`,
-                background: accent, borderRadius: 999,
-                transition: 'width 0.6s ease',
-              }} />
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '8px 0 0', fontWeight: 600, textAlign: 'center' }}>
               {status === 'active'
                 ? 'Görevleri tamamlayarak ilerlemeni artır'
                 : status === 'upcoming'
-                  ? `${formatDate(selectedEvent.startDate)} tarihinde başlıyor`
+                  ? selectedEvent ? `${formatDate(selectedEvent.start_date)} tarihinde başlıyor` : ''
                   : 'Bu etkinlik sona erdi'}
             </p>
           </div>
@@ -375,7 +368,7 @@ const SeasonalEvents: React.FC = () => {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
-            <Zap size={18} /> Etkinliğe Katıl — {selectedEvent.multiplier} Puan
+            <Zap size={18} /> Etkinliğe Katıl — {selectedEvent?.multiplier ?? '1x'} Puan
           </button>
         )}
       </div>

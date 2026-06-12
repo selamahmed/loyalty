@@ -1,7 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { progressLevels } from '../data/mockData';
 import { playSound } from '../lib/sounds';
+
+const progressLevels = [
+  { level: 1, title: 'Newcomer', xpRequired: 0, reward: 'Welcome Pack', unlocked: true, rewardPoints: 0 },
+  { level: 2, title: 'Explorer', xpRequired: 200, reward: '50 Bonus Points', unlocked: true, rewardPoints: 50 },
+  { level: 3, title: 'Seeker', xpRequired: 500, reward: '10% Off Coupon', unlocked: true, rewardPoints: 0 },
+  { level: 4, title: 'Adventurer', xpRequired: 900, reward: '100 Bonus Points', unlocked: true, rewardPoints: 100 },
+  { level: 5, title: 'Warrior', xpRequired: 1400, reward: 'Exclusive Badge', unlocked: true, rewardPoints: 0 },
+  { level: 6, title: 'Champion', xpRequired: 2000, reward: '200 Bonus Points', unlocked: true, rewardPoints: 200 },
+  { level: 7, title: 'Hero', xpRequired: 2700, reward: 'Free Coffee Coupon', unlocked: true, rewardPoints: 0 },
+  { level: 8, title: 'Legend', xpRequired: 3500, reward: '300 Bonus Points', unlocked: true, rewardPoints: 300 },
+  { level: 9, title: 'Mythic', xpRequired: 4400, reward: 'Mystery Box', unlocked: false, rewardPoints: 0 },
+  { level: 10, title: 'Divine', xpRequired: 5500, reward: '500 Bonus Points', unlocked: false, rewardPoints: 500 },
+  { level: 11, title: 'Cosmic', xpRequired: 6800, reward: 'Exclusive Item', unlocked: false, rewardPoints: 0 },
+  { level: 12, title: 'Stellar', xpRequired: 8200, reward: '1000 Bonus Points', unlocked: false, rewardPoints: 1000 },
+  { level: 15, title: 'Supreme', xpRequired: 12000, reward: 'VIP Status', unlocked: false, rewardPoints: 0 },
+  { level: 20, title: 'Immortal', xpRequired: 20000, reward: 'Legendary Pack', unlocked: false, rewardPoints: 0 },
+];
 
 /* ══════════════════════════════════════════════════
    PALETTE — flat only, no gradients, no neon
@@ -36,7 +52,7 @@ const PATH_W   = 330;
 ══════════════════════════════════════════════════ */
 
 /** Five-pointed star sticker */
-const SvgStar: React.FC<{ size?: number; fill?: string; cls?: string }> = ({ size = 28, fill = '#FFE500', cls = '' }) => (
+const SvgStar: React.ElementType = ({ size = 28, fill = '#FFE500', cls = '' }) => (
   <svg width={size} height={size} viewBox="0 0 28 28" className={cls} style={{ display:'block', filter:'drop-shadow(2px 2px 0 #000)' }}>
     <polygon points="14,2 17.4,10.3 26.5,10.5 19.7,16 22.1,25 14,20.1 5.9,25 8.3,16 1.5,10.5 10.6,10.3"
       fill={fill} stroke="#000" strokeWidth="2" strokeLinejoin="round" />
@@ -53,14 +69,14 @@ const SvgSpeech: React.FC<{ text: string; color?: string; size?: number }> = ({ 
 );
 
 /** Lightning bolt */
-const SvgBolt: React.FC<{ size?: number; fill?: string }> = ({ size = 28, fill = '#FFE500' }) => (
+const SvgBolt: React.ElementType = ({ size = 28, fill = '#FFE500' }) => (
   <svg width={size} height={size} viewBox="0 0 28 28" style={{ filter:'drop-shadow(2px 2px 0 #000)', display:'block' }}>
     <polygon points="17,2 8,16 14,16 11,26 20,12 14,12" fill={fill} stroke="#000" strokeWidth="2" strokeLinejoin="round" />
   </svg>
 );
 
 /** Diamond */
-const SvgDiamond: React.FC<{ size?: number; fill?: string; cls?: string }> = ({ size = 22, fill = '#2196F3', cls = '' }) => (
+const SvgDiamond: React.ElementType = ({ size = 22, fill = '#2196F3', cls = '' }) => (
   <svg width={size} height={size} viewBox="0 0 22 22" className={cls} style={{ filter:'drop-shadow(2px 2px 0 #000)', display:'block' }}>
     <polygon points="11,1 21,11 11,21 1,11" fill={fill} stroke="#000" strokeWidth="2.5" strokeLinejoin="round" />
   </svg>
@@ -704,7 +720,7 @@ const ProgressPath: React.FC = () => {
                 strokeWidth={10} strokeLinecap="round"/>
               {/* Border */}
               <path d={buildPath()} fill="none" stroke="#000"
-                strokeWidth={10} strokeLinecap="round" fill="none" strokeOpacity={0.25}/>
+                strokeWidth={10} strokeLinecap="round" strokeOpacity={0.25}/>
               {/* Colored dashes — animated */}
               <path
                 className="dash-path"
@@ -953,3 +969,4 @@ const ProgressPath: React.FC = () => {
 };
 
 export default ProgressPath;
+

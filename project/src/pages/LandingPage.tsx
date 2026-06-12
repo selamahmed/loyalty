@@ -90,7 +90,7 @@ const NStar4 = ({ color, size = 96, opacity = 0.18, rotate = 0 }: ShapeProps) =>
 type FeatureIllus = keyof typeof featureIllustrations;
 
 const features: {
-  icon: React.FC<{ size: number; color?: string }>; title: string; desc: string; color: string;
+  icon: React.ElementType; title: string; desc: string; color: string;
   illus: FeatureIllus; Shape: React.FC<ShapeProps>; sRotate: number;
 }[] = [
   { icon: Zap,      title: 'Anında Ödüller',    desc: 'Her etkileşimde anında puan kazan.',             color: '#9122FF', illus: 'bolt',   Shape: NBolt,    sRotate: 15  },
@@ -185,7 +185,7 @@ const LandingPage: React.FC = () => {
           transition: 'background 0.3s',
         }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <img src="/logo.png" alt="NexReward" style={{ height: 38, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+            <img src="/assets/icons/logo.png" alt="NexReward" style={{ height: 38, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
 
             <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
               {[['#features','Özellikler'],['#banners','Avantajlar'],['#how','Nasıl Çalışır'],['#testimonials','Yorumlar']].map(([href, label]) => (
@@ -653,7 +653,7 @@ const LandingPage: React.FC = () => {
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 32, marginBottom: 32 }}>
               <div>
-                <img src="/logo.png" alt="NexReward" style={{ height: 'clamp(52px, 8vw, 80px)', width: 'auto', objectFit: 'contain', marginBottom: 12 }} />
+                <img src="/assets/icons/logo.png" alt="NexReward" style={{ height: 'clamp(52px, 8vw, 80px)', width: 'auto', objectFit: 'contain', marginBottom: 12 }} />
                 <p style={{ fontSize: 13, fontWeight: 500, color: t.textMuted, maxWidth: 240, lineHeight: 1.6, margin: 0 }}>
                   Daha fazla kazan, daha iyi yaşa.<br />Türkiye'nin #1 sadakat platformu.
                 </p>
@@ -850,3 +850,5 @@ const LandingPage: React.FC = () => {
 };
 
 export default LandingPage;
+
+

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Lock, CheckCircle, ArrowRight, XCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 /* Strength checker */
 type Strength = 0 | 1 | 2 | 3 | 4;
@@ -26,7 +27,7 @@ const ResetPassword: React.FC = () => {
   const token = searchParams.get('token');
   const email = searchParams.get('email') || '';
 
-  const [phase, setPhase]       = useState<Phase>(() => token === 'demo' ? 'form' : 'invalid');
+  const [phase, setPhase]       = useState<Phase>(() => token ? 'form' : 'form');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm]   = useState('');
   const [showPw, setShowPw]     = useState(false);
@@ -53,8 +54,9 @@ const ResetPassword: React.FC = () => {
     if (password.length < 6) { setError('Şifre en az 6 karakter olmalıdır.'); return; }
     if (password !== confirm) { setError('Şifreler eşleşmiyor.'); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1100));
+    const { error: supaErr } = await supabase.auth.updateUser({ password });
     setLoading(false);
+    if (supaErr) { setError(supaErr.message); return; }
     setPhase('success');
   };
 

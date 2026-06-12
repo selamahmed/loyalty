@@ -1,22 +1,234 @@
-// Mock Supabase client for frontend-only mode
-export const supabase = {
-  from: () => ({
-    select: () => Promise.resolve({ data: [], error: null }),
-    insert: () => Promise.resolve({ data: null, error: null }),
-    update: () => Promise.resolve({ data: null, error: null }),
-    delete: () => Promise.resolve({ data: null, error: null }),
-    eq: function() { return this; },
-    neq: function() { return this; },
-    limit: function() { return this; },
-    order: function() { return this; },
-    range: function() { return this; },
-    single: () => Promise.resolve({ data: null, error: null }),
-    maybeSingle: () => Promise.resolve({ data: null, error: null }),
-  }),
-  rpc: () => Promise.resolve({ data: null, error: null }),
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+if (!supabaseUrl || supabaseUrl.trim() === '') {
+  throw new Error('Missing environment variable: VITE_SUPABASE_URL');
+}
+if (!supabaseKey || supabaseKey.trim() === '') {
+  throw new Error('Missing environment variable: VITE_SUPABASE_PUBLISHABLE_KEY');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-    signInWithPassword: () => Promise.resolve({ data: null, error: null }),
-    signOut: () => Promise.resolve({ error: null }),
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
   },
+});
+
+export type Database = {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string;
+          username: string | null;
+          email: string;
+          avatar_url: string | null;
+          role: 'customer' | 'super_admin' | 'store_admin' | 'cashier';
+          level: number;
+          xp: number;
+          xp_to_next: number;
+          total_points: number;
+          current_points: number;
+          streak: number;
+          phone: string | null;
+          bio: string | null;
+          status: 'active' | 'suspended' | 'deleted';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+      };
+      rewards: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          points: number;
+          category: string;
+          image: string | null;
+          featured: boolean;
+          limited: boolean;
+          stock: number;
+          expires_at: string | null;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['rewards']['Row'], 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['rewards']['Insert']>;
+      };
+      redemptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          reward_id: string;
+          points_spent: number;
+          code: string;
+          barcode: string | null;
+          used: boolean;
+          used_at: string | null;
+          expires_at: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['redemptions']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['redemptions']['Insert']>;
+      };
+      points_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: 'earned' | 'spent' | 'adjusted' | 'expired';
+          amount: number;
+          description: string;
+          category: string | null;
+          reference_id: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['points_transactions']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['points_transactions']['Insert']>;
+      };
+      achievements: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          icon: string;
+          category: string;
+          points: number;
+          rarity: 'common' | 'rare' | 'epic' | 'legendary';
+          total: number;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['achievements']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['achievements']['Insert']>;
+      };
+      user_achievements: {
+        Row: {
+          id: string;
+          user_id: string;
+          achievement_id: string;
+          progress: number;
+          completed: boolean;
+          completed_at: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['user_achievements']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['user_achievements']['Insert']>;
+      };
+      missions: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          icon: string;
+          points: number;
+          category: 'daily' | 'weekly' | 'special';
+          active: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['missions']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['missions']['Insert']>;
+      };
+      user_missions: {
+        Row: {
+          id: string;
+          user_id: string;
+          mission_id: string;
+          completed: boolean;
+          completed_at: string | null;
+          reset_at: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['user_missions']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['user_missions']['Insert']>;
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          message: string;
+          read: boolean;
+          icon: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['notifications']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['notifications']['Insert']>;
+      };
+      events: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          image: string | null;
+          start_date: string;
+          end_date: string;
+          active: boolean;
+          multiplier: string | null;
+          color: string | null;
+          emoji: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['events']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['events']['Insert']>;
+      };
+      activity_logs: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          username: string;
+          email: string;
+          role: string;
+          action: string;
+          action_type: string;
+          details: Record<string, unknown> | null;
+          ip_address: string | null;
+          device_type: string | null;
+          device_name: string | null;
+          browser: string | null;
+          os: string | null;
+          country: string | null;
+          city: string | null;
+          amount: number | null;
+          risk_level: 'low' | 'medium' | 'high' | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['activity_logs']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['activity_logs']['Insert']>;
+      };
+      qr_codes: {
+        Row: {
+          id: string;
+          code: string;
+          store_id: string | null;
+          points: number;
+          label: string | null;
+          active: boolean;
+          max_uses: number | null;
+          uses_count: number;
+          expires_at: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['qr_codes']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['qr_codes']['Insert']>;
+      };
+      qr_scans: {
+        Row: {
+          id: string;
+          user_id: string;
+          qr_code_id: string;
+          points_earned: number;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['qr_scans']['Row'], 'created_at'>;
+        Update: Partial<Database['public']['Tables']['qr_scans']['Insert']>;
+      };
+    };
+  };
 };

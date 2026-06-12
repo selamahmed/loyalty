@@ -18,7 +18,7 @@ interface RedeemRecord {
 }
 
 /* ─── Config ─── */
-const typeConfig: Record<string, { color: string; bg: string; icon: React.FC<{ size?: number; color?: string }>; label: string; emoji: string }> = {
+const typeConfig: Record<string, { color: string; bg: string; icon: React.ElementType; label: string; emoji: string }> = {
   coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: Tag,    label: 'Kupon', emoji: '🏷️' },
   ticket: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: Ticket, label: 'Bilet', emoji: '🎫' },
   reward: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  icon: Gift,   label: 'Ödül',  emoji: '🎁' },
@@ -329,3 +329,4 @@ const CashierRedeem: React.FC = () => {
 };
 
 export default CashierRedeem;
+

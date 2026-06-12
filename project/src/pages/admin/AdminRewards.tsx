@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, X, Check, Star, Search, Eye, EyeOff, Image, Tag } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { rewards as initialRewards } from '../../data/mockData';
+import { getRewards, createReward, updateReward, deleteReward } from '../../services/rewards';
+import type { Reward as DBReward } from '../../services/rewards';
 import { playSound } from '../../lib/sounds';
 
-type Reward = typeof initialRewards[0] & { available?: boolean; imageUrl?: string };
+type Reward = DBReward & { available?: boolean; imageUrl?: string };
 
 const categoryOptions = [
   { value: 'coffee',   label: '☕ Kahve'   },
@@ -170,13 +171,17 @@ const RewardModal: React.FC<ModalProps> = ({ reward, onClose, onSave }) => {
 };
 
 const AdminRewards: React.FC = () => {
-  const [rewards, setRewards] = useState<Reward[]>(
-    initialRewards.map(r => ({ ...r, available: true, imageUrl: r.image }))
-  );
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [modal, setModal]     = useState<{ reward?: Reward; show: boolean }>({ show: false });
   const [search, setSearch]   = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [catFilter, setCatFilter] = useState('all');
+
+  useEffect(() => {
+    setIsLoading(true);
+    getRewards().then(data => setRewards(data.map(r => ({ ...r, available: r.active, imageUrl: r.image ?? '' })))).catch(() => setRewards([])).finally(() => setIsLoading(false));
+  }, []);
 
   const filtered = rewards.filter(r => {
     const matchSearch = r.title.toLowerCase().includes(search.toLowerCase());
@@ -184,21 +189,37 @@ const AdminRewards: React.FC = () => {
     return matchSearch && matchCat;
   });
 
-  const handleSave = (data: Partial<Reward>) => {
-    if (modal.reward) {
-      setRewards(prev => prev.map(r => r.id === modal.reward!.id ? { ...r, ...data } : r));
-    } else {
-      setRewards(prev => [...prev, {
-        ...data, id: Date.now().toString(), image: data.imageUrl || '',
-        featured: false, expiresAt: null, available: true,
-      } as Reward]);
+  const handleSave = async (data: Partial<Reward>) => {
+    try {
+      if (modal.reward?.id) {
+        const updated = await updateReward(modal.reward.id, { ...data, image: data.imageUrl ?? null });
+        setRewards(prev => prev.map(r => r.id === modal.reward!.id ? { ...r, ...updated } : r));
+      } else {
+        const created = await createReward({
+          title: data.title ?? '',
+          description: data.description ?? '',
+          points: data.points ?? 100,
+          category: data.category ?? 'other',
+          image: data.imageUrl ?? null,
+          featured: data.featured ?? false,
+          limited: data.limited ?? false,
+          stock: data.stock ?? 100,
+          expires_at: data.expires_at ?? null,
+          active: true,
+        });
+        setRewards(prev => [...prev, { ...created, available: true, imageUrl: created.image ?? '' }]);
+      }
+    } catch (err) {
+      console.error('Failed to save reward:', err);
     }
   };
 
   const handleDelete = (id: string) => {
     playSound('click');
     setDeleting(id);
-    setTimeout(() => { setRewards(prev => prev.filter(r => r.id !== id)); setDeleting(null); }, 400);
+    deleteReward(id).then(() => {
+      setRewards(prev => prev.filter(r => r.id !== id));
+    }).catch(() => {}).finally(() => setDeleting(null));
   };
 
   const toggleAvailable = (id: string) => {
@@ -262,7 +283,7 @@ const AdminRewards: React.FC = () => {
               className={`${card} flex overflow-hidden transition-all duration-300 ${deleting === reward.id ? 'opacity-0 scale-95' : ''}`}>
               {/* Thumbnail */}
               <div className="w-20 flex-shrink-0 overflow-hidden border-r-2 border-black dark:border-gray-600 relative">
-                <img src={reward.imageUrl || reward.image} alt={reward.title} className="w-full h-full object-cover" />
+                <img src={reward.imageUrl || reward.image || undefined} alt={reward.title} className="w-full h-full object-cover" />
                 {reward.available === false && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <EyeOff size={16} className="text-white" />
