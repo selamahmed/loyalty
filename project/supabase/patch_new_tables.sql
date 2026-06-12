@@ -23,23 +23,39 @@ create policy "Public read app_settings"
   on public.app_settings for select
   using (true);
 
--- Only admins can write
+-- Only admins can INSERT / UPDATE / DELETE
 drop policy if exists "Super admins manage app_settings" on public.app_settings;
 create policy "Super admins manage app_settings"
   on public.app_settings for all
   using (public.is_admin())
   with check (public.is_admin());
 
+-- Explicit insert policy (belt-and-suspenders for upsert)
+drop policy if exists "Admins insert app_settings" on public.app_settings;
+create policy "Admins insert app_settings"
+  on public.app_settings for insert
+  with check (public.is_admin());
+
+-- Explicit update policy
+drop policy if exists "Admins update app_settings" on public.app_settings;
+create policy "Admins update app_settings"
+  on public.app_settings for update
+  using (public.is_admin())
+  with check (public.is_admin());
+
 -- Seed defaults (safe to re-run)
 insert into public.app_settings (key, value, description, category) values
-  ('points_per_currency',    '1',     'Points earned per 1 unit of currency',  'economy'),
-  ('daily_login_bonus',      '25',    'Points for daily login',                'economy'),
-  ('qr_scan_bonus',          '75',    'Points for scanning a QR code',         'economy'),
-  ('referral_bonus',         '200',   'Points awarded for referral',           'economy'),
-  ('max_daily_points',       '500',   'Maximum points earnable per day',       'economy'),
-  ('double_points_enabled',  'false', 'Enable double-points mode globally',    'promotions'),
-  ('maintenance_mode',       'false', 'Put app in maintenance mode',           'system'),
-  ('allow_new_registrations','true',  'Allow new user sign-ups',               'system')
+  ('points_per_currency',         '1',      'Points earned per 1 unit of currency',  'economy'),
+  ('daily_login_bonus',           '25',     'Points for daily login',                'economy'),
+  ('qr_scan_bonus',               '75',     'Points for scanning a QR code',         'economy'),
+  ('referral_bonus',              '200',    'Points awarded for referral',           'economy'),
+  ('max_daily_points',            '500',    'Maximum points earnable per day',       'economy'),
+  ('double_points_enabled',       'false',  'Enable double-points mode globally',    'promotions'),
+  ('maintenance_mode',            'false',  'Put app in maintenance mode',           'system'),
+  ('maintenance_message',         '"Siteyi sizin için yeniliyoruz."', 'Message shown during maintenance', 'system'),
+  ('maintenance_estimated_time',  '""',     'Estimated return time shown to users',  'system'),
+  ('maintenance_activated_at',    'null',   'ISO timestamp when maintenance started','system'),
+  ('allow_new_registrations',     'true',   'Allow new user sign-ups',               'system')
 on conflict (key) do nothing;
 
 -- ── DAILY REWARD CONFIG ──────────────────────────────────────

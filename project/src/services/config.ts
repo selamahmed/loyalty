@@ -29,12 +29,13 @@ export async function setMaintenanceMode(
   estimatedTime = '',
 ): Promise<void> {
   const now = new Date().toISOString();
-  await supabase.from('app_settings').upsert([
-    { key: 'maintenance_mode',           value: enabled, updated_at: now },
+  const { error } = await supabase.from('app_settings').upsert([
+    { key: 'maintenance_mode',           value: enabled,                                                        updated_at: now },
     { key: 'maintenance_message',        value: message || 'Siteyi daha iyi hale getirmek için çalışıyoruz.', updated_at: now },
-    { key: 'maintenance_estimated_time', value: estimatedTime, updated_at: now },
-    { key: 'maintenance_activated_at',   value: enabled ? now : null, updated_at: now },
+    { key: 'maintenance_estimated_time', value: estimatedTime,                                                  updated_at: now },
+    { key: 'maintenance_activated_at',   value: enabled ? now : null,                                          updated_at: now },
   ], { onConflict: 'key' });
+  if (error) throw error;
 }
 
 /* ── App Settings ── */

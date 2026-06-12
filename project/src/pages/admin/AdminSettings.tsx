@@ -177,14 +177,23 @@ const MaintenancePanel: React.FC = () => {
 
   useEffect(() => { loadStatus(); }, [loadStatus]);
 
+  const [mError, setMError] = useState('');
+
   const handleToggle = async (enable: boolean) => {
     setMSaving(true);
+    setMError('');
     try {
       await setMaintenanceMode(enable, mMessage, mTime);
-      setMStatus(prev => prev ? { ...prev, enabled: enable } : null);
-    } catch { /**/ } finally {
-      setMSaving(false);
+      // Re-read from DB to confirm the real state (don't trust optimistic UI)
+      await loadStatus();
       setShowConfirm(false);
+    } catch (e) {
+      const msg = (e as { message?: string })?.message ?? 'Bilinmeyen hata';
+      setMError(`Kaydedilemedi: ${msg}`);
+      // Still reload so the badge reflects actual DB state
+      await loadStatus();
+    } finally {
+      setMSaving(false);
     }
   };
 
@@ -278,7 +287,12 @@ const MaintenancePanel: React.FC = () => {
           {mSaving ? 'Değiştiriliyor…' : isOn ? '✅ Bakım Modunu Kapat (Siteyi Aç)' : '🔧 Bakım Modunu Aç (Siteyi Kapat)'}
         </button>
 
-        {isOn && (
+        {mError && (
+          <p style={{ marginTop: 10, textAlign: 'center', fontSize: 12, color: '#FF3B30', fontWeight: 700, padding: '8px 12px', background: 'rgba(255,59,48,0.1)', borderRadius: 10, border: '1.5px solid #FF3B30' }}>
+            ❌ {mError}
+          </p>
+        )}
+        {isOn && !mError && (
           <p style={{ marginTop: 10, textAlign: 'center', fontSize: 11, color: '#FF3B30', fontWeight: 700 }}>
             ⚠️ Şu anda tüm kullanıcılar bakım sayfası görüyor
           </p>
