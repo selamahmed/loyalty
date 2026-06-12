@@ -159,16 +159,17 @@ const LandingPage: React.FC = () => {
         <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: t.navBg, backdropFilter: 'blur(20px)', borderBottom: '2.5px solid #000', transition: 'background 0.3s' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             {/* Logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <img src="/assets/icons/logo.png" alt="NexReward"
-                style={{ height: 36, width: 'auto', objectFit: 'contain' }}
-                onError={e => { e.currentTarget.style.display = 'none'; }}
+                style={{ height: 36, width: 'auto', objectFit: 'contain', borderRadius: 10, border: '2px solid #000', boxShadow: '0 2px 0 #000' }}
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'flex'); }}
               />
-              <span style={{ fontWeight: 900, fontSize: 16, color: t.textPrimary, letterSpacing: '-0.02em', display: 'none' }} className="nav-logo-text">NexReward</span>
+              <div style={{ display: 'none', width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#9122FF,#FF3E9D)', border: '2px solid #000', boxShadow: '0 2px 0 #000', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 18, color: '#C8FF00', flexShrink: 0 }}>N</div>
+              <span style={{ fontWeight: 900, fontSize: 16, color: t.textPrimary, letterSpacing: '-0.02em' }}>NexReward</span>
             </div>
 
-            {/* Desktop nav links */}
-            <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            {/* Desktop nav links — display controlled entirely by CSS .nav-links rule */}
+            <div className="nav-links" style={{ alignItems: 'center', gap: 24 }}>
               {[['#features','Özellikler'],['#banners','Avantajlar'],['#how','Nasıl Çalışır'],['#testimonials','Yorumlar']].map(([href, label]) => (
                 <a key={href} href={href} style={{ color: t.textSecondary, fontWeight: 700, fontSize: 12, textDecoration: 'none', letterSpacing: '0.06em', transition: 'color 0.15s', whiteSpace: 'nowrap' }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#9122FF')}
@@ -657,8 +658,8 @@ const LandingPage: React.FC = () => {
         }
 
         /* ── Nav visibility ── */
-        .nav-links         { display:none; }
-        @media (min-width:768px) { .nav-links { display:flex; } }
+        .nav-links { display:none; }
+        @media (min-width:768px) { .nav-links { display:flex; align-items:center; gap:24px; } }
 
         .hamburger-btn      { display:none !important; }
         @media (max-width:767px) { .hamburger-btn { display:flex !important; } }

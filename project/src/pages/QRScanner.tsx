@@ -227,7 +227,18 @@ const QRScanner: React.FC = () => {
   const rafRef      = useRef<number>(0);
   const scanningRef = useRef(false);
 
-  /* ── Handle a decoded QR string (real camera or manual) ── */
+  // ─── Correct declaration order: stopCamera → handleDecodedQR → tickScan → startCamera ───
+  // (avoids Rollup TDZ when useCallback deps are inlined during bundling)
+
+  /* 1. stopCamera — no forward references */
+  const stopCamera = useCallback(() => {
+    scanningRef.current = false;
+    cancelAnimationFrame(rafRef.current);
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    setMode('idle');
+  }, []);
+
+  /* 2. handleDecodedQR — no forward references */
   const handleDecodedQR = useCallback(async (raw: string) => {
     const parsed = parseQRPayload(raw);
 
@@ -241,11 +252,9 @@ const QRScanner: React.FC = () => {
       if (item) { setInventoryMatch(item); return; }
     }
 
-    /* plain string — check inventory by code */
     const invItem = getByCode(raw.trim());
     if (invItem) { setInventoryMatch(invItem); return; }
 
-    /* look up in Supabase qr_codes table */
     try {
       const dbQR = await lookupStoreQR(raw.trim());
       if (dbQR) {
@@ -257,80 +266,11 @@ const QRScanner: React.FC = () => {
     setResult({ code: raw.trim(), title: 'QR Kodu Okundu', points: 0, location: 'Bilinmeyen' });
   }, [getByCode]);
 
-  /* ── Start real camera ── */
-  const startCamera = useCallback(async () => {
-    setCamError(''); setResult(null); setCashierQRResult(null); setError('');
-
-    // 1. Check browser support (requires HTTPS or localhost)
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setCamError('__no_media_devices__');
-      setMode('idle');
-      return;
-    }
-
-    // 2. Pre-check permission state — avoids silent denial on already-blocked sites
-    try {
-      const perm = await navigator.permissions.query({ name: 'camera' as PermissionName });
-      if (perm.state === 'denied') {
-        setCamError('__denied__');
-        setMode('idle');
-        return;
-      }
-    } catch { /* permissions API not available on some browsers — continue */ }
-
-    // 3. Actually request camera
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        // Make element visible before play so some mobile browsers don't block it
-        videoRef.current.style.display = 'block';
-        try { await videoRef.current.play(); } catch { /* play rejection is non-fatal */ }
-      }
-      setMode('camera');
-      scanningRef.current = true;
-      tickScan();
-    } catch (err: unknown) {
-      const name = (err as { name?: string }).name;
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        setCamError('__denied__');
-      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-        setCamError('__not_found__');
-      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-        setCamError('__in_use__');
-      } else if (name === 'OverconstrainedError') {
-        // Retry with minimal constraints
-        try {
-          const stream2 = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          streamRef.current = stream2;
-          if (videoRef.current) { videoRef.current.srcObject = stream2; videoRef.current.style.display = 'block'; try { await videoRef.current.play(); } catch { /**/ } }
-          setMode('camera'); scanningRef.current = true; tickScan(); return;
-        } catch { /**/ }
-        setCamError('__overconstrained__');
-      } else {
-        setCamError('__unknown__');
-      }
-      setMode('idle');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facingMode, tickScan]);
-
-  /* ── Per-frame QR decode ── */
-  const stopCamera = useCallback(() => {
-    scanningRef.current = false;
-    cancelAnimationFrame(rafRef.current);
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-    setMode('idle');
-  }, []);
-
-  // Use a ref to store the latest handleDecodedQR so tickScan never has stale closure issues
+  /* 3a. Keep a ref to the latest handleDecodedQR so tickScan is never stale */
   const handleDecodedQRRef = useRef(handleDecodedQR);
   useEffect(() => { handleDecodedQRRef.current = handleDecodedQR; }, [handleDecodedQR]);
 
+  /* 3b. tickScan — depends only on stopCamera (handleDecodedQR via ref) */
   const tickScan = useCallback(() => {
     if (!scanningRef.current) return;
     const video  = videoRef.current;
@@ -351,11 +291,68 @@ const QRScanner: React.FC = () => {
       }
       if (scanningRef.current) rafRef.current = requestAnimationFrame(tickScan);
     });
-  // tickScan only needs stopCamera which is stable; handleDecodedQR accessed via ref
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stopCamera]);
+  }, [stopCamera]); // handleDecodedQR accessed via ref — no stale closure risk
 
-  useEffect(() => () => stopCamera(), []);
+  useEffect(() => () => stopCamera(), [stopCamera]);
+
+  /* 4. startCamera — depends on tickScan (now declared above) */
+  const startCamera = useCallback(async () => {
+    setCamError(''); setResult(null); setCashierQRResult(null); setError('');
+
+    // Check browser support (requires HTTPS or localhost)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setCamError('__no_media_devices__');
+      setMode('idle');
+      return;
+    }
+
+    // Pre-check permission state — avoids silent denial on already-blocked sites
+    try {
+      const perm = await navigator.permissions.query({ name: 'camera' as PermissionName });
+      if (perm.state === 'denied') {
+        setCamError('__denied__');
+        setMode('idle');
+        return;
+      }
+    } catch { /* permissions API not available on some browsers — continue */ }
+
+    // Actually request camera
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.style.display = 'block';
+        try { await videoRef.current.play(); } catch { /* non-fatal */ }
+      }
+      setMode('camera');
+      scanningRef.current = true;
+      tickScan();
+    } catch (err: unknown) {
+      const name = (err as { name?: string }).name;
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setCamError('__denied__');
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setCamError('__not_found__');
+      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+        setCamError('__in_use__');
+      } else if (name === 'OverconstrainedError') {
+        try {
+          const stream2 = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          streamRef.current = stream2;
+          if (videoRef.current) { videoRef.current.srcObject = stream2; videoRef.current.style.display = 'block'; try { await videoRef.current.play(); } catch { /**/ } }
+          setMode('camera'); scanningRef.current = true; tickScan(); return;
+        } catch { /**/ }
+        setCamError('__overconstrained__');
+      } else {
+        setCamError('__unknown__');
+      }
+      setMode('idle');
+    }
+  }, [facingMode, tickScan]);
 
   const flipCamera = async () => {
     stopCamera();
