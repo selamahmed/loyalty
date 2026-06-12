@@ -335,6 +335,63 @@ begin
 end;
 $$;
 
+-- RPC: get_user_stats (aggregates a user's points history + activity for UserStats page)
+create or replace function public.get_user_stats(p_user_id uuid)
+returns json language plpgsql security definer as $$
+declare
+  v_points_over_time json;
+  v_activity_breakdown json;
+  v_reward_usage json;
+begin
+  -- Points earned per month (last 6 months)
+  select json_agg(row)
+  into v_points_over_time
+  from (
+    select to_char(date_trunc('month', created_at), 'Mon') as month,
+           coalesce(sum(amount), 0)::int as points
+    from public.points_transactions
+    where user_id = p_user_id
+      and type = 'earned'
+      and created_at >= now() - interval '6 months'
+    group by date_trunc('month', created_at)
+    order by date_trunc('month', created_at)
+  ) row;
+
+  -- Activity breakdown by category
+  select json_agg(row)
+  into v_activity_breakdown
+  from (
+    select coalesce(category, 'other') as name,
+           count(*)::int as value
+    from public.points_transactions
+    where user_id = p_user_id
+      and type = 'earned'
+    group by category
+    order by value desc
+    limit 6
+  ) row;
+
+  -- Redemptions per month (last 6 months)
+  select json_agg(row)
+  into v_reward_usage
+  from (
+    select to_char(date_trunc('month', created_at), 'Mon') as month,
+           count(*)::int as redeemed
+    from public.redemptions
+    where user_id = p_user_id
+      and created_at >= now() - interval '6 months'
+    group by date_trunc('month', created_at)
+    order by date_trunc('month', created_at)
+  ) row;
+
+  return json_build_object(
+    'pointsOverTime',      coalesce(v_points_over_time, '[]'::json),
+    'activityBreakdown',   coalesce(v_activity_breakdown, '[]'::json),
+    'rewardUsage',         coalesce(v_reward_usage, '[]'::json)
+  );
+end;
+$$;
+
 -- ============================================================
 -- QR CODES
 -- ============================================================

@@ -63,6 +63,9 @@ export async function getUserStats(userId: string): Promise<{
   rewardUsage: { month: string; redeemed: number }[];
 } | null> {
   const { data, error } = await supabase.rpc('get_user_stats', { p_user_id: userId });
-  if (error) throw error;
+  if (error) {
+    console.warn('[getUserStats] RPC error (run patch_new_tables.sql in Supabase):', error.message);
+    return null;
+  }
   return data;
 }

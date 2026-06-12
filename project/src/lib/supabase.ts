@@ -1,22 +1,44 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+// Support both the legacy JWT anon key (VITE_SUPABASE_ANON_KEY) and the newer
+// publishable key format (VITE_SUPABASE_PUBLISHABLE_KEY).  The anon key takes
+// priority because it works with all PostgREST versions without extra steps.
+const supabaseKey: string =
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ||
+  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string) ||
+  '';
 
 if (!supabaseUrl || supabaseUrl.trim() === '') {
-  throw new Error('Missing environment variable: VITE_SUPABASE_URL');
+  console.error('[Supabase] VITE_SUPABASE_URL is missing — check your .env.local');
 }
 if (!supabaseKey || supabaseKey.trim() === '') {
-  throw new Error('Missing environment variable: VITE_SUPABASE_PUBLISHABLE_KEY');
+  console.error(
+    '[Supabase] API key is missing — set VITE_SUPABASE_ANON_KEY (preferred) or VITE_SUPABASE_PUBLISHABLE_KEY in .env.local'
+  );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
+export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder', {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
   },
 });
+
+/** Quick ping — resolves true if the DB is reachable, false otherwise. */
+export async function checkSupabaseConnection(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { error } = await supabase.from('profiles').select('id').limit(1);
+    if (error) {
+      return { ok: false, error: `${error.code}: ${error.message}` };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
 
 export type Database = {
   public: {

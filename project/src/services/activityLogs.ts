@@ -40,7 +40,10 @@ export async function getLogStats(): Promise<{
   highRisk: number;
 }> {
   const { data, error } = await supabase.rpc('get_log_stats');
-  if (error) throw error;
+  if (error) {
+    console.warn('[getLogStats] RPC error:', error.message);
+    return { total: 0, today: 0, uniqueUsers: 0, highRisk: 0 };
+  }
   return data ?? { total: 0, today: 0, uniqueUsers: 0, highRisk: 0 };
 }
 
