@@ -54,7 +54,7 @@ insert into public.app_settings (key, value, description, category) values
   ('maintenance_mode',            'false',  'Put app in maintenance mode',           'system'),
   ('maintenance_message',         '"Siteyi sizin için yeniliyoruz."', 'Message shown during maintenance', 'system'),
   ('maintenance_estimated_time',  '""',     'Estimated return time shown to users',  'system'),
-  ('maintenance_activated_at',    'null',   'ISO timestamp when maintenance started','system'),
+  ('maintenance_activated_at',    'false',  'ISO timestamp when maintenance started','system'),
   ('allow_new_registrations',     'true',   'Allow new user sign-ups',               'system')
 on conflict (key) do nothing;
 

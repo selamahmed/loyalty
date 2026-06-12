@@ -33,7 +33,7 @@ export async function setMaintenanceMode(
     { key: 'maintenance_mode',           value: enabled,                                                        updated_at: now },
     { key: 'maintenance_message',        value: message || 'Siteyi daha iyi hale getirmek için çalışıyoruz.', updated_at: now },
     { key: 'maintenance_estimated_time', value: estimatedTime,                                                  updated_at: now },
-    { key: 'maintenance_activated_at',   value: enabled ? now : null,                                          updated_at: now },
+    { key: 'maintenance_activated_at',   value: enabled ? now : false,                                         updated_at: now },
   ], { onConflict: 'key' });
   if (error) throw error;
 }
