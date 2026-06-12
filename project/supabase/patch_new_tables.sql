@@ -286,12 +286,29 @@ alter table public.events
   add column if not exists rewards_json      jsonb   default '[]'::jsonb,
   add column if not exists distribution_date date;
 
--- Grant super_admin / store_admin to manage events
-drop policy if exists "Admins manage events" on public.events;
+-- ── Fix events RLS: drop old policies and recreate with both using + with check ──
+drop policy if exists "Admins manage events"       on public.events;
+drop policy if exists "Anyone reads active events" on public.events;
+
+-- Helper: checks profiles table OR JWT metadata
+create policy "Anyone reads events"
+  on public.events for select
+  using (
+    active = true
+    or exists (select 1 from public.profiles where id = auth.uid() and role in ('super_admin','store_admin','admin','cashier'))
+    or (auth.jwt() -> 'user_metadata' ->> 'role') in ('super_admin','store_admin','admin')
+  );
+
 create policy "Admins manage events"
   on public.events for all
-  using  (auth.jwt() -> 'user_metadata' ->> 'role' in ('super_admin','store_admin','admin'))
-  with check (auth.jwt() -> 'user_metadata' ->> 'role' in ('super_admin','store_admin','admin'));
+  using (
+    exists (select 1 from public.profiles where id = auth.uid() and role in ('super_admin','store_admin','admin'))
+    or (auth.jwt() -> 'user_metadata' ->> 'role') in ('super_admin','store_admin','admin')
+  )
+  with check (
+    exists (select 1 from public.profiles where id = auth.uid() and role in ('super_admin','store_admin','admin'))
+    or (auth.jwt() -> 'user_metadata' ->> 'role') in ('super_admin','store_admin','admin')
+  );
 
 -- ── Points: add weekly/monthly helper view ────────────────────────────────────
 create or replace view public.leaderboard_weekly as
