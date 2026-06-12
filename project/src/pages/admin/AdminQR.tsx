@@ -1,20 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { QrCode, Plus, Trash2, X, Check, Copy, Edit2, Save, RefreshCw, ToggleLeft, ToggleRight, ShoppingCart, Clock, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getQRCodes, createQRCode, toggleQRCode } from '../../services/admin';
+import { getQRCodes, createQRCode, toggleQRCode, deleteQRCode, getRedemptionsAdmin } from '../../services/admin';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 import {
-  createCashierQRPayload, saveCashierQR, loadCashierQRs, markCashierQRUsed,
+  createCashierQRPayload, saveCashierQR, loadCashierQRs,
   isQRExpired, msRemaining, appendAuditLog,
   type CashierQRPayload,
 } from '../../lib/qrUtils';
 
-/* ── QR Store Codes ── */
-const initialQRCodes = [
-  { id: '1', code: 'STORE42-BONUS',     location: 'Mağaza #42 - Ana Cad.',  points: 75,  scans: 234, active: true },
-  { id: '2', code: 'EVENT2026-SPECIAL', location: 'Yaz Etkinliği Standı',   points: 150, scans: 89,  active: true },
-  { id: '3', code: 'PARTNER-CAFE',      location: 'Coffee Corner',          points: 50,  scans: 412, active: true },
-  { id: '4', code: 'PROMO-SALE',        location: 'Online Özel',            points: 100, scans: 156, active: false },
-];
+type DBQRCode = { id: string; code: string; label: string | null; points: number; active: boolean; uses_count: number; max_uses: number | null; expires_at: string | null; created_at: string; store_id: string | null };
 
 type InvItem = { id: string; title: string; description: string; points: number; category: string; image: string | null | undefined; code: string; type?: string; used?: boolean; expires?: string };
 type TabType = 'purchase' | 'inventory' | 'store';
@@ -103,29 +98,70 @@ const AdminQR: React.FC = () => {
   const [showPreviewModal, setShowPreviewModal] = useState<CashierQRPayload | null>(null);
   const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /* ── Store QR state ── */
-  const [codes, setCodes]         = useState(initialQRCodes);
+  /* ── Store QR state (Supabase) ── */
+  const [codes, setCodes]         = useState<DBQRCode[]>([]);
+  const [codesLoading, setCodesLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm]           = useState({ location: '', points: 50, active: true });
+  const [form, setForm]           = useState({ label: '', points: 50, active: true, max_uses: '' });
   const [copied, setCopied]       = useState<string | null>(null);
   const [saved, setSaved]         = useState(false);
   const [previewCode, setPreviewCode] = useState<string | null>(null);
 
-  /* ── Inventory code state ── */
+  /* ── Inventory code state (Supabase redemptions) ── */
   const [invItems, setInvItems]   = useState<InvItem[]>([]);
+  const [invLoading, setInvLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editCode, setEditCode]   = useState('');
   const [invCopied, setInvCopied] = useState<string | null>(null);
   const [invPreview, setInvPreview] = useState<string | null>(null);
 
-  /* load history on mount */
+  /* ── Load cashier history from localStorage ── */
   useEffect(() => { setQrHistory(loadCashierQRs().slice(0, 10)); }, [tab]);
+
+  /* ── Load store QR codes from Supabase ── */
+  const loadCodes = useCallback(async () => {
+    setCodesLoading(true);
+    try {
+      const data = await getQRCodes();
+      setCodes(data as DBQRCode[]);
+    } catch { setCodes([]); } finally { setCodesLoading(false); }
+  }, []);
+
+  useEffect(() => { if (tab === 'store') loadCodes(); }, [tab, loadCodes]);
+
+  /* ── Realtime: refresh store codes on DB change ── */
+  useRealtimeTable('qr_codes', loadCodes, tab === 'store');
+
+  /* ── Load inventory codes (redemptions) from Supabase ── */
+  const loadInventory = useCallback(async () => {
+    setInvLoading(true);
+    try {
+      const data = await getRedemptionsAdmin(0, 100);
+      setInvItems(data.map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        title: (r.rewards as Record<string, unknown>)?.title as string ?? 'Ödül',
+        description: '',
+        points: r.points_spent as number ?? 0,
+        category: (r.rewards as Record<string, unknown>)?.category as string ?? '',
+        image: null,
+        code: r.code as string,
+        used: r.used as boolean,
+        expires: r.expires_at as string | undefined,
+        type: 'reward',
+      })));
+    } catch { setInvItems([]); } finally { setInvLoading(false); }
+  }, []);
+
+  useEffect(() => { if (tab === 'inventory') loadInventory(); }, [tab, loadInventory]);
+
+  /* ── Realtime: refresh inventory on redemption change ── */
+  useRealtimeTable('redemptions', loadInventory, tab === 'inventory');
 
   const POINTS_PER_TL = 1;
   const parsedAmount = parseFloat(amount) || 0;
   const estimatedPoints = Math.round(parsedAmount * POINTS_PER_TL);
 
-  /* ── Generate cashier QR ── */
+  /* ── Generate cashier QR (localStorage session) ── */
   const handleGenerate = () => {
     if (parsedAmount <= 0) return;
     setGenerating(true);
@@ -144,15 +180,34 @@ const AdminQR: React.FC = () => {
     }, 300);
   };
 
-  /* ── Store QR handlers ── */
-  const genCode = () => `${form.location.slice(0, 6).replace(/\s/g, '').toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-  const handleCreate = () => {
+  /* ── Store QR handlers (Supabase) ── */
+  const genCode = () => `${(form.label || 'QR').slice(0, 6).replace(/\s/g, '').toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const handleCreate = async () => {
     setSaved(true);
-    setCodes(prev => [{ id: Date.now().toString(), code: genCode(), ...form, scans: 0 }, ...prev]);
-    setTimeout(() => { setSaved(false); setShowModal(false); setForm({ location: '', points: 50, active: true }); }, 800);
+    try {
+      await createQRCode({
+        code: genCode(),
+        points: form.points,
+        label: form.label || undefined,
+        max_uses: form.max_uses ? parseInt(form.max_uses) : undefined,
+      });
+      await loadCodes();
+    } catch (e) { console.error(e); }
+    setTimeout(() => { setSaved(false); setShowModal(false); setForm({ label: '', points: 50, active: true, max_uses: '' }); }, 600);
   };
   const handleCopy = (code: string) => { navigator.clipboard.writeText(code).catch(() => {}); setCopied(code); setTimeout(() => setCopied(null), 2000); };
-  const toggleActive = (id: string) => setCodes(prev => prev.map(c => c.id === id ? { ...c, active: !c.active } : c));
+  const toggleActive = async (id: string, currentActive: boolean) => {
+    try {
+      await toggleQRCode(id, !currentActive);
+      setCodes(prev => prev.map(c => c.id === id ? { ...c, active: !currentActive } : c));
+    } catch (e) { console.error(e); }
+  };
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteQRCode(id);
+      setCodes(prev => prev.filter(c => c.id !== id));
+    } catch (e) { console.error(e); }
+  };
 
   /* ── Inventory code handlers ── */
   const startEdit  = (item: InvItem) => { setEditingId(item.id); setEditCode(item.code); };
@@ -180,20 +235,17 @@ const AdminQR: React.FC = () => {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block font-bold text-sm mb-1">Konum / Etiket</label>
-                <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="input-field" placeholder="örn. Mağaza #50 - Meşe Cad." />
+                <label className="block font-bold text-sm mb-1">Etiket / Konum</label>
+                <input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} className="input-field" placeholder="örn. Mağaza #50 - Meşe Cad." />
               </div>
               <div>
                 <label className="block font-bold text-sm mb-1">Puan Ödülü</label>
                 <input type="number" value={form.points} onChange={e => setForm({ ...form, points: +e.target.value })} className="input-field" min={1} />
               </div>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <button type="button" onClick={() => setForm({ ...form, active: !form.active })}
-                  className={`w-5 h-5 rounded-md border-2 border-black dark:border-gray-500 flex items-center justify-center transition-colors ${form.active ? 'bg-green-500' : 'bg-white dark:bg-gray-700'}`}>
-                  {form.active && <Check size={12} className="text-white" />}
-                </button>
-                <span className="font-medium text-sm">Aktif</span>
-              </label>
+              <div>
+                <label className="block font-bold text-sm mb-1">Maks. Kullanım (boş = sınırsız)</label>
+                <input type="number" value={form.max_uses} onChange={e => setForm({ ...form, max_uses: e.target.value })} className="input-field" min={1} placeholder="Sınırsız" />
+              </div>
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">İptal</button>
@@ -445,6 +497,7 @@ const AdminQR: React.FC = () => {
         {/* ══ INVENTORY CODES TAB ══ */}
         {tab === 'inventory' && (
           <div className="space-y-4">
+            {invLoading && <div className="text-center py-6 text-gray-400 font-bold">Yükleniyor...</div>}
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Toplam Ürün', val: invItems.length },
@@ -521,7 +574,7 @@ const AdminQR: React.FC = () => {
               {[
                 { label: 'Toplam Kod',  val: codes.length.toString() },
                 { label: 'Aktif',       val: codes.filter(c => c.active).length.toString() },
-                { label: 'Toplam Tara', val: codes.reduce((s, c) => s + c.scans, 0).toLocaleString() },
+                { label: 'Toplam Tara', val: codes.reduce((s, c) => s + (c.uses_count ?? 0), 0).toLocaleString() },
               ].map(s => (
                 <div key={s.label} className={`${card} p-4 text-center`}>
                   <p className="font-black text-2xl">{s.val}</p>
@@ -529,37 +582,47 @@ const AdminQR: React.FC = () => {
                 </div>
               ))}
             </div>
-            <div className="space-y-3">
-              {codes.map(qr => (
-                <div key={qr.id} className={`${card} p-4`}>
-                  <div className="flex items-start gap-4">
-                    <button onClick={() => setPreviewCode(qr.code)} title="QR Önizle" className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white dark:bg-gray-700 border-2 border-black dark:border-gray-600 flex items-center justify-center hover:scale-105 transition-transform overflow-hidden">
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qr.code)}&size=60x60&margin=4`} alt="qr" style={{ width: 50, height: 50 }} />
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <p className="font-mono font-black text-sm tracking-wider truncate">{qr.code}</p>
-                        <button onClick={() => handleCopy(qr.code)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors">
-                          {copied === qr.code ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-                        </button>
+            {codesLoading ? (
+              <div className="text-center py-10 text-gray-400 font-bold">Yükleniyor...</div>
+            ) : codes.length === 0 ? (
+              <div className={`${card} p-8 text-center text-gray-400`}>
+                <QrCode size={32} className="mx-auto mb-3 opacity-30" />
+                <p className="font-bold">Henüz QR kodu yok</p>
+                <p className="text-xs mt-1">+ Yeni QR Kod butonuna tıklayın</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {codes.map(qr => (
+                  <div key={qr.id} className={`${card} p-4`}>
+                    <div className="flex items-start gap-4">
+                      <button onClick={() => setPreviewCode(qr.code)} title="QR Önizle" className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white dark:bg-gray-700 border-2 border-black dark:border-gray-600 flex items-center justify-center hover:scale-105 transition-transform overflow-hidden">
+                        <img src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qr.code)}&size=60x60&margin=4`} alt="qr" style={{ width: 50, height: 50 }} />
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                          <p className="font-mono font-black text-sm tracking-wider truncate">{qr.code}</p>
+                          <button onClick={() => handleCopy(qr.code)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors">
+                            {copied === qr.code ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{qr.label ?? '—'}</p>
+                        <div className="flex items-center gap-3 text-xs flex-wrap">
+                          <span className="font-bold text-amber-500">+{qr.points} puan</span>
+                          <span className="text-gray-400">{(qr.uses_count ?? 0).toLocaleString()} tarama{qr.max_uses ? ` / ${qr.max_uses}` : ''}</span>
+                          <button onClick={() => toggleActive(qr.id, qr.active)} className={`flex items-center gap-1 font-bold transition-colors ${qr.active ? 'text-green-500' : 'text-gray-400'}`}>
+                            {qr.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                            {qr.active ? 'Aktif' : 'Pasif'}
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{qr.location}</p>
-                      <div className="flex items-center gap-3 text-xs flex-wrap">
-                        <span className="font-bold text-amber-500">+{qr.points} puan</span>
-                        <span className="text-gray-400">{qr.scans.toLocaleString()} tarama</span>
-                        <button onClick={() => toggleActive(qr.id)} className={`flex items-center gap-1 font-bold transition-colors ${qr.active ? 'text-green-500' : 'text-gray-400'}`}>
-                          {qr.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-                          {qr.active ? 'Aktif' : 'Pasif'}
-                        </button>
-                      </div>
+                      <button onClick={() => handleDelete(qr.id)} className="p-2 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
+                        <Trash2 size={15} />
+                      </button>
                     </div>
-                    <button onClick={() => setCodes(prev => prev.filter(c => c.id !== qr.id))} className="p-2 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
-                      <Trash2 size={15} />
-                    </button>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

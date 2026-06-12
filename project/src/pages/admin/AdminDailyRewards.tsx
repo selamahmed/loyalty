@@ -1,16 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Save, RotateCcw, CheckCircle, ToggleLeft, ToggleRight, Flame, Users, Calendar, Crown, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Save, RotateCcw, CheckCircle, ToggleLeft, ToggleRight, Flame, Calendar, Crown, AlertTriangle } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { DEFAULT_REWARDS, DayReward } from '../../components/DailyRewardModal';
-
-const CONFIG_KEY  = 'nexreward_daily_config';
-const FEATURE_KEY = 'nexreward_daily_enabled';
-const STATE_KEY   = 'nexreward_daily_state';
-
-function loadConfig(): DayReward[] {
-  try { const r = localStorage.getItem(CONFIG_KEY); if (r) return JSON.parse(r); } catch {}
-  return DEFAULT_REWARDS;
-}
+import { getDailyRewardConfig, upsertDailyRewardDay } from '../../services/config';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 
 const DAY_COLORS  = ['rgba(123,110,246,0.18)','rgba(34,197,94,0.15)','rgba(6,182,212,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)','rgba(236,72,153,0.15)','rgba(255,229,0,0.18)'];
 const DAY_BORDERS = ['#7B6EF6','#22c55e','#06b6d4','#f59e0b','#ef4444','#ec4899','#FFE500'];
@@ -18,30 +11,54 @@ const DAY_BORDERS = ['#7B6EF6','#22c55e','#06b6d4','#f59e0b','#ef4444','#ec4899'
 const EMOJIS = ['🌟','🎁','💎','🎯','🔥','⚡','👑','🏆','🎮','💰','🎪','🌈','🦄','🎉','✨','🚀','💫','🎊','🥇','🎖️'];
 
 const AdminDailyRewards: React.FC = () => {
-  const [rewards, setRewards]   = useState<DayReward[]>(loadConfig);
-  const [enabled, setEnabled]   = useState(() => localStorage.getItem(FEATURE_KEY) !== 'false');
+  const [rewards, setRewards]   = useState<DayReward[]>(DEFAULT_REWARDS);
+  const [enabled, setEnabled]   = useState(true);
   const [saved, setSaved]       = useState(false);
   const [dirty, setDirty]       = useState(false);
   const [showEmoji, setShowEmoji] = useState<number | null>(null);
+  const [dbLoaded, setDbLoaded] = useState(false);
 
-  /* live stats from localStorage */
-  const [stateCounts] = useState(() => {
+  const stateCounts = { streakDay: 0, lastClaim: 'Veritabanından yüklendi' };
+
+  const loadFromDB = useCallback(async () => {
     try {
-      const raw = localStorage.getItem(STATE_KEY);
-      if (raw) {
-        const s = JSON.parse(raw);
-        return { streakDay: s.streakDay || 0, lastClaim: s.lastClaimDate || 'Hiç' };
+      const rows = await getDailyRewardConfig();
+      if (rows.length > 0) {
+        const mapped: DayReward[] = rows.map(r => ({
+          day: r.day_number,
+          emoji: (r.bonus_value as Record<string, string>)?.emoji ?? '🎁',
+          points: r.points,
+          label: (r.bonus_value as Record<string, string>)?.label ?? `Gün ${r.day_number}`,
+          isBig: r.is_special,
+        }));
+        // Fill any missing days from defaults
+        const allDays = DEFAULT_REWARDS.map(def => mapped.find(m => m.day === def.day) ?? def);
+        setRewards(allDays);
+        setEnabled(rows.some(r => r.enabled));
       }
-    } catch {}
-    return { streakDay: 0, lastClaim: 'Hiç' };
-  });
+    } catch { /* keep defaults */ } finally { setDbLoaded(true); }
+  }, []);
 
-  const saveAll = () => {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(rewards));
-    localStorage.setItem(FEATURE_KEY, enabled ? 'true' : 'false');
-    setDirty(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  useEffect(() => { loadFromDB(); }, [loadFromDB]);
+  useRealtimeTable('daily_reward_config', loadFromDB);
+
+  const saveAll = async () => {
+    try {
+      // Save all rewards to DB
+      await Promise.all(rewards.map(r =>
+        upsertDailyRewardDay({
+          day_number: r.day,
+          points: r.points,
+          bonus_type: 'points',
+          bonus_value: { emoji: r.emoji, label: r.label ?? `Gün ${r.day}` },
+          is_special: r.isBig ?? false,
+          enabled: enabled,
+        })
+      ));
+      setDirty(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) { console.error(e); }
   };
 
   const resetToDefaults = () => { setRewards(DEFAULT_REWARDS); setDirty(true); };
@@ -226,7 +243,7 @@ const AdminDailyRewards: React.FC = () => {
             <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 2px' }}>Kullanıcı Durumunu Sıfırla</p>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Test amaçlı — tarayıcıdaki günlük ödül durumunu siler</p>
           </div>
-          <button onClick={() => { localStorage.removeItem(STATE_KEY); window.location.reload(); }}
+          <button onClick={() => { localStorage.removeItem('nexreward_daily_state'); window.location.reload(); }}
             style={{ padding: '8px 16px', borderRadius: 12, border: '2.5px solid #ef4444', background: 'rgba(239,68,68,0.08)', fontWeight: 900, fontSize: 12, color: '#ef4444', cursor: 'pointer', boxShadow: '0 3px 0 #dc2626', whiteSpace: 'nowrap' }}
             onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 #000'; }}
             onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #dc2626'; }}>

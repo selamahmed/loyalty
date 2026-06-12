@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, CreditCard as Edit3, Trash2, X, Check, Calendar, Zap, Flame, Clock, Star } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { getAllEvents, createEvent, updateEvent, deleteEvent } from '../../services/events';
 import type { AppEvent } from '../../services/events';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 import { tr } from '../../lib/tr';
 
 const nbCard = {
@@ -29,9 +30,13 @@ const AdminEvents: React.FC = () => {
   const [form, setForm] = useState({ title: '', description: '', startDate: '', endDate: '', multiplier: '2x', active: false });
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
+  const loadEvents = useCallback(() => {
     getAllEvents().then(setEvents).catch(() => setEvents([]));
   }, []);
+
+  useEffect(() => { loadEvents(); }, [loadEvents]);
+
+  useRealtimeTable('events', loadEvents);
 
   const openNew = () => {
     setEditingEvent(null);

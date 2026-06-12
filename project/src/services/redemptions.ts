@@ -56,12 +56,13 @@ export async function redeemReward(
   return data;
 }
 
-export async function markRedemptionUsed(id: string, userId: string): Promise<void> {
-  const { error } = await supabase
+export async function markRedemptionUsed(id: string, userId?: string): Promise<void> {
+  let q = supabase
     .from('redemptions')
     .update({ used: true, used_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('user_id', userId);
+    .eq('id', id);
+  if (userId) q = q.eq('user_id', userId);
+  const { error } = await q;
   if (error) throw error;
 }
 

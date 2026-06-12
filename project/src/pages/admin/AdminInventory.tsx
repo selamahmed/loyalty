@@ -2,6 +2,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Copy, Check, RefreshCw, QrCode, Package, Search, Tag, Ticket, Gift, ArrowLeft, User, ChevronRight } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { getAllUsers } from '../../services/admin';
+import { getUserRedemptions } from '../../services/redemptions';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 
 type UserType = { id: string; username: string; email: string; level: number; current_points: number; status: string; created_at: string; avatar_url: string | null; role: string };
 
@@ -359,58 +361,72 @@ const InventoryScreen: React.FC<{
 
 /* ─── Main AdminInventory ─── */
 const AdminInventory: React.FC = () => {
-  const [selectedUser, setSelectedUser]           = useState<UserType | null>(null);
-  const [userInventories, setUserInventories]     = useState<Record<string, InvItem[]>>({});
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
+  const [items, setItems]               = useState<InvItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
 
-  const getOrSeed = useCallback((userId: string) => {
-    if (!userInventories[userId]) {
-      const seed = seedInventory(userId);
-      setUserInventories(prev => ({ ...prev, [userId]: seed }));
-      return seed;
-    }
-    return userInventories[userId];
-  }, [userInventories]);
+  const loadUserRedemptions = useCallback(async (userId: string) => {
+    setLoadingItems(true);
+    try {
+      const redemptions = await getUserRedemptions(userId);
+      setItems(redemptions.map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        type: 'reward' as const,
+        title: (r.rewards as Record<string, unknown>)?.title as string ?? 'Ödül',
+        description: (r.rewards as Record<string, unknown>)?.description as string ?? '',
+        code: r.code as string ?? '',
+        expires: r.expires_at as string ?? '',
+        quantity: 1,
+        points: r.points_spent as number ?? 0,
+        image: (r.rewards as Record<string, unknown>)?.image as string ?? '',
+        barcode: '',
+        used: r.used as boolean ?? false,
+      })));
+    } catch { setItems([]); } finally { setLoadingItems(false); }
+  }, []);
 
-  const handleSelectUser = (user: UserType) => {
-    getOrSeed(user.id);
+  /* realtime: refresh when redemptions change for selected user */
+  useRealtimeTable('redemptions', () => {
+    if (selectedUser) loadUserRedemptions(selectedUser.id);
+  }, !!selectedUser);
+
+  const handleSelectUser = async (user: UserType) => {
     setSelectedUser(user);
+    await loadUserRedemptions(user.id);
   };
 
-  const handleAdd = (form: InvItemForm) => {
-    if (!selectedUser) return;
-    const newItem: InvItem = { ...form, id: `${selectedUser.id}-${Date.now()}` };
-    setUserInventories(prev => ({ ...prev, [selectedUser.id]: [newItem, ...(prev[selectedUser.id] || [])] }));
+  const handleAdd = (_form: InvItemForm) => {
+    // Adding redemptions directly from admin is not supported in current schema
+    // Redemptions are created via the reward shop
   };
 
-  const handleUpdate = (id: string, form: InvItemForm) => {
-    if (!selectedUser) return;
-    setUserInventories(prev => ({ ...prev, [selectedUser.id]: (prev[selectedUser.id] || []).map(i => i.id === id ? { ...i, ...form } : i) }));
-  };
+  const handleUpdate = (_id: string, _form: InvItemForm) => { /* read-only from DB */ };
 
-  const handleDelete = (id: string) => {
-    if (!selectedUser) return;
-    setUserInventories(prev => ({ ...prev, [selectedUser.id]: (prev[selectedUser.id] || []).filter(i => i.id !== id) }));
-  };
+  const handleDelete = (_id: string) => { /* redemption deletion not supported */ };
 
-  const handleToggleUsed = (id: string) => {
-    if (!selectedUser) return;
-    setUserInventories(prev => ({ ...prev, [selectedUser.id]: (prev[selectedUser.id] || []).map(i => i.id === id ? { ...i, used: !i.used } : i) }));
-  };
-
-  const items = selectedUser ? (userInventories[selectedUser.id] || getOrSeed(selectedUser.id)) : [];
+  const handleToggleUsed = (_id: string) => { /* managed via markRedemptionUsed service */ };
 
   return (
     <AdminLayout>
       {selectedUser ? (
-        <InventoryScreen
-          user={selectedUser}
-          items={items}
-          onBack={() => setSelectedUser(null)}
-          onAdd={handleAdd}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-          onToggleUsed={handleToggleUsed}
-        />
+        loadingItems ? (
+          <div className="p-6 flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="w-10 h-10 border-4 border-[#7B6EF6] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="font-bold text-gray-400">Envanter yükleniyor...</p>
+            </div>
+          </div>
+        ) : (
+          <InventoryScreen
+            user={selectedUser}
+            items={items}
+            onBack={() => { setSelectedUser(null); setItems([]); }}
+            onAdd={handleAdd}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            onToggleUsed={handleToggleUsed}
+          />
+        )
       ) : (
         <UserPickerScreen onSelect={handleSelectUser} />
       )}

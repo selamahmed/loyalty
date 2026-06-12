@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, TrendingDown, TrendingUp, Activity, Check, X, ToggleLeft, ToggleRight, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Trash2, TrendingDown, TrendingUp, Activity, Check, X, ToggleLeft, ToggleRight, Zap, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import AdminLayout from './AdminLayout';
+import { getRecentPointsTransactions } from '../../services/admin';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 
 interface Transaction {
   id: string;
@@ -103,12 +105,29 @@ const AdminPointsEconomy: React.FC = () => {
   const [campaignStart, setCampaignStart]       = useState('');
   const [campaignEnd, setCampaignEnd]           = useState('');
 
+  const loadTransactions = useCallback(async () => {
+    try {
+      const data = await getRecentPointsTransactions(100);
+      setTransactions(data.map((t: Record<string, unknown>) => ({
+        id: t.id as string,
+        userId: t.user_id as string,
+        amount: t.amount as number,
+        type: t.type as Transaction['type'],
+        source: t.description as string ?? t.category as string ?? '',
+        reason: t.description as string,
+        createdAt: new Date(t.created_at as string).toLocaleDateString('tr-TR'),
+      })));
+    } catch { /* keep existing */ } finally { setLoading(false); }
+  }, []);
+
   useEffect(() => {
-    setTransactions(mockTransactions);
+    loadTransactions();
     setRules(mockRules);
     setCampaigns(mockCampaigns);
-    setLoading(false);
-  }, []);
+  }, [loadTransactions]);
+
+  /* realtime: refresh transactions when points_transactions changes */
+  useRealtimeTable('points_transactions', loadTransactions);
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok });

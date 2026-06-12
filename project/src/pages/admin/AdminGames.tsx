@@ -1,49 +1,78 @@
-import React, { useState } from 'react';
-import { Gamepad2, CreditCard as Edit3, ToggleLeft, ToggleRight, Star, Users } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Gamepad2, CreditCard as Edit3, ToggleLeft, ToggleRight, Star, Save, X } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { tr } from '../../lib/tr';
-
-const gamesData = [
-  { id: '1', name: 'Spin Wheel', emoji: '🎰', active: true, plays: 8420, avgPoints: 42, maxPoints: 200 },
-  { id: '2', name: 'Memory Game', emoji: '🧩', active: true, plays: 6210, avgPoints: 95, maxPoints: 200 },
-  { id: '3', name: 'Quiz', emoji: '🧠', active: true, plays: 9840, avgPoints: 75, maxPoints: 125 },
-  { id: '4', name: 'Catch Game', emoji: '🎁', active: true, plays: 5670, avgPoints: 35, maxPoints: 100 },
-  { id: '5', name: 'Daily Challenge', emoji: '⚡', active: true, plays: 4210, avgPoints: 120, maxPoints: 150 },
-];
+import { getGamesConfig, updateGameConfig, type GameConfig } from '../../services/config';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 
 const AdminGames: React.FC = () => {
-  const [games, setGames] = useState(gamesData);
+  const [games, setGames] = useState<GameConfig[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
   const [editMax, setEditMax] = useState('');
+  const [editPlays, setEditPlays] = useState('');
 
-  const toggleGame = (id: string) => setGames(prev => prev.map(g => g.id === id ? { ...g, active: !g.active } : g));
+  const loadGames = useCallback(async () => {
+    try {
+      const data = await getGamesConfig();
+      setGames(data);
+    } catch { setGames([]); } finally { setLoading(false); }
+  }, []);
 
-  const handleSaveMax = (id: string) => {
-    setGames(prev => prev.map(g => g.id === id ? { ...g, maxPoints: parseInt(editMax) || g.maxPoints } : g));
+  useEffect(() => { loadGames(); }, [loadGames]);
+  useRealtimeTable('games_config', loadGames);
+
+  const toggleGame = async (id: string, current: boolean) => {
+    try {
+      await updateGameConfig(id, { enabled: !current });
+      setGames(prev => prev.map(g => g.id === id ? { ...g, enabled: !current } : g));
+    } catch (e) { console.error(e); }
+  };
+
+  const handleSaveMax = async (id: string) => {
+    const maxPts = parseInt(editMax);
+    const maxPlays = parseInt(editPlays);
+    if (isNaN(maxPts) && isNaN(maxPlays)) { setEditing(null); return; }
+    try {
+      const updates: Partial<GameConfig> = {};
+      if (!isNaN(maxPts)) updates.max_points_per_play = maxPts;
+      if (!isNaN(maxPlays)) updates.max_plays_per_day = maxPlays;
+      await updateGameConfig(id, updates);
+      setGames(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
+    } catch (e) { console.error(e); }
     setEditing(null);
   };
+
+  if (loading) return (
+    <AdminLayout>
+      <div className="p-6 flex items-center justify-center h-64">
+        <div className="w-10 h-10 border-4 border-[#7B6EF6] border-t-transparent rounded-full animate-spin" />
+      </div>
+    </AdminLayout>
+  );
 
   return (
     <AdminLayout>
       <div className="p-4 lg:p-6 space-y-6 max-w-3xl mx-auto">
-        <h1 className="text-2xl font-black text-gray-900 dark:text-white">Games Management</h1>
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white">Oyun Yönetimi</h1>
 
         {/* Overview */}
         <div className="grid grid-cols-3 gap-3">
           <div className="card p-4 text-center">
             <Gamepad2 size={20} className="text-[#7B6EF6] dark:text-[#4F8EF7] mx-auto mb-2" />
             <p className="font-black text-xl text-gray-900 dark:text-white">{games.length}</p>
-            <p className="text-xs text-gray-500">Total Games</p>
+            <p className="text-xs text-gray-500">Toplam Oyun</p>
           </div>
           <div className="card p-4 text-center">
-            <Users size={20} className="text-green-500 mx-auto mb-2" />
-            <p className="font-black text-xl text-gray-900 dark:text-white">{games.reduce((s, g) => s + g.plays, 0).toLocaleString()}</p>
-            <p className="text-xs text-gray-500">Total Plays</p>
+            <ToggleRight size={20} className="text-green-500 mx-auto mb-2" />
+            <p className="font-black text-xl text-gray-900 dark:text-white">{games.filter(g => g.enabled).length}</p>
+            <p className="text-xs text-gray-500">Aktif Oyun</p>
           </div>
           <div className="card p-4 text-center">
             <Star size={20} className="text-amber-500 mx-auto mb-2" />
-            <p className="font-black text-xl text-gray-900 dark:text-white">{Math.round(games.reduce((s, g) => s + g.avgPoints, 0) / games.length)}</p>
-            <p className="text-xs text-gray-500">Avg Pts/Play</p>
+            <p className="font-black text-xl text-gray-900 dark:text-white">
+              {games.length > 0 ? Math.round(games.reduce((s, g) => s + g.max_points_per_play, 0) / games.length) : 0}
+            </p>
+            <p className="text-xs text-gray-500">Ort. Maks. Puan</p>
           </div>
         </div>
 
@@ -51,57 +80,65 @@ const AdminGames: React.FC = () => {
         <div className="space-y-3">
           {games.map(game => (
             <div key={game.id} className="card p-4 flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#7B6EF6]/10 dark:bg-[#4F8EF7]/20 border-2 border-black dark:border-gray-600 flex items-center justify-center text-2xl flex-shrink-0">
-                {game.emoji}
+              <div className="w-14 h-14 rounded-2xl border-2 border-black dark:border-gray-600 flex items-center justify-center text-2xl flex-shrink-0"
+                style={{ background: `${game.color ?? '#7B6EF6'}15` }}>
+                {game.icon ?? '🎮'}
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <p className="font-black text-gray-900 dark:text-white">{game.name}</p>
-                  <button onClick={() => toggleGame(game.id)} className={`transition-colors ${game.active ? 'text-green-500' : 'text-gray-400'}`}>
-                    {game.active ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                  <button onClick={() => toggleGame(game.id, game.enabled)}
+                    className={`transition-colors ${game.enabled ? 'text-green-500' : 'text-gray-400'}`}>
+                    {game.enabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                   </button>
                 </div>
-                <div className="grid grid-cols-3 gap-3 text-center mt-2">
+                {game.description && <p className="text-xs text-gray-500 mb-2">{game.description}</p>}
+                <div className="grid grid-cols-2 gap-3 text-center mt-2">
                   <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                    <p className="font-black text-sm text-gray-900 dark:text-white">{game.plays.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">Plays</p>
-                  </div>
-                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                    <p className="font-black text-sm text-amber-600 dark:text-amber-400">~{game.avgPoints}</p>
-                    <p className="text-xs text-gray-500">Avg Pts</p>
+                    {editing === game.id ? (
+                      <div className="flex items-center gap-1">
+                        <input type="number" value={editPlays} onChange={e => setEditPlays(e.target.value)}
+                          className="w-full text-xs font-black bg-transparent border-b-2 border-[#7B6EF6] outline-none text-center"
+                          placeholder={game.max_plays_per_day.toString()} />
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="font-black text-sm text-gray-900 dark:text-white">{game.max_plays_per_day}</p>
+                        <p className="text-xs text-gray-500">Günlük Oyn.</p>
+                      </div>
+                    )}
                   </div>
                   <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-xl relative">
                     {editing === game.id ? (
                       <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          value={editMax}
-                          onChange={e => setEditMax(e.target.value)}
+                        <input type="number" value={editMax} onChange={e => setEditMax(e.target.value)}
                           className="w-full text-xs font-black bg-transparent border-b-2 border-[#7B6EF6] outline-none text-center"
-                          onKeyDown={e => e.key === 'Enter' && handleSaveMax(game.id)}
-                          autoFocus
-                        />
-                        <button onClick={() => handleSaveMax(game.id)} className="text-green-500">
-                          <Star size={10} />
-                        </button>
+                          placeholder={game.max_points_per_play.toString()} />
                       </div>
                     ) : (
-                      <button onClick={() => { setEditing(game.id); setEditMax(game.maxPoints.toString()); }} className="w-full text-left flex items-center justify-between">
+                      <button onClick={() => { setEditing(game.id); setEditMax(game.max_points_per_play.toString()); setEditPlays(game.max_plays_per_day.toString()); }}
+                        className="w-full text-left flex items-center justify-between">
                         <div>
-                          <p className="font-black text-sm text-[#7B6EF6] dark:text-[#4F8EF7]">{game.maxPoints}</p>
-                          <p className="text-xs text-gray-500">Max Pts</p>
+                          <p className="font-black text-sm text-[#7B6EF6] dark:text-[#4F8EF7]">{game.max_points_per_play}</p>
+                          <p className="text-xs text-gray-500">Maks. Puan</p>
                         </div>
                         <Edit3 size={10} className="text-gray-400" />
                       </button>
                     )}
                   </div>
                 </div>
-                <div className="mt-2">
-                  <div className="h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#7B6EF6] dark:bg-[#4F8EF7] rounded-full"
-                      style={{ width: `${(game.plays / Math.max(...games.map(g => g.plays))) * 100}%` }} />
+                {editing === game.id && (
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => handleSaveMax(game.id)}
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl bg-green-500 text-white font-bold text-xs border-2 border-green-700">
+                      <Save size={11} /> Kaydet
+                    </button>
+                    <button onClick={() => setEditing(null)}
+                      className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-700 font-bold text-xs border-2 border-black dark:border-gray-600">
+                      <X size={11} />
+                    </button>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           ))}

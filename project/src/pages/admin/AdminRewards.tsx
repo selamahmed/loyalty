@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, X, Check, Star, Search, Eye, EyeOff, Image, Tag } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { getRewards, createReward, updateReward, deleteReward } from '../../services/rewards';
 import type { Reward as DBReward } from '../../services/rewards';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 import { playSound } from '../../lib/sounds';
 
 type Reward = DBReward & { available?: boolean; imageUrl?: string };
@@ -178,10 +179,14 @@ const AdminRewards: React.FC = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [catFilter, setCatFilter] = useState('all');
 
-  useEffect(() => {
+  const loadRewards = useCallback(() => {
     setIsLoading(true);
     getRewards().then(data => setRewards(data.map(r => ({ ...r, available: r.active, imageUrl: r.image ?? '' })))).catch(() => setRewards([])).finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { loadRewards(); }, [loadRewards]);
+
+  useRealtimeTable('rewards', loadRewards);
 
   const filtered = rewards.filter(r => {
     const matchSearch = r.title.toLowerCase().includes(search.toLowerCase());

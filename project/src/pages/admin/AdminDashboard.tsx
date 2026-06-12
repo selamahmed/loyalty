@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Users, Gift, Star, TrendingUp, QrCode, Gamepad2, ArrowUp, ArrowDown, Activity } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Users, Gift, Star, QrCode, ArrowUp, ArrowDown, Activity, UserPlus, Gamepad2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
-import { getDashboardStats } from '../../services/admin';
+import { getDashboardStatsEnhanced } from '../../services/admin';
+import { useRealtimeTables } from '../../hooks/useRealtime';
 import AdminLayout from './AdminLayout';
 import { tr } from '../../lib/tr';
 
@@ -34,11 +35,19 @@ const StatCard: React.FC<{
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ totalUsers: 0, activeToday: 0, totalRedemptions: 0, totalPointsIssued: 0 });
+  const [stats, setStats] = useState({
+    totalUsers: 0, activeToday: 0, totalRedemptions: 0,
+    totalPointsIssued: 0, qrScansToday: 0, newUsersToday: 0,
+  });
 
-  useEffect(() => {
-    getDashboardStats().then(setStats).catch(() => {});
+  const loadStats = useCallback(() => {
+    getDashboardStatsEnhanced().then(setStats).catch(() => {});
   }, []);
+
+  useEffect(() => { loadStats(); }, [loadStats]);
+
+  /* realtime: refresh dashboard whenever core tables change */
+  useRealtimeTables(['profiles', 'redemptions', 'points_transactions', 'qr_scans', 'activity_logs'], loadStats);
 
   return (
     <AdminLayout>
@@ -46,11 +55,13 @@ const AdminDashboard: React.FC = () => {
         <h1 className="text-2xl font-black text-gray-900 dark:text-white">Overview</h1>
 
         {/* KPI cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard label="Total Users" value={stats.totalUsers.toLocaleString()} change="" up={true} icon={Users} color="text-blue-500" bg="bg-blue-100 dark:bg-blue-900/30" />
-          <StatCard label="Active Today" value={stats.activeToday.toLocaleString()} change="" up={true} icon={Activity} color="text-green-500" bg="bg-green-100 dark:bg-green-900/30" />
-          <StatCard label="Points Issued" value={stats.totalPointsIssued.toLocaleString()} change="" up={true} icon={Star} color="text-amber-500" bg="bg-amber-100 dark:bg-amber-900/30" />
-          <StatCard label="Rewards Claimed" value={stats.totalRedemptions.toLocaleString()} change="" up={true} icon={Gift} color="text-[#7B6EF6]" bg="bg-[#7B6EF6]/10 dark:bg-[#4F8EF7]/20" />
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          <StatCard label="Toplam Kullanıcı" value={stats.totalUsers.toLocaleString()} change="" up={true} icon={Users} color="text-blue-500" bg="bg-blue-100 dark:bg-blue-900/30" />
+          <StatCard label="Bugün Aktif" value={stats.activeToday.toLocaleString()} change="" up={true} icon={Activity} color="text-green-500" bg="bg-green-100 dark:bg-green-900/30" />
+          <StatCard label="Toplam Puan" value={stats.totalPointsIssued.toLocaleString()} change="" up={true} icon={Star} color="text-amber-500" bg="bg-amber-100 dark:bg-amber-900/30" />
+          <StatCard label="Ödül Kullanımı" value={stats.totalRedemptions.toLocaleString()} change="" up={true} icon={Gift} color="text-[#7B6EF6]" bg="bg-[#7B6EF6]/10 dark:bg-[#4F8EF7]/20" />
+          <StatCard label="Bugün QR Tarama" value={stats.qrScansToday.toLocaleString()} change="" up={true} icon={QrCode} color="text-cyan-500" bg="bg-cyan-100 dark:bg-cyan-900/30" />
+          <StatCard label="Bugün Yeni Kayıt" value={stats.newUsersToday.toLocaleString()} change="" up={true} icon={UserPlus} color="text-purple-500" bg="bg-purple-100 dark:bg-purple-900/30" />
         </div>
 
         {/* Charts row */}

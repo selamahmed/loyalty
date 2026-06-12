@@ -4,7 +4,8 @@ import {
   Package, Tag, Ticket, Gift, Clock, History, Zap, FlipHorizontal, Barcode
 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { useInventory, InventoryItem } from '../../context/InventoryContext';
+import type { InventoryItem } from '../../context/InventoryContext';
+import { getRedemptionByCode, markRedemptionUsed } from '../../services/redemptions';
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface RedemptionEntry {
@@ -30,8 +31,6 @@ function isExpired(d: string) { return new Date(d) < new Date(); }
 
 /* ─────────────────────────── component ─────────────────────────── */
 const AdminCheckout: React.FC = () => {
-  const { items, getByCode, getByBarcode, markUsed } = useInventory();
-
   /* scan state */
   const [mode, setMode] = useState<'idle' | 'camera' | 'manual'>('idle');
   const [scanType, setScanType] = useState<'both' | 'barcode' | 'qr'>('both');
@@ -40,6 +39,7 @@ const AdminCheckout: React.FC = () => {
   const [matchScanType, setMatchScanType] = useState<'barcode' | 'qr' | 'manual'>('manual');
   const [error, setError] = useState('');
   const [redeemed, setRedeemed] = useState(false);
+  const [resolving, setResolving] = useState(false);
   const [history, setHistory] = useState<RedemptionEntry[]>([]);
   const [manualInput, setManualInput] = useState('');
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
@@ -52,27 +52,43 @@ const AdminCheckout: React.FC = () => {
   const rafRef      = useRef<number>(0);
   const scanningRef = useRef(false);
 
-  /* ── resolve a scanned value → inventory item ── */
-  const resolve = useCallback((value: string, detectedType: 'barcode' | 'qr' | 'manual') => {
+  /* ── resolve a scanned value → fetch redemption from Supabase ── */
+  const resolve = useCallback(async (value: string, detectedType: 'barcode' | 'qr' | 'manual') => {
     const trimmed = value.trim();
     if (!trimmed) return;
 
-    /* try barcode lookup first, then code lookup */
-    const byBarcode = getByBarcode(trimmed);
-    const byCode    = getByCode(trimmed);
-    const found     = byBarcode ?? byCode;
-    const resolved  = byBarcode ? 'barcode' : byCode ? 'qr' : detectedType;
-
-    if (found) {
-      setMatch(found);
-      setMatchScanType(resolved as 'barcode' | 'qr');
-      setError('');
-    } else {
-      setError(`"${trimmed}" ile eşleşen envanter öğesi bulunamadı.`);
+    setResolving(true);
+    try {
+      const redemption = await getRedemptionByCode(trimmed);
+      if (redemption) {
+        const inv: InventoryItem = {
+          id: redemption.id,
+          title: (redemption as Record<string, unknown>).rewards ? ((redemption as Record<string, unknown>).rewards as Record<string, unknown>).title as string ?? 'Ödül' : 'Ödül',
+          type: 'reward',
+          code: redemption.code,
+          barcode: '',
+          expires: redemption.expires_at ?? '',
+          used: redemption.used,
+          points: redemption.points_spent,
+          image: '',
+          description: '',
+          quantity: 1,
+        };
+        setMatch(inv);
+        setMatchScanType(detectedType);
+        setError('');
+      } else {
+        setError(`"${trimmed}" için kayıt bulunamadı.`);
+        setMatch(null);
+      }
+    } catch {
+      setError('Veritabanı hatası. Lütfen tekrar deneyin.');
       setMatch(null);
+    } finally {
+      setResolving(false);
     }
     setRawValue(trimmed);
-  }, [getByBarcode, getByCode]);
+  }, []);
 
   /* ── per-frame QR + barcode decode ── */
   const tick = useCallback(() => {
@@ -161,26 +177,29 @@ const AdminCheckout: React.FC = () => {
   };
 
   /* ── manual submit ── */
-  const handleManual = () => {
+  const handleManual = async () => {
     if (!manualInput.trim()) return;
-    resolve(manualInput.toUpperCase(), 'manual');
-    setMatchScanType('manual');
     setMode('idle');
+    await resolve(manualInput.toUpperCase(), 'manual');
   };
 
   /* ── redeem ── */
-  const handleRedeem = () => {
+  const handleRedeem = async () => {
     if (!match) return;
-    markUsed(match.id);
-    setHistory(h => [{
-      id: Date.now().toString(),
-      item: match,
-      scannedValue: rawValue,
-      scanType: matchScanType,
-      redeemedAt: now(),
-    }, ...h]);
-    setRedeemed(true);
-    setTimeout(() => { setMatch(null); setRedeemed(false); setRawValue(''); setManualInput(''); }, 2500);
+    try {
+      await markRedemptionUsed(match.id);
+      setHistory(h => [{
+        id: Date.now().toString(),
+        item: match,
+        scannedValue: rawValue,
+        scanType: matchScanType,
+        redeemedAt: now(),
+      }, ...h]);
+      setRedeemed(true);
+      setTimeout(() => { setMatch(null); setRedeemed(false); setRawValue(''); setManualInput(''); }, 2500);
+    } catch {
+      setError('Kullanım işareti başarısız. Lütfen tekrar deneyin.');
+    }
   };
 
   /* ── reset ── */
@@ -189,7 +208,7 @@ const AdminCheckout: React.FC = () => {
     setMatch(null); setError(''); setRawValue(''); setRedeemed(false); setManualInput('');
   };
 
-  const ItemIcon = match ? (typeIcon[match.type] ?? Package) : Package;
+  const ItemIcon = match ? (typeIcon[match.type ?? 'reward'] ?? Package) : Package;
   const todayRedeemed = history.length;
 
   return (
@@ -439,6 +458,11 @@ const AdminCheckout: React.FC = () => {
                   )}
                 </div>
               </div>
+            ) : resolving ? (
+              <div className={`${card} p-8 flex flex-col items-center gap-3 text-center`}>
+                <div className="w-10 h-10 border-4 border-[#7B6EF6] border-t-transparent rounded-full animate-spin" />
+                <p className="font-bold text-gray-400 text-sm">Kayıt aranıyor...</p>
+              </div>
             ) : error ? (
               <div className={`${card} p-5 flex flex-col items-center gap-3 text-center`}
                 style={{ borderColor: '#ef4444', boxShadow: '0 4px 0 #dc2626' }}>
@@ -455,31 +479,17 @@ const AdminCheckout: React.FC = () => {
                 </button>
               </div>
             ) : (
-              /* Idle state — show item catalog hint */
-              <div className={`${card} p-5`}>
-                <p className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Package size={12} /> Taranabilir Öğeler ({items.filter(i => !i.used).length} aktif)
-                </p>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {items.filter(i => !i.used).map(item => {
-                    const Ico = typeIcon[item.type] ?? Package;
-                    return (
-                      <button key={item.id}
-                        onClick={() => { setMatch(item); setMatchScanType('manual'); setRawValue(item.code); setError(''); }}
-                        className="w-full flex items-center gap-3 p-2.5 rounded-xl border-2 border-black dark:border-gray-600 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-[0_2px_0_#000] dark:shadow-[0_2px_0_#374151] active:translate-y-[2px] active:shadow-none">
-                        {item.image
-                          ? <img src={item.image} alt="" className="w-9 h-9 rounded-lg object-cover border border-black flex-shrink-0" />
-                          : <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: typeColor[item.type] + '18' }}><Ico size={16} /></div>
-                        }
-                        <div className="flex-1 min-w-0">
-                          <p className="font-black text-xs text-gray-900 dark:text-white truncate">{item.title}</p>
-                          <p className="font-mono text-xs text-gray-400 truncate">{item.barcode ?? item.code}</p>
-                        </div>
-                        <span className="text-xs font-black flex-shrink-0" style={{ color: typeColor[item.type] }}>Seç</span>
-                      </button>
-                    );
-                  })}
+              /* Idle state — prompt to scan */
+              <div className={`${card} p-5 text-center`}>
+                <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
+                  <Package size={28} className="text-gray-400" />
                 </div>
+                <p className="font-bold text-gray-400 text-sm">
+                  Müşteri barkodunu veya QR kodunu tarayın
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Veya manuel olarak kod girin
+                </p>
               </div>
             )}
 

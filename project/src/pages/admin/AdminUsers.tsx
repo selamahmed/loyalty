@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Search, Slash, Eye, Plus, X, Check, Gift, Trash2, Package, Zap, CheckSquare, Square, Users, ShieldCheck, ShieldOff, CreditCard as Edit3 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getAllUsers, suspendUser, activateUser } from '../../services/admin';
+import { getAllUsers, suspendUser, activateUser, updateUserRole, adminAddPoints } from '../../services/admin';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 import { playSound } from '../../lib/sounds';
 import { tr } from '../../lib/tr';
 
@@ -179,9 +180,13 @@ const UserModal: React.FC<{
   user: ManagedUser;
   onClose: () => void;
   mode: 'view' | 'edit' | 'suspend' | 'points' | 'inventory';
-}> = ({ user, onClose, mode }) => {
+  onSuspend?: (id: string) => Promise<void>;
+  onActivate?: (id: string) => Promise<void>;
+  onAddPoints?: (id: string, amount: number, reason: string) => Promise<void>;
+}> = ({ user, onClose, mode, onSuspend, onActivate, onAddPoints }) => {
   const [status, setStatus]         = useState(user.status);
   const [saved, setSaved]           = useState(false);
+  const [working, setWorking]       = useState(false);
   const [pointsAmount, setPointsAmount] = useState('');
   const [pointsReason, setPointsReason] = useState('manual_award');
   const [inventory, setInventory]   = useState<InventoryItem[]>(() => generateMockInventory(user.id));
@@ -190,7 +195,30 @@ const UserModal: React.FC<{
   const [newItemType, setNewItemType]   = useState<'coupon' | 'ticket' | 'reward'>('coupon');
   const [newItemExpires, setNewItemExpires] = useState('');
 
-  const handleSave = () => { setSaved(true); setTimeout(onClose, 900); };
+  const handleSave = async () => {
+    setWorking(true);
+    try {
+      if (mode === 'suspend') {
+        if (user.status === 'suspended') {
+          await onActivate?.(user.id);
+        } else {
+          await onSuspend?.(user.id);
+        }
+      } else if (mode === 'points') {
+        const amt = parseInt(pointsAmount);
+        if (!isNaN(amt) && amt !== 0) {
+          await onAddPoints?.(user.id, amt, pointsReason);
+        }
+      } else if (mode === 'edit') {
+        if (status !== user.status) {
+          if (status === 'suspended') await onSuspend?.(user.id);
+          else await onActivate?.(user.id);
+        }
+      }
+      setSaved(true);
+      setTimeout(onClose, 900);
+    } catch { /* error handled in parent */ } finally { setWorking(false); }
+  };
 
   const removeItem  = (id: string) => setInventory(prev => prev.filter(i => i.id !== id));
   const toggleUsed  = (id: string) => setInventory(prev => prev.map(i => i.id === id ? { ...i, used: !i.used } : i));
@@ -261,8 +289,8 @@ const UserModal: React.FC<{
             </div>
             <div className="flex gap-3">
               <button onClick={onClose} className="btn-secondary flex-1">{tr.common.cancel}</button>
-              <button onClick={handleSave} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                {saved ? <><Check size={14} /> Kaydedildi!</> : 'Değişiklikleri Kaydet'}
+              <button onClick={handleSave} disabled={working} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                {saved ? <><Check size={14} /> Kaydedildi!</> : working ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
               </button>
             </div>
           </div>
@@ -270,14 +298,18 @@ const UserModal: React.FC<{
 
         {mode === 'suspend' && (
           <div className="space-y-4">
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border-2 border-red-200 dark:border-red-700">
-              <p className="font-bold text-red-700 dark:text-red-400">{user.username} kullanıcısını askıya al?</p>
-              <p className="text-sm text-red-600 dark:text-red-400 mt-1">Bu kullanıcının hesabına erişimini engelleyecektir.</p>
+            <div className={`p-4 rounded-2xl border-2 ${user.status === 'suspended' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'}`}>
+              <p className={`font-bold ${user.status === 'suspended' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                {user.status === 'suspended' ? `${user.username} kullanıcısını aktif et?` : `${user.username} kullanıcısını askıya al?`}
+              </p>
+              <p className={`text-sm mt-1 ${user.status === 'suspended' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {user.status === 'suspended' ? 'Bu kullanıcının hesabına tekrar erişim sağlanacak.' : 'Bu kullanıcının hesabına erişimi engellenecek.'}
+              </p>
             </div>
             <div className="flex gap-3">
               <button onClick={onClose} className="btn-secondary flex-1">{tr.common.cancel}</button>
-              <button onClick={handleSave} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold border-2 border-red-700">
-                {saved ? 'Askıya Alındı!' : 'Kullanıcıyı Askıya Al'}
+              <button onClick={handleSave} disabled={working} className={`flex-1 py-3 rounded-2xl text-white font-bold border-2 ${user.status === 'suspended' ? 'bg-green-500 border-green-700' : 'bg-red-500 border-red-700'}`}>
+                {saved ? 'Tamamlandı!' : working ? 'İşleniyor...' : user.status === 'suspended' ? 'Aktif Et' : 'Kullanıcıyı Askıya Al'}
               </button>
             </div>
           </div>
@@ -301,8 +333,8 @@ const UserModal: React.FC<{
             </div>
             <div className="flex gap-3">
               <button onClick={onClose} className="btn-secondary flex-1">{tr.common.cancel}</button>
-              <button onClick={handleSave} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                {saved ? <><Check size={14} /> Uygulandı!</> : <><Gift size={14} />{parseInt(pointsAmount) < 0 ? 'Düş' : 'Ödül'} Puanları</>}
+              <button onClick={handleSave} disabled={working} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                {saved ? <><Check size={14} /> Uygulandı!</> : working ? 'İşleniyor...' : <><Gift size={14} />{parseInt(pointsAmount) < 0 ? 'Düş' : 'Ödül'} Puanları</>}
               </button>
             </div>
           </div>
@@ -468,9 +500,9 @@ const AdminUsers: React.FC = () => {
   const [showBulk, setShowBulk]       = useState(false);
   const [toast, setToast]             = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadUsers = useCallback(() => {
     setIsLoading(true);
-    getAllUsers(0, 50, search || undefined).then(profiles => {
+    getAllUsers(0, 100, search || undefined).then(profiles => {
       setUsers(profiles.map(p => ({
         id: p.id,
         username: p.username ?? p.email.split('@')[0],
@@ -484,6 +516,11 @@ const AdminUsers: React.FC = () => {
       })));
     }).catch(() => setUsers([])).finally(() => setIsLoading(false));
   }, [search]);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  /* realtime: refresh user list whenever profiles table changes */
+  useRealtimeTable('profiles', loadUsers);
 
   const filtered = users.filter(u => {
     const matchSearch = u.username.toLowerCase().includes(search.toLowerCase()) || u.email.includes(search);
@@ -511,17 +548,47 @@ const AdminUsers: React.FC = () => {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  const handleRoleChange = (id: string, newRole: RoleType) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, role: newRole } : u));
-    const user = users.find(u => u.id === id);
-    if (user) showToast(`${user.username} → ${roleLabel[newRole]}`);
+  const handleRoleChange = async (id: string, newRole: RoleType) => {
+    try {
+      await updateUserRole(id, newRole);
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, role: newRole } : u));
+      const user = users.find(u => u.id === id);
+      if (user) showToast(`${user.username} → ${roleLabel[newRole]}`);
+    } catch (e) {
+      console.error(e);
+      showToast('Rol değiştirme başarısız');
+    }
+  };
+
+  const handleSuspend = async (id: string) => {
+    try {
+      await suspendUser(id);
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'suspended' } : u));
+      showToast('Kullanıcı askıya alındı');
+    } catch (e) { console.error(e); showToast('İşlem başarısız'); }
+  };
+
+  const handleActivate = async (id: string) => {
+    try {
+      await activateUser(id);
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'active' } : u));
+      showToast('Kullanıcı aktif edildi');
+    } catch (e) { console.error(e); showToast('İşlem başarısız'); }
+  };
+
+  const handleAddPoints = async (userId: string, amount: number, description: string) => {
+    try {
+      await adminAddPoints(userId, amount, description);
+      await loadUsers();
+      showToast(`+${amount} puan eklendi`);
+    } catch (e) { console.error(e); showToast('Puan işlemi başarısız'); }
   };
 
   const selectedUsers = users.filter(u => selected.has(u.id));
 
   return (
     <AdminLayout>
-      {modal && <UserModal user={modal.user} mode={modal.mode} onClose={() => setModal(null)} />}
+      {modal && <UserModal user={modal.user} mode={modal.mode} onClose={() => setModal(null)} onSuspend={handleSuspend} onActivate={handleActivate} onAddPoints={handleAddPoints} />}
       {promoteTarget && (
         <PromoteModal
           user={promoteTarget}

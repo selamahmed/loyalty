@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { activityLogService, ActivityLog } from '../../lib/activityLogger';
 import { Search, Download, Filter, Eye, MapPin, Smartphone, Monitor, Globe, Shield, AlertTriangle, Clock, User, Wifi, Trash2, Ban, Unlock, Mail, Send } from 'lucide-react';
 import AdminLayout from './AdminLayout';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 
 const AdminAuditLogs: React.FC = () => {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -19,15 +20,7 @@ const AdminAuditLogs: React.FC = () => {
     'admin_action', 'security_alert', 'password_change', 'account_suspended', 'account_deleted'
   ];
 
-  useEffect(() => {
-    loadLogs();
-  }, []);
-
-  useEffect(() => {
-    filterLogs();
-  }, [logs, searchQuery, filterAction, filterRisk]);
-
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     try {
       setLoading(true);
       let data: ActivityLog[];
@@ -44,7 +37,14 @@ const AdminAuditLogs: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterAction]);
+
+  useEffect(() => { loadLogs(); }, [loadLogs]);
+
+  useEffect(() => { filterLogs(); }, [logs, searchQuery, filterAction, filterRisk]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* realtime: auto-refresh when new activity_logs arrive */
+  useRealtimeTable('activity_logs', loadLogs);
 
   const filterLogs = () => {
     let filtered = logs;

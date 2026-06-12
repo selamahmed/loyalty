@@ -1,6 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Settings, Save, CheckCircle, Loader, Zap, ToggleLeft, ToggleRight, TrendingUp, ShieldCheck, Sliders, AlertTriangle } from 'lucide-react';
 import AdminLayout from './AdminLayout';
+import { getAppSettings, updateAppSettings } from '../../services/config';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 
 /* ─── Types ─── */
 interface PointsEconomy {
@@ -161,6 +163,53 @@ const AdminSettings: React.FC = () => {
   const [draft, setDraft]       = useState<AllSettings>(DEFAULTS);
   const [saving, setSaving]     = useState(false);
   const [saved2, setSaved2]     = useState(false);
+  const [dbLoaded, setDbLoaded] = useState(false);
+
+  /* Load settings from DB on mount */
+  const loadSettings = useCallback(async () => {
+    try {
+      const rows = await getAppSettings();
+      if (rows.length === 0) { setDbLoaded(true); return; }
+      const map: Record<string, unknown> = {};
+      rows.forEach(r => { map[r.key] = r.value; });
+
+      const merged: AllSettings = {
+        economy: {
+          spend_to_points:       Number(map['points_per_currency'] ?? DEFAULTS.economy.spend_to_points),
+          points_to_tl:          DEFAULTS.economy.points_to_tl,
+          referral_bonus:        Number(map['referral_bonus'] ?? DEFAULTS.economy.referral_bonus),
+          welcome_bonus:         DEFAULTS.economy.welcome_bonus,
+        },
+        multipliers: {
+          qr_base_points:        Number(map['qr_scan_bonus'] ?? DEFAULTS.multipliers.qr_base_points),
+          game_multiplier:       DEFAULTS.multipliers.game_multiplier,
+          daily_mission_bonus:   Number(map['daily_login_bonus'] ?? DEFAULTS.multipliers.daily_mission_bonus),
+          streak_bonus:          DEFAULTS.multipliers.streak_bonus,
+        },
+        limits: {
+          daily_earn_cap:        Number(map['max_daily_points'] ?? DEFAULTS.limits.daily_earn_cap),
+          max_balance:           DEFAULTS.limits.max_balance,
+          min_redeem_threshold:  DEFAULTS.limits.min_redeem_threshold,
+          transaction_cooldown_min: DEFAULTS.limits.transaction_cooldown_min,
+        },
+        flags: {
+          qr_enabled:            map['maintenance_mode'] !== 'true',
+          games_enabled:         DEFAULTS.flags.games_enabled,
+          referral_enabled:      DEFAULTS.flags.referral_enabled,
+          streak_enabled:        DEFAULTS.flags.streak_enabled,
+          push_notifications:    DEFAULTS.flags.push_notifications,
+          double_points_events:  map['double_points_enabled'] === 'true',
+        },
+      };
+      setSaved(merged);
+      setDraft(merged);
+    } catch { /* fallback to defaults */ } finally { setDbLoaded(true); }
+  }, []);
+
+  useEffect(() => { loadSettings(); }, [loadSettings]);
+
+  /* realtime: reload when app_settings changes */
+  useRealtimeTable('app_settings', loadSettings);
 
   const isDirty = JSON.stringify(saved) !== JSON.stringify(draft);
 
@@ -171,12 +220,31 @@ const AdminSettings: React.FC = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise(r => setTimeout(r, 600));
-    setSaved(draft);
-    setSaving(false);
-    setSaved2(true);
-    setTimeout(() => setSaved2(false), 2500);
+    try {
+      await updateAppSettings({
+        'points_per_currency':  draft.economy.spend_to_points,
+        'referral_bonus':       draft.economy.referral_bonus,
+        'qr_scan_bonus':        draft.multipliers.qr_base_points,
+        'daily_login_bonus':    draft.multipliers.daily_mission_bonus,
+        'max_daily_points':     draft.limits.daily_earn_cap,
+        'double_points_enabled': draft.flags.double_points_events,
+        'maintenance_mode':     !draft.flags.qr_enabled,
+      });
+      setSaved(draft);
+    } catch (e) { console.error(e); } finally {
+      setSaving(false);
+      setSaved2(true);
+      setTimeout(() => setSaved2(false), 2500);
+    }
   };
+
+  if (!dbLoaded) return (
+    <AdminLayout>
+      <div className="p-6 flex items-center justify-center h-64">
+        <div className="w-10 h-10 border-4 border-[#7B6EF6] border-t-transparent rounded-full animate-spin" />
+      </div>
+    </AdminLayout>
+  );
 
   const handleDiscard = () => setDraft(saved);
 

@@ -1,30 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { pushNotificationService } from '../../lib/pushNotifications';
-import { Bell, Send, Clock, CheckCircle, AlertCircle, Plus, Users, Target } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Bell, Send, Clock, CheckCircle, AlertCircle, Plus, RefreshCw } from 'lucide-react';
 import AdminLayout from './AdminLayout';
+import { getAllNotifications, broadcastNotification } from '../../services/admin';
+import { useRealtimeTable } from '../../hooks/useRealtime';
 
-interface Notification {
+type DBNotification = {
   id: string;
-  userId: string;
+  user_id: string;
   title: string;
   message: string;
   type: string;
-  isRead: boolean;
-  deliveryStatus: 'pending' | 'sent' | 'failed' | 'read';
-  sentAt: string;
-  readAt?: string;
-}
-
-const mockNotifications: Notification[] = [
-  { id: '1', userId: 'all', title: 'Welcome Bonus!', message: 'Earn double points this weekend on all purchases!', type: 'promotion', isRead: false, deliveryStatus: 'sent', sentAt: new Date().toLocaleString() },
-  { id: '2', userId: 'all', title: 'New Reward Available', message: 'Check out our new seasonal menu items!', type: 'reward', isRead: true, deliveryStatus: 'read', sentAt: new Date(Date.now() - 86400000).toLocaleString(), readAt: new Date().toLocaleString() },
-  { id: '3', userId: 'user-1', title: 'Level Up!', message: 'Congratulations! You reached Level 15!', type: 'event', isRead: true, deliveryStatus: 'read', sentAt: new Date(Date.now() - 172800000).toLocaleString(), readAt: new Date(Date.now() - 86400000).toLocaleString() },
-  { id: '4', userId: 'all', title: 'System Maintenance', message: 'The app will be down for maintenance on Sunday 2-4 AM', type: 'general', isRead: false, deliveryStatus: 'pending', sentAt: new Date().toLocaleString() },
-  { id: '5', userId: 'user-2', title: 'Points Expiring Soon', message: '500 points will expire in 7 days. Use them now!', type: 'reward', isRead: false, deliveryStatus: 'sent', sentAt: new Date(Date.now() - 43200000).toLocaleString() },
-];
+  read: boolean;
+  created_at: string;
+  profiles?: { username?: string; email?: string } | null;
+};
 
 const AdminNotificationsPage: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<DBNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSendForm, setShowSendForm] = useState(false);
   const [notifTitle, setNotifTitle] = useState('');
@@ -32,44 +24,45 @@ const AdminNotificationsPage: React.FC = () => {
   const [notifType, setNotifType] = useState('general');
   const [targetUsers, setTargetUsers] = useState('all');
   const [sending, setSending] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
 
-  useEffect(() => {
-    loadNotifications();
-    const interval = setInterval(loadNotifications, 5000);
-    return () => clearInterval(interval);
+  const loadNotifications = useCallback(async () => {
+    try {
+      const data = await getAllNotifications(0, 100);
+      setNotifications(data as DBNotification[]);
+    } catch { setNotifications([]); } finally { setLoading(false); }
   }, []);
 
-  const loadNotifications = async () => {
-    setNotifications(mockNotifications);
-    setLoading(false);
-  };
+  useEffect(() => { loadNotifications(); }, [loadNotifications]);
+
+  /* realtime: refresh whenever a notification is created/updated */
+  useRealtimeTable('notifications', loadNotifications);
 
   const sendNotification = async () => {
     if (!notifTitle || !notifMessage) {
-      alert('Please fill in title and message');
+      alert('Başlık ve mesaj zorunludur');
       return;
     }
 
     setSending(true);
     try {
-      if (targetUsers === 'all') {
-        await pushNotificationService.sendBroadcast(notifTitle, notifMessage);
-      } else {
-        await pushNotificationService.sendNotification(targetUsers, {
-          title: notifTitle,
-          message: notifMessage,
-          tag: notifType,
-        });
-      }
+      await broadcastNotification({
+        type: notifType,
+        title: notifTitle,
+        message: notifMessage,
+        icon: notifType === 'promotion' ? '🎁' : notifType === 'reward' ? '⭐' : notifType === 'event' ? '🎉' : '🔔',
+        userIds: targetUsers === 'all' ? [] : undefined,
+      });
 
-      alert('Notification sent successfully!');
+      setSuccessMsg('Bildirim başarıyla gönderildi!');
+      setTimeout(() => setSuccessMsg(''), 4000);
       setNotifTitle('');
       setNotifMessage('');
       setShowSendForm(false);
-      loadNotifications();
+      await loadNotifications();
     } catch (error) {
       console.error('Failed to send notification:', error);
-      alert('Failed to send notification');
+      alert('Bildirim gönderilemedi');
     } finally {
       setSending(false);
     }
@@ -97,9 +90,8 @@ const AdminNotificationsPage: React.FC = () => {
 
   const stats = {
     total: notifications.length,
-    sent: notifications.filter(n => n.deliveryStatus === 'sent').length,
-    read: notifications.filter(n => n.isRead).length,
-    failed: notifications.filter(n => n.deliveryStatus === 'failed').length,
+    read: notifications.filter(n => n.read).length,
+    unread: notifications.filter(n => !n.read).length,
   };
 
   if (loading) {
@@ -123,9 +115,9 @@ const AdminNotificationsPage: React.FC = () => {
           <div>
             <h1 className="text-2xl lg:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2">
               <Bell className="text-[#7B6EF6]" size={28} />
-              Push Notifications
+              Bildirimler
             </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Send and manage system-wide push notifications</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Tüm kullanıcılara bildirim gönder ve geçmişi izle</p>
           </div>
           <button
             onClick={() => setShowSendForm(!showSendForm)}
@@ -137,14 +129,14 @@ const AdminNotificationsPage: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
           <div className="card p-4 lg:p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
             <div className="flex items-center gap-3">
               <div className="p-2 lg:p-3 rounded-2xl bg-blue-100 dark:bg-blue-900/30">
                 <Bell size={20} className="text-blue-600 lg:w-6 lg:h-6" />
               </div>
               <div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Total Sent</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Toplam</p>
                 <p className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{stats.total}</p>
               </div>
             </div>
@@ -156,7 +148,7 @@ const AdminNotificationsPage: React.FC = () => {
                 <CheckCircle size={20} className="text-green-600 lg:w-6 lg:h-6" />
               </div>
               <div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Read</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Okundu</p>
                 <p className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{stats.read}</p>
               </div>
             </div>
@@ -168,20 +160,8 @@ const AdminNotificationsPage: React.FC = () => {
                 <Clock size={20} className="text-yellow-600 lg:w-6 lg:h-6" />
               </div>
               <div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Pending</p>
-                <p className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{notifications.filter(n => n.deliveryStatus === 'pending').length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card p-4 lg:p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="p-2 lg:p-3 rounded-2xl bg-red-100 dark:bg-red-900/30">
-                <AlertCircle size={20} className="text-red-600 lg:w-6 lg:h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Failed</p>
-                <p className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{stats.failed}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Okunmadı</p>
+                <p className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{stats.unread}</p>
               </div>
             </div>
           </div>
@@ -192,19 +172,19 @@ const AdminNotificationsPage: React.FC = () => {
           <div className="card p-4 lg:p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700 space-y-4">
             <div className="flex items-center gap-2">
               <Send className="text-[#7B6EF6]" size={20} />
-              <h3 className="text-lg lg:text-xl font-black text-gray-900 dark:text-white">Compose Notification</h3>
+              <h3 className="text-lg lg:text-xl font-black text-gray-900 dark:text-white">Bildirim Oluştur</h3>
             </div>
 
             <input
               type="text"
-              placeholder="Notification Title"
+              placeholder="Bildirim Başlığı"
               value={notifTitle}
               onChange={(e) => setNotifTitle(e.target.value)}
               className="w-full px-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500"
             />
 
             <textarea
-              placeholder="Notification Message"
+              placeholder="Bildirim Mesajı"
               value={notifMessage}
               onChange={(e) => setNotifMessage(e.target.value)}
               className="w-full px-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 resize-none h-24"
@@ -232,10 +212,7 @@ const AdminNotificationsPage: React.FC = () => {
                   onChange={(e) => setTargetUsers(e.target.value)}
                   className="w-full px-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-bold"
                 >
-                  <option value="all">All Users</option>
-                  <option value="premium">Premium Users</option>
-                  <option value="inactive">Inactive Users</option>
-                  <option value="specific">Specific User</option>
+                  <option value="all">Tüm Kullanıcılar</option>
                 </select>
               </div>
             </div>
@@ -249,12 +226,12 @@ const AdminNotificationsPage: React.FC = () => {
                 {sending ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Sending...</span>
+                    <span>Gönderiliyor...</span>
                   </>
                 ) : (
                   <>
                     <Send size={20} />
-                    <span>Send Notification</span>
+                    <span>Gönder</span>
                   </>
                 )}
               </button>
@@ -262,19 +239,28 @@ const AdminNotificationsPage: React.FC = () => {
                 onClick={() => setShowSendForm(false)}
                 className="flex-1 py-3 rounded-2xl border-2 border-black dark:border-gray-600 font-bold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                Cancel
+                İptal
               </button>
             </div>
           </div>
         )}
 
+        {successMsg && (
+          <div className="p-3 rounded-2xl bg-green-100 dark:bg-green-900/30 border-2 border-green-500 text-green-700 dark:text-green-300 font-bold text-sm flex items-center gap-2">
+            <CheckCircle size={16} /> {successMsg}
+          </div>
+        )}
+
         {/* Notifications List */}
         <div className="card bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700 overflow-hidden">
-          <div className="p-4 lg:p-6 border-b-2 border-black dark:border-gray-700">
+          <div className="p-4 lg:p-6 border-b-2 border-black dark:border-gray-700 flex items-center justify-between">
             <h3 className="font-black text-gray-900 dark:text-white flex items-center gap-2">
               <Bell size={20} className="text-gray-400" />
-              Recent Notifications ({notifications.length})
+              Son Bildirimler ({notifications.length})
             </h3>
+            <button onClick={loadNotifications} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors">
+              <RefreshCw size={15} />
+            </button>
           </div>
 
           <div className="overflow-x-auto">
@@ -292,12 +278,13 @@ const AdminNotificationsPage: React.FC = () => {
                 {notifications.map(notif => (
                   <tr key={notif.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${getStatusColor(notif.deliveryStatus)}`}>
-                        {notif.deliveryStatus.toUpperCase()}
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${notif.read ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'}`}>
+                        {notif.read ? 'OKUNDU' : 'OKUNMADI'}
                       </span>
                     </td>
                     <td className="py-3 px-4">
                       <p className="font-bold text-gray-900 dark:text-white text-sm">{notif.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{(notif.profiles as Record<string,string>)?.username ?? (notif.profiles as Record<string,string>)?.email ?? notif.user_id.slice(0, 8)}</p>
                     </td>
                     <td className="py-3 px-4 hidden md:table-cell">
                       <p className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-xs">{notif.message}</p>
@@ -308,7 +295,7 @@ const AdminNotificationsPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3 px-4 hidden sm:table-cell">
-                      <span className="text-xs text-gray-500">{notif.sentAt}</span>
+                      <span className="text-xs text-gray-500">{new Date(notif.created_at).toLocaleString('tr-TR')}</span>
                     </td>
                   </tr>
                 ))}
@@ -316,10 +303,10 @@ const AdminNotificationsPage: React.FC = () => {
             </table>
           </div>
 
-          {notifications.length === 0 && (
+          {notifications.length === 0 && !loading && (
             <div className="text-center py-12">
               <Bell size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">No notifications sent yet</p>
+              <p className="text-gray-500 dark:text-gray-400">Henüz bildirim yok</p>
             </div>
           )}
         </div>
