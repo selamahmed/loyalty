@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,7 +15,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
     "@zxing/browser": "^0.2.0",
-    "@zxing/library": "^0.22.0",
+    "@zxing/library": "0.21.3",
     "jsqr": "^1.4.0",
     "lucide-react": "^0.344.0",
     "qrcode": "^1.5.4",
