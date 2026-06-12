@@ -12,6 +12,31 @@ const card = {
   borderRadius: 20,
 };
 
+/* ── Avatar with initials fallback ── */
+const AVATAR_COLORS = ['#7B6EF6','#FF5722','#4CAF50','#2196F3','#FF9800','#E91E63','#00BCD4','#9C27B0','#F44336','#43A047'];
+const avatarColor = (name: string) => AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length];
+
+const Avatar: React.FC<{ url: string | null; name: string; size?: number; border?: string }> = ({ url, name, size = 40, border }) => {
+  const [err, setErr] = useState(false);
+  const showFallback = !url || err;
+  const initial = (name || '?')[0].toUpperCase();
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: showFallback ? avatarColor(name || 'U') : 'var(--tab-bg)',
+      border: border ?? '2.5px solid var(--dark-border)',
+    }}>
+      {showFallback
+        ? <span style={{ fontWeight: 900, fontSize: size * 0.38, color: '#fff', lineHeight: 1, userSelect: 'none' }}>{initial}</span>
+        : <img src={url!} alt={name} onError={() => setErr(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+    </div>
+  );
+};
+
+const TAB_LABELS: Record<string, string> = { weekly: 'Bu Hafta', monthly: 'Bu Ay', alltime: 'Tüm Zamanlar' };
+const PERIOD_LABEL: Record<string, string> = { weekly: 'bu hafta', monthly: 'bu ay', alltime: 'toplam' };
+
 /* ── Countdown hook ── */
 const useCountdown = (endDate: string) => {
   const calc = () => {
@@ -189,9 +214,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; topPlayers: LeaderboardEntr
                 return (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14, border: `2px solid ${['#f59e0b','#94a3b8','#f97316'][i] ?? 'var(--dark-border)'}`, background: i === 0 ? 'rgba(245,158,11,0.07)' : 'var(--tab-bg)' }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>{['🥇','🥈','🥉','🏅'][i] ?? '🏅'}</span>
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--dark-border)', flexShrink: 0 }}>
-                      {p.avatar_url ? <img src={p.avatar_url} alt={p.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>👤</div>}
-                    </div>
+                    <Avatar url={p.avatar_url} name={p.username} size={36} border={`2px solid ${['#f59e0b','#94a3b8','#f97316'][i] ?? 'var(--dark-border)'}`} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.username}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -224,9 +247,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; topPlayers: LeaderboardEntr
                 return (
                   <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, border: `2.5px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : '#f97316'}`, background: i === 0 ? 'rgba(245,158,11,0.08)' : 'var(--tab-bg)' }}>
                     <span style={{ fontSize: 22, flexShrink: 0 }}>{['🥇','🥈','🥉'][i] ?? '🏅'}</span>
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--dark-border)', flexShrink: 0 }}>
-                      {w.avatar_url ? <img src={w.avatar_url} alt={w.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>}
-                    </div>
+                    <Avatar url={w.avatar_url} name={w.username} size={36} border={`2px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : '#f97316'}`} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0 }}>{w.username}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -419,7 +440,7 @@ const Leaderboard: React.FC = () => {
               color: tab === t ? 'white' : 'var(--text-dark)',
               border: '3px solid var(--dark-border)',
               boxShadow: tab === t ? '0 5px 0 var(--dark-border)' : '0 4px 0 var(--dark-border)',
-            }}>{t === 'alltime' ? 'All Time' : t.charAt(0).toUpperCase() + t.slice(1)}</button>
+            }}>{TAB_LABELS[t]}</button>
           ))}
         </div>
 
@@ -437,26 +458,22 @@ const Leaderboard: React.FC = () => {
             {podiumOrder.map((player, i) => {
               const isFirst = player?.rank === 1;
               const badge = player?.rank === 1 ? '👑' : player?.rank === 2 ? '🥈' : '🥉';
+              const sz = isFirst ? 72 : 58;
               return (
-                <div key={player?.rank} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                    <div style={{ position: 'relative' }}>
-                    <div style={{
-                      width: isFirst ? 72 : 58, height: isFirst ? 72 : 58,
-                      borderRadius: '50%', overflow: 'hidden',
-                      border: `${isFirst ? 4 : 3}px solid ${podiumColors[i]}`,
-                      boxShadow: `0 4px 0 ${podiumColors[i]}88`,
-                    }}>
-                      {player?.avatar_url
-                        ? <img src={player.avatar_url} alt={player.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>👤</div>
-                      }
-                    </div>
+                <div key={player?.rank ?? i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                  <div style={{ position: 'relative' }}>
+                    {player
+                      ? <Avatar url={player.avatar_url} name={player.username} size={sz} border={`${isFirst ? 4 : 3}px solid ${podiumColors[i]}`} />
+                      : <div style={{ width: sz, height: sz, borderRadius: '50%', background: 'var(--tab-bg)', border: `3px solid ${podiumColors[i]}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: 'var(--text-muted)' }}>—</div>
+                    }
                     <div style={{ position: 'absolute', top: -8, right: -6, fontSize: isFirst ? 22 : 18 }}>{badge}</div>
                   </div>
-                  <p style={{ fontWeight: 900, fontSize: isFirst ? 14 : 12, color: 'var(--text-dark)', textAlign: 'center', margin: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player?.username}</p>
+                  <p style={{ fontWeight: 900, fontSize: isFirst ? 14 : 12, color: 'var(--text-dark)', textAlign: 'center', margin: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {player?.username ?? '—'}
+                  </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                     <Star size={10} fill="#f59e0b" color="#f59e0b" />
-                    <span style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b' }}>{player?.total_points.toLocaleString()}</span>
+                    <span style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b' }}>{player?.total_points.toLocaleString() ?? '—'}</span>
                   </div>
                   {/* Podium block */}
                   <div style={{
@@ -474,11 +491,24 @@ const Leaderboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Rest of rankings ── */}
+        {/* ── Rest of rankings (positions 4+) ── */}
         {isLoading ? (
           <div style={{ ...card, padding: 40, textAlign: 'center' }}>
             <div className="w-8 h-8 rounded-full border-4 border-violet-400 border-t-transparent animate-spin mx-auto mb-3" />
             <p style={{ color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>Yükleniyor...</p>
+          </div>
+        ) : rest.length === 0 && leaderboard.length === 0 ? (
+          /* Empty state for period with no activity */
+          <div style={{ ...card, padding: '32px 20px', textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 10 }}>📊</div>
+            <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 6px' }}>
+              {tab === 'alltime' ? 'Henüz kimse yok' : `${TAB_LABELS[tab]} aktivite yok`}
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
+              {tab === 'alltime'
+                ? 'İlk puanı kazanan olun 🚀'
+                : `Bu ${tab === 'weekly' ? 'hafta' : 'ay'} puan kazan ve sıralamana gir! 🚀`}
+            </p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -490,29 +520,36 @@ const Leaderboard: React.FC = () => {
                   border: isCurrentUser ? '3px solid var(--primary-blue)' : '3px solid var(--dark-border)',
                   boxShadow: isCurrentUser ? '0 6px 0 var(--primary-blue)' : '0 6px 0 var(--dark-border)',
                   background: isCurrentUser ? 'rgba(123,110,246,0.07)' : 'var(--card-bg)',
-                  padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12,
                 }}>
+                  {/* Rank number */}
                   <div style={{ width: 32, textAlign: 'center', flexShrink: 0 }}>
-                    <span style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)' }}>#{player.rank}</span>
+                    <span style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)' }}>#{player.rank}</span>
                   </div>
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2.5px solid var(--dark-border)', flexShrink: 0 }}>
-                    {player.avatar_url
-                      ? <img src={player.avatar_url} alt={player.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
-                    }
-                  </div>
+                  {/* Avatar */}
+                  <Avatar url={player.avatar_url} name={player.username} size={40}
+                    border={isCurrentUser ? '2.5px solid var(--primary-blue)' : '2.5px solid var(--dark-border)'} />
+                  {/* Name + level */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <p style={{ fontWeight: 900, fontSize: 13, color: isCurrentUser ? 'var(--primary-blue)' : 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.username}</p>
+                      <p style={{ fontWeight: 900, fontSize: 13, color: isCurrentUser ? 'var(--primary-blue)' : 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {player.username}
+                      </p>
                       {isCurrentUser && (
                         <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 999, background: 'var(--primary-blue)', color: 'white', flexShrink: 0 }}>SEN</span>
                       )}
                     </div>
                     <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0, fontWeight: 600 }}>Seviye {player.level}</p>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                    <Star size={12} fill="#f59e0b" color="#f59e0b" />
-                    <span style={{ fontWeight: 900, fontSize: 13, color: '#f59e0b' }}>{player.total_points.toLocaleString()}</span>
+                  {/* Points + period label */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                      <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>{player.total_points.toLocaleString()}</span>
+                    </div>
+                    {tab !== 'alltime' && (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }}>{PERIOD_LABEL[tab]}</span>
+                    )}
                   </div>
                 </div>
               );
@@ -532,20 +569,22 @@ const Leaderboard: React.FC = () => {
               padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14,
               background: 'rgba(123,110,246,0.06)',
             }}>
-              <Trophy size={24} color="var(--primary-blue)" />
-              <div style={{ flex: 1 }}>
+              <Avatar url={profile?.avatar_url ?? null} name={profile?.username ?? authUser.email ?? 'U'} size={44} border="3px solid var(--primary-blue)" />
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 2px' }}>
                   Senin Sıralaman
                   {!inList && <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-muted)', fontWeight: 700 }}>(İlk 50 dışında)</span>}
                 </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   <TrendingUp size={12} color="#22c55e" />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>{myRank.total_points.toLocaleString()} puan</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>
+                    {myRank.total_points.toLocaleString()} puan
+                    {tab !== 'alltime' && <span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 10 }}> ({PERIOD_LABEL[tab]})</span>}
+                  </span>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>· Seviye {myRank.level}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>· {profile?.username ?? ''}</span>
                 </div>
               </div>
-              <p style={{ fontWeight: 900, fontSize: 32, color: 'var(--primary-blue)', margin: 0 }}>#{myRank.rank}</p>
+              <p style={{ fontWeight: 900, fontSize: 32, color: 'var(--primary-blue)', margin: 0, flexShrink: 0 }}>#{myRank.rank}</p>
             </div>
           );
         })()}

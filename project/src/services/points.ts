@@ -61,15 +61,17 @@ export async function getLeaderboard(limit = 50, period: 'alltime' | 'weekly' | 
     return (data ?? []).map((u, i) => ({ rank: i + 1, ...u }));
   }
 
-  // Weekly / Monthly — try the pre-built view first (requires patch_new_tables.sql)
+  // Weekly / Monthly — try the pre-built view first (requires patch_new_tables.sql to be run)
   const view = period === 'weekly' ? 'leaderboard_weekly' : 'leaderboard_monthly';
   const { data, error } = await supabase
     .from(view)
     .select('id, username, avatar_url, level, period_points, rank')
+    .gt('period_points', 0)          // exclude users with 0 period activity
     .order('period_points', { ascending: false })
     .limit(limit);
 
-  if (!error && data && data.length > 0) {
+  if (!error && data) {
+    // View exists and returned data — use it (even if empty for this period)
     return data.map((u, i) => ({
       id: u.id,
       username: u.username,
@@ -89,8 +91,8 @@ export async function getLeaderboard(limit = 50, period: 'alltime' | 'weekly' | 
     .gte('created_at', since)
     .gt('amount', 0);
 
-  if (txError || !txData) {
-    // Last resort: fall back to all-time
+  // If the table query itself fails, fall back to all-time
+  if (txError) {
     const { data: fb } = await supabase
       .from('profiles')
       .select('id, username, total_points, level, avatar_url')
@@ -99,6 +101,9 @@ export async function getLeaderboard(limit = 50, period: 'alltime' | 'weekly' | 
       .limit(limit);
     return (fb ?? []).map((u, i) => ({ rank: i + 1, ...u }));
   }
+
+  // No transactions in this period — return empty (don't fake it with all-time data)
+  if (!txData || txData.length === 0) return [];
 
   // Aggregate per user
   const totals: Record<string, number> = {};
@@ -107,16 +112,6 @@ export async function getLeaderboard(limit = 50, period: 'alltime' | 'weekly' | 
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([id]) => id);
-
-  if (topIds.length === 0) {
-    const { data: fb } = await supabase
-      .from('profiles')
-      .select('id, username, total_points, level, avatar_url')
-      .eq('status', 'active')
-      .order('total_points', { ascending: false })
-      .limit(limit);
-    return (fb ?? []).map((u, i) => ({ rank: i + 1, ...u }));
-  }
 
   const { data: profiles } = await supabase
     .from('profiles')
