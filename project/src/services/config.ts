@@ -1,5 +1,42 @@
 import { supabase } from '../lib/supabase';
 
+/* ── Maintenance Mode helpers ── */
+export interface MaintenanceStatus {
+  enabled: boolean;
+  message: string;
+  estimated_time: string;
+  activated_at: string | null;
+}
+
+export async function getMaintenanceStatus(): Promise<MaintenanceStatus> {
+  const { data } = await supabase
+    .from('app_settings')
+    .select('key, value')
+    .in('key', ['maintenance_mode', 'maintenance_message', 'maintenance_estimated_time', 'maintenance_activated_at']);
+  const map: Record<string, unknown> = {};
+  (data ?? []).forEach((r: { key: string; value: unknown }) => { map[r.key] = r.value; });
+  return {
+    enabled:        map['maintenance_mode']           === true || map['maintenance_mode'] === 'true',
+    message:        String(map['maintenance_message'] ?? 'Siteyi daha iyi hale getirmek için çalışıyoruz.'),
+    estimated_time: String(map['maintenance_estimated_time'] ?? ''),
+    activated_at:   map['maintenance_activated_at'] ? String(map['maintenance_activated_at']) : null,
+  };
+}
+
+export async function setMaintenanceMode(
+  enabled: boolean,
+  message = '',
+  estimatedTime = '',
+): Promise<void> {
+  const now = new Date().toISOString();
+  await supabase.from('app_settings').upsert([
+    { key: 'maintenance_mode',           value: enabled, updated_at: now },
+    { key: 'maintenance_message',        value: message || 'Siteyi daha iyi hale getirmek için çalışıyoruz.', updated_at: now },
+    { key: 'maintenance_estimated_time', value: estimatedTime, updated_at: now },
+    { key: 'maintenance_activated_at',   value: enabled ? now : null, updated_at: now },
+  ], { onConflict: 'key' });
+}
+
 /* ── App Settings ── */
 export type AppSetting = { id: string; key: string; value: unknown; description: string | null; category: string; updated_at: string };
 

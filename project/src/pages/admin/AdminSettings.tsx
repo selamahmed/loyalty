@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Settings, Save, CheckCircle, Loader, Zap, ToggleLeft, ToggleRight, TrendingUp, ShieldCheck, Sliders, AlertTriangle } from 'lucide-react';
+import { Settings, Save, CheckCircle, Loader, Zap, ToggleLeft, ToggleRight, TrendingUp, ShieldCheck, Sliders, AlertTriangle, Wrench, Power, X, Clock } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getAppSettings, updateAppSettings } from '../../services/config';
+import { getAppSettings, updateAppSettings, getMaintenanceStatus, setMaintenanceMode, type MaintenanceStatus } from '../../services/config';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 
 /* ─── Types ─── */
@@ -157,6 +157,169 @@ const UnsavedBanner: React.FC<{ onSave: () => void; onDiscard: () => void; savin
   </div>
 );
 
+/* ─── Maintenance Mode Panel ─── */
+const MaintenancePanel: React.FC = () => {
+  const [mStatus,   setMStatus]   = useState<MaintenanceStatus | null>(null);
+  const [mLoading,  setMLoading]  = useState(true);
+  const [mSaving,   setMSaving]   = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [mMessage,  setMMessage]  = useState('');
+  const [mTime,     setMTime]     = useState('');
+
+  const loadStatus = useCallback(async () => {
+    try {
+      const s = await getMaintenanceStatus();
+      setMStatus(s);
+      setMMessage(s.message);
+      setMTime(s.estimated_time);
+    } catch { /**/ } finally { setMLoading(false); }
+  }, []);
+
+  useEffect(() => { loadStatus(); }, [loadStatus]);
+
+  const handleToggle = async (enable: boolean) => {
+    setMSaving(true);
+    try {
+      await setMaintenanceMode(enable, mMessage, mTime);
+      setMStatus(prev => prev ? { ...prev, enabled: enable } : null);
+    } catch { /**/ } finally {
+      setMSaving(false);
+      setShowConfirm(false);
+    }
+  };
+
+  const isOn = mStatus?.enabled ?? false;
+
+  return (
+    <div style={{
+      borderRadius: 20, overflow: 'hidden',
+      border: `3px solid ${isOn ? '#FF3B30' : 'var(--dark-border)'}`,
+      boxShadow: isOn ? '0 6px 0 #FF3B30, 0 0 40px rgba(255,59,48,0.15)' : '0 4px 0 var(--dark-border)',
+      background: isOn ? 'rgba(255,59,48,0.05)' : 'var(--card-bg)',
+      transition: 'all 0.3s',
+    }}>
+      {/* Header */}
+      <div style={{ padding: '18px 22px', borderBottom: `2.5px solid ${isOn ? 'rgba(255,59,48,0.3)' : 'var(--dark-border)'}`, background: isOn ? 'rgba(255,59,48,0.08)' : 'rgba(255,59,48,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 14, background: isOn ? 'rgba(255,59,48,0.2)' : 'rgba(255,59,48,0.1)', border: `2px solid ${isOn ? '#FF3B30' : 'rgba(255,59,48,0.3)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Wrench size={20} color="#FF3B30" />
+          </div>
+          <div>
+            <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: 0 }}>Bakım Modu</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Aktifken kullanıcılar bakım sayfası görür, yöneticiler erişebilir</p>
+          </div>
+        </div>
+
+        {/* Status badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, fontWeight: 900, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' as const, border: `2px solid ${isOn ? '#FF3B30' : '#22c55e'}`, background: isOn ? 'rgba(255,59,48,0.1)' : 'rgba(34,197,94,0.1)', color: isOn ? '#FF3B30' : '#22c55e' }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: isOn ? '#FF3B30' : '#22c55e', boxShadow: `0 0 6px ${isOn ? '#FF3B30' : '#22c55e'}`, animation: isOn ? 'pulse-dot 1s ease-in-out infinite' : 'none' }} />
+            {mLoading ? '...' : isOn ? 'AKTİF' : 'KAPALI'}
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: 22 }}>
+        {/* Message input */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: 'block', fontWeight: 900, fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 6 }}>
+            Kullanıcıya gösterilecek mesaj
+          </label>
+          <textarea
+            value={mMessage}
+            onChange={e => setMMessage(e.target.value)}
+            rows={2}
+            placeholder="örn. Siteyi sizin için yeniliyoruz, kısa süre içinde dönüyoruz!"
+            className="input-field resize-none"
+            style={{ fontSize: 13 }}
+          />
+        </div>
+
+        {/* Estimated time */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', fontWeight: 900, fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 6 }}>
+            <Clock size={10} style={{ display: 'inline', marginRight: 4 }} />
+            Tahmini geri dönüş süresi
+          </label>
+          <input
+            value={mTime}
+            onChange={e => setMTime(e.target.value)}
+            placeholder="örn. 2 saat, 30 dakika, 14:00..."
+            className="input-field"
+            style={{ fontSize: 13 }}
+          />
+        </div>
+
+        {/* Big toggle button */}
+        <button
+          onClick={() => setShowConfirm(true)}
+          disabled={mLoading || mSaving}
+          style={{
+            width: '100%', padding: '14px 0', borderRadius: 16, fontWeight: 900, fontSize: 15,
+            cursor: mLoading || mSaving ? 'not-allowed' : 'pointer',
+            border: `3px solid ${isOn ? '#22c55e' : '#FF3B30'}`,
+            boxShadow: isOn ? '0 5px 0 #16a34a' : '0 5px 0 #c0392b',
+            background: isOn ? 'rgba(34,197,94,0.12)' : 'rgba(255,59,48,0.12)',
+            color: isOn ? '#16a34a' : '#FF3B30',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            transition: 'all 0.15s', opacity: mLoading || mSaving ? 0.6 : 1,
+          }}
+          onMouseEnter={e => { if (!mLoading && !mSaving) (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+          onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)'; }}
+          onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+        >
+          {mSaving ? (
+            <Loader size={18} style={{ animation: 'spin 0.7s linear infinite' }} />
+          ) : (
+            <Power size={18} />
+          )}
+          {mSaving ? 'Değiştiriliyor…' : isOn ? '✅ Bakım Modunu Kapat (Siteyi Aç)' : '🔧 Bakım Modunu Aç (Siteyi Kapat)'}
+        </button>
+
+        {isOn && (
+          <p style={{ marginTop: 10, textAlign: 'center', fontSize: 11, color: '#FF3B30', fontWeight: 700 }}>
+            ⚠️ Şu anda tüm kullanıcılar bakım sayfası görüyor
+          </p>
+        )}
+      </div>
+
+      {/* Confirm Modal */}
+      {showConfirm && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', padding: 16 }}>
+          <div style={{ maxWidth: 400, width: '100%', background: 'var(--card-bg)', border: `3px solid ${isOn ? '#22c55e' : '#FF3B30'}`, boxShadow: `0 8px 0 ${isOn ? '#16a34a' : '#c0392b'}`, borderRadius: 22, padding: 28, textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>{isOn ? '✅' : '⚠️'}</div>
+            <h3 style={{ fontWeight: 900, fontSize: 18, color: 'var(--text-dark)', marginBottom: 8 }}>
+              {isOn ? 'Bakım Modunu Kapat?' : 'Bakım Modunu Aç?'}
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 22 }}>
+              {isOn
+                ? 'Site tekrar normal çalışmaya başlayacak. Tüm kullanıcılar siteye erişebilecek.'
+                : `Site kullanıcılara kapatılacak. Sadece yöneticiler erişebilecek. Mesaj: "${mMessage || 'Bakım devam ediyor...'}"`
+              }
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setShowConfirm(false)} style={{ flex: 1, padding: '11px 0', borderRadius: 14, fontWeight: 900, fontSize: 13, cursor: 'pointer', border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', background: 'var(--card-bg)', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <X size={14} /> İptal
+              </button>
+              <button onClick={() => handleToggle(!isOn)} style={{ flex: 1, padding: '11px 0', borderRadius: 14, fontWeight: 900, fontSize: 13, cursor: 'pointer', border: `2.5px solid ${isOn ? '#22c55e' : '#FF3B30'}`, boxShadow: isOn ? '0 3px 0 #16a34a' : '0 3px 0 #c0392b', background: isOn ? 'rgba(34,197,94,0.15)' : 'rgba(255,59,48,0.15)', color: isOn ? '#16a34a' : '#FF3B30', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Power size={14} /> {isOn ? 'Evet, Kapat' : 'Evet, Aç'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 /* ─── Main component ─── */
 const AdminSettings: React.FC = () => {
   const [saved, setSaved]       = useState<AllSettings>(DEFAULTS);
@@ -272,6 +435,9 @@ const AdminSettings: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* ── 0. Maintenance Mode ── */}
+        <MaintenancePanel />
 
         {/* ── 1. Puan Ekonomisi ── */}
         <Section icon={TrendingUp} title="Puan Ekonomisi" subtitle="TL ↔ Puan dönüşüm oranlarını ayarlayın (ondalık değer desteklenir)" color="#7B6EF6">

@@ -7,10 +7,11 @@ import { InventoryProvider } from './context/InventoryContext';
 import Layout from './components/Layout';
 
 // Route Guards (small — always loaded)
-import CustomerRoute   from './components/guards/CustomerRoute';
-import SuperAdminRoute from './components/guards/SuperAdminRoute';
-import StoreAdminRoute from './components/guards/StoreAdminRoute';
-import CashierRoute    from './components/guards/CashierRoute';
+import CustomerRoute     from './components/guards/CustomerRoute';
+import SuperAdminRoute   from './components/guards/SuperAdminRoute';
+import StoreAdminRoute   from './components/guards/StoreAdminRoute';
+import CashierRoute      from './components/guards/CashierRoute';
+import MaintenanceGuard  from './components/guards/MaintenanceGuard';
 
 // Always-needed pages (tiny, keep eager)
 import LandingPage      from './pages/LandingPage';
@@ -96,7 +97,9 @@ const Spinner: React.FC = () => (
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 const C: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <CustomerRoute><Layout>{children}</Layout></CustomerRoute>
+  <MaintenanceGuard>
+    <CustomerRoute><Layout>{children}</Layout></CustomerRoute>
+  </MaintenanceGuard>
 );
 
 const SA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
