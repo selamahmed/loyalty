@@ -150,6 +150,15 @@ const LandingPage: React.FC = () => {
   const [hovered, setHovered] = React.useState<number | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
 
+  // Close mobile menu on Escape key or resize to desktop
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    const onResize = () => { if (window.innerWidth >= 768) setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('resize', onResize); };
+  }, []);
+
   const t = {
     pageBg:        isDark ? '#1A0A2E' : '#FFF8F0',
     heroText:      isDark ? '#ffffff' : '#000000',
@@ -198,34 +207,38 @@ const LandingPage: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Theme toggle — always visible */}
               <button onClick={toggleTheme}
                 style={{ width: 36, height: 36, borderRadius: '50%', border: `2.5px solid #000`, background: t.cardBg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 3px 0 #000`, flexShrink: 0, transition: 'transform 0.1s' }}
                 onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 #000'; }}
                 onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #000'; }}>
                 {isDark ? <Sun size={14} color="#FBBF24" /> : <Moon size={14} color="#7B6EF6" />}
               </button>
-              <button onClick={() => navigate('/login')} className="lbtn-secondary-sm nav-login-btn">Giriş Yap</button>
-              <button
-                onClick={() => navigate('/admin-login')}
-                className="nav-admin-btn"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '7px 14px', borderRadius: 12, cursor: 'pointer',
-                  background: '#9122FF18', color: '#9122FF',
-                  border: '2.5px solid #9122FF', fontWeight: 900, fontSize: 12,
-                  boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit',
-                  whiteSpace: 'nowrap', transition: 'transform 0.1s, box-shadow 0.1s',
-                }}
-                onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 #6b19c0'; }}
-                onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #6b19c0'; }}
-              >
-                🔐 <span className="nav-admin-label">Yönetici</span>
-              </button>
-              <button onClick={() => navigate('/home')} className="lbtn-primary-sm">
-                <span className="btn-label-full">Panele Gir</span>
-                <span className="btn-label-short">Panel</span>
-                <ArrowRight size={12} />
-              </button>
+
+              {/* Desktop-only action buttons — hidden on mobile via .nav-desktop-actions */}
+              <div className="nav-desktop-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button onClick={() => navigate('/login')} className="lbtn-secondary-sm">Giriş Yap</button>
+                <button
+                  onClick={() => navigate('/admin-login')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '7px 14px', borderRadius: 12, cursor: 'pointer',
+                    background: '#9122FF18', color: '#9122FF',
+                    border: '2.5px solid #9122FF', fontWeight: 900, fontSize: 12,
+                    boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit',
+                    whiteSpace: 'nowrap', transition: 'transform 0.1s, box-shadow 0.1s',
+                  }}
+                  onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 #6b19c0'; }}
+                  onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #6b19c0'; }}
+                >
+                  🔐 Yönetici
+                </button>
+                <button onClick={() => navigate('/home')} className="lbtn-primary-sm">
+                  Panele Gir <ArrowRight size={12} />
+                </button>
+              </div>
+
+              {/* Hamburger — visible only on mobile via .hamburger-btn CSS */}
               <button className="hamburger-btn" onClick={() => setMenuOpen(!menuOpen)}
                 style={{ width: 36, height: 36, borderRadius: 10, border: `2.5px solid #000`, background: t.cardBg, cursor: 'pointer', alignItems: 'center', justifyContent: 'center', boxShadow: `0 3px 0 #000`, flexShrink: 0 }}>
                 {menuOpen ? <X size={16} color={t.textPrimary} /> : <Menu size={16} color={t.textPrimary} />}
@@ -233,30 +246,63 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Mobile dropdown menu */}
           {menuOpen && (
-            <div style={{ background: t.navBg, borderTop: `2px solid #000`, padding: '12px 24px 18px' }}>
-              {[['#features','Özellikler'],['#banners','Avantajlar'],['#how','Nasıl Çalışır'],['#testimonials','Yorumlar']].map(([href, label]) => (
+            <div style={{
+              background: t.navBg, borderTop: `2.5px solid #000`,
+              padding: '8px 20px 20px',
+              boxShadow: '0 8px 0 rgba(0,0,0,0.15)',
+            }}>
+              {/* Nav links */}
+              {[['#features','✦ Özellikler'],['#banners','✦ Avantajlar'],['#how','✦ Nasıl Çalışır'],['#testimonials','✦ Yorumlar']].map(([href, label]) => (
                 <a key={href} href={href} onClick={() => setMenuOpen(false)}
-                  style={{ display: 'block', padding: '11px 0', color: t.textPrimary, fontWeight: 700, fontSize: 15, textDecoration: 'none', borderBottom: `1.5px solid rgba(0,0,0,0.1)` }}>
+                  style={{
+                    display: 'flex', alignItems: 'center', padding: '13px 4px',
+                    color: t.textPrimary, fontWeight: 800, fontSize: 15,
+                    textDecoration: 'none', letterSpacing: '0.01em',
+                    borderBottom: `1.5px solid rgba(0,0,0,0.08)`,
+                    transition: 'color 0.15s',
+                  }}>
                   {label}
                 </a>
               ))}
-              <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
-                <button onClick={() => { navigate('/login'); setMenuOpen(false); }} className="lbtn-secondary-sm" style={{ flex: 1, justifyContent: 'center' }}>Giriş Yap</button>
-                <button onClick={() => { navigate('/register'); setMenuOpen(false); }} className="lbtn-primary-sm" style={{ flex: 1, justifyContent: 'center' }}>Kayıt Ol <ArrowRight size={12} /></button>
+
+              {/* Action buttons */}
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => { navigate('/login'); setMenuOpen(false); }}
+                    className="lbtn-secondary-sm"
+                    style={{ flex: 1, justifyContent: 'center', padding: '11px 16px' }}>
+                    Giriş Yap
+                  </button>
+                  <button onClick={() => { navigate('/register'); setMenuOpen(false); }}
+                    className="lbtn-primary-sm"
+                    style={{ flex: 1, justifyContent: 'center', padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    Kayıt Ol <ArrowRight size={13} />
+                  </button>
+                </div>
+                <button onClick={() => { navigate('/home'); setMenuOpen(false); }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
+                    background: 'linear-gradient(135deg,#7B6EF6,#9122FF)',
+                    color: 'white', border: '2.5px solid #000',
+                    fontWeight: 900, fontSize: 14, boxShadow: '0 4px 0 #000',
+                    fontFamily: 'inherit',
+                  }}>
+                  Panele Gir <ArrowRight size={14} />
+                </button>
+                <button onClick={() => { navigate('/admin-login'); setMenuOpen(false); }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '11px 16px', borderRadius: 12, cursor: 'pointer',
+                    background: '#9122FF18', color: '#9122FF',
+                    border: '2.5px solid #9122FF', fontWeight: 900, fontSize: 13,
+                    boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit',
+                  }}>
+                  🔐 Yönetici Girişi
+                </button>
               </div>
-              <button
-                onClick={() => { navigate('/admin-login'); setMenuOpen(false); }}
-                style={{
-                  marginTop: 10, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  padding: '10px 16px', borderRadius: 12, cursor: 'pointer',
-                  background: '#9122FF18', color: '#9122FF',
-                  border: '2.5px solid #9122FF', fontWeight: 900, fontSize: 13,
-                  boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit',
-                }}
-              >
-                🔐 Yönetici Girişi
-              </button>
             </div>
           )}
         </nav>
@@ -798,18 +844,13 @@ const LandingPage: React.FC = () => {
         .nav-links { display: none; }
         @media (min-width: 768px) { .nav-links { display: flex; } }
 
+        /* Hamburger: hidden on desktop, shown on mobile */
         .hamburger-btn { display: none !important; }
         @media (max-width: 767px) { .hamburger-btn { display: flex !important; } }
 
-        .nav-login-btn { display: none; }
-        @media (min-width: 640px) { .nav-login-btn { display: inline-flex; } }
-
-        .btn-label-short { display: none; }
-        .btn-label-full  { display: inline; }
-        @media (max-width: 400px) {
-          .btn-label-short { display: inline; }
-          .btn-label-full  { display: none; }
-        }
+        /* Desktop action buttons: hidden on mobile, shown on desktop */
+        .nav-desktop-actions { display: flex; }
+        @media (max-width: 767px) { .nav-desktop-actions { display: none !important; } }
 
         /* ── Banner responsive ── */
         .banner-divider {}
