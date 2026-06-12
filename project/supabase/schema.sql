@@ -648,6 +648,12 @@ create table if not exists public.app_settings (
 
 alter table public.app_settings enable row level security;
 
+-- Everyone (including anonymous) can READ settings so MaintenanceGuard works
+create policy "Public read app_settings"
+  on public.app_settings for select
+  using (true);
+
+-- Only admins can write
 create policy "Super admins manage app_settings"
   on public.app_settings for all
   using (public.is_admin())
