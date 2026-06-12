@@ -9,6 +9,7 @@ import { spendPoints as spendPointsService } from '../services/points';
 import type { Reward } from '../services/rewards';
 import { playSound } from '../lib/sounds';
 import { WinningParticles } from '../components/WinningParticles';
+import { activityLogService } from '../lib/activityLogger';
 
 const card = {
   background: 'var(--card-bg)',
@@ -117,7 +118,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
 /* ── Main page ── */
 const RewardsShop: React.FC = () => {
   const { points, spendPoints, showRewardPopup } = useApp();
-  const { authUser } = useAuth();
+  const { authUser, profile } = useAuth();
   const { reload: reloadInventory } = useInventory();
   const [search, setSearch]             = useState('');
   const [category, setCategory]         = useState('all');
@@ -147,9 +148,26 @@ const RewardsShop: React.FC = () => {
     try {
       const expiryDate = selectedReward.expires_at ?? new Date(Date.now() + 90 * 86400000).toISOString();
       await spendPointsService(authUser.id, selectedReward.points, `Ödül: ${selectedReward.title}`, selectedReward.id);
-      await redeemReward(authUser.id, selectedReward.id, selectedReward.points, expiryDate);
+      const redemption = await redeemReward(authUser.id, selectedReward.id, selectedReward.points, expiryDate);
       await reloadInventory();
       setSuccess(selectedReward.title);
+      // Audit log
+      void activityLogService.logActivity({
+        userId: authUser.id,
+        username: profile?.username ?? authUser.email ?? 'User',
+        email: authUser.email ?? '',
+        role: profile?.role ?? 'customer',
+        action: `Ödül satın alındı: ${selectedReward.title} (${selectedReward.points} puan)`,
+        actionType: 'points_spent',
+        details: {
+          rewardId: selectedReward.id,
+          rewardTitle: selectedReward.title,
+          rewardCategory: selectedReward.category,
+          pointsSpent: selectedReward.points,
+          redemptionCode: redemption.code,
+        },
+        amount: selectedReward.points,
+      });
       setSelectedReward(null);
       setTimeout(() => { setShowParticles(false); setSuccess(null); }, 3000);
     } catch (err) {

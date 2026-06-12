@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import CashierLayout from './CashierLayout';
-import { getRedemptionByCode, markRedemptionUsed } from '../../../services/redemptions';
+import { getRedemptionByCode, markRedemptionUsedByCode } from '../../../services/redemptions';
+import { activityLogService } from '../../../lib/activityLogger';
+import { useAuth } from '../../../context/AuthContext';
 import {
   Search, CheckCircle, XCircle, AlertCircle, Package,
   Tag, Ticket, Gift, RefreshCw, Clock, History, Loader2,
@@ -34,6 +36,7 @@ const card = {
 type DBRedemption = Awaited<ReturnType<typeof getRedemptionByCode>>;
 
 const CashierRedeem: React.FC = () => {
+  const { authUser, profile } = useAuth();
   const [code, setCode]           = useState('');
   const [status, setStatus]       = useState<CheckStatus>('idle');
   const [foundItem, setFoundItem] = useState<DBRedemption>(null);
@@ -69,16 +72,35 @@ const CashierRedeem: React.FC = () => {
     if (!foundItem) return;
     setConfirming(true);
     try {
-      await markRedemptionUsed(foundItem.id);
+      // Use the security-definer RPC so cashiers can mark any user's redemption
+      await markRedemptionUsedByCode(foundItem.code);
       const ts = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
       const rewardData = (foundItem as { rewards?: { title: string; image?: string } }).rewards;
+      const customerData = (foundItem as { profiles?: { username: string; email: string } }).profiles;
       setLog(p => [{
         code: foundItem.code,
         title: rewardData?.title ?? foundItem.code,
         image: rewardData?.image,
         ts,
-        customerName: (foundItem as { profiles?: { username: string } }).profiles?.username ?? 'Müşteri',
+        customerName: customerData?.username ?? 'Müşteri',
       }, ...p]);
+      // Audit log
+      void activityLogService.logActivity({
+        userId: authUser?.id,
+        username: profile?.username ?? authUser?.email ?? 'Cashier',
+        email: authUser?.email ?? '',
+        role: profile?.role ?? 'cashier',
+        action: `Ödül kodu kullanıldı: ${foundItem.code} — Müşteri: ${customerData?.username ?? 'Bilinmiyor'}`,
+        actionType: 'points_spent',
+        details: {
+          redemptionId: foundItem.id,
+          code: foundItem.code,
+          rewardTitle: rewardData?.title,
+          customerEmail: customerData?.email,
+          pointsSpent: foundItem.points_spent,
+        },
+        amount: foundItem.points_spent,
+      });
       setDone(true);
     } catch (e: unknown) {
       console.error('[CashierRedeem] confirm:', e);

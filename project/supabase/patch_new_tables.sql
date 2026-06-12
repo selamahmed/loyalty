@@ -221,5 +221,94 @@ begin
 end;
 $$;
 
+-- ── Cashier: look up any redemption by code (security definer) ───────────────
+create or replace function public.lookup_redemption_by_code(p_code text)
+returns json language plpgsql security definer
+set search_path = public
+as $$
+declare
+  result json;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+  select json_build_object(
+    'id',           r.id,
+    'user_id',      r.user_id,
+    'reward_id',    r.reward_id,
+    'code',         r.code,
+    'used',         r.used,
+    'used_at',      r.used_at,
+    'points_spent', r.points_spent,
+    'expires_at',   r.expires_at,
+    'barcode',      r.barcode,
+    'created_at',   r.created_at,
+    'profiles',     json_build_object('username', p.username, 'email', p.email),
+    'rewards',      json_build_object('title', rw.title, 'image', rw.image)
+  ) into result
+  from public.redemptions r
+  left join public.profiles p  on p.id  = r.user_id
+  left join public.rewards  rw on rw.id = r.reward_id
+  where upper(r.code) = upper(p_code)
+  limit 1;
+  return result;
+end;
+$$;
+
+-- ── Cashier: mark a redemption used by code (security definer) ───────────────
+create or replace function public.mark_redemption_used_by_code(p_code text)
+returns void language plpgsql security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+  update public.redemptions
+  set used = true, used_at = now()
+  where upper(code) = upper(p_code)
+    and used = false;
+end;
+$$;
+
+-- ── Cashier/Admin: broader activity_logs insert (allow any authenticated user) ──
+-- (Drop old policy first to avoid conflict)
+drop policy if exists "Users insert logs"   on public.activity_logs;
+drop policy if exists "Anyone insert logs"  on public.activity_logs;
+create policy "Anyone insert logs"
+  on public.activity_logs for insert
+  with check (true);   -- inserts are server-side writes; reads still restricted
+
+-- ── Events: add published & win_count columns for leaderboard events ──────────
+alter table public.events
+  add column if not exists published   boolean not null default false,
+  add column if not exists win_count   int     not null default 3,
+  add column if not exists rewards_json jsonb  default '[]'::jsonb;
+
+-- ── Points: add weekly/monthly helper view ────────────────────────────────────
+create or replace view public.leaderboard_weekly as
+  select
+    p.id, p.username, p.avatar_url, p.level,
+    coalesce(sum(pt.amount) filter (where pt.amount > 0), 0)::int as period_points,
+    rank() over (order by coalesce(sum(pt.amount) filter (where pt.amount > 0), 0) desc) as rank
+  from public.profiles p
+  left join public.points_transactions pt
+    on pt.user_id = p.id
+   and pt.created_at >= (now() - interval '7 days')
+  where p.status = 'active'
+  group by p.id, p.username, p.avatar_url, p.level;
+
+create or replace view public.leaderboard_monthly as
+  select
+    p.id, p.username, p.avatar_url, p.level,
+    coalesce(sum(pt.amount) filter (where pt.amount > 0), 0)::int as period_points,
+    rank() over (order by coalesce(sum(pt.amount) filter (where pt.amount > 0), 0) desc) as rank
+  from public.profiles p
+  left join public.points_transactions pt
+    on pt.user_id = p.id
+   and pt.created_at >= (now() - interval '30 days')
+  where p.status = 'active'
+  group by p.id, p.username, p.avatar_url, p.level;
+
 -- ── DONE ─────────────────────────────────────────────────────
 select 'Patch applied successfully ✓' as status;

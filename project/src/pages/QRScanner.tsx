@@ -10,6 +10,7 @@ import {
   type CashierQRPayload,
 } from '../lib/qrUtils';
 import { lookupStoreQR, recordQRScan, markCashierQRUsedDB } from '../services/admin';
+import { activityLogService } from '../lib/activityLogger';
 
 const card = {
   background: 'var(--card-bg)',
@@ -206,7 +207,7 @@ const InventoryQRModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 const QRScanner: React.FC = () => {
   const { addPoints, showRewardPopup } = useApp();
   const { getByCode } = useInventory();
-  const { authUser } = useAuth();
+  const { authUser, profile } = useAuth();
 
   const [mode, setMode]         = useState<'idle' | 'camera' | 'fake' | 'manual'>('idle');
   const [result, setResult]     = useState<QRResult | null>(null);
@@ -260,13 +261,24 @@ const QRScanner: React.FC = () => {
   const startCamera = useCallback(async () => {
     setCamError(''); setResult(null); setCashierQRResult(null); setError('');
 
-    // Check browser support
+    // 1. Check browser support (requires HTTPS or localhost)
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setCamError('Bu tarayıcı kamera erişimini desteklemiyor. HTTPS üzerinden erişmeyi deneyin.');
+      setCamError('__no_media_devices__');
       setMode('idle');
       return;
     }
 
+    // 2. Pre-check permission state — avoids silent denial on already-blocked sites
+    try {
+      const perm = await navigator.permissions.query({ name: 'camera' as PermissionName });
+      if (perm.state === 'denied') {
+        setCamError('__denied__');
+        setMode('idle');
+        return;
+      }
+    } catch { /* permissions API not available on some browsers — continue */ }
+
+    // 3. Actually request camera
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -275,7 +287,9 @@ const QRScanner: React.FC = () => {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        // Make element visible before play so some mobile browsers don't block it
+        videoRef.current.style.display = 'block';
+        try { await videoRef.current.play(); } catch { /* play rejection is non-fatal */ }
       }
       setMode('camera');
       scanningRef.current = true;
@@ -283,38 +297,47 @@ const QRScanner: React.FC = () => {
     } catch (err: unknown) {
       const name = (err as { name?: string }).name;
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        setCamError('Kamera izni reddedildi. Tarayıcı ayarlarından kamera iznini verin ve sayfayı yenileyin.');
+        setCamError('__denied__');
       } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-        setCamError('Kamera bulunamadı. Cihazınızda kamera bağlı değil veya kullanımda.');
+        setCamError('__not_found__');
       } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-        setCamError('Kamera başka bir uygulama tarafından kullanılıyor. Diğer sekmeleri kapatın.');
+        setCamError('__in_use__');
       } else if (name === 'OverconstrainedError') {
         // Retry with minimal constraints
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          streamRef.current = stream;
-          if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
-          setMode('camera');
-          scanningRef.current = true;
-          tickScan();
-          return;
-        } catch { /* fall through */ }
-        setCamError('Kamera çözünürlüğü desteklenmiyor. Farklı bir tarayıcı deneyin.');
+          const stream2 = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          streamRef.current = stream2;
+          if (videoRef.current) { videoRef.current.srcObject = stream2; videoRef.current.style.display = 'block'; try { await videoRef.current.play(); } catch { /**/ } }
+          setMode('camera'); scanningRef.current = true; tickScan(); return;
+        } catch { /**/ }
+        setCamError('__overconstrained__');
       } else {
-        setCamError('Kamera açılamadı. Lütfen HTTPS üzerinden erişin ve kamera iznini verin.');
+        setCamError('__unknown__');
       }
       setMode('idle');
     }
-  }, [facingMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facingMode, tickScan]);
 
   /* ── Per-frame QR decode ── */
+  const stopCamera = useCallback(() => {
+    scanningRef.current = false;
+    cancelAnimationFrame(rafRef.current);
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    setMode('idle');
+  }, []);
+
+  // Use a ref to store the latest handleDecodedQR so tickScan never has stale closure issues
+  const handleDecodedQRRef = useRef(handleDecodedQR);
+  useEffect(() => { handleDecodedQRRef.current = handleDecodedQR; }, [handleDecodedQR]);
+
   const tickScan = useCallback(() => {
     if (!scanningRef.current) return;
     const video  = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || video.readyState < 2) { rafRef.current = requestAnimationFrame(tickScan); return; }
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
     const ctx = canvas.getContext('2d');
     if (!ctx) { rafRef.current = requestAnimationFrame(tickScan); return; }
     ctx.drawImage(video, 0, 0);
@@ -323,19 +346,14 @@ const QRScanner: React.FC = () => {
       const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
       if (code?.data) {
         stopCamera();
-        handleDecodedQR(code.data);
+        void handleDecodedQRRef.current(code.data);
         return;
       }
       if (scanningRef.current) rafRef.current = requestAnimationFrame(tickScan);
     });
-  }, [handleDecodedQR]);
-
-  const stopCamera = useCallback(() => {
-    scanningRef.current = false;
-    cancelAnimationFrame(rafRef.current);
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-    setMode('idle');
-  }, []);
+  // tickScan only needs stopCamera which is stable; handleDecodedQR accessed via ref
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stopCamera]);
 
   useEffect(() => () => stopCamera(), []);
 
@@ -376,6 +394,17 @@ const QRScanner: React.FC = () => {
       }
       showRewardPopup({ type: 'reward', title: result.title, subtitle: `${result.location} adresinde QR kod taradın`, points: result.points });
       setScanHistory(prev => [{ code: result.code, points: result.points, time: 'Az önce', location: result.location, type: 'store' }, ...prev.slice(0, 9)]);
+      // Audit log
+      void activityLogService.logActivity({
+        userId: authUser?.id,
+        username: profile?.username ?? authUser?.email ?? 'User',
+        email: authUser?.email ?? '',
+        role: profile?.role ?? 'customer',
+        action: `QR kod tarandı: ${result.title} → ${result.points} puan`,
+        actionType: 'qr_scan',
+        details: { code: result.code, title: result.title, location: result.location, qrId: result.dbQrId },
+        amount: result.points,
+      });
     } catch { addPoints(result.points); } // Fallback to local if DB fails
     setResult(null); setScanProgress(0);
   };
@@ -401,6 +430,17 @@ const QRScanner: React.FC = () => {
       }
       showRewardPopup({ type: 'reward', title: 'Alışveriş Puanı!', subtitle: `${cashierQRResult.amount}₺ alışverişten ${cashierQRResult.points} puan kazandın`, points: cashierQRResult.points });
       setScanHistory(prev => [{ code: cashierQRResult.qr_id, points: cashierQRResult.points, time: 'Az önce', location: `${cashierQRResult.amount}₺ Alışveriş`, type: 'store' }, ...prev.slice(0, 9)]);
+      // Audit log
+      void activityLogService.logActivity({
+        userId: authUser?.id,
+        username: profile?.username ?? authUser?.email ?? 'User',
+        email: authUser?.email ?? '',
+        role: profile?.role ?? 'customer',
+        action: `Kasiyer QR kullanıldı: ${cashierQRResult.amount}₺ alışveriş → ${cashierQRResult.points} puan`,
+        actionType: 'qr_scan',
+        details: { qrId: cashierQRResult.qr_id, amount: cashierQRResult.amount, points: cashierQRResult.points },
+        amount: cashierQRResult.points,
+      });
     } catch (e) { console.error('[claimCashierQR]', e); }
     setCashierQRResult(null);
   };
@@ -500,9 +540,46 @@ const QRScanner: React.FC = () => {
           </div>
 
           {/* Camera error */}
-          {camError && (
-            <div style={{ marginBottom: 12, padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '2px solid #ef4444', borderRadius: 12, fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{camError}</div>
-          )}
+          {camError && (() => {
+            const isBlock = camError === '__denied__';
+            const isNoDevice = camError === '__not_found__';
+            const isInUse = camError === '__in_use__';
+            const isNoAPI = camError === '__no_media_devices__';
+            return (
+              <div style={{ marginBottom: 12, padding: '14px 16px', background: isBlock ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)', border: `2px solid ${isBlock ? '#ef4444' : '#f59e0b'}`, borderRadius: 14, fontSize: 12, fontWeight: 700 }}>
+                <p style={{ color: isBlock ? '#ef4444' : '#d97706', fontWeight: 900, fontSize: 13, margin: '0 0 8px' }}>
+                  {isBlock       ? '🚫 Kamera İzni Engellendi'
+                  : isNoDevice   ? '📷 Kamera Bulunamadı'
+                  : isInUse      ? '⚠️ Kamera Kullanımda'
+                  : isNoAPI      ? '❌ Kamera Desteklenmiyor'
+                  : '⚠️ Kamera Açılamadı'}
+                </p>
+                {isBlock && (
+                  <ol style={{ margin: '0 0 10px', padding: '0 0 0 18px', color: 'var(--text-dark)', lineHeight: 1.8 }}>
+                    <li>Tarayıcı adres çubuğundaki 🔒 / 📷 simgesine tıklayın</li>
+                    <li><strong>"Kamera"</strong> iznini <strong>"İzin Ver"</strong> yapın</li>
+                    <li>Sayfayı yenileyin (F5 veya Ctrl+R)</li>
+                  </ol>
+                )}
+                {isNoDevice    && <p style={{ color: 'var(--text-dark)', margin: '0 0 10px' }}>Cihazınızda kamera bağlı değil veya sürücü eksik.</p>}
+                {isInUse       && <p style={{ color: 'var(--text-dark)', margin: '0 0 10px' }}>Kamera başka bir uygulama veya sekme tarafından kullanılıyor. Diğer sekmeleri kapatın.</p>}
+                {isNoAPI       && <p style={{ color: 'var(--text-dark)', margin: '0 0 10px' }}>Kamera API'si yalnızca HTTPS veya localhost üzerinde çalışır.</p>}
+                {!isBlock && !isNoDevice && !isInUse && !isNoAPI && <p style={{ color: 'var(--text-dark)', margin: '0 0 10px' }}>Sayfayı yenileyin ve tarayıcı kamera iznini kontrol edin.</p>}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => { setCamError(''); startCamera(); }}
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: 10, fontWeight: 900, fontSize: 12, background: 'var(--card-bg)', color: 'var(--text-dark)', border: '2px solid var(--dark-border)', cursor: 'pointer' }}>
+                    🔄 Tekrar Dene
+                  </button>
+                  {isBlock && (
+                    <button onClick={() => window.location.reload()}
+                      style={{ flex: 1, padding: '8px 12px', borderRadius: 10, fontWeight: 900, fontSize: 12, background: isBlock ? '#ef4444' : '#f59e0b', color: 'white', border: '2px solid var(--dark-border)', cursor: 'pointer' }}>
+                      🔃 Sayfayı Yenile
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Progress bar */}
           {mode === 'fake' && (

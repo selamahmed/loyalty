@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import CashierLayout from './CashierLayout';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../context/AuthContext';
-import { adminAddPoints } from '../../../services/admin';
-import { createCashierQR } from '../../../services/admin';
+import { adminAddPoints, createCashierQR } from '../../../services/admin';
+import { activityLogService } from '../../../lib/activityLogger';
 import {
   QrCode, Search, CheckCircle, AlertCircle, RefreshCw,
   User, Star, Clock, XCircle, ChevronRight, Banknote, Zap, Loader2
@@ -314,7 +314,7 @@ interface DBCustomer {
 }
 
 const ManualSearchTab: React.FC = () => {
-  const { authUser } = useAuth();
+  const { authUser, profile } = useAuth();
   const [query, setQuery]             = useState('');
   const [customers, setCustomers]     = useState<DBCustomer[]>([]);
   const [loading, setLoading]         = useState(false);
@@ -379,6 +379,17 @@ const ManualSearchTab: React.FC = () => {
       setTotalPts(p => p + ptsToGive);
       setResult('success');
       setResultMsg(`${ptsToGive} puan ${selected.username} hesabına eklendi!`);
+      // Audit log
+      void activityLogService.logActivity({
+        userId: authUser?.id,
+        username: profile?.username ?? authUser?.email ?? 'Cashier',
+        email: authUser?.email ?? '',
+        role: profile?.role ?? 'cashier',
+        action: `Manuel puan eklendi: ${ptsToGive} puan → ${selected.username}`,
+        actionType: 'admin_action',
+        details: { targetUserId: selected.id, targetUsername: selected.username, points: ptsToGive, source: mode === 'amount' ? `${amount} TL` : 'manual_pts' },
+        amount: ptsToGive,
+      });
       setTimeout(() => { setResult(null); setSelectedId(null); setAmount(''); setCustomPts(''); }, 2500);
     } catch (e: unknown) {
       setResultMsg((e as Error).message ?? 'Puan eklenemedi.');

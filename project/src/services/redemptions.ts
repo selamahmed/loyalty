@@ -66,7 +66,18 @@ export async function markRedemptionUsed(id: string, userId?: string): Promise<v
   if (error) throw error;
 }
 
+/**
+ * Look up any redemption by code.
+ * Uses a security-definer RPC so cashiers/admins can read across all user redemptions.
+ * Falls back to direct query (for the owner themselves).
+ */
 export async function getRedemptionByCode(code: string): Promise<Redemption | null> {
+  // Try the security-definer RPC first (works for cashier/admin roles)
+  const { data: rpcData, error: rpcError } = await supabase
+    .rpc('lookup_redemption_by_code', { p_code: code.toUpperCase() });
+  if (!rpcError && rpcData) return rpcData as unknown as Redemption;
+
+  // Fallback: direct query (works if the caller is the redemption owner)
   const { data, error } = await supabase
     .from('redemptions')
     .select('*, profiles(username, email), rewards(title, image)')
@@ -74,4 +85,14 @@ export async function getRedemptionByCode(code: string): Promise<Redemption | nu
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+/**
+ * Mark a redemption as used — uses a security-definer RPC so cashiers can update
+ * redemptions that belong to other users.
+ */
+export async function markRedemptionUsedByCode(code: string): Promise<void> {
+  const { error } = await supabase
+    .rpc('mark_redemption_used_by_code', { p_code: code.toUpperCase() });
+  if (error) throw error;
 }
