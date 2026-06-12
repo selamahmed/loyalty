@@ -151,5 +151,64 @@ begin
 end;
 $$;
 
+-- ── NOTIFICATIONS: delete policy + welcome trigger ───────────
+
+-- Allow users to delete their own notifications
+drop policy if exists "Users delete own notifications" on public.notifications;
+create policy "Users delete own notifications"
+  on public.notifications for delete
+  using (user_id = auth.uid());
+
+-- Update handle_new_user to also insert a welcome notification
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_username text;
+begin
+  v_username := coalesce(
+    new.raw_user_meta_data->>'username',
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'name',
+    split_part(new.email, '@', 1)
+  );
+
+  insert into public.profiles (id, email, username, role)
+  values (
+    new.id,
+    new.email,
+    v_username,
+    coalesce((new.raw_user_meta_data->>'role')::user_role, 'customer')
+  )
+  on conflict (id) do nothing;
+
+  insert into public.notifications (user_id, type, title, message, icon, read)
+  values (
+    new.id,
+    'system',
+    'NexReward''e Hoşgeldin! 🎉',
+    'Hesabın başarıyla oluşturuldu. Puan kazanmaya hazır mısın?',
+    '🎉',
+    false
+  );
+
+  return new;
+end;
+$$;
+
+-- ── ACTIVITY LOGS: ensure unauthenticated inserts are allowed ─
+
+-- Drop and recreate to make sure the policy exists correctly
+drop policy if exists "Users insert logs" on public.activity_logs;
+create policy "Users insert logs"
+  on public.activity_logs for insert
+  with check (
+    -- Authenticated user inserting their own log
+    (auth.uid() is not null and user_id = auth.uid())
+    -- OR unauthenticated call (e.g. failed login attempt) with null user_id
+    or (auth.uid() is null and user_id is null)
+    -- OR any authenticated user inserting a log (for simplicity)
+    or auth.uid() is not null
+  );
+
 -- ── DONE ─────────────────────────────────────────────────────
 select 'Patch applied successfully ✓' as status;

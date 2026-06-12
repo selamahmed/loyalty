@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Check, Trash2, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getNotifications, markRead as markReadService, markAllRead as markAllReadService } from '../services/notifications';
 import type { Notification } from '../services/notifications';
+import { supabase } from '../lib/supabase';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 
@@ -24,7 +25,7 @@ const Notifications: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!authUser?.id) return;
     setIsLoading(true);
     getNotifications(authUser.id)
@@ -32,6 +33,22 @@ const Notifications: React.FC = () => {
       .catch(() => setNotifs([]))
       .finally(() => setIsLoading(false));
   }, [authUser?.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Realtime: refresh when new notifications arrive for this user
+  useEffect(() => {
+    if (!authUser?.id) return;
+    const channel = supabase
+      .channel(`notifs-${authUser.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${authUser.id}` },
+        () => load()
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [authUser?.id, load]);
 
   const filtered = filter === 'all' ? notifs
     : filter === 'unread' ? notifs.filter(n => !n.read)
@@ -48,7 +65,13 @@ const Notifications: React.FC = () => {
     setNotifs(prev => prev.map(n => ({ ...n, read: true })));
     if (authUser?.id) markAllReadService(authUser.id).catch(() => {});
   };
-  const deleteNotif = (id: string) => { playSound('click'); setNotifs(prev => prev.filter(n => n.id !== id)); };
+  const deleteNotif = (id: string) => {
+    playSound('click');
+    setNotifs(prev => prev.filter(n => n.id !== id));
+    if (authUser?.id) {
+      supabase.from('notifications').delete().eq('id', id).eq('user_id', authUser.id).then(() => {});
+    }
+  };
 
   return (
     <div className="notif-page">

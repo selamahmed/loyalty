@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { activityLogService } from '../lib/activityLogger';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
@@ -43,6 +44,11 @@ const Register: React.FC = () => {
       setErrors({ submit: result.error ?? 'Kayıt başarısız.' });
       return;
     }
+    activityLogService.logActivity({
+      username: form.username, email: form.email, role: 'customer',
+      action: 'Yeni kullanıcı kaydı', actionType: 'login',
+      details: { method: 'email' },
+    });
     setSuccessMsg('Hesabınız oluşturuldu! Lütfen e-postanızı doğrulayın.');
   };
 

@@ -24,6 +24,8 @@ export const supabase = createClient(supabaseUrl || 'https://placeholder.supabas
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    // PKCE avoids putting tokens in the URL fragment, which conflicts with HashRouter
+    flowType: 'pkce',
   },
 });
 

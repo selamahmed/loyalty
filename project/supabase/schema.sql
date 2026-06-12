@@ -61,17 +61,38 @@ create index if not exists profiles_role_idx on public.profiles(role);
 create index if not exists profiles_status_idx on public.profiles(status);
 create index if not exists profiles_total_points_idx on public.profiles(total_points desc);
 
--- Auto-create profile on signup
+-- Auto-create profile + welcome notification on signup
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_username text;
 begin
+  v_username := coalesce(
+    new.raw_user_meta_data->>'username',
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'name',
+    split_part(new.email, '@', 1)
+  );
+
   insert into public.profiles (id, email, username, role)
   values (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data->>'username', new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+    v_username,
     coalesce((new.raw_user_meta_data->>'role')::user_role, 'customer')
   );
+
+  -- Welcome notification
+  insert into public.notifications (user_id, type, title, message, icon, read)
+  values (
+    new.id,
+    'system',
+    'NexReward''e Hoşgeldin! 🎉',
+    'Hesabın başarıyla oluşturuldu. Puan kazanmaya hazır mısın?',
+    '🎉',
+    false
+  );
+
   return new;
 end;
 $$;
@@ -551,6 +572,10 @@ create policy "Users update own notifications"
   on public.notifications for update
   using (user_id = auth.uid());
 
+create policy "Users delete own notifications"
+  on public.notifications for delete
+  using (user_id = auth.uid());
+
 create policy "Admins manage notifications"
   on public.notifications for all
   using (public.is_admin());
@@ -571,7 +596,11 @@ create policy "Admins read all logs"
 
 create policy "Users insert logs"
   on public.activity_logs for insert
-  with check (user_id = auth.uid() or user_id is null);
+  with check (
+    (auth.uid() is not null and user_id = auth.uid())
+    or (auth.uid() is null and user_id is null)
+    or auth.uid() is not null
+  );
 
 -- ── QR CODES policies ──
 create policy "Anyone reads active QR codes"

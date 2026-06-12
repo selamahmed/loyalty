@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { activityLogService } from '../lib/activityLogger';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
@@ -29,7 +30,20 @@ const Login: React.FC = () => {
     setLoading(true);
     const result = await login(email, password);
     setLoading(false);
-    if (!result.success) { setError(result.error || 'Giriş başarısız.'); return; }
+    if (!result.success) {
+      setError(result.error || 'Giriş başarısız.');
+      activityLogService.logActivity({
+        username: email.split('@')[0], email, role: 'customer',
+        action: 'Başarısız giriş denemesi', actionType: 'login',
+        details: { reason: result.error }, riskLevel: 'medium',
+      });
+      return;
+    }
+    activityLogService.logActivity({
+      username: email.split('@')[0], email, role: 'customer',
+      action: 'Kullanıcı giriş yaptı', actionType: 'login',
+      details: { method: 'email' },
+    });
     navigate(dashboardPath, { replace: true });
   };
 
@@ -37,9 +51,12 @@ const Login: React.FC = () => {
     setError('');
     setGoogleLoading(true);
     const result = await loginWithGoogle();
-    setGoogleLoading(false);
-    if (!result.success) { setError('Google ile giriş başarısız.'); return; }
-    navigate('/app', { replace: true });
+    // If error, show it. On success the browser navigates away to Google.
+    if (!result.success) {
+      setGoogleLoading(false);
+      setError('Google ile giriş başarısız. Tekrar deneyin.');
+    }
+    // Don't reset loading — the page will be replaced by Google's OAuth screen.
   };
 
   return (

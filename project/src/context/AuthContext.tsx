@@ -128,9 +128,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
+    // redirectTo points to the hash-based callback route.
+    // With PKCE flow Supabase appends ?code=XXX to the URL, so the final
+    // URL becomes: <origin>/?code=XXX#/auth/callback
+    // HashRouter renders /auth/callback; detectSessionInUrl exchanges the code.
+    const redirectTo = `${window.location.origin}/#/auth/callback`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}${window.location.pathname}` },
+      options: { redirectTo },
     });
     if (error) {
       return { success: false, error: error.message };

@@ -19,7 +19,8 @@ import AdminLogin       from './pages/AdminLogin';
 import ForgotPassword   from './pages/ForgotPassword';
 import ResetPassword    from './pages/ResetPassword';
 import Register         from './pages/Register';
-import Unauthorized   from './pages/Unauthorized';
+import Unauthorized     from './pages/Unauthorized';
+import AuthCallback     from './pages/AuthCallback';
 import { NotFound, NoConnection, Maintenance } from './pages/ErrorPages';
 import CookieConsent  from './components/CookieConsent';
 
@@ -123,14 +124,16 @@ function App() {
           <Routes>
 
             {/* Public */}
-            <Route path="/"             element={<LandingPage />} />
-            <Route path="/landing"      element={<LandingPage />} />
+            <Route path="/"                 element={<LandingPage />} />
+            <Route path="/landing"          element={<LandingPage />} />
             <Route path="/login"            element={<Login />} />
             <Route path="/admin-login"      element={<AdminLogin />} />
             <Route path="/forgot-password"  element={<ForgotPassword />} />
             <Route path="/reset-password"   element={<ResetPassword />} />
             <Route path="/register"         element={<Register />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/unauthorized"     element={<Unauthorized />} />
+            {/* OAuth callback — Supabase redirects here after Google sign-in */}
+            <Route path="/auth/callback"    element={<AuthCallback />} />
 
             {/* Customer */}
             <Route path="/app"           element={<C><Home /></C>} />
