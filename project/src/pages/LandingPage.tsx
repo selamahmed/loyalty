@@ -205,6 +205,22 @@ const LandingPage: React.FC = () => {
                 {isDark ? <Sun size={14} color="#FBBF24" /> : <Moon size={14} color="#7B6EF6" />}
               </button>
               <button onClick={() => navigate('/login')} className="lbtn-secondary-sm nav-login-btn">Giriş Yap</button>
+              <button
+                onClick={() => navigate('/admin-login')}
+                className="nav-admin-btn"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 14px', borderRadius: 12, cursor: 'pointer',
+                  background: '#9122FF18', color: '#9122FF',
+                  border: '2.5px solid #9122FF', fontWeight: 900, fontSize: 12,
+                  boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit',
+                  whiteSpace: 'nowrap', transition: 'transform 0.1s, box-shadow 0.1s',
+                }}
+                onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 #6b19c0'; }}
+                onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #6b19c0'; }}
+              >
+                🔐 <span className="nav-admin-label">Yönetici</span>
+              </button>
               <button onClick={() => navigate('/home')} className="lbtn-primary-sm">
                 <span className="btn-label-full">Panele Gir</span>
                 <span className="btn-label-short">Panel</span>
@@ -229,6 +245,18 @@ const LandingPage: React.FC = () => {
                 <button onClick={() => { navigate('/login'); setMenuOpen(false); }} className="lbtn-secondary-sm" style={{ flex: 1, justifyContent: 'center' }}>Giriş Yap</button>
                 <button onClick={() => { navigate('/register'); setMenuOpen(false); }} className="lbtn-primary-sm" style={{ flex: 1, justifyContent: 'center' }}>Kayıt Ol <ArrowRight size={12} /></button>
               </div>
+              <button
+                onClick={() => { navigate('/admin-login'); setMenuOpen(false); }}
+                style={{
+                  marginTop: 10, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 16px', borderRadius: 12, cursor: 'pointer',
+                  background: '#9122FF18', color: '#9122FF',
+                  border: '2.5px solid #9122FF', fontWeight: 900, fontSize: 13,
+                  boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit',
+                }}
+              >
+                🔐 Yönetici Girişi
+              </button>
             </div>
           )}
         </nav>

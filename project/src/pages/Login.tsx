@@ -150,6 +150,29 @@ const Login: React.FC = () => {
           </form>
         </div>
 
+        {/* Admin login link */}
+        <div className="card p-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="font-black text-sm" style={{ color: 'var(--text-dark)', margin: 0 }}>Yönetici veya Kasiyer misiniz?</p>
+            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)', margin: '2px 0 0' }}>Ayrı bir giriş sayfası mevcuttur.</p>
+          </div>
+          <button
+            onClick={() => navigate('/admin-login')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+              padding: '8px 16px', borderRadius: 12, cursor: 'pointer',
+              background: '#9122FF18', color: '#9122FF',
+              border: '2.5px solid #9122FF', fontWeight: 900, fontSize: 12,
+              boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit', whiteSpace: 'nowrap',
+              transition: 'transform 0.1s, box-shadow 0.1s',
+            }}
+            onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 #6b19c0'; }}
+            onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #6b19c0'; }}
+          >
+            🔐 Admin Giriş
+          </button>
+        </div>
+
         {/* Demo accounts */}
         <div className="card p-4 space-y-2">
           <p className="text-xs font-black uppercase tracking-widest text-center mb-3" style={{ color: 'var(--text-muted)' }}>
