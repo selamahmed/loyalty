@@ -127,6 +127,16 @@ const LandingPage: React.FC = () => {
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('resize', onResize); };
   }, []);
 
+  // HashRouter intercepts bare "#id" hrefs as route changes → use JS scroll instead
+  const scrollTo = (id: string, closeMenu = false) => {
+    if (closeMenu) setMenuOpen(false);
+    // Small delay so mobile drawer closes before scrolling
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, closeMenu ? 80 : 0);
+  };
+
   const t = {
     pageBg:        isDark ? '#0F0720' : '#FFF8F0',
     heroText:      isDark ? '#ffffff' : '#000000',
@@ -170,12 +180,13 @@ const LandingPage: React.FC = () => {
 
             {/* Desktop nav links — display controlled entirely by CSS .nav-links rule */}
             <div className="nav-links" style={{ alignItems: 'center', gap: 24 }}>
-              {[['#features','Özellikler'],['#banners','Avantajlar'],['#how','Nasıl Çalışır'],['#testimonials','Yorumlar']].map(([href, label]) => (
-                <a key={href} href={href} style={{ color: t.textSecondary, fontWeight: 700, fontSize: 12, textDecoration: 'none', letterSpacing: '0.06em', transition: 'color 0.15s', whiteSpace: 'nowrap' }}
+              {[['features','Özellikler'],['banners','Avantajlar'],['how','Nasıl Çalışır'],['testimonials','Yorumlar']].map(([id, label]) => (
+                <button key={id} onClick={() => scrollTo(id)}
+                  style={{ color: t.textSecondary, fontWeight: 700, fontSize: 12, textDecoration: 'none', letterSpacing: '0.06em', transition: 'color 0.15s', whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#9122FF')}
                   onMouseLeave={e => (e.currentTarget.style.color = t.textSecondary)}>
                   {label.toUpperCase()}
-                </a>
+                </button>
               ))}
             </div>
 
@@ -210,11 +221,11 @@ const LandingPage: React.FC = () => {
           {/* Mobile drawer */}
           {menuOpen && (
             <div style={{ background: t.navBg, borderTop: '2.5px solid #000', padding: '8px 20px 20px', boxShadow: '0 8px 0 rgba(0,0,0,0.18)' }}>
-              {[['#features','✦ Özellikler'],['#banners','✦ Avantajlar'],['#how','✦ Nasıl Çalışır'],['#testimonials','✦ Yorumlar']].map(([href, label]) => (
-                <a key={href} href={href} onClick={() => setMenuOpen(false)}
-                  style={{ display: 'flex', alignItems: 'center', padding: '13px 4px', color: t.textPrimary, fontWeight: 800, fontSize: 15, textDecoration: 'none', borderBottom: '1.5px solid rgba(128,128,128,0.12)' }}>
+              {[['features','✦ Özellikler'],['banners','✦ Avantajlar'],['how','✦ Nasıl Çalışır'],['testimonials','✦ Yorumlar']].map(([id, label]) => (
+                <button key={id} onClick={() => scrollTo(id, true)}
+                  style={{ display: 'flex', width: '100%', alignItems: 'center', padding: '13px 4px', color: t.textPrimary, fontWeight: 800, fontSize: 15, background: 'none', border: 'none', borderBottom: '1.5px solid rgba(128,128,128,0.12)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
                   {label}
-                </a>
+                </button>
               ))}
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 10 }}>
@@ -568,10 +579,11 @@ const LandingPage: React.FC = () => {
               <div style={{ display: 'flex', gap: 44, flexWrap: 'wrap' }}>
                 <div>
                   <p style={{ fontWeight: 900, fontSize: 11, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 14, textTransform: 'uppercase' }}>Platform</p>
-                  {[['#features','Özellikler'],['#how','Nasıl Çalışır'],['#banners','Avantajlar'],['#testimonials','Yorumlar']].map(([href,label]) => (
-                    <a key={href} href={href} style={{ display: 'block', color: 'rgba(255,255,255,0.65)', fontWeight: 600, fontSize: 13, textDecoration: 'none', marginBottom: 9, transition: 'color 0.15s' }}
+                  {[['features','Özellikler'],['how','Nasıl Çalışır'],['banners','Avantajlar'],['testimonials','Yorumlar']].map(([id,label]) => (
+                    <button key={id} onClick={() => scrollTo(id)}
+                      style={{ display: 'block', color: 'rgba(255,255,255,0.65)', fontWeight: 600, fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', marginBottom: 9, textAlign: 'left', transition: 'color 0.15s' }}
                       onMouseEnter={e => (e.currentTarget.style.color = '#C8FF00')}
-                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}>{label}</a>
+                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}>{label}</button>
                   ))}
                 </div>
                 <div>
