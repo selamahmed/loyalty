@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowLeft, ShieldCheck, Store, ScanLine, ArrowRight, Lock } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, ShieldCheck, Store, ScanLine, ArrowRight, Lock, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getDashboardPath } from '../context/AuthContext';
 
@@ -232,9 +232,18 @@ const AdminLogin: React.FC = () => {
 
             {/* Password */}
             <div>
-              <label style={{ display: 'block', fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', marginBottom: 8 }}>
-                Şifre
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)' }}>
+                  Şifre
+                </label>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/forgot-password`)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: 11, color: role.color, fontFamily: 'inherit', padding: 0, textDecoration: 'underline' }}
+                >
+                  Şifremi Unuttum?
+                </button>
+              </div>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPass ? 'text' : 'password'}

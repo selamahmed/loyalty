@@ -13,10 +13,12 @@ import StoreAdminRoute from './components/guards/StoreAdminRoute';
 import CashierRoute    from './components/guards/CashierRoute';
 
 // Always-needed pages (tiny, keep eager)
-import LandingPage    from './pages/LandingPage';
-import Login          from './pages/Login';
-import AdminLogin     from './pages/AdminLogin';
-import Register       from './pages/Register';
+import LandingPage      from './pages/LandingPage';
+import Login            from './pages/Login';
+import AdminLogin       from './pages/AdminLogin';
+import ForgotPassword   from './pages/ForgotPassword';
+import ResetPassword    from './pages/ResetPassword';
+import Register         from './pages/Register';
 import Unauthorized   from './pages/Unauthorized';
 import { NotFound, NoConnection, Maintenance } from './pages/ErrorPages';
 import CookieConsent  from './components/CookieConsent';
@@ -123,9 +125,11 @@ function App() {
             {/* Public */}
             <Route path="/"             element={<LandingPage />} />
             <Route path="/landing"      element={<LandingPage />} />
-            <Route path="/login"        element={<Login />} />
-            <Route path="/admin-login"  element={<AdminLogin />} />
-            <Route path="/register"     element={<Register />} />
+            <Route path="/login"            element={<Login />} />
+            <Route path="/admin-login"      element={<AdminLogin />} />
+            <Route path="/forgot-password"  element={<ForgotPassword />} />
+            <Route path="/reset-password"   element={<ResetPassword />} />
+            <Route path="/register"         element={<Register />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
 
             {/* Customer */}

@@ -123,7 +123,17 @@ const Login: React.FC = () => {
             </div>
 
             <div>
-              <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">Şifre</label>
+              <div className="flex items-center justify-between mb-2">
+                <label style={{ color: 'var(--text-dark)' }} className="font-black text-sm">Şifre</label>
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-xs font-black hover:underline"
+                  style={{ color: 'var(--primary-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
+                >
+                  Şifremi Unuttum?
+                </button>
+              </div>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
