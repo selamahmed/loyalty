@@ -1,277 +1,191 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import CashierLayout from './CashierLayout';
-import {
-  History, Search, Filter, Star, CheckCircle, XCircle,
-  Download, TrendingUp, Users, ScanLine, ChevronDown, ChevronUp
-} from 'lucide-react';
+import { getCashierHistory } from '../../../services/admin';
+import { Search, Download, Star, Loader2, RefreshCw, QrCode, User, Zap } from 'lucide-react';
 
-const ACCENT = '#f59e0b';
-
-type TxType = 'qr_scan' | 'manual_issue' | 'redemption';
-
-interface Transaction {
+interface TxRow {
   id: string;
-  customerName: string;
-  customerId: string;
-  type: TxType;
-  points: number;
-  timestamp: string;
-  date: string;
-  cashier: string;
-  status: 'success' | 'failed';
-  note?: string;
+  created_at: string;
+  amount: number;
+  description: string | null;
+  category: string | null;
+  user_id: string | null;
+  profiles: { username: string; email: string; avatar_url?: string } | null;
 }
 
-const generateHistory = (): Transaction[] => {
-  const names = ['Ayşe Kaya', 'Mehmet Türk', 'Zeynep Arslan', 'Ali Rıza Demir', 'Fatma Şahin', 'Can Yıldız', 'Elif Demir', 'Burak Aydın'];
-  const cashiers = ['Kasiyer 1', 'Kasiyer 2'];
-  const types: TxType[] = ['qr_scan', 'manual_issue', 'redemption'];
-  const items: Transaction[] = [];
-  for (let i = 0; i < 30; i++) {
-    const type = types[i % 3];
-    const pts = type === 'redemption' ? -(50 + (i % 8) * 50) : 50 + (i % 10) * 25;
-    const hour = 8 + (i % 10);
-    const min = (i * 7) % 60;
-    const day = i < 10 ? '10 Haz' : i < 20 ? '09 Haz' : '08 Haz';
-    items.push({
-      id: `TX${1000 + i}`,
-      customerName: names[i % names.length],
-      customerId: `USR00${(i % 5) + 1}`,
-      type,
-      points: pts,
-      timestamp: `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`,
-      date: day,
-      cashier: cashiers[i % 2],
-      status: i % 9 === 0 ? 'failed' : 'success',
-      note: type === 'manual_issue' ? 'Manuel ödül' : undefined,
-    });
-  }
-  return items;
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 5px 0px var(--dark-border)',
+  borderRadius: 20,
 };
 
-const TX_TYPE_LABELS: Record<TxType, { label: string; color: string }> = {
-  qr_scan:      { label: 'QR Tarama',    color: '#7B6EF6' },
-  manual_issue: { label: 'Manuel Puan',  color: ACCENT    },
-  redemption:   { label: 'Kullanım',     color: '#ef4444' },
+const categoryLabel: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  qr_scan:           { label: 'QR Tarama',     color: '#7B6EF6', icon: QrCode },
+  admin_adjustment:  { label: 'Yönetici',      color: '#f59e0b', icon: Zap    },
+  cashier_manual:    { label: 'Kasa Manuel',   color: '#22c55e', icon: User   },
+  purchase:          { label: 'Alışveriş',     color: '#3b82f6', icon: Star   },
 };
 
-const ALL_TX = generateHistory();
+function relTime(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60000) return 'az önce';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} dk`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} sa`;
+  return new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+}
 
 const CashierHistory: React.FC = () => {
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<TxType | 'all'>('all');
-  const [dateFilter, setDateFilter] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [rows, setRows]       = useState<TxRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch]   = useState('');
+  const [page, setPage]       = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  const filtered = useMemo(() => ALL_TX.filter(tx => {
-    const matchSearch = tx.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      tx.customerId.toLowerCase().includes(search.toLowerCase()) ||
-      tx.id.toLowerCase().includes(search.toLowerCase());
-    const matchType = typeFilter === 'all' || tx.type === typeFilter;
-    const matchDate = dateFilter === 'all' || tx.date === dateFilter;
-    return matchSearch && matchType && matchDate;
-  }), [search, typeFilter, dateFilter]);
+  const PAGE_SIZE = 30;
 
-  const totals = useMemo(() => ({
-    issued:   ALL_TX.filter(t => t.points > 0 && t.status === 'success').reduce((s, t) => s + t.points, 0),
-    redeemed: Math.abs(ALL_TX.filter(t => t.points < 0 && t.status === 'success').reduce((s, t) => s + t.points, 0)),
-    scans:    ALL_TX.filter(t => t.type === 'qr_scan').length,
-    customers: new Set(ALL_TX.map(t => t.customerId)).size,
-  }), []);
+  const load = useCallback(async (pg = 0) => {
+    setLoading(true);
+    try {
+      const data = await getCashierHistory(pg, PAGE_SIZE + 1);
+      setHasMore(data.length > PAGE_SIZE);
+      setRows(pg === 0 ? (data.slice(0, PAGE_SIZE) as TxRow[]) : prev => [...prev, ...data.slice(0, PAGE_SIZE) as TxRow[]]);
+    } catch (e: unknown) {
+      console.error('[CashierHistory]', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const dates = useMemo(() => ['all', ...Array.from(new Set(ALL_TX.map(t => t.date)))], []);
+  useEffect(() => { load(0); }, [load]);
+
+  const filtered = rows.filter(r => {
+    const q = search.toLowerCase();
+    if (!q) return true;
+    return (
+      (r.profiles?.username ?? '').toLowerCase().includes(q) ||
+      (r.profiles?.email ?? '').toLowerCase().includes(q) ||
+      (r.description ?? '').toLowerCase().includes(q) ||
+      (r.category ?? '').toLowerCase().includes(q)
+    );
+  });
+
+  const totalPts    = rows.reduce((s, r) => s + (r.amount ?? 0), 0);
+  const uniqueUsers = new Set(rows.map(r => r.user_id)).size;
+  const qrScans     = rows.filter(r => r.category === 'qr_scan').length;
+
+  const exportCSV = () => {
+    const header = 'Tarih,Kullanıcı,E-posta,Puan,Tür,Açıklama';
+    const lines = filtered.map(r =>
+      [
+        new Date(r.created_at).toLocaleString('tr-TR'),
+        r.profiles?.username ?? '-',
+        r.profiles?.email ?? '-',
+        r.amount,
+        r.category ?? '-',
+        (r.description ?? '').replace(/,/g, ' '),
+      ].join(',')
+    );
+    const blob = new Blob([header + '\n' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'kasa_gecmisi.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <CashierLayout>
-      <div className="p-4 sm:p-6 space-y-5 max-w-3xl mx-auto">
+      <div style={{ padding: 'clamp(16px,4vw,24px)', paddingBottom: 32, maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* Header */}
-        <div className="p-5 rounded-2xl text-white"
-          style={{ background: `linear-gradient(135deg, ${ACCENT} 0%, #d97706 100%)`, border: '2.5px solid var(--dark-border)', boxShadow: '0px 5px 0px var(--dark-border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
-              <History size={24} className="text-white" />
-            </div>
-            <div>
-              <p className="font-black text-xl">İşlem Geçmişi</p>
-              <p className="text-white/70 text-sm mt-0.5">Tüm kasa işlemlerini görüntüle ve filtrele</p>
-            </div>
+        <div style={{ ...card, background: 'linear-gradient(135deg,#1e293b,#0f172a)', padding: 'clamp(18px,4vw,28px)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 130, height: 130, borderRadius: '50%', background: 'rgba(123,110,246,0.15)' }} />
+          <div style={{ position: 'relative' }}>
+            <p style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>KASA GEÇMİŞİ</p>
+            <p style={{ fontWeight: 900, fontSize: 'clamp(20px,4vw,28px)', color: 'white', margin: '0 0 4px', lineHeight: 1.1 }}>İşlem Geçmişi 📋</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0, fontWeight: 600 }}>Tüm puan işlemleri ve QR taramalar</p>
           </div>
         </div>
 
-        {/* Summary KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
           {[
-            { label: 'Verilen Puan',   value: totals.issued.toLocaleString('tr-TR'),   icon: TrendingUp, color: '#22c55e' },
-            { label: 'Kullanılan',     value: totals.redeemed.toLocaleString('tr-TR'), icon: Star,       color: '#ef4444' },
-            { label: 'QR Tarama',      value: totals.scans.toString(),                 icon: ScanLine,   color: '#7B6EF6' },
-            { label: 'Farklı Müşteri', value: totals.customers.toString(),             icon: Users,      color: ACCENT    },
+            { label: 'İşlem', value: rows.length.toString(), color: '#7B6EF6' },
+            { label: 'Toplam Puan', value: totalPts.toLocaleString('tr-TR'), color: '#f59e0b' },
+            { label: 'Müşteri', value: uniqueUsers.toString(), color: '#22c55e' },
           ].map((s, i) => (
-            <div key={i} className="p-4 rounded-2xl text-center"
-              style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)' }}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2"
-                style={{ background: `${s.color}18`, border: `2px solid ${s.color}` }}>
-                <s.icon size={16} style={{ color: s.color }} />
-              </div>
-              <p className="font-black text-lg leading-tight" style={{ color: 'var(--text-dark)' }}>{s.value}</p>
-              <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
+            <div key={i} style={{ ...card, padding: '16px 10px', textAlign: 'center', boxShadow: '0px 3px 0px var(--dark-border)' }}>
+              <p style={{ fontWeight: 900, fontSize: 22, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
+              <p style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</p>
             </div>
           ))}
         </div>
 
-        {/* Search & filter bar */}
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                placeholder="Müşteri adı, ID veya işlem no ara..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl font-medium text-sm outline-none"
-                style={{ background: 'var(--card-bg)', border: '2px solid var(--dark-border)', color: 'var(--text-dark)' }}
-              />
-            </div>
-            <button onClick={() => setShowFilters(f => !f)}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-black text-sm transition-all"
-              style={{ background: showFilters ? ACCENT : 'var(--card-bg)', color: showFilters ? 'white' : 'var(--text-muted)', border: '2px solid var(--dark-border)' }}>
-              <Filter size={14} /> Filtre
-            </button>
-            <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-black text-sm"
-              style={{ background: 'var(--card-bg)', color: 'var(--text-muted)', border: '2px solid var(--dark-border)' }}>
-              <Download size={14} />
-            </button>
+        {/* Controls */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text" placeholder="Kullanıcı, açıklama veya tür ara..."
+              value={search} onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', paddingLeft: 36, paddingRight: 14, paddingTop: 11, paddingBottom: 11, borderRadius: 12, fontSize: 13, fontWeight: 600, background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', color: 'var(--text-dark)', outline: 'none' }}
+            />
           </div>
-
-          {showFilters && (
-            <div className="p-4 rounded-2xl space-y-3" style={{ background: 'var(--card-bg)', border: '2px solid var(--dark-border)' }}>
-              <div>
-                <p className="text-xs font-black mb-2" style={{ color: 'var(--text-muted)' }}>İŞLEM TÜRÜ</p>
-                <div className="flex flex-wrap gap-2">
-                  {(['all', 'qr_scan', 'manual_issue', 'redemption'] as const).map(t => (
-                    <button key={t}
-                      onClick={() => setTypeFilter(t)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-black transition-all"
-                      style={{
-                        background: typeFilter === t ? ACCENT : 'var(--tab-bg)',
-                        color: typeFilter === t ? 'white' : 'var(--text-muted)',
-                        border: '2px solid var(--dark-border)',
-                      }}>
-                      {t === 'all' ? 'Tümü' : TX_TYPE_LABELS[t].label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-black mb-2" style={{ color: 'var(--text-muted)' }}>TARİH</p>
-                <div className="flex flex-wrap gap-2">
-                  {dates.map(d => (
-                    <button key={d}
-                      onClick={() => setDateFilter(d)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-black transition-all"
-                      style={{
-                        background: dateFilter === d ? '#7B6EF6' : 'var(--tab-bg)',
-                        color: dateFilter === d ? 'white' : 'var(--text-muted)',
-                        border: '2px solid var(--dark-border)',
-                      }}>
-                      {d === 'all' ? 'Tüm Tarihler' : d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+          <button onClick={() => load(0)} style={{ padding: '0 14px', borderRadius: 12, background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 12, color: 'var(--text-muted)' }}>
+            <RefreshCw size={14} />
+          </button>
+          <button onClick={exportCSV} style={{ padding: '0 16px', borderRadius: 12, background: 'var(--card-bg)', border: '2px solid var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 12, color: 'var(--text-muted)', boxShadow: '0 3px 0 var(--dark-border)' }}>
+            <Download size={14} /> CSV
+          </button>
         </div>
 
-        {/* Transaction list */}
-        <div className="rounded-2xl overflow-hidden"
-          style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 4px 0px var(--dark-border)' }}>
-          <div className="px-5 py-3" style={{ borderBottom: '2px solid var(--dark-border)' }}>
-            <p className="font-black text-sm" style={{ color: 'var(--text-muted)' }}>
-              {filtered.length} işlem gösteriliyor
-            </p>
-          </div>
-
-          {filtered.length === 0 ? (
-            <div className="p-12 text-center">
-              <History size={32} className="mx-auto mb-3" style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
-              <p className="font-bold text-sm" style={{ color: 'var(--text-muted)' }}>İşlem bulunamadı</p>
+        {/* Table */}
+        <div style={{ ...card, overflow: 'hidden', padding: 0 }}>
+          {loading && rows.length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center' }}>
+              <Loader2 size={32} color="var(--text-muted)" className="animate-spin" style={{ margin: '0 auto 12px' }} />
+              <p style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: 13 }}>Yükleniyor…</p>
             </div>
-          ) : (
-            <div>
-              {filtered.map(tx => {
-                const typeInfo = TX_TYPE_LABELS[tx.type];
-                const isExpanded = expandedId === tx.id;
-                return (
-                  <div key={tx.id} style={{ borderBottom: '1px solid var(--dark-border)' }}>
-                    <button
-                      onClick={() => setExpandedId(isExpanded ? null : tx.id)}
-                      className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-black/5"
-                    >
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm text-white flex-shrink-0"
-                        style={{ background: typeInfo.color }}>
-                        {tx.customerName[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-black text-sm" style={{ color: 'var(--text-dark)' }}>{tx.customerName}</p>
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: `${typeInfo.color}18`, color: typeInfo.color, border: `1px solid ${typeInfo.color}` }}>
-                            {typeInfo.label}
-                          </span>
-                          {tx.status === 'failed' && (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                              style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid #ef4444' }}>
-                              Başarısız
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{tx.date} {tx.timestamp}</span>
-                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>• #{tx.id}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="font-black text-sm"
-                          style={{ color: tx.points > 0 ? '#22c55e' : '#ef4444' }}>
-                          {tx.points > 0 ? '+' : ''}{tx.points} pts
-                        </span>
-                        {tx.status === 'success'
-                          ? <CheckCircle size={14} style={{ color: '#22c55e' }} />
-                          : <XCircle size={14} style={{ color: '#ef4444' }} />
-                        }
-                        {isExpanded ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
-                      </div>
-                    </button>
-
-                    {isExpanded && (
-                      <div className="px-5 pb-4" style={{ background: 'var(--tab-bg)' }}>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3">
-                          {[
-                            { label: 'Müşteri ID', value: tx.customerId },
-                            { label: 'Kasiyer',    value: tx.cashier    },
-                            { label: 'Saat',       value: tx.timestamp  },
-                            { label: 'Tarih',      value: tx.date       },
-                            { label: 'Durum',      value: tx.status === 'success' ? '✅ Başarılı' : '❌ Başarısız' },
-                            ...(tx.note ? [{ label: 'Not', value: tx.note }] : []),
-                          ].map((d, i) => (
-                            <div key={i} className="p-2 rounded-xl" style={{ background: 'var(--card-bg)', border: '1.5px solid var(--dark-border)' }}>
-                              <p className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{d.label}</p>
-                              <p className="text-xs font-black mt-0.5" style={{ color: 'var(--text-dark)' }}>{d.value}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+          ) : filtered.length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center' }}>
+              <p style={{ fontSize: 32, marginBottom: 10 }}>📋</p>
+              <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-muted)' }}>İşlem bulunamadı</p>
+            </div>
+          ) : filtered.map((r, i) => {
+            const cat = categoryLabel[r.category ?? ''] ?? { label: r.category ?? '—', color: 'var(--text-muted)', icon: Star };
+            const CatIcon = cat.icon;
+            return (
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: i < filtered.length - 1 ? '1.5px solid var(--dark-border)' : 'none' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: `${cat.color}15`, border: `2px solid ${cat.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <CatIcon size={16} style={{ color: cat.color }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.profiles?.username ?? 'Kullanıcı'}
+                    </p>
+                    <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 900, background: `${cat.color}15`, color: cat.color, flexShrink: 0 }}>{cat.label}</span>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.description ?? r.profiles?.email ?? ''}
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <p style={{ fontWeight: 900, fontSize: 15, color: (r.amount ?? 0) >= 0 ? '#22c55e' : '#ef4444', margin: '0 0 2px' }}>
+                    {(r.amount ?? 0) >= 0 ? '+' : ''}{(r.amount ?? 0).toLocaleString('tr-TR')}
+                  </p>
+                  <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0 }}>{relTime(r.created_at)}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
+        {hasMore && !loading && (
+          <button onClick={() => { const next = page + 1; setPage(next); load(next); }}
+            style={{ ...card, padding: '14px', textAlign: 'center', fontWeight: 900, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer', boxShadow: '0 3px 0 var(--dark-border)' }}>
+            Daha Fazla Yükle
+          </button>
+        )}
       </div>
     </CashierLayout>
   );

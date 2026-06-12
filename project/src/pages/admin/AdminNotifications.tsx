@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Bell, Send, Clock, CheckCircle, AlertCircle, Plus, RefreshCw } from 'lucide-react';
+import { Bell, Send, Clock, CheckCircle, Plus, RefreshCw, Mail, MessageSquare, Layers } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getAllNotifications, broadcastNotification } from '../../services/admin';
+import { getAllNotifications, broadcastNotification, getAllUsersUnpaged } from '../../services/admin';
+import { supabase } from '../../lib/supabase';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 
 type DBNotification = {
@@ -15,16 +16,21 @@ type DBNotification = {
   profiles?: { username?: string; email?: string } | null;
 };
 
+type Channel = 'inapp' | 'email' | 'both';
+
 const AdminNotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<DBNotification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]   = useState(true);
   const [showSendForm, setShowSendForm] = useState(false);
-  const [notifTitle, setNotifTitle] = useState('');
+  const [notifTitle, setNotifTitle]     = useState('');
   const [notifMessage, setNotifMessage] = useState('');
-  const [notifType, setNotifType] = useState('general');
-  const [targetUsers, setTargetUsers] = useState('all');
-  const [sending, setSending] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  const [notifType, setNotifType]       = useState('general');
+  const [targetUsers, setTargetUsers]   = useState('all');
+  const [channel, setChannel]           = useState<Channel>('inapp');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [sending, setSending]           = useState(false);
+  const [successMsg, setSuccessMsg]     = useState('');
+  const [errorMsg, setErrorMsg]         = useState('');
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -34,35 +40,64 @@ const AdminNotificationsPage: React.FC = () => {
   }, []);
 
   useEffect(() => { loadNotifications(); }, [loadNotifications]);
-
-  /* realtime: refresh whenever a notification is created/updated */
   useRealtimeTable('notifications', loadNotifications);
 
-  const sendNotification = async () => {
-    if (!notifTitle || !notifMessage) {
-      alert('Başlık ve mesaj zorunludur');
-      return;
-    }
-
-    setSending(true);
+  /* Send email via Supabase Edge Function */
+  const sendEmailsToUsers = async (subject: string, body: string) => {
     try {
-      await broadcastNotification({
-        type: notifType,
-        title: notifTitle,
-        message: notifMessage,
-        icon: notifType === 'promotion' ? '🎁' : notifType === 'reward' ? '⭐' : notifType === 'event' ? '🎉' : '🔔',
-        userIds: targetUsers === 'all' ? [] : undefined,
+      const users = await getAllUsersUnpaged();
+      const emails = users.map((u: { email?: string }) => u.email).filter(Boolean) as string[];
+      if (emails.length === 0) return { sent: 0, error: 'Kullanıcı e-postası bulunamadı' };
+
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: { subject, html: `<h2>${subject}</h2><p>${body}</p>`, to: emails },
       });
 
-      setSuccessMsg('Bildirim başarıyla gönderildi!');
-      setTimeout(() => setSuccessMsg(''), 4000);
-      setNotifTitle('');
-      setNotifMessage('');
+      if (error) throw error;
+      return { sent: emails.length, error: null };
+    } catch (e: unknown) {
+      console.error('[sendEmails]', e);
+      return { sent: 0, error: (e as Error).message ?? 'E-posta gönderilemedi' };
+    }
+  };
+
+  const sendNotification = async () => {
+    if (!notifTitle || !notifMessage) { setErrorMsg('Başlık ve mesaj zorunludur'); return; }
+    if ((channel === 'email' || channel === 'both') && !emailSubject) {
+      setErrorMsg('E-posta kanalı için konu satırı zorunludur'); return;
+    }
+
+    setSending(true); setErrorMsg(''); setSuccessMsg('');
+    try {
+      const results: string[] = [];
+
+      if (channel === 'inapp' || channel === 'both') {
+        await broadcastNotification({
+          type: notifType,
+          title: notifTitle,
+          message: notifMessage,
+          icon: notifType === 'promotion' ? '🎁' : notifType === 'reward' ? '⭐' : notifType === 'event' ? '🎉' : '🔔',
+          userIds: targetUsers === 'all' ? [] : undefined,
+        });
+        results.push('Uygulama içi bildirim gönderildi ✅');
+      }
+
+      if (channel === 'email' || channel === 'both') {
+        const { sent, error } = await sendEmailsToUsers(emailSubject || notifTitle, notifMessage);
+        if (error) {
+          results.push(`E-posta: ${error} ⚠️`);
+        } else {
+          results.push(`${sent} kullanıcıya e-posta gönderildi ✅`);
+        }
+      }
+
+      setSuccessMsg(results.join(' · '));
+      setTimeout(() => setSuccessMsg(''), 6000);
+      setNotifTitle(''); setNotifMessage(''); setEmailSubject('');
       setShowSendForm(false);
       await loadNotifications();
-    } catch (error) {
-      console.error('Failed to send notification:', error);
-      alert('Bildirim gönderilemedi');
+    } catch (e: unknown) {
+      setErrorMsg((e as Error).message ?? 'Bildirim gönderilemedi');
     } finally {
       setSending(false);
     }
@@ -175,6 +210,25 @@ const AdminNotificationsPage: React.FC = () => {
               <h3 className="text-lg lg:text-xl font-black text-gray-900 dark:text-white">Bildirim Oluştur</h3>
             </div>
 
+            {/* Channel selector */}
+            <div>
+              <label className="text-xs text-gray-500 font-black mb-2 block uppercase tracking-wide">GÖNDERİM KANALI</label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { id: 'inapp' as Channel, label: 'Uygulama İçi', icon: MessageSquare, color: '#7B6EF6' },
+                  { id: 'email' as Channel, label: 'E-Posta',       icon: Mail,          color: '#3b82f6' },
+                  { id: 'both'  as Channel, label: 'Her İkisi',     icon: Layers,        color: '#22c55e' },
+                ]).map(c => (
+                  <button key={c.id} onClick={() => setChannel(c.id)}
+                    className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl font-black text-xs border-2 transition-all"
+                    style={{ borderColor: channel === c.id ? c.color : 'var(--dark-border)', background: channel === c.id ? `${c.color}15` : 'var(--tab-bg)', color: channel === c.id ? c.color : 'var(--text-muted)', boxShadow: channel === c.id ? `0 3px 0 ${c.color}40` : 'none' }}>
+                    <c.icon size={18} />
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <input
               type="text"
               placeholder="Bildirim Başlığı"
@@ -190,23 +244,42 @@ const AdminNotificationsPage: React.FC = () => {
               className="w-full px-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 resize-none h-24"
             />
 
+            {/* Email subject (shown only when email channel is selected) */}
+            {(channel === 'email' || channel === 'both') && (
+              <div>
+                <label className="text-xs text-gray-500 font-black mb-1 block uppercase tracking-wide">E-POSTA KONU SATIRI</label>
+                <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-blue-400 bg-blue-50 dark:bg-blue-900/20">
+                  <Mail size={16} className="text-blue-500 flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="E-posta konusu (boş bırakılırsa başlık kullanılır)"
+                    value={emailSubject}
+                    onChange={e => setEmailSubject(e.target.value)}
+                    className="flex-1 bg-transparent outline-none text-sm font-bold text-gray-900 dark:text-white placeholder-gray-400"
+                  />
+                </div>
+                <p className="text-xs text-blue-500 mt-1 font-medium">
+                  💡 E-posta göndermek için Supabase Edge Function <code className="font-mono bg-blue-100 dark:bg-blue-900 px-1 rounded">send-email</code> dağıtılmış olmalıdır.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500 font-bold mb-1 block">Type</label>
+                <label className="text-xs text-gray-500 font-bold mb-1 block">Tür</label>
                 <select
                   value={notifType}
                   onChange={(e) => setNotifType(e.target.value)}
                   className="w-full px-4 py-3 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-bold"
                 >
-                  <option value="general">General</option>
-                  <option value="promotion">Promotion</option>
-                  <option value="reward">Reward</option>
-                  <option value="event">Event</option>
+                  <option value="general">Genel</option>
+                  <option value="promotion">Promosyon</option>
+                  <option value="reward">Ödül</option>
+                  <option value="event">Etkinlik</option>
                 </select>
               </div>
-
               <div>
-                <label className="text-xs text-gray-500 font-bold mb-1 block">Target</label>
+                <label className="text-xs text-gray-500 font-bold mb-1 block">Hedef</label>
                 <select
                   value={targetUsers}
                   onChange={(e) => setTargetUsers(e.target.value)}
@@ -217,6 +290,10 @@ const AdminNotificationsPage: React.FC = () => {
               </div>
             </div>
 
+            {errorMsg && (
+              <div className="p-3 rounded-2xl bg-red-100 dark:bg-red-900/30 border-2 border-red-500 text-red-700 dark:text-red-300 font-bold text-sm">{errorMsg}</div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={sendNotification}
@@ -224,19 +301,13 @@ const AdminNotificationsPage: React.FC = () => {
                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white font-bold rounded-2xl border-2 border-black hover:shadow-lg transition-all disabled:opacity-50"
               >
                 {sending ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Gönderiliyor...</span>
-                  </>
+                  <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>Gönderiliyor...</span></>
                 ) : (
-                  <>
-                    <Send size={20} />
-                    <span>Gönder</span>
-                  </>
+                  <><Send size={20} /><span>Gönder</span></>
                 )}
               </button>
               <button
-                onClick={() => setShowSendForm(false)}
+                onClick={() => { setShowSendForm(false); setErrorMsg(''); }}
                 className="flex-1 py-3 rounded-2xl border-2 border-black dark:border-gray-600 font-bold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 İptal

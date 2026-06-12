@@ -210,5 +210,16 @@ create policy "Users insert logs"
     or auth.uid() is not null
   );
 
+-- ── QR: increment uses helper ────────────────────────────────
+
+create or replace function public.increment_qr_uses(qr_id uuid)
+returns void language plpgsql security definer as $$
+begin
+  update public.qr_codes
+  set uses_count = uses_count + 1
+  where id = qr_id;
+end;
+$$;
+
 -- ── DONE ─────────────────────────────────────────────────────
 select 'Patch applied successfully ✓' as status;

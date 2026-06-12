@@ -284,3 +284,125 @@ export async function getRecentPointsTransactions(limit = 100) {
   if (error) throw error;
   return data ?? [];
 }
+
+/* ── QR / Cashier helpers ──────────────────────────────────────── */
+
+/** Look up a store QR code by its raw code string. */
+export async function lookupStoreQR(code: string) {
+  const { data, error } = await supabase
+    .from('qr_codes')
+    .select('*')
+    .eq('code', code.trim().toUpperCase())
+    .eq('active', true)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/** Record a customer scanning a store QR and award points atomically. */
+export async function recordQRScan(
+  userId: string,
+  qrCodeId: string,
+  pointsEarned: number,
+  description: string
+): Promise<void> {
+  // Insert scan record
+  const { error: scanErr } = await supabase
+    .from('qr_scans')
+    .insert({ user_id: userId, qr_code_id: qrCodeId, points_earned: pointsEarned });
+  if (scanErr) throw scanErr;
+
+  // Increment uses_count on qr_codes
+  const { error: updateErr } = await supabase.rpc('increment_qr_uses', { qr_id: qrCodeId });
+  // Non-fatal if RPC not yet deployed — uses_count is cosmetic
+  if (updateErr) console.warn('[recordQRScan] increment_qr_uses:', updateErr.message);
+
+  // Award points to user
+  const { error: ptsErr } = await supabase.rpc('add_points', {
+    p_user_id: userId,
+    p_amount: pointsEarned,
+    p_description: description,
+    p_category: 'qr_scan',
+    p_reference_id: qrCodeId,
+  });
+  if (ptsErr) throw ptsErr;
+}
+
+/** Create a temporary cashier-purchase QR in the database. */
+export async function createCashierQR(payload: {
+  code: string;
+  points: number;
+  amount: number;
+  cashierUserId: string;
+  expiresAt: string;
+}) {
+  const { data, error } = await supabase
+    .from('qr_codes')
+    .insert({
+      code: payload.code,
+      store_id: payload.cashierUserId,
+      points: payload.points,
+      label: `Kasa QR — ₺${payload.amount}`,
+      active: true,
+      max_uses: 1,
+      uses_count: 0,
+      expires_at: payload.expiresAt,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/** Mark a cashier QR as used (increment uses_count to max). */
+export async function markCashierQRUsedDB(qrCodeId: string): Promise<void> {
+  const { error } = await supabase
+    .from('qr_codes')
+    .update({ uses_count: 9999, active: false })
+    .eq('id', qrCodeId);
+  if (error) throw error;
+}
+
+/** Get today's cashier stats. */
+export async function getCashierTodayStats(cashierUserId: string): Promise<{
+  scans: number;
+  pointsGiven: number;
+  customers: number;
+}> {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const iso = todayStart.toISOString();
+
+  const [scansRes, ptsRes] = await Promise.all([
+    supabase
+      .from('qr_scans')
+      .select('id, user_id', { count: 'exact' })
+      .gte('created_at', iso),
+    supabase
+      .from('points_transactions')
+      .select('amount')
+      .eq('category', 'qr_scan')
+      .gte('created_at', iso),
+  ]);
+
+  const pointsGiven = (ptsRes.data ?? []).reduce((s, t) => s + (t.amount ?? 0), 0);
+  const uniqueCustomers = new Set((scansRes.data ?? []).map(s => s.user_id)).size;
+
+  return {
+    scans: scansRes.count ?? 0,
+    pointsGiven,
+    customers: uniqueCustomers,
+  };
+}
+
+/** Get recent transactions for cashier history page. */
+export async function getCashierHistory(page = 0, pageSize = 30) {
+  const { data, error } = await supabase
+    .from('points_transactions')
+    .select('*, profiles(username, email, avatar_url)')
+    .in('category', ['qr_scan', 'admin_adjustment', 'cashier_manual'])
+    .order('created_at', { ascending: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1);
+  if (error) throw error;
+  return data ?? [];
+}

@@ -1,235 +1,262 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import StoreAdminLayout from './StoreAdminLayout';
-import { QrCode, RefreshCw, Copy, CheckCircle, Clock, ScanLine, AlertCircle, Zap } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../context/AuthContext';
+import { useRealtimeTable } from '../../../hooks/useRealtime';
+import { QrCode, Plus, Trash2, ToggleLeft, ToggleRight, Copy, Check, Loader2, Search, RefreshCw, X } from 'lucide-react';
 
-const ACCENT = '#22c55e';
-
-type Tab = 'generate' | 'scan' | 'history';
-
-interface QREntry {
+interface QRCode {
   id: string;
-  type: string;
-  value: string;
-  createdAt: string;
-  expiresAt: string;
-  used: boolean;
-  customerName?: string;
+  code: string;
+  label: string | null;
+  points: number;
+  active: boolean;
+  max_uses: number | null;
+  uses_count: number;
+  expires_at: string | null;
+  created_at: string;
+  store_id: string | null;
 }
 
-const HISTORY: QREntry[] = [
-  { id: 'QR001', type: 'purchase', value: '₺150 Alışveriş',    createdAt: '09:14', expiresAt: '09:19', used: true,  customerName: 'Ayşe K.' },
-  { id: 'QR002', type: 'checkin',  value: 'Mağaza Check-in',    createdAt: '09:02', expiresAt: '09:07', used: true,  customerName: 'Mehmet T.' },
-  { id: 'QR003', type: 'purchase', value: '₺75 Alışveriş',     createdAt: '08:55', expiresAt: '09:00', used: true,  customerName: 'Zeynep A.' },
-  { id: 'QR004', type: 'gift',     value: '100 Puan Hediye',    createdAt: '08:30', expiresAt: '08:35', used: false, customerName: undefined },
-];
+const card = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  boxShadow: '0px 5px 0px var(--dark-border)',
+  borderRadius: 20,
+};
 
-const QR_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2YzZjRmNiIvPjxyZWN0IHg9IjEwIiB5PSIxMCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMWUxYjRiIiByeD0iNCIvPjxyZWN0IHg9IjIwIiB5PSIyMCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiBmaWxsPSJ3aGl0ZSIgcng9IjIiLz48cmVjdCB4PSIyNSIgeT0iMjUiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0iIzFlMWI0YiIgcng9IjIiLz48cmVjdCB4PSI5MCIgeT0iMTAiIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFlMWI0YiIgcng9IjQiLz48cmVjdCB4PSIxMDAiIHk9IjIwIiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIGZpbGw9IndoaXRlIiByeD0iMiIvPjxyZWN0IHg9IjEwNSIgeT0iMjUiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0iIzFlMWI0YiIgcng9IjIiLz48cmVjdCB4PSIxMCIgeT0iOTAiIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFlMWI0YiIgcng9IjQiLz48cmVjdCB4PSIyMCIgeT0iMTAwIiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIGZpbGw9IndoaXRlIiByeD0iMiIvPjxyZWN0IHg9IjI1IiB5PSIxMDUiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0iIzFlMWI0YiIgcng9IjIiLz48cmVjdCB4PSI3MCIgeT0iNzAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzFlMWI0YiIvPjxyZWN0IHg9IjkwIiB5PSI3MCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMWUxYjRiIi8+PHJlY3QgeD0iMTEwIiB5PSI3MCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMWUxYjRiIi8+PHJlY3QgeD0iMTMwIiB5PSI3MCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMWUxYjRiIi8+PHJlY3QgeD0iNzAiIHk9IjkwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiMxZTFiNGIiLz48cmVjdCB4PSI5MCIgeT0iOTAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzFlMWI0YiIvPjxyZWN0IHg9IjcwIiB5PSIxMTAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzFlMWI0YiIvPjxyZWN0IHg9IjExMCIgeT0iMTEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiMxZTFiNGIiLz48cmVjdCB4PSIxMzAiIHk9IjExMCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMWUxYjRiIi8+PHJlY3QgeD0iNzAiIHk9IjEzMCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMWUxYjRiIi8+PHJlY3QgeD0iOTAiIHk9IjEzMCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMWUxYjRiIi8+PHJlY3QgeD0iMTEwIiB5PSIxMzAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzFlMWI0YiIvPjwvc3ZnPg==';
+function relTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
-const StoreAdminQR: React.FC = () => {
-  const [tab, setTab] = useState<Tab>('generate');
-  const [qrType, setQrType] = useState<'purchase' | 'checkin' | 'gift'>('purchase');
-  const [amount, setAmount] = useState('150');
-  const [giftPoints, setGiftPoints] = useState('100');
-  const [generated, setGenerated] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300);
-  const [manualId, setManualId] = useState('');
-  const [scanResult, setScanResult] = useState<{ ok: boolean; msg: string } | null>(null);
+const CreateModal: React.FC<{
+  storeId: string;
+  onClose: () => void;
+  onDone: () => void;
+}> = ({ storeId, onClose, onDone }) => {
+  const [form, setForm] = useState({ label: '', points: '100', max_uses: '', expires_at: '' });
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState('');
+  const [created, setCreated] = useState<QRCode | null>(null);
+  const [copied, setCopied]   = useState(false);
 
-  useEffect(() => {
-    if (!generated) return;
-    setTimeLeft(300);
-    const id = setInterval(() => setTimeLeft(t => { if (t <= 1) { clearInterval(id); setGenerated(false); return 0; } return t - 1; }), 1000);
-    return () => clearInterval(id);
-  }, [generated]);
+  function generateCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let c = '';
+    for (let i = 0; i < 10; i++) c += chars[Math.floor(Math.random() * chars.length)];
+    return c;
+  }
 
-  const generate = () => { if (!amount && qrType === 'purchase') return; setGenerated(true); };
-  const copyCode = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
-
-  const handleScan = () => {
-    if (!manualId.trim()) return;
-    setTimeout(() => {
-      setScanResult({ ok: true, msg: `QR ${manualId} başarıyla işlendi — 75 puan eklendi` });
-      setManualId('');
-    }, 600);
+  const handleCreate = async () => {
+    const pts = parseInt(form.points);
+    if (!pts || pts <= 0) { setError('Geçerli bir puan girin'); return; }
+    setSaving(true); setError('');
+    try {
+      const code = generateCode();
+      const { data, error: err } = await supabase
+        .from('qr_codes')
+        .insert({
+          code,
+          store_id: storeId,
+          label: form.label || null,
+          points: pts,
+          active: true,
+          max_uses: form.max_uses ? parseInt(form.max_uses) : null,
+          uses_count: 0,
+          expires_at: form.expires_at || null,
+        })
+        .select()
+        .single();
+      if (err) throw err;
+      setCreated(data as QRCode);
+    } catch (e: unknown) {
+      setError((e as Error).message ?? 'Oluşturulamadı');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  const handleCopy = () => {
+    if (!created) return;
+    navigator.clipboard.writeText(created.code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-  const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
-    { key: 'generate', label: 'QR Oluştur',  icon: QrCode    },
-    { key: 'scan',     label: 'QR Tara',     icon: ScanLine  },
-    { key: 'history',  label: 'Geçmiş',      icon: Clock     },
-  ];
+  const qrUrl = created
+    ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(JSON.stringify({ type: 'store_qr', code: created.code, points: created.points, label: created.label }))}&size=240x240&margin=8`
+    : '';
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      onClick={e => { if (e.target === e.currentTarget && !created) onClose(); }}>
+      <div style={{ ...card, width: '100%', maxWidth: 460, padding: 24, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <p style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: 0 }}>
+            {created ? 'QR Kod Oluşturuldu ✅' : 'Yeni QR Kod'}
+          </p>
+          <button onClick={() => { onDone(); onClose(); }} style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <X size={14} color="var(--text-muted)" />
+          </button>
+        </div>
+
+        {!created ? (
+          <>
+            {[
+              { label: 'ETİKET (opsiyonel)', key: 'label', type: 'text', placeholder: 'ör: Mağaza Girişi' },
+              { label: 'KAZANILACAK PUAN', key: 'points', type: 'number', placeholder: '100' },
+              { label: 'MAKSIMUM KULLANIM (opsiyonel, boş=sınırsız)', key: 'max_uses', type: 'number', placeholder: '' },
+              { label: 'BİTİŞ TARİHİ (opsiyonel)', key: 'expires_at', type: 'date', placeholder: '' },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>{f.label}</label>
+                <input type={f.type} placeholder={f.placeholder}
+                  value={(form as Record<string, string>)[f.key]}
+                  onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', color: 'var(--text-dark)', outline: 'none' }} />
+              </div>
+            ))}
+
+            {error && <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.1)', border: '2px solid #ef4444', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{error}</div>}
+
+            <button onClick={handleCreate} disabled={saving}
+              style={{ width: '100%', padding: 13, borderRadius: 14, fontWeight: 900, fontSize: 14, background: 'linear-gradient(180deg,#22c55e,#16a34a)', color: 'white', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: saving ? 0.7 : 1 }}>
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+              {saving ? 'Oluşturuluyor…' : 'QR Oluştur'}
+            </button>
+          </>
+        ) : (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ background: 'white', padding: 16, borderRadius: 20, border: '3px solid var(--dark-border)', boxShadow: '0 5px 0 var(--dark-border)', display: 'inline-block', marginBottom: 16 }}>
+              <img src={qrUrl} alt="QR Code" style={{ width: 220, height: 220, display: 'block', borderRadius: 10 }} />
+            </div>
+            <p style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 900, color: 'var(--primary-blue)', margin: '0 0 4px', letterSpacing: '0.1em' }}>{created.code}</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 16px' }}>{created.label ?? ''} · {created.points} puan</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={handleCopy} style={{ flex: 1, padding: 11, borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-dark)', border: '2.5px solid var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                {copied ? <Check size={14} color="#22c55e" /> : <Copy size={14} />} {copied ? 'Kopyalandı!' : 'Kodu Kopyala'}
+              </button>
+              <button onClick={() => { onDone(); onClose(); }} style={{ flex: 1, padding: 11, borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'linear-gradient(180deg,#7B6EF6,#5b4dd1)', color: 'white', border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', cursor: 'pointer' }}>
+                Tamam
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const StoreAdminQR: React.FC = () => {
+  const { authUser } = useAuth();
+  const [qrCodes, setQrCodes] = useState<QRCode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch]   = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      let q = supabase.from('qr_codes').select('*').order('created_at', { ascending: false }).limit(100);
+      if (search.trim()) q = q.or(`code.ilike.%${search}%,label.ilike.%${search}%`);
+      const { data, error } = await q;
+      if (error) throw error;
+      setQrCodes((data ?? []) as QRCode[]);
+    } catch (e) { console.error('[StoreAdminQR]', e); }
+    finally { setLoading(false); }
+  }, [search]);
+
+  useEffect(() => { const t = setTimeout(() => load(), 300); return () => clearTimeout(t); }, [load]);
+  useRealtimeTable('qr_codes', load);
+
+  const toggleActive = async (r: QRCode) => {
+    await supabase.from('qr_codes').update({ active: !r.active }).eq('id', r.id);
+    load();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Bu QR kodu silmek istiyor musunuz?')) return;
+    await supabase.from('qr_codes').delete().eq('id', id);
+    load();
+  };
 
   return (
     <StoreAdminLayout>
-      <div className="p-4 sm:p-6 space-y-5 max-w-2xl mx-auto">
+      <div style={{ padding: 'clamp(16px,4vw,24px)', paddingBottom: 32, maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {showCreate && authUser?.id && (
+          <CreateModal storeId={authUser.id} onClose={() => setShowCreate(false)} onDone={load} />
+        )}
+
         {/* Header */}
-        <div className="p-5 rounded-2xl text-white"
-          style={{ background: `linear-gradient(135deg, ${ACCENT} 0%, #16a34a 100%)`, border: '2.5px solid var(--dark-border)', boxShadow: '0px 5px 0px var(--dark-border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
-              <QrCode size={24} className="text-white" />
-            </div>
-            <div>
-              <p className="font-black text-xl">QR İşlemleri</p>
-              <p className="text-white/70 text-sm">QR oluştur, tara ve geçmişi incele</p>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ ...card, flex: 1, padding: 'clamp(16px,3vw,22px)', background: 'linear-gradient(135deg,#22c55e,#16a34a)', marginRight: 12 }}>
+            <p style={{ fontWeight: 900, fontSize: 20, color: 'white', margin: '0 0 4px' }}>QR Kodlar 📲</p>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 }}>{qrCodes.length} kod kayıtlı</p>
           </div>
+          <button onClick={() => setShowCreate(true)}
+            style={{ ...card, padding: '14px 18px', background: 'linear-gradient(180deg,#7B6EF6,#5b4dd1)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: 13, boxShadow: '0 4px 0 var(--dark-border)', flexShrink: 0 }}>
+            <Plus size={16} /> Yeni QR
+          </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2">
-          {TABS.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-sm transition-all"
-              style={{
-                background: tab === t.key ? ACCENT : 'var(--card-bg)',
-                color: tab === t.key ? 'white' : 'var(--text-muted)',
-                border: '2px solid var(--dark-border)',
-                boxShadow: tab === t.key ? '0px 3px 0px var(--dark-border)' : 'none',
-              }}>
-              <t.icon size={15} />
-              <span className="hidden sm:inline">{t.label}</span>
-            </button>
-          ))}
+        {/* Search */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input type="text" placeholder="Kod veya etiket ara..." value={search} onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', paddingLeft: 40, paddingRight: 14, paddingTop: 12, paddingBottom: 12, borderRadius: 12, fontSize: 13, fontWeight: 600, background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)', color: 'var(--text-dark)', outline: 'none', boxShadow: '0 3px 0 var(--dark-border)' }} />
+          </div>
+          <button onClick={() => load()} style={{ padding: '0 14px', borderRadius: 12, background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <RefreshCw size={15} color="var(--text-muted)" />
+          </button>
         </div>
 
-        {/* Generate tab */}
-        {tab === 'generate' && (
-          <div className="space-y-4">
-            <div className="p-5 rounded-2xl" style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 4px 0px var(--dark-border)' }}>
-              <p className="font-black text-sm mb-3" style={{ color: 'var(--text-dark)' }}>QR Türü</p>
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {([
-                  { key: 'purchase', emoji: '🛍️', label: 'Alışveriş' },
-                  { key: 'checkin',  emoji: '📍', label: 'Check-in'  },
-                  { key: 'gift',     emoji: '🎁', label: 'Hediye'    },
-                ] as const).map(t => (
-                  <button key={t.key} onClick={() => { setQrType(t.key); setGenerated(false); }}
-                    className="p-3 rounded-xl flex flex-col items-center gap-1 transition-all"
-                    style={{
-                      background: qrType === t.key ? `${ACCENT}15` : 'var(--tab-bg)',
-                      border: `2px solid ${qrType === t.key ? ACCENT : 'var(--dark-border)'}`,
-                    }}>
-                    <span className="text-xl">{t.emoji}</span>
-                    <span className="font-black text-xs" style={{ color: qrType === t.key ? ACCENT : 'var(--text-muted)' }}>{t.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {qrType === 'purchase' && (
-                <div className="mb-4">
-                  <label className="text-xs font-black block mb-1" style={{ color: 'var(--text-muted)' }}>TUTAR (₺)</label>
-                  <input type="number" min={1} value={amount} onChange={e => { setAmount(e.target.value); setGenerated(false); }}
-                    className="w-full px-4 py-3 rounded-xl font-bold text-sm outline-none"
-                    style={{ background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', color: 'var(--text-dark)' }} />
-                </div>
-              )}
-              {qrType === 'gift' && (
-                <div className="mb-4">
-                  <label className="text-xs font-black block mb-1" style={{ color: 'var(--text-muted)' }}>HEDİYE PUAN</label>
-                  <input type="number" min={1} value={giftPoints} onChange={e => { setGiftPoints(e.target.value); setGenerated(false); }}
-                    className="w-full px-4 py-3 rounded-xl font-bold text-sm outline-none"
-                    style={{ background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', color: 'var(--text-dark)' }} />
-                </div>
-              )}
-
-              <button onClick={generate}
-                className="w-full py-3 rounded-xl font-black text-white transition-all active:scale-95 flex items-center justify-center gap-2"
-                style={{ background: ACCENT, border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)' }}>
-                <Zap size={16} /> QR Oluştur
+        {/* QR list */}
+        <div style={{ ...card, overflow: 'hidden', padding: 0 }}>
+          {loading ? (
+            <div style={{ padding: 48, textAlign: 'center' }}>
+              <Loader2 size={28} className="animate-spin" style={{ margin: '0 auto 12px', color: 'var(--text-muted)' }} />
+              <p style={{ color: 'var(--text-muted)', fontWeight: 700 }}>Yükleniyor…</p>
+            </div>
+          ) : qrCodes.length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center' }}>
+              <QrCode size={36} style={{ margin: '0 auto 12px', color: 'var(--text-muted)', opacity: 0.4 }} />
+              <p style={{ color: 'var(--text-muted)', fontWeight: 700 }}>Henüz QR kod yok</p>
+              <button onClick={() => setShowCreate(true)} style={{ marginTop: 12, padding: '10px 20px', borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'linear-gradient(180deg,#7B6EF6,#5b4dd1)', color: 'white', border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', cursor: 'pointer' }}>
+                İlk QR'ı Oluştur
               </button>
             </div>
-
-            {generated && (
-              <div className="p-6 rounded-2xl text-center"
-                style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 4px 0px var(--dark-border)' }}>
-                <div className="mx-auto w-36 h-36 rounded-2xl overflow-hidden mb-4"
-                  style={{ border: '3px solid var(--dark-border)' }}>
-                  <img src={QR_PLACEHOLDER} alt="QR" className="w-full h-full" />
-                </div>
-                <p className="font-black text-sm mb-1" style={{ color: 'var(--text-dark)' }}>
-                  {qrType === 'purchase' ? `₺${amount} Alışveriş QR` : qrType === 'checkin' ? 'Mağaza Check-in QR' : `${giftPoints} Puan Hediye QR`}
-                </p>
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <Clock size={14} style={{ color: timeLeft < 60 ? '#ef4444' : ACCENT }} />
-                  <span className="font-black text-sm" style={{ color: timeLeft < 60 ? '#ef4444' : ACCENT }}>{fmt(timeLeft)} kaldı</span>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={copyCode}
-                    className="flex-1 py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-2"
-                    style={{ background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2px solid var(--dark-border)' }}>
-                    {copied ? <><CheckCircle size={14} style={{ color: ACCENT }} /> Kopyalandı!</> : <><Copy size={14} /> Kodu Kopyala</>}
-                  </button>
-                  <button onClick={generate}
-                    className="px-4 py-2.5 rounded-xl font-black text-sm flex items-center gap-1.5"
-                    style={{ background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2px solid var(--dark-border)' }}>
-                    <RefreshCw size={13} /> Yenile
-                  </button>
+          ) : qrCodes.map((r, i) => (
+            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: i < qrCodes.length - 1 ? '1.5px solid var(--dark-border)' : 'none', opacity: r.active ? 1 : 0.5 }}>
+              <div style={{ width: 50, height: 50, borderRadius: 12, background: 'white', border: '2px solid var(--dark-border)', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(r.code)}&size=50x50&margin=2`}
+                  alt={r.code}
+                  style={{ width: 46, height: 46 }}
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 13, color: 'var(--primary-blue)', margin: '0 0 2px', letterSpacing: '0.07em' }}>{r.code}</p>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {r.label && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.label}</span>}
+                  <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 900, background: 'rgba(245,158,11,0.12)', color: '#d97706', border: '1px solid #f59e0b' }}>⭐ {r.points} puan</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{r.uses_count ?? 0}{r.max_uses ? `/${r.max_uses}` : ''} kullanım</span>
+                  {r.expires_at && <span style={{ fontSize: 10, color: new Date(r.expires_at) < new Date() ? '#ef4444' : 'var(--text-muted)' }}>🕐 {relTime(r.expires_at)}</span>}
                 </div>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Scan tab */}
-        {tab === 'scan' && (
-          <div className="space-y-4">
-            <div className="p-5 rounded-2xl" style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 4px 0px var(--dark-border)' }}>
-              <p className="font-black text-sm mb-3" style={{ color: 'var(--text-dark)' }}>Manuel QR Kodu Gir</p>
-              <div className="flex gap-2">
-                <input type="text" placeholder="QR kod değeri" value={manualId} onChange={e => { setManualId(e.target.value); setScanResult(null); }}
-                  onKeyDown={e => e.key === 'Enter' && handleScan()}
-                  className="flex-1 px-4 py-3 rounded-xl font-bold text-sm outline-none"
-                  style={{ background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', color: 'var(--text-dark)' }} />
-                <button onClick={handleScan} disabled={!manualId.trim()}
-                  className="px-5 py-3 rounded-xl font-black text-sm text-white transition-all active:scale-95"
-                  style={{ background: ACCENT, border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)', opacity: !manualId.trim() ? 0.6 : 1 }}>
-                  <ScanLine size={16} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <button onClick={() => toggleActive(r)} title={r.active ? 'Pasife al' : 'Aktifleştir'} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  {r.active ? <ToggleRight size={24} color="#22c55e" /> : <ToggleLeft size={24} color="var(--text-muted)" />}
+                </button>
+                <button onClick={() => handleDelete(r.id)} style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1.5px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <Trash2 size={13} color="#ef4444" />
                 </button>
               </div>
-              {scanResult && (
-                <div className="mt-3 p-3 rounded-xl flex items-center gap-2"
-                  style={{ background: scanResult.ok ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: `2px solid ${scanResult.ok ? ACCENT : '#ef4444'}` }}>
-                  {scanResult.ok ? <CheckCircle size={16} style={{ color: ACCENT }} /> : <AlertCircle size={16} style={{ color: '#ef4444' }} />}
-                  <span className="font-black text-sm" style={{ color: scanResult.ok ? ACCENT : '#ef4444' }}>{scanResult.msg}</span>
-                </div>
-              )}
             </div>
-          </div>
-        )}
-
-        {/* History tab */}
-        {tab === 'history' && (
-          <div className="rounded-2xl overflow-hidden"
-            style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 4px 0px var(--dark-border)' }}>
-            {HISTORY.map((entry, i) => (
-              <div key={entry.id} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-black/5"
-                style={{ borderBottom: i < HISTORY.length - 1 ? '1px solid var(--dark-border)' : 'none' }}>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-                  style={{ background: entry.used ? 'var(--tab-bg)' : `${ACCENT}15`, border: '2px solid var(--dark-border)' }}>
-                  {entry.type === 'purchase' ? '🛍️' : entry.type === 'checkin' ? '📍' : '🎁'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-black text-sm" style={{ color: 'var(--text-dark)' }}>{entry.value}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {entry.customerName ? `${entry.customerName} · ` : ''}{entry.createdAt} → {entry.expiresAt}
-                  </p>
-                </div>
-                <span className="font-black text-xs px-2 py-1 rounded-full flex-shrink-0"
-                  style={{
-                    background: entry.used ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)',
-                    color: entry.used ? ACCENT : '#f59e0b',
-                    border: `1.5px solid ${entry.used ? ACCENT : '#f59e0b'}`,
-                  }}>
-                  {entry.used ? 'Kullanıldı' : 'Bekliyor'}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     </StoreAdminLayout>
   );

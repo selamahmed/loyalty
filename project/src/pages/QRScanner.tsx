@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { QrCode, Camera, Check, Zap, RotateCcw, MapPin, X, FlipHorizontal, Keyboard, ShoppingCart, AlertCircle, Clock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useInventory } from '../context/InventoryContext';
+import { useAuth } from '../context/AuthContext';
 import InventoryDetailModal from '../components/InventoryDetailModal';
 import {
   parseQRPayload, isCashierQR, isInventoryQR,
-  isQRExpired, msRemaining, markCashierQRUsed, appendAuditLog,
-  type CashierQRPayload, type InventoryQRPayload,
+  isQRExpired, msRemaining,
+  type CashierQRPayload,
 } from '../lib/qrUtils';
+import { lookupStoreQR, recordQRScan, markCashierQRUsedDB } from '../services/admin';
 
 const card = {
   background: 'var(--card-bg)',
@@ -16,12 +18,7 @@ const card = {
   borderRadius: 20,
 };
 
-const fakeQRResults = [
-  { code: 'STORE42-BONUS',     title: 'Mağaza Ziyaret Bonusu!', points: 75,  location: 'Mağaza #42 - Ana Cad.' },
-  { code: 'EVENT2026-SPECIAL', title: 'Etkinlik Özel Kodu!',    points: 150, location: 'Yaz Etkinliği Standı' },
-  { code: 'PARTNER-CAFE',      title: 'Partner Kafe Ziyareti!', points: 50,  location: 'Coffee Corner' },
-  { code: 'PROMO-SALE',        title: 'İndirim Promosyonu!',    points: 100, location: 'Online Özel' },
-];
+type QRResult = { code: string; title: string; points: number; location: string; dbQrId?: string };
 
 /* ── Cashier QR result card ── */
 const CashierQRResult: React.FC<{
@@ -208,10 +205,11 @@ const InventoryQRModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 ═══════════════════════════════════════════════════ */
 const QRScanner: React.FC = () => {
   const { addPoints, showRewardPopup } = useApp();
-  const { getByCode, markUsed } = useInventory();
+  const { getByCode } = useInventory();
+  const { authUser } = useAuth();
 
   const [mode, setMode]         = useState<'idle' | 'camera' | 'fake' | 'manual'>('idle');
-  const [result, setResult]     = useState<typeof fakeQRResults[0] | null>(null);
+  const [result, setResult]     = useState<QRResult | null>(null);
   const [cashierQRResult, setCashierQRResult] = useState<CashierQRPayload | null>(null);
   const [inventoryMatch, setInventoryMatch] = useState<ReturnType<typeof getByCode>>(undefined);
   const [scanProgress, setScanProgress] = useState(0);
@@ -220,10 +218,7 @@ const QRScanner: React.FC = () => {
   const [camError, setCamError] = useState('');
   const [facingMode, setFacingMode]     = useState<'environment' | 'user'>('environment');
   const [showInventoryQR, setShowInventoryQR] = useState(false);
-  const [scanHistory, setScanHistory]   = useState([
-    { code: 'STORE18-DAILY', points: 75,  time: '2 gün önce', location: 'Mağaza #18', type: 'store' as const },
-    { code: 'EVENT2025-X',   points: 100, time: '5 gün önce', location: 'Özel Etkinlik', type: 'store' as const },
-  ]);
+  const [scanHistory, setScanHistory]   = useState<{ code: string; points: number; time: string; location: string; type: 'store' }[]>([]);
 
   const videoRef    = useRef<HTMLVideoElement>(null);
   const canvasRef   = useRef<HTMLCanvasElement>(null);
@@ -232,7 +227,7 @@ const QRScanner: React.FC = () => {
   const scanningRef = useRef(false);
 
   /* ── Handle a decoded QR string (real camera or manual) ── */
-  const handleDecodedQR = useCallback((raw: string) => {
+  const handleDecodedQR = useCallback(async (raw: string) => {
     const parsed = parseQRPayload(raw);
 
     if (isCashierQR(parsed)) {
@@ -249,9 +244,14 @@ const QRScanner: React.FC = () => {
     const invItem = getByCode(raw.trim());
     if (invItem) { setInventoryMatch(invItem); return; }
 
-    /* known store QR */
-    const known = fakeQRResults.find(r => r.code === raw.trim().toUpperCase());
-    if (known) { setResult(known); return; }
+    /* look up in Supabase qr_codes table */
+    try {
+      const dbQR = await lookupStoreQR(raw.trim());
+      if (dbQR) {
+        setResult({ code: dbQR.code, title: dbQR.label ?? 'Mağaza QR Kodu', points: dbQR.points, location: dbQR.store_id ? `Mağaza #${dbQR.store_id}` : 'Mağaza', dbQrId: dbQR.id });
+        return;
+      }
+    } catch { /* ignore lookup errors */ }
 
     setResult({ code: raw.trim(), title: 'QR Kodu Okundu', points: 0, location: 'Bilinmeyen' });
   }, [getByCode]);
@@ -259,6 +259,14 @@ const QRScanner: React.FC = () => {
   /* ── Start real camera ── */
   const startCamera = useCallback(async () => {
     setCamError(''); setResult(null); setCashierQRResult(null); setError('');
+
+    // Check browser support
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setCamError('Bu tarayıcı kamera erişimini desteklemiyor. HTTPS üzerinden erişmeyi deneyin.');
+      setMode('idle');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -272,8 +280,29 @@ const QRScanner: React.FC = () => {
       setMode('camera');
       scanningRef.current = true;
       tickScan();
-    } catch {
-      setCamError('Kamera erişimi reddedildi. Lütfen tarayıcı izinlerini kontrol et.');
+    } catch (err: unknown) {
+      const name = (err as { name?: string }).name;
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setCamError('Kamera izni reddedildi. Tarayıcı ayarlarından kamera iznini verin ve sayfayı yenileyin.');
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setCamError('Kamera bulunamadı. Cihazınızda kamera bağlı değil veya kullanımda.');
+      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+        setCamError('Kamera başka bir uygulama tarafından kullanılıyor. Diğer sekmeleri kapatın.');
+      } else if (name === 'OverconstrainedError') {
+        // Retry with minimal constraints
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          streamRef.current = stream;
+          if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
+          setMode('camera');
+          scanningRef.current = true;
+          tickScan();
+          return;
+        } catch { /* fall through */ }
+        setCamError('Kamera çözünürlüğü desteklenmiyor. Farklı bir tarayıcı deneyin.');
+      } else {
+        setCamError('Kamera açılamadı. Lütfen HTTPS üzerinden erişin ve kamera iznini verin.');
+      }
       setMode('idle');
     }
   }, [facingMode]);
@@ -317,7 +346,7 @@ const QRScanner: React.FC = () => {
     setTimeout(() => startCamera(), 200);
   };
 
-  /* ── Fake scan (demo) ── */
+  /* ── Demo scan (shows UI flow without a real QR) ── */
   const startFakeScan = () => {
     setMode('fake'); setResult(null); setCashierQRResult(null); setError(''); setScanProgress(0);
     let prog = 0;
@@ -328,7 +357,8 @@ const QRScanner: React.FC = () => {
         clearInterval(interval);
         setTimeout(() => {
           setScanProgress(100);
-          setResult(fakeQRResults[Math.floor(Math.random() * fakeQRResults.length)]);
+          // Demo result — no DB record, points = 0 so claim button won't show
+          setResult({ code: 'DEMO-QR', title: 'Demo Tarama', points: 0, location: 'Demo Modu' });
           setMode('idle');
         }, 500);
       }
@@ -336,31 +366,50 @@ const QRScanner: React.FC = () => {
   };
 
   /* ── Claim store QR reward ── */
-  const claimReward = () => {
+  const claimReward = async () => {
     if (!result || result.points === 0) return;
-    addPoints(result.points);
-    showRewardPopup({ type: 'reward', title: result.title, subtitle: `${result.location} adresinde QR kod taradın`, points: result.points });
-    setScanHistory(prev => [{ code: result.code, points: result.points, time: 'Az önce', location: result.location, type: 'store' }, ...prev.slice(0, 9)]);
+    try {
+      if (result.dbQrId && authUser?.id) {
+        await recordQRScan(authUser.id, result.dbQrId, result.points, result.title);
+      } else {
+        addPoints(result.points);
+      }
+      showRewardPopup({ type: 'reward', title: result.title, subtitle: `${result.location} adresinde QR kod taradın`, points: result.points });
+      setScanHistory(prev => [{ code: result.code, points: result.points, time: 'Az önce', location: result.location, type: 'store' }, ...prev.slice(0, 9)]);
+    } catch { addPoints(result.points); } // Fallback to local if DB fails
     setResult(null); setScanProgress(0);
   };
 
   /* ── Claim cashier purchase QR ── */
-  const claimCashierQR = () => {
+  const claimCashierQR = async () => {
     if (!cashierQRResult) return;
     if (cashierQRResult.status === 'used' || isQRExpired(cashierQRResult.expires_at)) return;
-    markCashierQRUsed(cashierQRResult.qr_id);
-    appendAuditLog({ event: 'qr_scanned', qr_id: cashierQRResult.qr_id, detail: `${cashierQRResult.amount}₺ alışveriş — ${cashierQRResult.points} puan kazanıldı`, points: cashierQRResult.points });
-    addPoints(cashierQRResult.points);
-    showRewardPopup({ type: 'reward', title: 'Alışveriş Puanı!', subtitle: `${cashierQRResult.amount}₺ alışverişten ${cashierQRResult.points} puan kazandın`, points: cashierQRResult.points });
-    setScanHistory(prev => [{ code: cashierQRResult.qr_id, points: cashierQRResult.points, time: 'Az önce', location: `${cashierQRResult.amount}₺ Alışveriş`, type: 'store' }, ...prev.slice(0, 9)]);
+    try {
+      if (authUser?.id) {
+        // Try to find and mark QR as used in DB first
+        try {
+          const dbQR = await lookupStoreQR(cashierQRResult.qr_id);
+          if (dbQR) {
+            await markCashierQRUsedDB(dbQR.id);
+            await recordQRScan(authUser.id, dbQR.id, cashierQRResult.points, `${cashierQRResult.amount}₺ alışveriş`);
+          } else {
+            addPoints(cashierQRResult.points);
+          }
+        } catch { addPoints(cashierQRResult.points); }
+      } else {
+        addPoints(cashierQRResult.points);
+      }
+      showRewardPopup({ type: 'reward', title: 'Alışveriş Puanı!', subtitle: `${cashierQRResult.amount}₺ alışverişten ${cashierQRResult.points} puan kazandın`, points: cashierQRResult.points });
+      setScanHistory(prev => [{ code: cashierQRResult.qr_id, points: cashierQRResult.points, time: 'Az önce', location: `${cashierQRResult.amount}₺ Alışveriş`, type: 'store' }, ...prev.slice(0, 9)]);
+    } catch (e) { console.error('[claimCashierQR]', e); }
     setCashierQRResult(null);
   };
 
   /* ── Manual entry ── */
-  const handleManualSubmit = () => {
+  const handleManualSubmit = async () => {
     const trimmed = manualCode.trim();
     if (!trimmed) return;
-    handleDecodedQR(trimmed);
+    await handleDecodedQR(trimmed);
     setManualCode('');
     setError('');
     setMode('idle');
