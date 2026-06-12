@@ -338,5 +338,10 @@ create or replace view public.leaderboard_monthly as
   where p.status = 'active'
   group by p.id, p.username, p.avatar_url, p.level;
 
+-- ── Enable Supabase Realtime on required tables ──────────────
+-- Without this, leaderboard real-time refresh won't fire
+alter publication supabase_realtime add table public.profiles;
+alter publication supabase_realtime add table public.points_transactions;
+
 -- ── DONE ─────────────────────────────────────────────────────
 select 'Patch applied successfully ✓' as status;

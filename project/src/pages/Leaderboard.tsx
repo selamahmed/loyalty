@@ -316,6 +316,14 @@ const Leaderboard: React.FC = () => {
     return () => { supabase.removeChannel(channel); };
   }, [loadLeaderboard]);
 
+  // ── Polling fallback — refreshes every 15 s in case Realtime isn't enabled ──
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadLeaderboard(tabRef.current, true);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [loadLeaderboard]);
+
   const fetchMyRank = React.useCallback(async (userId: string, period: 'weekly' | 'monthly' | 'alltime') => {
     try {
       if (period === 'alltime') {
