@@ -268,25 +268,55 @@ const Leaderboard: React.FC = () => {
   const [myRankEntry, setMyRankEntry] = useState<LeaderboardEntry | null>(null);
   const [activeEvents, setActiveEvents] = useState<AppEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const tabRef = React.useRef(tab);
+  const authUserRef = React.useRef(authUser);
+  tabRef.current = tab;
+  authUserRef.current = authUser;
+
+  const loadLeaderboard = React.useCallback(async (period: typeof tab, silent = false) => {
+    if (!silent) setIsLoading(true);
+    try {
+      const data = await getLeaderboard(50, period);
+      setLeaderboard(data);
+      setLastUpdate(new Date());
+      const uid = authUserRef.current?.id;
+      if (uid && !data.find(p => p.id === uid)) {
+        fetchMyRank(uid, period);
+      } else {
+        setMyRankEntry(null);
+      }
+    } catch {
+      /* keep stale data */
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
+  }, []);
 
   // Load leaderboard for selected period
   useEffect(() => {
-    setIsLoading(true);
-    getLeaderboard(50, tab)
-      .then(data => {
-        setLeaderboard(data);
-        // If current user is not in top 50, fetch their position separately
-        if (authUser && !data.find(p => p.id === authUser.id)) {
-          fetchMyRank(authUser.id, tab);
-        } else {
-          setMyRankEntry(null);
-        }
-      })
-      .catch(() => setLeaderboard([]))
-      .finally(() => setIsLoading(false));
-  }, [tab, authUser]);
+    loadLeaderboard(tab);
+  }, [tab, authUser, loadLeaderboard]);
 
-  const fetchMyRank = async (userId: string, period: 'weekly' | 'monthly' | 'alltime') => {
+  // ── Real-time: refresh when any profile total_points changes ──
+  useEffect(() => {
+    const channel = supabase
+      .channel('leaderboard_realtime')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+        () => { loadLeaderboard(tabRef.current, true); },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'points_transactions' },
+        () => { loadLeaderboard(tabRef.current, true); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [loadLeaderboard]);
+
+  const fetchMyRank = React.useCallback(async (userId: string, period: 'weekly' | 'monthly' | 'alltime') => {
     try {
       if (period === 'alltime') {
         const { data } = await supabase
@@ -305,7 +335,7 @@ const Leaderboard: React.FC = () => {
       }
       // For weekly/monthly — just note position if not in top 50
     } catch { /**/ }
-  };
+  }, []);
 
   // Load active events from Supabase
   useEffect(() => {
@@ -342,11 +372,27 @@ const Leaderboard: React.FC = () => {
             border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
           }}>👑</div>
-          <div>
+          <div style={{ flex: 1 }}>
             <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>Leaderboard</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Zirveye çık, efsane ol</p>
           </div>
+          {/* Live indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.1)', border: '1.5px solid rgba(34,197,94,0.3)', flexShrink: 0 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e', animation: 'live-pulse 1.5s ease-in-out infinite' }} />
+            <span style={{ fontSize: 10, fontWeight: 900, color: '#22c55e', letterSpacing: '0.05em' }}>CANLI</span>
+          </div>
         </div>
+        {lastUpdate && (
+          <p style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, margin: '-12px 0 0', paddingLeft: 4 }}>
+            Son güncelleme: {lastUpdate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </p>
+        )}
+        <style>{`
+          @keyframes live-pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 6px #22c55e; }
+            50% { opacity: 0.5; box-shadow: 0 0 12px #22c55e; }
+          }
+        `}</style>
 
         {/* ── Active events (Supabase) ── */}
         {activeEvents.length > 0 && (
