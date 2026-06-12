@@ -242,30 +242,61 @@ const QRScanner: React.FC = () => {
 
   /* 2. handleDecodedQR — no forward references */
   const handleDecodedQR = useCallback(async (raw: string) => {
-    const parsed = parseQRPayload(raw);
+    const trimmed = raw.trim();
+    const parsed = parseQRPayload(trimmed);
 
+    // ── Full JSON cashier QR (scanned from camera) ──
     if (isCashierQR(parsed)) {
       setCashierQRResult(parsed);
       return;
     }
 
+    // ── Inventory QR ──
     if (isInventoryQR(parsed)) {
       const item = getByCode(parsed.item_code);
       if (item) { setInventoryMatch(item); return; }
     }
 
-    const invItem = getByCode(raw.trim());
+    // ── Inventory code entered manually ──
+    const invItem = getByCode(trimmed);
     if (invItem) { setInventoryMatch(invItem); return; }
 
+    // ── Look up in qr_codes table ──
     try {
-      const dbQR = await lookupStoreQR(raw.trim());
+      const dbQR = await lookupStoreQR(trimmed);
       if (dbQR) {
-        setResult({ code: dbQR.code, title: dbQR.label ?? 'Mağaza QR Kodu', points: dbQR.points, location: dbQR.store_id ? `Mağaza #${dbQR.store_id}` : 'Mağaza', dbQrId: dbQR.id });
+        // Cashier-generated QR: single-use (max_uses=1) with expiry
+        // Reconstruct the full CashierQRPayload so the user sees amount + countdown
+        if (dbQR.max_uses === 1 && dbQR.expires_at) {
+          const amountMatch = (dbQR.label ?? '').match(/₺([\d.]+)/);
+          const amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
+          const isUsed = (dbQR.uses_count ?? 0) >= (dbQR.max_uses ?? 1);
+          setCashierQRResult({
+            type: 'cashier_purchase',
+            qr_id: dbQR.code,
+            amount,
+            points: dbQR.points,
+            merchant_id: dbQR.store_id ?? '',
+            issued_at: dbQR.created_at ?? new Date().toISOString(),
+            expires_at: dbQR.expires_at,
+            status: isUsed ? 'used' : 'unused',
+          });
+          return;
+        }
+        // Regular multi-use store QR
+        setResult({
+          code: dbQR.code,
+          title: dbQR.label ?? 'Mağaza QR Kodu',
+          points: dbQR.points,
+          location: dbQR.store_id ? `Mağaza #${dbQR.store_id}` : 'Mağaza',
+          dbQrId: dbQR.id,
+        });
         return;
       }
     } catch { /* ignore lookup errors */ }
 
-    setResult({ code: raw.trim(), title: 'QR Kodu Okundu', points: 0, location: 'Bilinmeyen' });
+    // ── Not found anywhere ──
+    setResult({ code: trimmed, title: 'QR Kodu Tanınmadı', points: 0, location: 'Bilinmeyen' });
   }, [getByCode]);
 
   /* 3a. Keep a ref to the latest handleDecodedQR so tickScan is never stale */
