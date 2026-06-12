@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Star, Crown, TrendingUp, Gift, Sparkles, Timer } from 'lucide-react';
+import { Trophy, Star, Crown, TrendingUp, Gift, Sparkles, Timer, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLeaderboard, type LeaderboardEntry } from '../services/points';
-import { getActiveEvents, type AppEvent } from '../services/events';
+import { getActiveEvents, type AppEvent, type RewardPrize } from '../services/events';
 import { supabase } from '../lib/supabase';
 
 const card = {
@@ -24,34 +24,81 @@ const useCountdown = (endDate: string) => {
   return cd;
 };
 
+/* ── Prize card per rank ── */
+const PrizeCard: React.FC<{ prize: RewardPrize; currentLeader?: LeaderboardEntry }> = ({ prize, currentLeader }) => {
+  const rankStyles: Record<number, { border: string; bg: string; badge: string; glow: string }> = {
+    1: { border: '#f59e0b', bg: 'rgba(245,158,11,0.10)', badge: '#f59e0b', glow: 'rgba(245,158,11,0.2)' },
+    2: { border: '#94a3b8', bg: 'rgba(148,163,184,0.08)', badge: '#94a3b8', glow: 'rgba(148,163,184,0.15)' },
+    3: { border: '#f97316', bg: 'rgba(249,115,22,0.08)', badge: '#f97316', glow: 'rgba(249,115,22,0.15)' },
+  };
+  const s = rankStyles[prize.rank] ?? { border: 'var(--dark-border)', bg: 'var(--tab-bg)', badge: '#7B6EF6', glow: 'transparent' };
+  const medals = ['🥇','🥈','🥉','🏅','🏅','🏅','🏅','🏅','🏅','🏅'];
+  return (
+    <div style={{
+      borderRadius: 16, border: `2.5px solid ${s.border}`,
+      background: s.bg, padding: '14px 12px', textAlign: 'center',
+      boxShadow: `0 4px 0 ${s.border}88, 0 0 20px ${s.glow}`,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+    }}>
+      {/* Rank medal */}
+      <div style={{ fontSize: 32 }}>{medals[prize.rank - 1]}</div>
+      {/* Reward icon */}
+      <div style={{ fontSize: 28, lineHeight: 1 }}>{prize.rewardImage}</div>
+      {/* Reward name */}
+      <p style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-dark)', margin: 0, lineHeight: 1.3, textAlign: 'center' }}>{prize.rewardName || '—'}</p>
+      {/* Min points */}
+      {prize.pointsRequired > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 999, background: `${s.badge}20`, border: `1.5px solid ${s.badge}50` }}>
+          <Star size={8} fill={s.badge} color={s.badge} />
+          <span style={{ fontSize: 9, fontWeight: 900, color: s.badge }}>{prize.pointsRequired.toLocaleString()} min pt</span>
+        </div>
+      )}
+      {/* Qty */}
+      {prize.quantity > 1 && (
+        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }}>x{prize.quantity}</span>
+      )}
+      {/* Current leader for this rank */}
+      {currentLeader && (
+        <div style={{ marginTop: 4, width: '100%', background: 'var(--card-bg)', borderRadius: 10, padding: '5px 6px', border: '1.5px solid var(--dark-border)' }}>
+          <p style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', margin: '0 0 2px', textAlign: 'center' }}>Şu an lider</p>
+          <p style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>{currentLeader.username}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ── Active Event Banner (data from Supabase events table) ── */
 const ActiveEventBanner: React.FC<{ event: AppEvent; topPlayers: LeaderboardEntry[] }> = ({ event, topPlayers }) => {
   const ended = new Date(event.end_date) < new Date();
   const cd = useCountdown(event.end_date);
-  const rewards: { rank: number; emoji: string; bg: string }[] = [
-    { rank: 1, emoji: '🥇', bg: '#FFE500' },
-    { rank: 2, emoji: '🥈', bg: '#e2e8f0' },
-    { rank: 3, emoji: '🥉', bg: '#FF6B35' },
-  ];
+  const prizes = (event.rewards_json as RewardPrize[] | null) ?? [];
+  const bannerColor = event.color ?? '#FFE500';
+  const isDarkBanner = bannerColor === '#7B6EF6' || bannerColor === '#FF3CAC';
+  const textOnBanner = isDarkBanner ? '#fff' : '#000';
+  const subOnBanner  = isDarkBanner ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.65)';
 
   return (
     <div style={{ ...card, overflow: 'hidden' }}>
+
+      {/* ── Banner header ── */}
       <div style={{
-        background: ended ? '#BFFF00' : (event.color ?? '#FFE500'),
+        background: ended ? '#BFFF00' : bannerColor,
         borderBottom: '3px solid #000',
         padding: '20px 20px',
-        position: 'relative',
-        overflow: 'hidden',
+        position: 'relative', overflow: 'hidden',
       }}>
+        {/* Ghost emoji watermark */}
         <div style={{ position: 'absolute', right: -10, top: '50%', transform: 'translateY(-50%) rotate(10deg)', fontSize: 110, opacity: 0.1, fontWeight: 900, pointerEvents: 'none', lineHeight: 1, userSelect: 'none' }}>
           {event.emoji ?? '🏆'}
         </div>
 
+        {/* Status pill */}
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10,
           background: '#000', color: ended ? '#BFFF00' : '#FFE500',
           borderRadius: 999, padding: '3px 12px', fontSize: 10, fontWeight: 900,
-          letterSpacing: '0.12em', textTransform: 'uppercase',
+          letterSpacing: '0.12em', textTransform: 'uppercase' as const,
         }}>
           <Trophy size={9} fill="currentColor" color={ended ? '#BFFF00' : '#FFE500'} />
           {ended ? '🎉 ETKİNLİK BİTTİ' : '🔴 CANLI ETKİNLİK'}
@@ -59,24 +106,32 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; topPlayers: LeaderboardEntr
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
           <div>
-            <h3 style={{ color: '#000', fontWeight: 900, fontSize: 22, margin: '0 0 4px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>{event.title}</h3>
-            <p style={{ color: 'rgba(0,0,0,0.65)', fontSize: 13, margin: 0, maxWidth: 340, fontWeight: 600 }}>{event.description}</p>
-            {event.multiplier && (
-              <span style={{ display: 'inline-block', marginTop: 6, padding: '2px 10px', borderRadius: 999, background: '#000', color: '#FFE500', fontSize: 11, fontWeight: 900 }}>
-                ⚡ {event.multiplier}x Puan Çarpanı
-              </span>
-            )}
+            <h3 style={{ color: textOnBanner, fontWeight: 900, fontSize: 22, margin: '0 0 4px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>{event.title}</h3>
+            <p style={{ color: subOnBanner, fontSize: 13, margin: 0, maxWidth: 300, fontWeight: 600 }}>{event.description}</p>
+            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              {event.multiplier && (
+                <span style={{ padding: '2px 10px', borderRadius: 999, background: '#000', color: '#FFE500', fontSize: 11, fontWeight: 900 }}>
+                  ⚡ {event.multiplier}x Çarpan
+                </span>
+              )}
+              {(event.win_count ?? prizes.length) > 0 && (
+                <span style={{ padding: '2px 10px', borderRadius: 999, background: 'rgba(0,0,0,0.3)', color: textOnBanner, fontSize: 11, fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Users size={9} /> {event.win_count ?? prizes.length} Kazanan
+                </span>
+              )}
+            </div>
           </div>
+          {/* Countdown */}
           {!ended && (
-            <div style={{ background: '#000', borderRadius: 12, padding: '8px 12px', flexShrink: 0 }}>
-              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 5px', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ background: '#000', borderRadius: 12, padding: '8px 10px', flexShrink: 0 }}>
+              <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 9, fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.1em', margin: '0 0 5px', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <Timer size={9} /> BİTİŞ
               </p>
-              <div style={{ display: 'flex', gap: 5 }}>
+              <div style={{ display: 'flex', gap: 4 }}>
                 {[{ v: cd.days, l: 'G' }, { v: cd.hours, l: 'S' }, { v: cd.mins, l: 'D' }, { v: cd.secs, l: 'SN' }].map(u => (
-                  <div key={u.l} style={{ background: '#FFE500', borderRadius: 8, padding: '4px 6px', textAlign: 'center', minWidth: 30 }}>
+                  <div key={u.l} style={{ background: '#FFE500', borderRadius: 8, padding: '4px 6px', textAlign: 'center', minWidth: 28 }}>
                     <p style={{ color: '#000', fontWeight: 900, fontSize: 14, margin: 0, lineHeight: 1 }}>{String(u.v).padStart(2, '0')}</p>
-                    <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 8, fontWeight: 800, margin: 0 }}>{u.l}</p>
+                    <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 7, fontWeight: 800, margin: 0 }}>{u.l}</p>
                   </div>
                 ))}
               </div>
@@ -85,22 +140,72 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; topPlayers: LeaderboardEntr
         </div>
       </div>
 
+      {/* ── Prize Pool Section ── */}
+      {prizes.length > 0 && (
+        <div style={{ padding: '18px 20px', borderBottom: '3px solid var(--dark-border)', background: 'var(--card-bg)' }}>
+          <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <Gift size={16} color="#f59e0b" fill="rgba(245,158,11,0.2)" /> Ödül Havuzu
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', background: 'var(--tab-bg)', padding: '2px 8px', borderRadius: 999, border: '1.5px solid var(--dark-border)' }}>
+              {prizes.length} ödül
+            </span>
+          </p>
+          {/* Top 3 prize cards — full width */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: prizes.length > 3 ? 10 : 0 }}>
+            {prizes.slice(0, 3).map(prize => (
+              <PrizeCard
+                key={prize.rank}
+                prize={prize}
+                currentLeader={topPlayers[prize.rank - 1]}
+              />
+            ))}
+          </div>
+          {/* Ranks 4+ in a compact row */}
+          {prizes.length > 3 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {prizes.slice(3).map(prize => (
+                <div key={prize.rank} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 10px', borderRadius: 12, border: '1.5px solid var(--dark-border)', background: 'var(--tab-bg)', flex: '1 1 140px' }}>
+                  <span style={{ fontSize: 16 }}>🏅</span>
+                  <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)' }}>#{prize.rank}</span>
+                  <span style={{ fontSize: 18 }}>{prize.rewardImage}</span>
+                  <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prize.rewardName}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Live leaders / Winners section ── */}
       <div style={{ padding: '16px 20px', background: 'var(--card-bg)' }}>
         {!ended && topPlayers.length > 0 && (
           <>
             <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Gift size={15} color="#7B6EF6" /> Anlık Liderler
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>— En fazla puan kazanan kazanır!</span>
+              <TrendingUp size={15} color="#22c55e" /> Anlık Sıralama
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>— Sıralamanı yükselt, ödülü kap!</span>
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-              {rewards.map(r => {
-                const p = topPlayers[r.rank - 1];
-                if (!p) return null;
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {topPlayers.slice(0, event.win_count ?? 3).map((p, i) => {
+                const prize = prizes[i];
                 return (
-                  <div key={r.rank} style={{ padding: '10px 8px', borderRadius: 14, textAlign: 'center', border: '3px solid #000', boxShadow: '0 4px 0 #000', background: r.bg }}>
-                    <div style={{ fontSize: 28, marginBottom: 4 }}>{r.emoji}</div>
-                    <p style={{ fontWeight: 900, fontSize: 11, color: '#000', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.username}</p>
-                    <p style={{ fontWeight: 700, fontSize: 10, color: 'rgba(0,0,0,0.6)', margin: 0 }}>{p.total_points.toLocaleString()} pts</p>
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14, border: `2px solid ${['#f59e0b','#94a3b8','#f97316'][i] ?? 'var(--dark-border)'}`, background: i === 0 ? 'rgba(245,158,11,0.07)' : 'var(--tab-bg)' }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>{['🥇','🥈','🥉','🏅'][i] ?? '🏅'}</span>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--dark-border)', flexShrink: 0 }}>
+                      {p.avatar_url ? <img src={p.avatar_url} alt={p.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>👤</div>}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.username}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Star size={9} fill="#f59e0b" color="#f59e0b" />
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b' }}>{p.total_points.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    {/* What this rank wins */}
+                    {prize && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 10, background: 'var(--card-bg)', border: '1.5px solid var(--dark-border)', flexShrink: 0 }}>
+                        <span style={{ fontSize: 16 }}>{prize.rewardImage}</span>
+                        <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-dark)', maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prize.rewardName}</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -114,27 +219,40 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; topPlayers: LeaderboardEntr
               <Sparkles size={16} color="#f59e0b" /> Kazananlar
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {topPlayers.slice(0, event.win_count ?? 3).map((w, i) => (
-                <div key={w.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14,
-                  border: `2.5px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : '#f97316'}`,
-                  background: i === 0 ? 'rgba(245,158,11,0.08)' : 'var(--tab-bg)',
-                }}>
-                  <span style={{ fontSize: 22, flexShrink: 0 }}>{['🥇','🥈','🥉'][i] ?? '🏅'}</span>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--dark-border)', flexShrink: 0 }}>
-                    {w.avatar_url ? <img src={w.avatar_url} alt={w.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0 }}>{w.username}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Star size={10} fill="#f59e0b" color="#f59e0b" />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{w.total_points.toLocaleString()} pts</span>
+              {topPlayers.slice(0, event.win_count ?? 3).map((w, i) => {
+                const prize = prizes[i];
+                return (
+                  <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, border: `2.5px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : '#f97316'}`, background: i === 0 ? 'rgba(245,158,11,0.08)' : 'var(--tab-bg)' }}>
+                    <span style={{ fontSize: 22, flexShrink: 0 }}>{['🥇','🥈','🥉'][i] ?? '🏅'}</span>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--dark-border)', flexShrink: 0 }}>
+                      {w.avatar_url ? <img src={w.avatar_url} alt={w.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>}
                     </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0 }}>{w.username}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Star size={10} fill="#f59e0b" color="#f59e0b" />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{w.total_points.toLocaleString()} pts</span>
+                      </div>
+                    </div>
+                    {prize && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10, background: 'rgba(245,158,11,0.1)', border: '1.5px solid #f59e0b40', flexShrink: 0 }}>
+                        <span style={{ fontSize: 18 }}>{prize.rewardImage}</span>
+                        <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-dark)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prize.rewardName}</span>
+                      </div>
+                    )}
+                    {i === 0 && <span style={{ fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: 999, background: '#f59e0b', color: 'black', border: '1.5px solid #d97706', flexShrink: 0 }}>ŞAMPİYON</span>}
                   </div>
-                  {i === 0 && <span style={{ fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: 999, background: '#f59e0b', color: 'black', border: '1.5px solid #d97706', flexShrink: 0 }}>ŞAMPİYON</span>}
-                </div>
-              ))}
+                );
+              })}
             </div>
+          </div>
+        )}
+
+        {/* Empty — no players yet */}
+        {!ended && topPlayers.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '12px 0' }}>
+            <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 4px' }}>Henüz kimse yok!</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>Puan kazanmaya başla ve ilk sıraya gir 🚀</p>
           </div>
         )}
       </div>
