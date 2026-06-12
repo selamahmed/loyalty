@@ -64,7 +64,15 @@ const AdminAuditLogs    = React.lazy(() => import('./pages/admin/AdminAuditLogs'
 const AdminSettings     = React.lazy(() => import('./pages/admin/AdminSettings'));
 
 // ── Lazy: Store Admin pages ──────────────────────────────────────────────────
-const StoreAdminItems = React.lazy(() => import('./pages/admin/store/StoreAdminItems'));
+const StoreAdminDashboard     = React.lazy(() => import('./pages/admin/store/StoreAdminDashboard'));
+const StoreAdminItems         = React.lazy(() => import('./pages/admin/store/StoreAdminItems'));
+const StoreAdminRewards       = React.lazy(() => import('./pages/admin/store/StoreAdminRewards'));
+const StoreAdminInventory     = React.lazy(() => import('./pages/admin/store/StoreAdminInventory'));
+const StoreAdminPromotions    = React.lazy(() => import('./pages/admin/store/StoreAdminPromotions'));
+const StoreAdminCustomers     = React.lazy(() => import('./pages/admin/store/StoreAdminCustomers'));
+const StoreAdminQR            = React.lazy(() => import('./pages/admin/store/StoreAdminQR'));
+const StoreAdminNotifications = React.lazy(() => import('./pages/admin/store/StoreAdminNotifications'));
+const StoreAdminAnalytics     = React.lazy(() => import('./pages/admin/store/StoreAdminAnalytics'));
 
 // ── Lazy: Cashier pages ──────────────────────────────────────────────────────
 const CashierDashboard = React.lazy(() => import('./pages/admin/cashier/CashierDashboard'));
@@ -163,8 +171,15 @@ function App() {
             <Route path="/admin/settings"          element={<SA><AdminSettings /></SA>} />
 
             {/* Store Admin */}
-            <Route path="/store-admin"       element={<STA><StoreAdminItems /></STA>} />
-            <Route path="/store-admin/items" element={<STA><StoreAdminItems /></STA>} />
+            <Route path="/store-admin"                    element={<STA><StoreAdminDashboard /></STA>} />
+            <Route path="/store-admin/items"              element={<STA><StoreAdminItems /></STA>} />
+            <Route path="/store-admin/rewards"            element={<STA><StoreAdminRewards /></STA>} />
+            <Route path="/store-admin/inventory"          element={<STA><StoreAdminInventory /></STA>} />
+            <Route path="/store-admin/promotions"         element={<STA><StoreAdminPromotions /></STA>} />
+            <Route path="/store-admin/customers"          element={<STA><StoreAdminCustomers /></STA>} />
+            <Route path="/store-admin/qr"                 element={<STA><StoreAdminQR /></STA>} />
+            <Route path="/store-admin/notifications"      element={<STA><StoreAdminNotifications /></STA>} />
+            <Route path="/store-admin/analytics"          element={<STA><StoreAdminAnalytics /></STA>} />
 
             {/* Cashier */}
             <Route path="/cashier"          element={<CA><CashierDashboard /></CA>} />

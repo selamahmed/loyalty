@@ -7,6 +7,7 @@ import {
   featureIllustrations,
 } from '../components/neo/NeoBrutalIllustrations';
 import { DoodleField, SectionBadge } from '../components/neo/NeoBrutalDecor';
+import { useApp } from '../context/AppContext';
 
 /* ═══════════════════════════════════════════════════════════════
    TICKER STRIP
@@ -145,9 +146,9 @@ const testimonials = [
 ═══════════════════════════════════════════════════════════════ */
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const [isDark, setIsDark] = useState(false);
-  const [hovered, setHovered] = useState<number | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { isDarkMode: isDark, toggleTheme } = useApp();
+  const [hovered, setHovered] = React.useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = React.useState(false);
 
   const t = {
     pageBg:        isDark ? '#1A0A2E' : '#FFF8F0',
@@ -197,7 +198,7 @@ const LandingPage: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={() => setIsDark(!isDark)}
+              <button onClick={toggleTheme}
                 style={{ width: 36, height: 36, borderRadius: '50%', border: `2.5px solid #000`, background: t.cardBg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 3px 0 #000`, flexShrink: 0, transition: 'transform 0.1s' }}
                 onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 #000'; }}
                 onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #000'; }}>
