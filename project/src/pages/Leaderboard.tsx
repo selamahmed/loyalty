@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { getLeaderboard, type LeaderboardEntry } from '../services/points';
 import { getActiveEvents, type AppEvent, type RewardPrize, deriveEventStatus } from '../services/events';
 import {
-  getEventLeaderboard, getEventWinners, getMyEventParticipation,
+  getLeaderboardPrizeEvents,
+  getEventLeaderboard, getEventWinners,
   type EventLeaderboardEntry, type EventWinner,
 } from '../services/eventLeaderboard';
 import { supabase } from '../lib/supabase';
@@ -88,6 +89,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
   const ended = new Date(event.end_date) < new Date()
     || deriveEventStatus(event) === 'ended'
     || deriveEventStatus(event) === 'distributed';
+  const upcoming = !ended && new Date(event.start_date) > new Date();
   const cd = useCountdown(event.end_date);
   const prizes = (event.rewards_json as RewardPrize[] | null) ?? [];
   const bannerColor = event.color ?? '#FFE500';
@@ -148,7 +150,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
           letterSpacing: '0.12em', textTransform: 'uppercase' as const,
         }}>
           <Trophy size={9} fill="currentColor" color={ended ? '#BFFF00' : '#FFE500'} />
-          {ended ? '🎉 ETKİNLİK BİTTİ' : '🔴 CANLI ETKİNLİK'}
+          {ended ? '🎉 ETKİNLİK BİTTİ' : upcoming ? '⏳ YAKLAŞAN ETKİNLİK' : '🔴 CANLI ETKİNLİK'}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -169,7 +171,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
             </div>
           </div>
           {/* Countdown */}
-          {!ended && (
+          {!ended && !upcoming && (
             <div style={{ background: '#000', borderRadius: 12, padding: '8px 10px', flexShrink: 0 }}>
               <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 9, fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.1em', margin: '0 0 5px', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <Timer size={9} /> BİTİŞ
@@ -382,12 +384,25 @@ const Leaderboard: React.FC = () => {
     } catch { /**/ }
   }, []);
 
-  // Load active events from Supabase
-  useEffect(() => {
-    getActiveEvents()
-      .then(evs => setActiveEvents(evs.filter(e => (e as AppEvent & { published?: boolean }).published !== false)))
-      .catch(() => setActiveEvents([]));
+  // Load prize-pool events for leaderboard banners
+  const loadPrizeEvents = React.useCallback(async () => {
+    try {
+      setActiveEvents(await getLeaderboardPrizeEvents());
+    } catch {
+      try {
+        const evs = await getActiveEvents();
+        setActiveEvents(evs.filter(e => Array.isArray(e.rewards_json) && (e.rewards_json as RewardPrize[]).length > 0));
+      } catch {
+        setActiveEvents([]);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    void loadPrizeEvents();
+    const interval = setInterval(() => { void loadPrizeEvents(); }, 60000);
+    return () => clearInterval(interval);
+  }, [loadPrizeEvents]);
 
   const top3 = leaderboard.slice(0, 3);
   const rest = leaderboard.slice(3);

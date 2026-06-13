@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import type { AppEvent } from './events';
 
 /** Event-specific leaderboard entry — points are NOT global profile points. */
 export type EventLeaderboardEntry = {
@@ -31,6 +32,68 @@ export type EventWinner = {
   created_at: string;
   profiles?: { username: string; avatar_url: string | null };
 };
+
+const EVENT_LIST_COLUMNS =
+  'id, title, description, start_date, end_date, active, color, emoji, win_count, rewards_json, published, multiplier';
+
+const RECENT_EVENT_MS = 14 * 24 * 60 * 60 * 1000;
+
+/** True when the event has a configured prize pool (leaderboard reward event). */
+export function hasPrizePool(ev: { rewards_json?: unknown }): boolean {
+  const rewards = ev.rewards_json;
+  return Array.isArray(rewards) && rewards.length > 0;
+}
+
+function isMissingPublishedColumn(error: { message?: string; code?: string }): boolean {
+  return Boolean(
+    error.message?.includes('published')
+    || error.message?.includes('schema cache')
+    || error.code === '42703',
+  );
+}
+
+async function queryActiveEvents(withPublished: boolean, recentCutoff?: string) {
+  let q = supabase
+    .from('events')
+    .select(EVENT_LIST_COLUMNS)
+    .eq('active', true)
+    .order('start_date', { ascending: false });
+  if (recentCutoff) q = q.gte('end_date', recentCutoff);
+  if (withPublished) q = q.eq('published', true);
+  return q;
+}
+
+/**
+ * Prize events shown on the user leaderboard.
+ * Includes live, upcoming, and recently ended events with a prize pool.
+ */
+export async function getLeaderboardPrizeEvents(): Promise<AppEvent[]> {
+  const recentCutoff = new Date(Date.now() - RECENT_EVENT_MS).toISOString();
+
+  let { data, error } = await queryActiveEvents(true, recentCutoff);
+  if (error && isMissingPublishedColumn(error)) {
+    ({ data, error } = await queryActiveEvents(false, recentCutoff));
+  }
+  if (error) throw error;
+
+  return (data ?? [])
+    .filter(hasPrizePool)
+    .map(row => row as unknown as AppEvent);
+}
+
+/** Published prize-pool events visible to users (events page). */
+export async function getPublishedPrizeEvents(): Promise<AppEvent[]> {
+  let { data, error } = await queryActiveEvents(true);
+  if (error && isMissingPublishedColumn(error)) {
+    ({ data, error } = await queryActiveEvents(false));
+  }
+  if (error) throw error;
+
+  return (data ?? [])
+    .filter(e => e.published !== false)
+    .filter(hasPrizePool)
+    .map(row => row as unknown as AppEvent);
+}
 
 /**
  * Ranking tie-break (matches DB):
@@ -98,35 +161,4 @@ export async function finalizeEvent(eventId: string): Promise<void> {
 export async function syncEventStatuses(): Promise<void> {
   const { error } = await supabase.rpc('sync_event_status', { p_event_id: null });
   if (error) throw error;
-}
-
-const EVENT_LIST_COLUMNS =
-  'id, title, description, start_date, end_date, active, color, emoji, win_count, rewards_json, published';
-
-/** Published prize-pool events visible to users. */
-export async function getPublishedPrizeEvents() {
-  const { data, error } = await supabase
-    .from('events')
-    .select(EVENT_LIST_COLUMNS)
-    .eq('published', true)
-    .order('start_date', { ascending: false });
-  if (error) throw error;
-  return (data ?? []).filter(e => {
-    const rewards = e.rewards_json;
-    return Array.isArray(rewards) ? rewards.length > 0 : false;
-  });
-}
-
-export async function getActivePrizeEvents() {
-  const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('events')
-    .select(EVENT_LIST_COLUMNS)
-    .eq('published', true)
-    .eq('active', true)
-    .lte('start_date', now)
-    .gte('end_date', now)
-    .order('start_date', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
 }

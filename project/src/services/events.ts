@@ -32,7 +32,7 @@ function eventWritePayload(payload: Partial<AppEvent>): Record<string, unknown> 
 /** Derive lifecycle status from existing columns when `events.status` is not migrated yet. */
 export function deriveEventStatus(ev: AppEvent): EventStatus {
   if (ev.status) return ev.status;
-  if (!ev.published) return 'draft';
+  if (ev.published === false) return 'draft';
   const now = Date.now();
   const end = ev.end_date ? new Date(ev.end_date).getTime() : 0;
   if (end && now > end) return 'ended';
@@ -41,14 +41,27 @@ export function deriveEventStatus(ev: AppEvent): EventStatus {
 
 export async function getActiveEvents(): Promise<AppEvent[]> {
   const now = new Date().toISOString();
-  const { data, error } = await supabase
+  const recentCutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+
+  let { data, error } = await supabase
     .from('events')
     .select('*')
-    .eq('published', true)
     .eq('active', true)
-    .lte('start_date', now)
-    .gte('end_date', now)
+    .eq('published', true)
+    .gte('end_date', recentCutoff)
     .order('start_date', { ascending: false });
+
+  if (error && (error.message?.includes('published') || error.code === '42703')) {
+    const fallback = await supabase
+      .from('events')
+      .select('*')
+      .eq('active', true)
+      .gte('end_date', now)
+      .lte('start_date', now)
+      .order('start_date', { ascending: false });
+    if (fallback.error) throw fallback.error;
+    return (fallback.data ?? []) as unknown as AppEvent[];
+  }
   if (error) throw error;
   return (data ?? []) as unknown as AppEvent[];
 }
