@@ -9,6 +9,10 @@ import { useApp } from '../context/AppContext';
 
 const LandingBelowFold = React.lazy(() => import('./LandingBelowFold'));
 
+const LazyPageStickerBackdrop = React.lazy(() =>
+  import('../components/StickerDecor').then(m => ({ default: m.PageStickerBackdrop })),
+);
+
 const HEADLINE_STICKER_ROTATIONS = [-10, 12, -8] as const;
 const HEADLINE_STICKER_SIZES = [30, 28, 32] as const;
 
@@ -18,18 +22,22 @@ const LandingPage: React.FC = () => {
   const { isDarkMode: isDark, toggleTheme } = useApp();
   const [hovered, setHovered] = React.useState<number | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [HeroBackdrop, setHeroBackdrop] = React.useState<typeof import('../components/StickerDecor').PageStickerBackdrop | null>(null);
+  const [showHeroBackdrop, setShowHeroBackdrop] = React.useState(false);
 
   React.useEffect(() => {
-    const loadBackdrop = () => {
-      void import('../components/StickerDecor').then(m => setHeroBackdrop(m.PageStickerBackdrop));
-    };
+    const loadBackdrop = () => setShowHeroBackdrop(true);
     if ('requestIdleCallback' in window) {
       window.requestIdleCallback(loadBackdrop, { timeout: 1200 });
     } else {
       setTimeout(loadBackdrop, 150);
     }
   }, []);
+
+  const heroBackdrop = showHeroBackdrop ? (
+    <React.Suspense fallback={null}>
+      <LazyPageStickerBackdrop preset="landing-hero" />
+    </React.Suspense>
+  ) : null;
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
@@ -75,7 +83,7 @@ const LandingPage: React.FC = () => {
 
   return (
     <div style={{ background: t.pageBg, color: t.textPrimary, minHeight: '100vh', overflowX: 'hidden', transition: 'background 0.3s', position: 'relative', ...t.cssVars }}>
-      {HeroBackdrop && <HeroBackdrop preset="landing-hero" />}
+      {heroBackdrop}
       <div style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ══ NAV ══ */}
