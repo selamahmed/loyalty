@@ -41,7 +41,7 @@ const LandingPage: React.FC = () => {
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
-    const onResize = () => { if (window.innerWidth >= 768) setMenuOpen(false); };
+    const onResize = () => { if (window.innerWidth >= 1024) setMenuOpen(false); };
     window.addEventListener('keydown', onKey);
     window.addEventListener('resize', onResize);
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('resize', onResize); };
@@ -88,18 +88,19 @@ const LandingPage: React.FC = () => {
 
         {/* ══ NAV ══ */}
         <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: t.navBg, backdropFilter: 'blur(20px)', borderBottom: '2.5px solid #000', transition: 'background 0.3s' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div className="landing-nav-inner">
             {/* Logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <div className="landing-nav-logo">
               <AppLogo size={36} priority style={{ borderRadius: 10, border: '2px solid #000', boxShadow: '0 2px 0 #000' }} />
-              <span style={{ fontWeight: 900, fontSize: 16, color: t.textPrimary, letterSpacing: '-0.02em' }}>NexReward</span>
+              <span className="landing-nav-logo__text" style={{ color: t.textPrimary }}>NexReward</span>
             </div>
 
-            {/* Desktop nav links — display controlled entirely by CSS .nav-links rule */}
-            <div className="nav-links" style={{ alignItems: 'center', gap: 24 }}>
+            {/* Desktop nav links */}
+            <div className="nav-links">
               {[['features','Özellikler'],['banners','Avantajlar'],['how','Nasıl Çalışır'],['testimonials','Yorumlar']].map(([id, label]) => (
                 <button key={id} onClick={() => scrollTo(id)} aria-label={`${label} bölümüne git`}
-                  style={{ color: t.textSecondary, fontWeight: 700, fontSize: 12, textDecoration: 'none', letterSpacing: '0.06em', transition: 'color 0.15s', whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
+                  className="nav-link-btn"
+                  style={{ color: t.textSecondary }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#9122FF')}
                   onMouseLeave={e => (e.currentTarget.style.color = t.textSecondary)}>
                   {label.toUpperCase()}
@@ -108,28 +109,36 @@ const LandingPage: React.FC = () => {
             </div>
 
             {/* Right controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="landing-nav-actions">
               <button onClick={toggleTheme} aria-label={isDark ? 'Açık temaya geç' : 'Koyu temaya geç'}
-                style={{ width: 34, height: 34, borderRadius: '50%', border: '2.5px solid #000', background: t.cardBg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 0 #000', flexShrink: 0 }}>
+                className="landing-nav-theme-btn"
+                style={{ background: t.cardBg }}>
                 {isDark ? <Sun size={14} color="#FBBF24" /> : <Moon size={14} color="#7B6EF6" />}
               </button>
 
+              {/* Quick login — visible on phone/tablet only */}
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="nav-mobile-quick lbtn-secondary-sm"
+              >
+                Giriş
+              </button>
+
               {/* Desktop-only buttons */}
-              <div className="nav-desktop-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button onClick={() => navigate('/login')} className="lbtn-secondary-sm">Giriş Yap</button>
-                <button onClick={() => navigate('/admin-login')} style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 11, cursor: 'pointer',
-                  background: '#9122FF18', color: '#9122FF', border: '2.5px solid #9122FF',
-                  fontWeight: 900, fontSize: 12, boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit', whiteSpace: 'nowrap',
-                }}>🔐 Yönetici</button>
-                <button onClick={() => navigate('/home')} className="lbtn-primary-sm">
+              <div className="nav-desktop-actions">
+                <button type="button" onClick={() => navigate('/login')} className="lbtn-secondary-sm">Giriş Yap</button>
+                <button type="button" onClick={() => navigate('/admin-login')} className="nav-admin-btn">
+                  🔐 Yönetici
+                </button>
+                <button type="button" onClick={() => navigate('/home')} className="lbtn-primary-sm">
                   Panele Gir <ArrowRight size={12} />
                 </button>
               </div>
 
               {/* Hamburger */}
-              <button className="hamburger-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
-                style={{ width: 36, height: 36, borderRadius: 10, border: '2.5px solid #000', background: t.cardBg, cursor: 'pointer', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 0 #000', flexShrink: 0 }}>
+              <button type="button" className="hamburger-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+                style={{ background: t.cardBg }}>
                 {menuOpen ? <X size={18} color={t.textPrimary} /> : <Menu size={18} color={t.textPrimary} />}
               </button>
             </div>
@@ -321,17 +330,55 @@ const LandingPage: React.FC = () => {
           justify-content:center; box-shadow:0 4px 0 rgba(0,0,0,0.3);
         }
 
+        /* ── Nav layout ── */
+        .landing-nav-inner {
+          max-width: 1200px; margin: 0 auto; padding: 0 clamp(12px, 4vw, 20px);
+          height: 60px; display: flex; align-items: center; justify-content: space-between;
+          gap: clamp(8px, 2vw, 12px); min-width: 0;
+        }
+        .landing-nav-logo {
+          display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-width: 0;
+        }
+        .landing-nav-logo__text {
+          font-weight: 900; font-size: clamp(14px, 3.5vw, 16px); letter-spacing: -0.02em;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .landing-nav-actions {
+          display: flex; align-items: center; gap: clamp(6px, 1.5vw, 8px); flex-shrink: 0;
+        }
+        .landing-nav-theme-btn,
+        .hamburger-btn {
+          width: 34px; height: 34px; border-radius: 10px; border: 2.5px solid #000;
+          cursor: pointer; display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 3px 0 #000; flex-shrink: 0; padding: 0;
+        }
+        .landing-nav-theme-btn { border-radius: 50%; }
+        .nav-link-btn {
+          font-weight: 700; font-size: 11px; letter-spacing: 0.06em; transition: color 0.15s;
+          white-space: nowrap; background: none; border: none; cursor: pointer;
+          font-family: inherit; padding: 0;
+        }
+        .nav-admin-btn {
+          display: inline-flex; align-items: center; gap: 5px; padding: 7px 13px; border-radius: 11px;
+          cursor: pointer; background: #9122FF18; color: #9122FF; border: 2.5px solid #9122FF;
+          font-weight: 900; font-size: 12px; box-shadow: 0 3px 0 #6b19c0; font-family: inherit;
+          white-space: nowrap;
+        }
+
         /* ── Nav visibility — match index.html critical (no shift on hydrate) ── */
-        .nav-links { display:none; }
-        @media (min-width:768px) { .nav-links { display:flex; align-items:center; gap:24px; } }
+        .nav-links { display: none; flex: 1; min-width: 0; align-items: center; justify-content: center; gap: clamp(10px, 2vw, 24px); }
+        @media (min-width: 1024px) { .nav-links { display: flex; } }
 
-        .hamburger-btn { display:none; }
-        @media (max-width:767px) { .hamburger-btn { display:flex !important; } }
+        .nav-mobile-quick { display: inline-flex; padding: 7px 12px; font-size: 11px; }
+        @media (min-width: 1024px) { .nav-mobile-quick { display: none !important; } }
 
-        .nav-desktop-actions { display:none; }
-        @media (min-width:768px) { .nav-desktop-actions { display:flex; align-items:center; gap:8px; } }
+        .hamburger-btn { display: none; }
+        @media (max-width: 1023px) { .hamburger-btn { display: flex !important; } }
 
-        .nav-logo-text { display:none; }
+        .nav-desktop-actions { display: none; align-items: center; gap: 8px; }
+        @media (min-width: 1024px) { .nav-desktop-actions { display: flex; } }
+
+        .nav-logo-text { display: none; }
 
         /* ── Banners ── */
         .banner-divider { }
