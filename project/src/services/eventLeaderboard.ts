@@ -16,7 +16,22 @@ export type EventParticipation = {
   joined: boolean;
   points?: number;
   rank?: number | null;
+  /** Points needed to pass the user one rank above (0 if #1). */
+  gap_to_next_rank?: number | null;
 };
+
+/** Client fallback when RPC omits gap_to_next_rank. */
+export function gapToNextRank(
+  board: EventLeaderboardEntry[],
+  myPoints: number,
+  myRank: number | null | undefined,
+): number | null {
+  if (myRank == null) return null;
+  if (myRank <= 1) return 0;
+  const above = board.find(p => p.rank === myRank - 1);
+  if (!above) return null;
+  return Math.max(1, above.points - myPoints + 1);
+}
 
 export type EventWinner = {
   id: string;

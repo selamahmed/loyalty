@@ -6,7 +6,9 @@ import { getActiveEvents, type AppEvent, type RewardPrize, deriveEventStatus } f
 import {
   getLeaderboardPrizeEvents,
   getEventLeaderboard, getEventWinners,
-  type EventLeaderboardEntry, type EventWinner,
+  getMyEventParticipation, joinEvent, syncEventStatuses,
+  gapToNextRank,
+  type EventLeaderboardEntry, type EventWinner, type EventParticipation,
 } from '../services/eventLeaderboard';
 import { supabase } from '../lib/supabase';
 import NeoAvatar from '../components/NeoAvatar';
@@ -25,8 +27,23 @@ const Avatar: React.FC<{ url: string | null; name: string; size?: number; border
   <NeoAvatar src={url} name={name} size={size} shape="circle" border={border !== undefined ? Boolean(border) : true} />
 );
 
-const TAB_LABELS: Record<string, string> = { weekly: 'Bu Hafta', monthly: 'Bu Ay', alltime: 'Tüm Zamanlar' };
+const TAB_LABELS: Record<string, string> = {
+  weekly: 'Bu Hafta',
+  monthly: 'Bu Ay',
+  alltime: 'Tüm Zamanlar',
+  events: '🏆 Etkinlikler',
+};
 const PERIOD_LABEL: Record<string, string> = { weekly: 'bu hafta', monthly: 'bu ay', alltime: 'toplam' };
+type LeaderboardTab = 'weekly' | 'monthly' | 'alltime' | 'events';
+
+const formatCountdown = (cd: { days: number; hours: number; mins: number; secs: number; ended: boolean }) => {
+  if (cd.ended) return 'Etkinlik bitti';
+  const parts: string[] = [];
+  if (cd.days > 0) parts.push(`${cd.days} gün`);
+  parts.push(`${cd.hours} saat`);
+  if (cd.days === 0) parts.push(`${cd.mins} dk`);
+  return parts.join(' ');
+};
 
 /* ── Countdown hook ── */
 const useCountdown = (endDate: string) => {
@@ -84,8 +101,88 @@ const PrizeCard: React.FC<{ prize: RewardPrize; currentLeader?: EventLeaderboard
   );
 };
 
+/* ── User event position card ── */
+const EventUserPositionCard: React.FC<{
+  participation: EventParticipation | null;
+  ended: boolean;
+  upcoming: boolean;
+  countdown: ReturnType<typeof useCountdown>;
+  gap: number | null;
+  onJoin: () => void;
+  joining: boolean;
+  isLoggedIn: boolean;
+}> = ({ participation, ended, upcoming, countdown, gap, onJoin, joining, isLoggedIn }) => {
+  if (ended || upcoming) return null;
+
+  if (!isLoggedIn) {
+    return (
+      <div style={{ ...card, padding: '14px 16px', margin: '0 20px 16px', background: 'rgba(123,110,246,0.06)', border: '3px solid var(--primary-blue)' }}>
+        <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 4px' }}>Etkinliğe katılmak için giriş yap</p>
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>Etkinlik puanları yalnızca katılımcılar için sayılır.</p>
+      </div>
+    );
+  }
+
+  if (!participation?.joined) {
+    return (
+      <div style={{ ...card, padding: '16px 18px', margin: '0 20px 16px', background: 'rgba(34,197,94,0.06)', border: '3px solid #22c55e' }}>
+        <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 10px' }}>Henüz katılmadın</p>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: '0 0 12px' }}>
+          Katıl ve kazandığın puanlar etkinlik sıralamasına yansısın.
+        </p>
+        <button type="button" onClick={onJoin} disabled={joining} className="btn-primary" style={{ width: '100%' }}>
+          {joining ? 'Katılınıyor…' : 'Etkinliğe Katıl'}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      ...card,
+      border: '3px solid var(--primary-blue)',
+      boxShadow: '0 6px 0 var(--primary-blue)',
+      padding: '16px 18px',
+      margin: '0 20px 16px',
+      background: 'rgba(123,110,246,0.06)',
+    }}>
+      <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 10px' }}>Senin Etkinlik Sıralaman</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+        <div>
+          <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', margin: '0 0 2px', textTransform: 'uppercase' }}>Sıra</p>
+          <p style={{ fontWeight: 900, fontSize: 28, color: 'var(--primary-blue)', margin: 0 }}>#{participation.rank ?? '—'}</p>
+        </div>
+        <div>
+          <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', margin: '0 0 2px', textTransform: 'uppercase' }}>Etkinlik Puanı</p>
+          <p style={{ fontWeight: 900, fontSize: 22, color: '#f59e0b', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Star size={16} fill="#f59e0b" color="#f59e0b" />
+            {(participation.points ?? 0).toLocaleString()}
+          </p>
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', margin: '0 0 2px', textTransform: 'uppercase' }}>Üst Sıra</p>
+          <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-dark)', margin: 0 }}>
+            {participation.rank === 1
+              ? '🏆 Zirvedesin!'
+              : gap != null
+                ? `${gap.toLocaleString()} puan uzakta`
+                : '—'}
+          </p>
+        </div>
+        <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', borderRadius: 12, background: 'var(--tab-bg)', border: '1.5px solid var(--dark-border)' }}>
+          <Timer size={14} color="#ef4444" />
+          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-dark)' }}>
+            Bitiş: {formatCountdown(countdown)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ── Active Event Banner — event-specific points leaderboard ── */
-const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
+const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> = ({ event, showUserCard = false }) => {
+  const { authUser } = useAuth();
   const ended = new Date(event.end_date) < new Date()
     || deriveEventStatus(event) === 'ended'
     || deriveEventStatus(event) === 'distributed';
@@ -98,16 +195,38 @@ const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
   const subOnBanner  = isDarkBanner ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.65)';
   const [topPlayers, setTopPlayers] = React.useState<EventLeaderboardEntry[]>([]);
   const [finalWinners, setFinalWinners] = React.useState<EventWinner[]>([]);
+  const [participation, setParticipation] = React.useState<EventParticipation | null>(null);
+  const [joining, setJoining] = React.useState(false);
 
   const loadEventBoard = React.useCallback(async () => {
     try {
       if (ended) {
         setFinalWinners(await getEventWinners(event.id));
+        setTopPlayers([]);
       } else {
-        setTopPlayers(await getEventLeaderboard(event.id, event.win_count ?? 10));
+        const board = await getEventLeaderboard(event.id, 50);
+        setTopPlayers(board);
+      }
+      if (authUser?.id && showUserCard) {
+        setParticipation(await getMyEventParticipation(event.id));
       }
     } catch { /* keep stale */ }
-  }, [event.id, event.win_count, ended]);
+  }, [event.id, ended, authUser?.id, showUserCard]);
+
+  const handleJoin = async () => {
+    if (!authUser?.id || joining) return;
+    setJoining(true);
+    try {
+      setParticipation(await joinEvent(event.id));
+      await loadEventBoard();
+    } catch { /* ignore */ } finally {
+      setJoining(false);
+    }
+  };
+
+  const gap = participation?.joined
+    ? (participation.gap_to_next_rank ?? gapToNextRank(topPlayers, participation.points ?? 0, participation.rank))
+    : null;
 
   React.useEffect(() => { void loadEventBoard(); }, [loadEventBoard]);
 
@@ -120,9 +239,13 @@ const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
         filter: `event_id=eq.${event.id}`,
       }, () => { void loadEventBoard(); })
       .subscribe();
-    const poll = setInterval(() => { void loadEventBoard(); }, 10000);
+    const poll = setInterval(() => { void loadEventBoard(); }, 5000);
     return () => { supabase.removeChannel(channel); clearInterval(poll); };
   }, [event.id, ended, loadEventBoard]);
+
+  React.useEffect(() => {
+    if (cd.ended && !ended) void syncEventStatuses().then(() => loadEventBoard());
+  }, [cd.ended, ended, loadEventBoard]);
 
   const displayPlayers = ended ? [] : topPlayers;
   const winners = ended ? finalWinners : [];
@@ -224,6 +347,19 @@ const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
         </div>
       )}
 
+      {showUserCard && (
+        <EventUserPositionCard
+          participation={participation}
+          ended={ended}
+          upcoming={upcoming}
+          countdown={cd}
+          gap={gap}
+          onJoin={() => { void handleJoin(); }}
+          joining={joining}
+          isLoggedIn={Boolean(authUser?.id)}
+        />
+      )}
+
       {/* ── Live leaders / Winners section ── */}
       <div style={{ padding: '16px 20px', background: 'var(--card-bg)' }}>
         {!ended && displayPlayers.length > 0 && (
@@ -233,11 +369,12 @@ const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
               <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>— Etkinlik puanına göre</span>
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {displayPlayers.slice(0, event.win_count ?? 3).map((p, i) => {
-                const prize = prizes[i];
+              {displayPlayers.map((p, i) => {
+                const prize = prizes.find(pr => pr.rank === p.rank) ?? prizes[i];
+                const medalIdx = (p.rank ?? i + 1) - 1;
                 return (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14, border: `2px solid ${['#f59e0b','#94a3b8','#f97316'][i] ?? 'var(--dark-border)'}`, background: i === 0 ? 'rgba(245,158,11,0.07)' : 'var(--tab-bg)' }}>
-                    <span style={{ fontSize: 20, flexShrink: 0 }}>{['🥇','🥈','🥉','🏅'][i] ?? '🏅'}</span>
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14, border: `2px solid ${['#f59e0b','#94a3b8','#f97316'][medalIdx] ?? 'var(--dark-border)'}`, background: medalIdx === 0 ? 'rgba(245,158,11,0.07)' : p.id === authUser?.id ? 'rgba(123,110,246,0.08)' : 'var(--tab-bg)' }}>
+                    <span style={{ fontSize: 20, flexShrink: 0, minWidth: 28, textAlign: 'center' }}>{['🥇','🥈','🥉'][medalIdx] ?? `#${p.rank}`}</span>
                     <Avatar url={p.avatar_url} name={p.username} size={36} border={`2px solid ${['#f59e0b','#94a3b8','#f97316'][i] ?? 'var(--dark-border)'}`} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.username}</p>
@@ -263,26 +400,29 @@ const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
         {ended && winners.length > 0 && (
           <div>
             <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Sparkles size={16} color="#f59e0b" /> Kesin Kazananlar
+              <Sparkles size={16} color="#f59e0b" /> 🏆 Kazananlar
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {winners.map((w, i) => (
-                  <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, border: `2.5px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : '#f97316'}`, background: i === 0 ? 'rgba(245,158,11,0.08)' : 'var(--tab-bg)' }}>
-                    <span style={{ fontSize: 22, flexShrink: 0 }}>{['🥇','🥈','🥉'][i] ?? '🏅'}</span>
+              {winners.map((w) => {
+                const i = w.final_rank - 1;
+                return (
+                  <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, border: `2.5px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#f97316' : 'var(--dark-border)'}`, background: i === 0 ? 'rgba(245,158,11,0.08)' : 'var(--tab-bg)' }}>
+                    <span style={{ fontSize: 22, flexShrink: 0, minWidth: 32, textAlign: 'center' }}>{['🥇','🥈','🥉'][i] ?? `#${w.final_rank}`}</span>
                     <Avatar url={w.profiles?.avatar_url ?? null} name={w.profiles?.username ?? '?'} size={36} border={`2px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : '#f97316'}`} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0 }}>{w.profiles?.username ?? '—'}</p>
+                      <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0 }}>#{w.final_rank} {w.profiles?.username ?? '—'}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Star size={10} fill="#f59e0b" color="#f59e0b" />
                         <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{w.final_points.toLocaleString()} etkinlik puanı</span>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10, background: 'rgba(245,158,11,0.1)', border: '1.5px solid #f59e0b40', flexShrink: 0 }}>
-                      <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-dark)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.prize_title}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)' }}>Ödül</span>
+                      <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-dark)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.prize_title}</span>
                     </div>
-                    {i === 0 && <span style={{ fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: 999, background: '#f59e0b', color: 'black', border: '1.5px solid #d97706', flexShrink: 0 }}>ŞAMPİYON</span>}
                   </div>
-                ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -301,7 +441,8 @@ const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
 
 /* ── Main Leaderboard ── */
 const Leaderboard: React.FC = () => {
-  const [tab, setTab] = useState<'weekly' | 'monthly' | 'alltime'>('weekly');
+  const [tab, setTab] = useState<LeaderboardTab>('weekly');
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const { authUser, profile } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [myRankEntry, setMyRankEntry] = useState<LeaderboardEntry | null>(null);
@@ -313,7 +454,7 @@ const Leaderboard: React.FC = () => {
   tabRef.current = tab;
   authUserRef.current = authUser;
 
-  const loadLeaderboard = React.useCallback(async (period: typeof tab, silent = false) => {
+  const loadLeaderboard = React.useCallback(async (period: 'weekly' | 'monthly' | 'alltime', silent = false) => {
     if (!silent) setIsLoading(true);
     try {
       const data = await getLeaderboard(50, period);
@@ -332,10 +473,17 @@ const Leaderboard: React.FC = () => {
     }
   }, []);
 
-  // Load leaderboard for selected period
   useEffect(() => {
+    if (tab === 'events') return;
     loadLeaderboard(tab);
   }, [tab, authUser, loadLeaderboard]);
+
+  useEffect(() => {
+    if (tab !== 'events') return;
+    void syncEventStatuses().then(() => loadPrizeEvents());
+    const interval = setInterval(() => { void syncEventStatuses().then(() => loadPrizeEvents()); }, 30000);
+    return () => clearInterval(interval);
+  }, [tab, loadPrizeEvents]);
 
   // ── Real-time: refresh when any profile total_points changes ──
   useEffect(() => {
@@ -344,12 +492,18 @@ const Leaderboard: React.FC = () => {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles' },
-        () => { loadLeaderboard(tabRef.current, true); },
+        () => {
+          if (tabRef.current === 'events') return;
+          loadLeaderboard(tabRef.current, true);
+        },
       )
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'points_transactions' },
-        () => { loadLeaderboard(tabRef.current, true); },
+        () => {
+          if (tabRef.current === 'events') return;
+          loadLeaderboard(tabRef.current, true);
+        },
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -358,6 +512,7 @@ const Leaderboard: React.FC = () => {
   // ── Polling fallback — refreshes every 15 s in case Realtime isn't enabled ──
   useEffect(() => {
     const interval = setInterval(() => {
+      if (tabRef.current === 'events') return;
       loadLeaderboard(tabRef.current, true);
     }, 15000);
     return () => clearInterval(interval);
@@ -403,6 +558,15 @@ const Leaderboard: React.FC = () => {
     const interval = setInterval(() => { void loadPrizeEvents(); }, 60000);
     return () => clearInterval(interval);
   }, [loadPrizeEvents]);
+
+  useEffect(() => {
+    if (activeEvents.length === 0) return;
+    if (!selectedEventId || !activeEvents.some(e => e.id === selectedEventId)) {
+      setSelectedEventId(activeEvents[0].id);
+    }
+  }, [activeEvents, selectedEventId]);
+
+  const selectedEvent = activeEvents.find(e => e.id === selectedEventId) ?? activeEvents[0] ?? null;
 
   const top3 = leaderboard.slice(0, 3);
   const rest = leaderboard.slice(3);
@@ -463,31 +627,66 @@ const Leaderboard: React.FC = () => {
           accentSeed="lb-hero-accent"
         />
 
-        {/* ── Active events (Supabase) ── */}
-        {activeEvents.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {activeEvents.map(ev => <ActiveEventBanner key={ev.id} event={ev} />)}
-          </div>
-        )}
-
         {/* ── Tabs ── */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          {(['weekly', 'monthly', 'alltime'] as const).map(t => (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
+          {(['weekly', 'monthly', 'alltime', 'events'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
-              flex: 1, padding: '11px 6px', borderRadius: 12, fontWeight: 900, fontSize: 12,
+              padding: '10px 4px', borderRadius: 12, fontWeight: 900, fontSize: 10,
               cursor: 'pointer', transition: 'all 0.1s', position: 'relative',
               background: tab === t ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
               color: tab === t ? 'white' : 'var(--text-dark)',
               border: '3px solid var(--dark-border)',
               boxShadow: tab === t ? '0 5px 0 var(--dark-border)' : '0 4px 0 var(--dark-border)',
+              lineHeight: 1.2,
             }}>
               {TAB_LABELS[t]}
-              {tab === t && <StickerAccent seed={`lb-tab-${t}`} size={16} rotate={12} style={{ position: 'absolute', top: -5, right: 4 }} />}
+              {tab === t && <StickerAccent seed={`lb-tab-${t}`} size={14} rotate={12} style={{ position: 'absolute', top: -5, right: 2 }} />}
             </button>
           ))}
         </div>
 
-        {/* ── Podium ── */}
+        {/* ── Event leaderboards tab ── */}
+        {tab === 'events' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {activeEvents.length === 0 ? (
+              <div style={{ ...card, padding: '32px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: 48, marginBottom: 10 }}>🏆</div>
+                <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 6px' }}>Aktif etkinlik yok</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
+                  Ödüllü etkinlikler başladığında burada görünür.
+                </p>
+              </div>
+            ) : (
+              <>
+                {activeEvents.length > 1 && (
+                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                    {activeEvents.map(ev => (
+                      <button
+                        key={ev.id}
+                        type="button"
+                        onClick={() => setSelectedEventId(ev.id)}
+                        style={{
+                          flexShrink: 0, padding: '8px 14px', borderRadius: 999, cursor: 'pointer',
+                          fontWeight: 900, fontSize: 11, fontFamily: 'inherit',
+                          background: selectedEvent?.id === ev.id ? (ev.color ?? '#7B6EF6') : 'var(--card-bg)',
+                          color: selectedEvent?.id === ev.id ? '#000' : 'var(--text-dark)',
+                          border: '2.5px solid var(--dark-border)',
+                          boxShadow: selectedEvent?.id === ev.id ? '0 3px 0 var(--dark-border)' : '0 2px 0 var(--dark-border)',
+                        }}
+                      >
+                        {ev.emoji ?? '🏆'} {ev.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedEvent && <ActiveEventBanner event={selectedEvent} showUserCard />}
+              </>
+            )}
+          </div>
+        )}
+
+        {tab !== 'events' && (
+        <>
         <div style={{
           ...card,
           background: 'linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
@@ -632,6 +831,9 @@ const Leaderboard: React.FC = () => {
             </div>
           );
         })()}
+
+        </>
+        )}
 
       </div>
     </div>
