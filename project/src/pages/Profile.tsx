@@ -123,14 +123,14 @@ const Profile: React.FC = () => {
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span className="level-badge-pill">
-                    <LevelBadge level={user.level} width={72} />
-                    {getLevelBadge(user.level).label}
-                  </span>
-                  <span style={{ padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 900, color: 'white' }}>
-                    🔥 {user.streak}g serisi
-                  </span>
+                <div className="profile-hero-meta">
+                  <LevelBadge level={user.level} width={72} className="profile-hero-meta__badge" />
+                  <div className="profile-hero-meta__text">
+                    <span className="profile-hero-meta__level">{getLevelBadge(user.level).label}</span>
+                    <span className="profile-hero-meta__streak">
+                      🔥 {user.streak}g serisi
+                    </span>
+                  </div>
                 </div>
 
                 {/* XP bar */}
