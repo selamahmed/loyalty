@@ -230,13 +230,13 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
             {/* Art — Group sticker cluster (star centerpiece) */}
-            <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,24px)', minHeight: 280 }}>
+            <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,24px)' }}>
               <HeroGroupComposition />
             </div>
           </div>
         </section>
 
-        <Suspense fallback={null}>
+        <Suspense fallback={<div className="landing-below-fold-placeholder" aria-hidden style={{ minHeight: 52 }} />}>
           <LandingBelowFold
             t={t}
             isDark={isDark}
@@ -259,7 +259,7 @@ const LandingPage: React.FC = () => {
         /* ── Hero ── */
         .hero-layout { display:flex; flex-direction:column; align-items:center; gap:32px; text-align:center; }
         .hero-copy  { max-width:640px; }
-        .hero-art   { width:100%; max-width:320px; }
+        .hero-art   { width:100%; max-width:320px; min-height:clamp(240px,44vw,340px); }
         @media (min-width: 900px) {
           .hero-layout { flex-direction:row; align-items:center; justify-content:space-between; text-align:left; gap:48px; }
           .hero-copy   { flex:1; max-width:none; }
@@ -321,15 +321,15 @@ const LandingPage: React.FC = () => {
           justify-content:center; box-shadow:0 4px 0 rgba(0,0,0,0.3);
         }
 
-        /* ── Nav visibility ── */
+        /* ── Nav visibility — match index.html critical (no shift on hydrate) ── */
         .nav-links { display:none; }
         @media (min-width:768px) { .nav-links { display:flex; align-items:center; gap:24px; } }
 
-        .hamburger-btn      { display:none !important; }
+        .hamburger-btn { display:none; }
         @media (max-width:767px) { .hamburger-btn { display:flex !important; } }
 
-        .nav-desktop-actions { display:flex; }
-        @media (max-width:767px) { .nav-desktop-actions { display:none !important; } }
+        .nav-desktop-actions { display:none; }
+        @media (min-width:768px) { .nav-desktop-actions { display:flex; align-items:center; gap:8px; } }
 
         .nav-logo-text { display:none; }
 

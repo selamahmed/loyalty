@@ -41,7 +41,7 @@ const HeroGroupComposition: React.FC = () => (
           zIndex: 1,
         }}
       >
-        <StickerDecorImg src={s.url} />
+        <StickerDecorImg src={s.url} width={s.size} height={s.size} />
       </div>
     ))}
     <img
@@ -56,12 +56,7 @@ const HeroGroupComposition: React.FC = () => (
       draggable={false}
       className="hero-group-composition__star"
       style={{
-        width: 300,
-        height: 300,
-        objectFit: 'contain',
-        display: 'block',
         transform: 'rotate(-4deg)',
-        opacity: 1,
         pointerEvents: 'none',
         userSelect: 'none',
       }}

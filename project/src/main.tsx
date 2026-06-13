@@ -12,15 +12,9 @@ const queryClient = new QueryClient({
   },
 });
 
-function isLandingRoute(): boolean {
-  const hash = window.location.hash;
-  return hash === '' || hash === '#/' || hash === '#/landing';
-}
-
 async function bootstrap(): Promise<void> {
-  if (!isLandingRoute()) {
-    await import('./index.css');
-  }
+  // Load stylesheet before first paint — deferring caused hero layout to shift when CSS arrived.
+  await import('./index.css');
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
@@ -31,15 +25,6 @@ async function bootstrap(): Promise<void> {
       </ErrorBoundary>
     </StrictMode>,
   );
-
-  if (isLandingRoute()) {
-    const loadCss = () => { void import('./index.css'); };
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(loadCss, { timeout: 2500 });
-    } else {
-      setTimeout(loadCss, 1);
-    }
-  }
 
   const runIdle = () => {
     loadDeferredFonts();

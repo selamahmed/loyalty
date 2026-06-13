@@ -503,7 +503,8 @@ body::before {
   .sticker-section-divider__item {
     width: var(--stk-size-m, var(--stk-size-t, var(--stk-size-d)));
   }
-  .sticker-decor__item--hide-mobile {
+  .sticker-decor__item--hide-mobile,
+  .hero-group-satellite.sticker-decor__item--hide-mobile {
     display: none;
   }
 }
@@ -522,11 +523,14 @@ body::before {
 .hero-group-composition__star {
   position: relative;
   z-index: 2;
-  width: clamp(200px, 42vw, 300px) !important;
+  width: clamp(200px, 42vw, 300px);
   height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
 }
 
 .hero-group-satellite {
+  position: absolute;
   width: var(--stk-size-d);
   line-height: 0;
 }
