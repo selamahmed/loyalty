@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trophy, Star, Crown, TrendingUp, Gift, Sparkles, Timer, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLeaderboard, type LeaderboardEntry } from '../services/points';
-import { getActiveEvents, type AppEvent, type RewardPrize } from '../services/events';
+import { getActiveEvents, type AppEvent, type RewardPrize, deriveEventStatus } from '../services/events';
 import {
   getEventLeaderboard, getEventWinners, getMyEventParticipation,
   type EventLeaderboardEntry, type EventWinner,
@@ -85,7 +85,9 @@ const PrizeCard: React.FC<{ prize: RewardPrize; currentLeader?: EventLeaderboard
 
 /* ── Active Event Banner — event-specific points leaderboard ── */
 const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
-  const ended = new Date(event.end_date) < new Date() || event.status === 'ended' || event.status === 'distributed';
+  const ended = new Date(event.end_date) < new Date()
+    || deriveEventStatus(event) === 'ended'
+    || deriveEventStatus(event) === 'distributed';
   const cd = useCountdown(event.end_date);
   const prizes = (event.rewards_json as RewardPrize[] | null) ?? [];
   const bannerColor = event.color ?? '#FFE500';

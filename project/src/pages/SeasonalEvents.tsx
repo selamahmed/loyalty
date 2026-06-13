@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Zap, Trophy, Calendar, Check, ChevronRight, Users, TrendingUp } from 'lucide-react';
 import { getPublishedPrizeEvents } from '../services/eventLeaderboard';
 import type { AppEvent, RewardPrize } from '../services/events';
+import { deriveEventStatus } from '../services/events';
 import {
   joinEvent, getEventLeaderboard, getMyEventParticipation, getEventWinners,
   type EventLeaderboardEntry, type EventParticipation, type EventWinner,
@@ -24,9 +25,10 @@ const card = {
 type EventStatus = 'active' | 'ended' | 'upcoming' | 'distributed';
 
 const getEventStatus = (event: AppEvent): EventStatus => {
-  if (event.status === 'distributed') return 'distributed';
-  if (event.status === 'ended') return 'ended';
-  if (event.status === 'draft' || !event.published) return 'upcoming';
+  const dbStatus = deriveEventStatus(event);
+  if (dbStatus === 'distributed') return 'distributed';
+  if (dbStatus === 'ended') return 'ended';
+  if (dbStatus === 'draft' || !event.published) return 'upcoming';
   const now = new Date();
   const start = new Date(event.start_date);
   const end = new Date(event.end_date);

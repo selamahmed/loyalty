@@ -100,11 +100,14 @@ export async function syncEventStatuses(): Promise<void> {
   if (error) throw error;
 }
 
+const EVENT_LIST_COLUMNS =
+  'id, title, description, start_date, end_date, active, color, emoji, win_count, rewards_json, published';
+
 /** Published prize-pool events visible to users. */
 export async function getPublishedPrizeEvents() {
   const { data, error } = await supabase
     .from('events')
-    .select('id, title, description, start_date, end_date, active, color, emoji, win_count, rewards_json, status, published')
+    .select(EVENT_LIST_COLUMNS)
     .eq('published', true)
     .order('start_date', { ascending: false });
   if (error) throw error;
@@ -118,8 +121,9 @@ export async function getActivePrizeEvents() {
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('events')
-    .select('id, title, description, start_date, end_date, active, color, emoji, win_count, rewards_json, status, published')
-    .eq('status', 'active')
+    .select(EVENT_LIST_COLUMNS)
+    .eq('published', true)
+    .eq('active', true)
     .lte('start_date', now)
     .gte('end_date', now)
     .order('start_date', { ascending: false });

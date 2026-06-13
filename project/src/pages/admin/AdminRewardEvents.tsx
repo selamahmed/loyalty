@@ -8,7 +8,8 @@ import {
 import AdminLayout from './AdminLayout';
 import {
   getAllEvents, createEvent, updateEvent, deleteEvent,
-  type AppEvent, type RewardPrize, type EventStatus,
+  deriveEventStatus,
+  type AppEvent, type RewardPrize,
 } from '../../services/events';
 import { getEventWinners, markWinnerDistributed, syncEventStatuses, finalizeEvent,
   type EventWinner,
@@ -91,7 +92,6 @@ const formToPayload = (f: FormState) => ({
   distribution_date: f.distributionDate ? new Date(f.distributionDate).toISOString() : undefined,
   active:            f.active,
   published:         f.published,
-  status:            (f.published ? 'active' : 'draft') as EventStatus,
   win_count:         f.winnerCount,
   rewards_json:      f.rewards,
   image:             null,
@@ -101,9 +101,10 @@ const formToPayload = (f: FormState) => ({
 
 /* ─── Status helpers ──────────────────────────────────────── */
 function eventStatus(ev: AppEvent): 'live' | 'upcoming' | 'ended' | 'draft' | 'distributed' {
-  if (ev.status === 'distributed') return 'distributed';
-  if (ev.status === 'ended') return 'ended';
-  if (ev.status === 'draft' || !ev.published) return 'draft';
+  const dbStatus = deriveEventStatus(ev);
+  if (dbStatus === 'distributed') return 'distributed';
+  if (dbStatus === 'ended') return 'ended';
+  if (dbStatus === 'draft' || !ev.published) return 'draft';
   const now = Date.now();
   const start = ev.start_date ? new Date(ev.start_date).getTime() : 0;
   const end   = ev.end_date   ? new Date(ev.end_date).getTime()   : 0;
@@ -166,9 +167,9 @@ const AdminRewardEvents: React.FC = () => {
       await syncEventStatuses().catch(() => {});
       const evs = await getAllEvents();
       setEvents(evs);
-      const ended = evs.filter(e => ['ended', 'distributed'].includes(e.status ?? '') || eventStatus(e) === 'ended' || eventStatus(e) === 'distributed');
+      const ended = evs.filter(e => eventStatus(e) === 'ended' || eventStatus(e) === 'distributed');
       for (const e of ended) {
-        if (new Date(e.end_date) < new Date() && e.status === 'active') {
+        if (new Date(e.end_date) < new Date() && deriveEventStatus(e) === 'active') {
           await finalizeEvent(e.id).catch(() => {});
         }
       }
@@ -195,7 +196,7 @@ const AdminRewardEvents: React.FC = () => {
       setWinnersByEvent(prev => ({ ...prev, [eventId]: updated }));
       setEvents(prev => prev.map(e => {
         if (e.id !== eventId) return e;
-        if (updated.every(w => w.distributed)) return { ...e, status: 'distributed' as EventStatus };
+        if (updated.every(w => w.distributed)) return { ...e, status: 'distributed' };
         return e;
       }));
     } catch { setError('Dağıtım işaretlenemedi'); }
@@ -247,10 +248,7 @@ const AdminRewardEvents: React.FC = () => {
     setTogglingId(id + field);
     try {
       const updates: Partial<AppEvent> = { [field]: !cur };
-      if (field === 'published') {
-        updates.status = !cur ? 'active' : 'draft';
-        if (!cur) updates.active = true;
-      }
+      if (field === 'published' && !cur) updates.active = true;
       const u = await updateEvent(id, updates);
       setEvents(prev => prev.map(e => e.id === id ? u : e));
     } catch { /**/ }
@@ -274,7 +272,6 @@ const AdminRewardEvents: React.FC = () => {
     active: form.active, multiplier: null, color: form.banner, emoji: null,
     created_at: today(), published: form.published, win_count: form.winnerCount,
     rewards_json: form.rewards, distribution_date: form.distributionDate || null,
-    status: form.published ? 'active' : 'draft',
   };
 
   /* Stats */
