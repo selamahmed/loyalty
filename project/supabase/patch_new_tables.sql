@@ -414,5 +414,41 @@ create policy "Admins update tickets"
 -- Realtime for admin panel
 alter publication supabase_realtime add table public.support_tickets;
 
+-- ── POINT RULES (points economy earning rules) ───────────────
+create table if not exists public.point_rules (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  rule_type  text not null,
+  value      integer not null default 0 check (value >= 0),
+  active     boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.point_rules enable row level security;
+
+drop policy if exists "Admins manage point_rules" on public.point_rules;
+create policy "Admins manage point_rules"
+  on public.point_rules for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "All users read point_rules" on public.point_rules;
+create policy "All users read point_rules"
+  on public.point_rules for select
+  using (true);
+
+create unique index if not exists point_rules_type_idx on public.point_rules(rule_type);
+
+insert into public.point_rules (name, rule_type, value, active) values
+  ('Günlük Giriş Bonusu',  'daily_login',      25,  true),
+  ('QR Kod Tarama',        'qr_scan',          75,  true),
+  ('Görev Tamamlama',      'mission_complete', 50,  true),
+  ('Başarı Kilidi Açma',   'achievement',      100, true),
+  ('Arkadaş Referansı',    'referral',         200, false)
+on conflict (rule_type) do nothing;
+
+alter publication supabase_realtime add table public.point_rules;
+
 -- ── DONE ─────────────────────────────────────────────────────
 select 'Patch applied successfully ✓' as status;
