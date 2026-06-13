@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { colorfulSticker, colorfulBySeed, shapeBySeed } from '../lib/stickerCatalog';
+import StickerDecorImg from './StickerDecorImg';
 
 
 
@@ -96,7 +97,7 @@ export const StickerAccent: React.FC<StickerAccentProps> = ({
 
     >
 
-      <img src={asset.url} alt="" draggable={false} className="sticker-decor__img" />
+      <StickerDecorImg src={asset.url} />
 
     </div>
 

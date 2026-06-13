@@ -27,11 +27,15 @@ export const Sticker: React.FC<StickerProps> = ({
     <img
       src={src}
       alt={alt}
+      width={size}
+      height={size}
       draggable={false}
+      decoding="async"
       className={className}
       style={{
         width: size,
-        height: 'auto',
+        height: size,
+        objectFit: 'contain',
         display: 'block',
         transform: rotate ? `rotate(${rotate}deg)` : undefined,
         opacity: Math.max(opacity, 0.7),

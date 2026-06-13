@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { demoAvatarUrl } from '../lib/avatarCatalog';
 
 export type RankReward = {
   rank: number;
@@ -44,7 +45,7 @@ const mockWinners = (event: RewardEvent): Winner[] =>
   event.rewards.map((r, i) => ({
     rank: r.rank,
     username: ['StarPlayer99', 'PixelKing', 'NeonGamer', 'CosmicQueen', 'ThunderBlast'][i] ?? `Player${i + 1}`,
-    avatar: `https://i.pravatar.cc/100?img=${i + 1}`,
+    avatar: demoAvatarUrl(['StarPlayer99', 'PixelKing', 'NeonGamer', 'CosmicQueen', 'ThunderBlast'][i] ?? `Player${i + 1}`),
     points: Math.max(5000 - i * 800, 800),
     reward: r,
   }));

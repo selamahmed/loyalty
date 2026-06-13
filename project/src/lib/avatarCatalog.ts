@@ -58,6 +58,11 @@ export function defaultAvatarRefForSeed(seed: string): string {
   return AVATAR_ASSETS[hash % AVATAR_ASSETS.length].ref;
 }
 
+/** Local bundled avatar URL for marketing/demo UI (no external requests). */
+export function demoAvatarUrl(seed: string): string {
+  return resolveAvatarSrc(defaultAvatarRefForSeed(seed)) ?? AVATAR_ASSETS[0]?.url ?? '';
+}
+
 /** Solid neo-brutalism tile colors behind bundled avatar art */
 export const NEO_AVATAR_BG_COLORS = [
   '#FFE500',

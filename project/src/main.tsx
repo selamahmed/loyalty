@@ -2,6 +2,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import '@fontsource/archivo-black/400.css';
+import '@fontsource/space-grotesk/400.css';
+import '@fontsource/space-grotesk/500.css';
+import '@fontsource/space-grotesk/600.css';
+import '@fontsource/space-grotesk/700.css';
 import './index.css';
 import { checkSupabaseConnection } from './lib/supabase';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -15,7 +20,7 @@ const queryClient = new QueryClient({
   },
 });
 
-checkSupabaseConnection().then(({ ok, error }) => {
+void checkSupabaseConnection().then(({ ok, error }) => {
   if (!ok) {
     console.error('[Supabase] Connection failed:', error);
   }

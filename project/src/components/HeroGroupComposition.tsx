@@ -2,6 +2,7 @@ import React from 'react';
 import { colorfulSticker } from '../lib/stickerCatalog';
 import { LANDING_HERO_CENTER, LANDING_HERO_SATELLITES } from '../lib/pageStickers';
 import { Sticker } from './Sticker';
+import StickerDecorImg from './StickerDecorImg';
 
 const HERO_SATELLITES: {
   id: string;
@@ -48,7 +49,7 @@ const HeroGroupComposition: React.FC = () => {
               zIndex: 1,
             }}
           >
-            <img src={asset.url} alt="" draggable={false} className="sticker-decor__img" />
+            <StickerDecorImg src={asset.url} />
           </div>
         );
       })}

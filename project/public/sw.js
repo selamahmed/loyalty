@@ -10,8 +10,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title, {
       body: payload.body,
-      icon: '/assets/icons/logo.png',
-      badge: '/assets/icons/logo.png',
+      icon: '/assets/icons/logo-192.png',
+      badge: '/assets/icons/logo-32.png',
       data: payload.data ?? {},
     }),
   );

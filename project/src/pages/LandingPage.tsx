@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Star, Sun, Moon, Menu, X, Zap, Gift, Gamepad2, Target, Trophy, Users, Check, ChevronRight } from 'lucide-react';
 import { DoodleField, SectionBadge } from '../components/neo/NeoBrutalDecor';
-import HeroGroupComposition from '../components/HeroGroupComposition';
+import AppLogo from '../components/AppLogo';
 import StickerAccent from '../components/StickerAccent';
 import { PageStickerBackdrop, SectionStickerDecor, StickerSectionDivider } from '../components/StickerDecor';
 import {
@@ -11,7 +11,10 @@ import {
   LANDING_CTA_STICKERS,
   LANDING_HERO_HEADLINE_SHAPES,
 } from '../lib/pageStickers';
+import { demoAvatarUrl } from '../lib/avatarCatalog';
 import { useApp } from '../context/AppContext';
+
+const HeroGroupComposition = React.lazy(() => import('../components/HeroGroupComposition'));
 
 /* ─── Ticker strip ─────────────────────────────────────────── */
 interface TickerItem { text: string; emoji?: string }
@@ -100,12 +103,12 @@ const banners = [
 ];
 
 const testimonials = [
-  { name: 'Ayşe K.',      role: 'Alışveriş Meraklısı', text: 'NexReward sayesinde her alışverişte ekstra kazanıyorum. Harika bir platform!',                           stars: 5, photo: 'https://i.pravatar.cc/80?img=47', color: '#9122FF', Shape: NBolt    },
-  { name: 'Mehmet T.',    role: 'Sadık Üye',            text: 'Günlük görevler çok eğlenceli, ödüller gerçekten değerli. Kesinlikle tavsiye ederim.',                  stars: 5, photo: 'https://i.pravatar.cc/80?img=12', color: '#56C8FF', Shape: NStar4   },
-  { name: 'Zeynep A.',    role: 'Premium Üye',          text: 'Arkadaşlarımla liderlik tablosunda yarışmak çok keyifli! Her gün giriş yapıyorum.',                      stars: 5, photo: 'https://i.pravatar.cc/80?img=23', color: '#FF3E9D', Shape: NDiamond },
-  { name: 'Kemal Y.',     role: 'Düzenli Kullanıcı',   text: 'Puanlarımı harika ödüllere çevirdim. Ücretsiz olmasına rağmen kalitesi inanılmaz yüksek.',               stars: 5, photo: 'https://i.pravatar.cc/80?img=33', color: '#FF6B35', Shape: NHeart   },
-  { name: 'Selin M.',     role: 'Yeni Üye',             text: 'Kayıt olmak sadece 30 saniye sürdü ve hemen puan kazanmaya başladım. Çok pratik!',                       stars: 5, photo: 'https://i.pravatar.cc/80?img=54', color: '#FFE500', Shape: NBurst   },
-  { name: 'Caner D.',     role: 'Liderlik Lideri',      text: 'Geçen ay liderlik tablosunda 1. oldum! Ödülüm gerçekten elime geçti. Teşekkürler NexReward!',            stars: 5, photo: 'https://i.pravatar.cc/80?img=68', color: '#C8FF00', Shape: NStar5   },
+  { name: 'Ayşe K.',      role: 'Alışveriş Meraklısı', text: 'NexReward sayesinde her alışverişte ekstra kazanıyorum. Harika bir platform!',                           stars: 5, color: '#9122FF', Shape: NBolt    },
+  { name: 'Mehmet T.',    role: 'Sadık Üye',            text: 'Günlük görevler çok eğlenceli, ödüller gerçekten değerli. Kesinlikle tavsiye ederim.',                  stars: 5, color: '#56C8FF', Shape: NStar4   },
+  { name: 'Zeynep A.',    role: 'Premium Üye',          text: 'Arkadaşlarımla liderlik tablosunda yarışmak çok keyifli! Her gün giriş yapıyorum.',                      stars: 5, color: '#FF3E9D', Shape: NDiamond },
+  { name: 'Kemal Y.',     role: 'Düzenli Kullanıcı',   text: 'Puanlarımı harika ödüllere çevirdim. Ücretsiz olmasına rağmen kalitesi inanılmaz yüksek.',               stars: 5, color: '#FF6B35', Shape: NHeart   },
+  { name: 'Selin M.',     role: 'Yeni Üye',             text: 'Kayıt olmak sadece 30 saniye sürdü ve hemen puan kazanmaya başladım. Çok pratik!',                       stars: 5, color: '#FFE500', Shape: NBurst   },
+  { name: 'Caner D.',     role: 'Liderlik Lideri',      text: 'Geçen ay liderlik tablosunda 1. oldum! Ödülüm gerçekten elime geçti. Teşekkürler NexReward!',            stars: 5, color: '#C8FF00', Shape: NStar5   },
 ];
 
 const steps = [
@@ -174,18 +177,14 @@ const LandingPage: React.FC = () => {
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             {/* Logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <img src="/assets/icons/logo.png" alt="NexReward"
-                style={{ height: 36, width: 'auto', objectFit: 'contain', borderRadius: 10, border: '2px solid #000', boxShadow: '0 2px 0 #000' }}
-                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'flex'); }}
-              />
-              <div style={{ display: 'none', width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#9122FF,#FF3E9D)', border: '2px solid #000', boxShadow: '0 2px 0 #000', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 18, color: '#C8FF00', flexShrink: 0 }}>N</div>
+              <AppLogo size={36} priority style={{ borderRadius: 10, border: '2px solid #000', boxShadow: '0 2px 0 #000' }} />
               <span style={{ fontWeight: 900, fontSize: 16, color: t.textPrimary, letterSpacing: '-0.02em' }}>NexReward</span>
             </div>
 
             {/* Desktop nav links — display controlled entirely by CSS .nav-links rule */}
             <div className="nav-links" style={{ alignItems: 'center', gap: 24 }}>
               {[['features','Özellikler'],['banners','Avantajlar'],['how','Nasıl Çalışır'],['testimonials','Yorumlar']].map(([id, label]) => (
-                <button key={id} onClick={() => scrollTo(id)}
+                <button key={id} onClick={() => scrollTo(id)} aria-label={`${label} bölümüne git`}
                   style={{ color: t.textSecondary, fontWeight: 700, fontSize: 12, textDecoration: 'none', letterSpacing: '0.06em', transition: 'color 0.15s', whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#9122FF')}
                   onMouseLeave={e => (e.currentTarget.style.color = t.textSecondary)}>
@@ -196,7 +195,7 @@ const LandingPage: React.FC = () => {
 
             {/* Right controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={toggleTheme} aria-label="Toggle theme"
+              <button onClick={toggleTheme} aria-label={isDark ? 'Açık temaya geç' : 'Koyu temaya geç'}
                 style={{ width: 34, height: 34, borderRadius: '50%', border: '2.5px solid #000', background: t.cardBg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 0 #000', flexShrink: 0 }}>
                 {isDark ? <Sun size={14} color="#FBBF24" /> : <Moon size={14} color="#7B6EF6" />}
               </button>
@@ -215,7 +214,7 @@ const LandingPage: React.FC = () => {
               </div>
 
               {/* Hamburger */}
-              <button className="hamburger-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu"
+              <button className="hamburger-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
                 style={{ width: 36, height: 36, borderRadius: 10, border: '2.5px solid #000', background: t.cardBg, cursor: 'pointer', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 0 #000', flexShrink: 0 }}>
                 {menuOpen ? <X size={18} color={t.textPrimary} /> : <Menu size={18} color={t.textPrimary} />}
               </button>
@@ -290,8 +289,10 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
             {/* Art — Group sticker cluster (star centerpiece) */}
-            <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,24px)' }}>
-              <HeroGroupComposition />
+            <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,24px)', minHeight: 280 }}>
+              <Suspense fallback={<div style={{ width: '100%', maxWidth: 320, minHeight: 260 }} aria-hidden />}>
+                <HeroGroupComposition />
+              </Suspense>
             </div>
           </div>
         </section>
@@ -514,7 +515,7 @@ const LandingPage: React.FC = () => {
                   </div>
                   <p style={{ fontSize: 14, fontWeight: 500, color: t.textSecondary, lineHeight: 1.7, marginBottom: 20 }}>{t2.text}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 14, borderTop: `2.5px solid ${isDark ? 'rgba(255,255,255,0.07)' : '#e5e5e5'}` }}>
-                    <img src={t2.photo} alt={t2.name} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid #000', flexShrink: 0, boxShadow: '0 3px 0 #000' }} />
+                    <img src={demoAvatarUrl(t2.name)} alt={t2.name} width={42} height={42} loading="lazy" decoding="async" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid #000', flexShrink: 0, boxShadow: '0 3px 0 #000' }} />
                     <div>
                       <p style={{ fontWeight: 900, fontSize: 13, color: t.textPrimary, margin: 0 }}>{t2.name}</p>
                       <p style={{ fontSize: 11, fontWeight: 500, color: t.textMuted, margin: '2px 0 0' }}>{t2.role}</p>
@@ -620,8 +621,8 @@ const LandingPage: React.FC = () => {
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 36, marginBottom: 36 }}>
               <div>
-                <img src="/assets/icons/logo.png" alt="NexReward" style={{ height: 'clamp(48px,6vw,68px)', width: 'auto', objectFit: 'contain', marginBottom: 12, filter: 'brightness(0) invert(1)' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
-                <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.55)', maxWidth: 240, lineHeight: 1.65, margin: 0 }}>
+                <AppLogo size={72} inverted style={{ marginBottom: 12, height: 'clamp(48px,6vw,68px)', width: 'clamp(48px,6vw,68px)' }} />
+                <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.62)', maxWidth: 240, lineHeight: 1.65, margin: 0 }}>
                   Daha fazla kazan, daha iyi yaşa.<br />Türkiye'nin #1 sadakat platformu.
                 </p>
                 <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
@@ -634,7 +635,7 @@ const LandingPage: React.FC = () => {
                 <div>
                   <p style={{ fontWeight: 900, fontSize: 11, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 14, textTransform: 'uppercase' }}>Platform</p>
                   {[['features','Özellikler'],['how','Nasıl Çalışır'],['banners','Avantajlar'],['testimonials','Yorumlar']].map(([id,label]) => (
-                    <button key={id} onClick={() => scrollTo(id)}
+                    <button key={id} onClick={() => scrollTo(id)} aria-label={`${label} bölümüne git`}
                       style={{ display: 'block', color: 'rgba(255,255,255,0.65)', fontWeight: 600, fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', marginBottom: 9, textAlign: 'left', transition: 'color 0.15s' }}
                       onMouseEnter={e => (e.currentTarget.style.color = '#C8FF00')}
                       onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}>{label}</button>
@@ -659,7 +660,7 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
             <div style={{ borderTop: '1.5px solid rgba(255,255,255,0.1)', paddingTop: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <p style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.35)', margin: 0 }}>© 2026 NexReward. Tüm hakları saklıdır.</p>
+              <p style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.48)', margin: 0 }}>© 2026 NexReward. Tüm hakları saklıdır.</p>
               <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => navigate('/terms')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>Şartlar</button>
                 <button type="button" onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>Gizlilik</button>

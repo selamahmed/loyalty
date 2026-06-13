@@ -21,13 +21,14 @@ import AdminLogin       from './pages/AdminLogin';
 import ForgotPassword   from './pages/ForgotPassword';
 import ResetPassword    from './pages/ResetPassword';
 import Register         from './pages/Register';
-import TermsOfService   from './pages/TermsOfService';
-import PrivacyPolicy    from './pages/PrivacyPolicy';
 import Unauthorized     from './pages/Unauthorized';
 import AuthCallback     from './pages/AuthCallback';
-import AdminSupport     from './pages/admin/AdminSupport';
 import { NotFound, NoConnection, Maintenance } from './pages/ErrorPages';
-import CookieConsent  from './components/CookieConsent';
+
+const TermsOfService   = React.lazy(() => import('./pages/TermsOfService'));
+const PrivacyPolicy    = React.lazy(() => import('./pages/PrivacyPolicy'));
+const AdminSupport     = React.lazy(() => import('./pages/admin/AdminSupport'));
+const CookieConsent    = React.lazy(() => import('./components/CookieConsent'));
 
 // ── Lazy: Customer pages ─────────────────────────────────────────────────────
 const Home           = React.lazy(() => import('./pages/Home'));
@@ -168,7 +169,9 @@ function App() {
     <InventoryProvider>
       <HashRouter>
         <OAuthErrorInterceptor />
-        <CookieConsent />
+        <Suspense fallback={null}>
+          <CookieConsent />
+        </Suspense>
         <Suspense fallback={<Spinner />}>
           <Routes>
 

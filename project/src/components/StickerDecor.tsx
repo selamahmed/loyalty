@@ -2,6 +2,7 @@ import React from 'react';
 import { colorfulBySeed, shapeBySeed } from '../lib/stickerCatalog';
 import type { StickerPresetKey, StickerSlotConfig } from '../lib/stickerLayouts';
 import { STICKER_PRESETS } from '../lib/stickerLayouts';
+import StickerDecorImg from './StickerDecorImg';
 
 type StickerDecorProps = {
   preset: StickerPresetKey;
@@ -40,7 +41,7 @@ const StickerSlot: React.FC<{ slot: StickerSlotConfig; index: number }> = ({ slo
         opacity: slot.opacity ?? 0.85,
       }}
     >
-      <img src={asset.url} alt="" draggable={false} className="sticker-decor__img" />
+      <StickerDecorImg src={asset.url} />
     </div>
   );
 };
@@ -94,12 +95,7 @@ export const StickerSectionDivider: React.FC<{ preset?: StickerPresetKey }> = ({
           opacity: slot.opacity ?? 0.9,
         }}
       >
-        <img
-          src={slotAsset(slot, i).url}
-          alt=""
-          draggable={false}
-          className="sticker-decor__img"
-        />
+        <StickerDecorImg src={slotAsset(slot, i).url} />
       </div>
     ))}
   </div>

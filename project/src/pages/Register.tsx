@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { activityLogService } from '../lib/activityLogger';
 import { SIGNUP_KEY_POINTS } from '../lib/legalContent';
 import AuthPageShell from '../components/AuthPageShell';
+import AppLogo from '../components/AppLogo';
 import StickerAccent from '../components/StickerAccent';
 
 const GoogleIcon = () => (
@@ -93,22 +94,10 @@ const Register: React.FC = () => {
 
           {/* Logo */}
           <div className="flex flex-col items-center gap-3">
-            <img
-              src="/assets/icons/logo.png"
-              alt="NexReward"
-              className="w-16 h-16 object-contain rounded-2xl"
-              style={{ border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)' }}
-              onError={e => {
-                e.currentTarget.style.display = 'none';
-                (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute('style');
-              }}
+            <AppLogo
+              size={64}
+              style={{ border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)', borderRadius: 16 }}
             />
-            <div
-              className="w-16 h-16 rounded-2xl items-center justify-center font-black text-2xl"
-              style={{ display: 'none', background: 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)', color: 'white', border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)' }}
-            >
-              N
-            </div>
             <div className="text-center">
               <h1 className="font-black text-xl" style={{ color: 'var(--text-dark)' }}>NexReward</h1>
               <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Sadakat Platformu</p>
@@ -185,6 +174,7 @@ const Register: React.FC = () => {
             <button
               type="button"
               onClick={() => setForm({ ...form, terms: !form.terms })}
+              aria-label={form.terms ? 'Şartları kabul etmeyi kaldır' : 'Kullanım şartlarını ve gizlilik politikasını kabul et'}
               className="w-5 h-5 mt-0.5 rounded-button border-2.5 flex items-center justify-center flex-shrink-0 transition-all"
               style={{
                 borderColor: 'var(--dark-border)',

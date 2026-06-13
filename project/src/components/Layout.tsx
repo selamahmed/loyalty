@@ -94,9 +94,11 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
   };
 
   const updateScrollHint = React.useCallback(() => {
-    const el = navRef.current;
-    if (!el) return;
-    setCanScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 8);
+    window.requestAnimationFrame(() => {
+      const el = navRef.current;
+      if (!el) return;
+      setCanScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 8);
+    });
   }, []);
 
   React.useEffect(() => {
@@ -109,19 +111,24 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
       });
       return next;
     });
-  }, [location.pathname]);
+    updateScrollHint();
+  }, [location.pathname, updateScrollHint]);
 
   React.useEffect(() => {
-    updateScrollHint();
     const el = navRef.current;
     if (!el) return;
     el.addEventListener('scroll', updateScrollHint, { passive: true });
-    window.addEventListener('resize', updateScrollHint);
+    const ro = new ResizeObserver(() => updateScrollHint());
+    ro.observe(el);
     return () => {
       el.removeEventListener('scroll', updateScrollHint);
-      window.removeEventListener('resize', updateScrollHint);
+      ro.disconnect();
     };
-  }, [updateScrollHint, sidebarOpen, collapsedGroups]);
+  }, [updateScrollHint]);
+
+  React.useEffect(() => {
+    updateScrollHint();
+  }, [collapsedGroups, sidebarOpen, updateScrollHint]);
 
   const isAuthPage = ['/login', '/register'].includes(location.pathname);
 
@@ -130,7 +137,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
       <div className="page-container">
         {rewardPopup && <RewardPopup data={rewardPopup} onDismiss={dismissRewardPopup} />}
         {children}
-        <button onClick={toggleTheme} className="btn-primary fixed top-4 right-4 p-3 z-50 rounded-button">
+        <button onClick={toggleTheme} aria-label={theme === 'light' ? 'Koyu temaya geç' : 'Açık temaya geç'} className="btn-primary fixed top-4 right-4 p-3 z-50 rounded-button">
           {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
         </button>
       </div>
@@ -351,6 +358,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
           {/* Theme */}
           <button
             onClick={toggleTheme}
+            aria-label={theme === 'light' ? 'Koyu temaya geç' : 'Açık temaya geç'}
             style={{
               width: 40, height: 40, borderRadius: 12, flexShrink: 0,
               background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)',

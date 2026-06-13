@@ -43,6 +43,12 @@ export default defineConfig({
           ) {
             return 'vendor-supabase';
           }
+          if (id.includes('node_modules/@tanstack/react-query')) {
+            return 'vendor-query';
+          }
+          if (id.includes('node_modules/@sentry/')) {
+            return 'vendor-sentry';
+          }
           if (
             id.includes('node_modules/@zxing/') ||
             id.includes('node_modules/jsqr/')
