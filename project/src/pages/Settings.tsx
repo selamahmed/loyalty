@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sun, Moon, Bell, BellOff, Volume2, VolumeX, Globe, User, Shield, ChevronRight, Check, LogOut, Smartphone, Loader, WifiOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
@@ -106,7 +107,8 @@ const PushNotifRow: React.FC<{
 };
 
 const Settings: React.FC = () => {
-  const { theme, toggleTheme, soundEnabled, setSoundEnabled, notificationsEnabled, setNotificationsEnabled, setIsLoggedIn } = useApp();
+  const { theme, toggleTheme, soundEnabled, setSoundEnabled, notificationsEnabled, setNotificationsEnabled } = useApp();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [language, setLanguage]         = useState(tr.settings.language);
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -270,7 +272,7 @@ const Settings: React.FC = () => {
         </Section>
 
         {/* ── Logout ── */}
-        <button onClick={() => { playSound('click'); setIsLoggedIn(false); navigate('/login'); }} style={{
+        <button onClick={() => { playSound('click'); logout().finally(() => navigate('/login', { replace: true })); }} style={{
           width: '100%', ...card, border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626',
           padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           cursor: 'pointer', background: 'rgba(239,68,68,0.06)', transition: 'transform 0.1s, box-shadow 0.1s',

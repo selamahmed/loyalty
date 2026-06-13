@@ -46,7 +46,7 @@ const StoreAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => { logout().finally(() => navigate('/login', { replace: true })); };
 
   const allItems = navGroups.flatMap(g => g.items);
   const currentItem = allItems.find(n => {

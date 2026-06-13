@@ -16,12 +16,11 @@ import { getDashboardPath } from '../context/AuthContext';
  *   https://<your-production-domain>
  */
 const AuthCallback: React.FC = () => {
-  const { authUser, profile, isLoading } = useAuth();
+  const { authUser, isLoading } = useAuth();
   const navigate = useNavigate();
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    // Safety timeout — if auth takes longer than 10 s, send to login
     const t = setTimeout(() => setTimedOut(true), 10000);
     return () => clearTimeout(t);
   }, []);
@@ -31,15 +30,11 @@ const AuthCallback: React.FC = () => {
       navigate('/login', { replace: true });
       return;
     }
-    // Wait for both auth user AND profile to be loaded so we know the real role
-    if (!isLoading && authUser && profile) {
-      navigate(getDashboardPath(profile.role ?? 'customer'), { replace: true });
+    // authUser.role is already populated from the profiles table by refreshProfile
+    if (!isLoading && authUser) {
+      navigate(getDashboardPath(authUser.role), { replace: true });
     }
-    // If auth is done but no profile yet, default to customer dashboard
-    if (!isLoading && authUser && !profile) {
-      navigate('/app', { replace: true });
-    }
-  }, [authUser, profile, isLoading, timedOut, navigate]);
+  }, [authUser, isLoading, timedOut, navigate]);
 
   return (
     <div

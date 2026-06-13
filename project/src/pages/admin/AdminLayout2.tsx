@@ -26,9 +26,8 @@ const AdminLayout: React.FC = () => {
     { icon: Settings, label: 'System Settings', path: '/admin/settings' },
   ];
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/admin/login');
+  const handleLogout = () => {
+    logout().finally(() => navigate('/admin/login', { replace: true }));
   };
 
   const isActive = (path: string) => location.pathname.includes(path.split('/')[2]);

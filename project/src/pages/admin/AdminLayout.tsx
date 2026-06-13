@@ -36,8 +36,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    logout().finally(() => navigate('/login', { replace: true }));
   };
 
   return (

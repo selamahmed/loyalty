@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
@@ -14,12 +14,25 @@ export interface AuthUser {
   provider?: string;
 }
 
+export interface UserProfile {
+  id: string;
+  username: string | null;
+  email: string | null;
+  role: UserRole | null;
+  avatar_url: string | null;
+  total_points: number;
+  level: number;
+  status: string | null;
+}
+
 interface AuthContextType {
   authUser: AuthUser | null;
+  profile: UserProfile | null;
   session: Session | null;
   role: UserRole | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  loading: boolean; // alias for backward compatibility
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
@@ -27,7 +40,7 @@ interface AuthContextType {
   dashboardPath: string;
 }
 
-export const getDashboardPath = (role: UserRole | null): string => {
+export const getDashboardPath = (role: UserRole | string | null): string => {
   switch (role) {
     case 'super_admin':  return '/admin';
     case 'store_admin':  return '/store-admin';
@@ -54,114 +67,147 @@ function mapSupabaseUser(user: User): AuthUser {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [authUser, setAuthUser]   = useState<AuthUser | null>(null);
+  const [profile,  setProfile]    = useState<UserProfile | null>(null);
+  const [session,  setSession]    = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshProfile = useCallback(async (user: User) => {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, username, avatar_url')
-      .eq('id', user.id)
-      .maybeSingle();
+  // Track in-flight profile fetches so we don't stack them
+  const fetchingRef = useRef(false);
 
-    const base = mapSupabaseUser(user);
-    if (profile) {
+  const refreshProfile = useCallback(async (user: User) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    try {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('id, username, email, role, avatar_url, total_points, level, status')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const base = mapSupabaseUser(user);
+      const dbRole = (prof?.role as UserRole) ?? base.role;
+
+      setProfile(prof ? {
+        id:           prof.id,
+        username:     prof.username,
+        email:        prof.email,
+        role:         dbRole,
+        avatar_url:   prof.avatar_url,
+        total_points: prof.total_points ?? 0,
+        level:        prof.level ?? 1,
+        status:       prof.status,
+      } : null);
+
       setAuthUser({
         ...base,
-        role: (profile.role as UserRole) ?? base.role,
-        name: profile.username ?? base.name,
-        username: profile.username ?? base.username,
-        avatar: profile.avatar_url ?? base.avatar,
+        role:     dbRole,
+        name:     prof?.username ?? base.name,
+        username: prof?.username ?? base.username,
+        avatar:   prof?.avatar_url ?? base.avatar,
       });
-    } else {
-      setAuthUser(base);
+    } finally {
+      fetchingRef.current = false;
     }
   }, []);
 
+  /* ── Bootstrap session on mount ── */
   useEffect(() => {
+    let mounted = true;
+
     supabase.auth.getSession().then(({ data: { session: s } }) => {
+      if (!mounted) return;
       setSession(s);
       if (s?.user) {
-        refreshProfile(s.user).finally(() => setIsLoading(false));
+        refreshProfile(s.user).finally(() => { if (mounted) setIsLoading(false); });
       } else {
         setIsLoading(false);
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!mounted) return;
       setSession(s);
       if (s?.user) {
         refreshProfile(s.user);
       } else {
         setAuthUser(null);
+        setProfile(null);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [refreshProfile]);
 
-  const role = authUser?.role ?? null;
+  const role           = authUser?.role ?? null;
   const isAuthenticated = authUser !== null && session !== null;
-  const dashboardPath = getDashboardPath(role);
+  const dashboardPath  = getDashboardPath(role);
 
+  /* ── Register ── */
   const register = async (email: string, password: string, username: string): Promise<{ success: boolean; error?: string }> => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: username, username, role: 'customer' },
-      },
+      options: { data: { full_name: username, username, role: 'customer' } },
     });
-    if (error) {
-      return { success: false, error: error.message };
-    }
+    if (error) return { success: false, error: error.message };
     return { success: true };
   };
 
+  /* ── Login ── */
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      return { success: false, error: error.message };
-    }
-    // Eagerly hydrate authUser so navigate(dashboardPath) works on the first attempt.
-    // Without this, onAuthStateChange fires after the caller already called navigate,
-    // leaving authUser=null → ProtectedRoute bounces the user back to /login.
-    if (data.user) {
-      await refreshProfile(data.user);
-    }
+    if (error) return { success: false, error: error.message };
+    // Eagerly hydrate so the calling component can navigate immediately
+    if (data.user) await refreshProfile(data.user);
     return { success: true };
   };
 
+  /* ── Google OAuth ── */
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
-    // redirectTo points to the hash-based callback route.
-    // With PKCE flow Supabase appends ?code=XXX to the URL, so the final
-    // URL becomes: <origin>/?code=XXX#/auth/callback
-    // HashRouter renders /auth/callback; detectSessionInUrl exchanges the code.
     const redirectTo = `${window.location.origin}/#/auth/callback`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo },
     });
-    if (error) {
-      return { success: false, error: error.message };
-    }
+    if (error) return { success: false, error: error.message };
     return { success: true };
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  /* ── Logout — robust version ── */
+  const logout = async (): Promise<void> => {
+    // 1. Clear React state immediately so UI feels instant
     setAuthUser(null);
+    setProfile(null);
     setSession(null);
+
+    // 2. Tell Supabase to invalidate the server session
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Network error — local state already cleared, still safe
+    }
+
+    // 3. Force-clear any residual Supabase tokens from localStorage
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => localStorage.removeItem(k));
+    } catch { /* ignore storage errors */ }
   };
 
   return (
     <AuthContext.Provider value={{
       authUser,
+      profile,
       session,
       role,
       isAuthenticated,
       isLoading,
+      loading: isLoading,   // alias so older components using `loading` still work
       login,
       register,
       loginWithGoogle,
