@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Star, ShoppingCart, X, Check, ArrowRight, Package } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +8,7 @@ import { redeemReward } from '../services/redemptions';
 import { spendPoints as spendPointsService } from '../services/points';
 import type { Reward } from '../services/rewards';
 import { playSound } from '../lib/sounds';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { WinningParticles } from '../components/WinningParticles';
 import StickerAccent from '../components/StickerAccent';
 import StickerHero from '../components/StickerHero';
@@ -35,9 +36,10 @@ interface BuyModalProps {
   onConfirm: () => void;
   onClose: () => void;
   canAfford: boolean;
+  submitting?: boolean;
 }
 
-const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAfford }) => (
+const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAfford, submitting = false }) => (
   <div
     style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)' }}
     onClick={e => { if (e.target === e.currentTarget) onClose(); }}
@@ -99,14 +101,14 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
         </button>
         <button
           onClick={onConfirm}
-          disabled={!canAfford}
+          disabled={!canAfford || submitting}
           style={{
             flex: 2, padding: '13px', borderRadius: 14, fontWeight: 900, fontSize: 14,
-            background: canAfford ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--tab-bg)',
-            color: canAfford ? 'white' : 'var(--text-muted)',
+            background: canAfford && !submitting ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--tab-bg)',
+            color: canAfford && !submitting ? 'white' : 'var(--text-muted)',
             border: '3px solid var(--dark-border)',
-            boxShadow: canAfford ? '0 4px 0 var(--dark-border)' : 'none',
-            cursor: canAfford ? 'pointer' : 'not-allowed',
+            boxShadow: canAfford && !submitting ? '0 4px 0 var(--dark-border)' : 'none',
+            cursor: canAfford && !submitting ? 'pointer' : 'not-allowed',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
           }}
         >
@@ -119,10 +121,11 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
 
 /* ── Main page ── */
 const RewardsShop: React.FC = () => {
-  const { points, spendPoints, showRewardPopup } = useApp();
+  const { points, spendPoints, showRewardPopup, soundEnabled } = useApp();
   const { authUser, profile } = useAuth();
   const { reload: reloadInventory } = useInventory();
   const [search, setSearch]             = useState('');
+  const debouncedSearch = useDebouncedValue(search, 200);
   const [category, setCategory]         = useState('all');
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [success, setSuccess]           = useState<string | null>(null);
@@ -136,14 +139,24 @@ const RewardsShop: React.FC = () => {
     getRewards().then(setRewards).catch(() => setRewards([])).finally(() => setIsLoading(false));
   }, []);
 
-  const filtered = rewards.filter(r => {
-    const matchSearch = r.title.toLowerCase().includes(search.toLowerCase());
-    const matchCat    = category === 'all' || r.category === category;
-    return matchSearch && matchCat;
-  });
+  const filtered = useMemo(() => {
+    const q = debouncedSearch.toLowerCase();
+    return rewards.filter(r => {
+      const matchSearch = !q || r.title.toLowerCase().includes(q);
+      const matchCat    = category === 'all' || r.category === category;
+      return matchSearch && matchCat;
+    });
+  }, [rewards, debouncedSearch, category]);
+
+  const canAffordCount = useMemo(
+    () => rewards.filter(r => points >= r.points).length,
+    [rewards, points],
+  );
+
+  const playClick = () => { if (soundEnabled) playSound('click'); };
 
   const handleBuy = async () => {
-    if (!selectedReward || !authUser?.id) return;
+    if (!selectedReward || !authUser?.id || buyLoading) return;
     const spent = spendPoints(selectedReward.points);
     if (!spent) return;
     setBuyLoading(true);
@@ -179,8 +192,6 @@ const RewardsShop: React.FC = () => {
     }
   };
 
-  const canAffordCount = rewards.filter(r => points >= r.points).length;
-
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
@@ -194,6 +205,7 @@ const RewardsShop: React.FC = () => {
           onConfirm={() => void handleBuy()}
           onClose={() => !buyLoading && setSelectedReward(null)}
           canAfford={points >= selectedReward.points}
+          submitting={buyLoading}
         />
       )}
 
@@ -280,11 +292,11 @@ const RewardsShop: React.FC = () => {
           {categories.map(cat => (
             <button
               key={cat.id}
-              onClick={() => { playSound('click'); setCategory(cat.id); }}
+              onClick={() => { playClick(); setCategory(cat.id); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 7,
                 padding: '9px 16px', borderRadius: 12, fontWeight: 900, fontSize: 12,
-                cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', transition: 'all 0.12s', position: 'relative',
+                cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', transition: 'color 0.12s, background-color 0.12s, box-shadow 0.12s', position: 'relative',
                 background: category === cat.id ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
                 color: category === cat.id ? 'white' : 'var(--text-dark)',
                 border: '3px solid var(--dark-border)',
@@ -328,7 +340,7 @@ const RewardsShop: React.FC = () => {
               return (
                 <div
                   key={reward.id}
-                  onClick={() => { playSound('click'); setSelectedReward(reward); }}
+                  onClick={() => { playClick(); setSelectedReward(reward); }}
                   className="press-card"
                   style={{
                     ...card, overflow: 'hidden', cursor: 'pointer',

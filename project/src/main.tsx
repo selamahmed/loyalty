@@ -8,7 +8,11 @@ import { initMonitoring } from './lib/monitoring';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, refetchOnWindowFocus: true },
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 60_000,
+    },
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { getActiveRedemptions, markRedemptionUsed } from '../services/redemptions';
 
@@ -68,14 +68,34 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [authUser?.id]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      reload();
-    } else {
+    if (!isAuthenticated) {
       setItems([]);
+      return;
     }
+
+    let cancelled = false;
+    const run = () => {
+      if (!cancelled) void reload();
+    };
+
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(run, { timeout: 2000 });
+    } else {
+      timeoutId = setTimeout(run, 50);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId !== undefined && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
   }, [isAuthenticated, reload]);
 
-  const markUsed = async (id: string) => {
+  const markUsed = useCallback(async (id: string) => {
     if (!authUser?.id) return;
     try {
       await markRedemptionUsed(id, authUser.id);
@@ -83,16 +103,25 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch (err) {
       console.error('Failed to mark used:', err);
     }
-  };
+  }, [authUser?.id]);
 
-  const getByCode = (code: string) =>
-    items.find(i => i.code.toUpperCase() === code.toUpperCase().trim());
+  const getByCode = useCallback(
+    (code: string) => items.find(i => i.code.toUpperCase() === code.toUpperCase().trim()),
+    [items],
+  );
 
-  const getByBarcode = (barcode: string) =>
-    items.find(i => i.barcode && i.barcode.trim() === barcode.trim());
+  const getByBarcode = useCallback(
+    (barcode: string) => items.find(i => i.barcode && i.barcode.trim() === barcode.trim()),
+    [items],
+  );
+
+  const value = useMemo(
+    () => ({ items, isLoading, reload, markUsed, getByCode, getByBarcode }),
+    [items, isLoading, reload, markUsed, getByCode, getByBarcode],
+  );
 
   return (
-    <InventoryContext.Provider value={{ items, isLoading, reload, markUsed, getByCode, getByBarcode }}>
+    <InventoryContext.Provider value={value}>
       {children}
     </InventoryContext.Provider>
   );

@@ -2,6 +2,7 @@ import React, { Suspense, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
+import { prefetchCommonRoutes } from './lib/routePrefetch';
 
 const AppProviders = React.lazy(() => import('./components/AppProviders'));
 
@@ -98,15 +99,34 @@ const Spinner: React.FC = () => (
 );
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-const C: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <MaintenanceGuard>
-    <CustomerRoute>
-      <AccountStatusGuard>
-        <Layout>{children}</Layout>
-      </AccountStatusGuard>
-    </CustomerRoute>
-  </MaintenanceGuard>
-);
+const CustomerShell: React.FC = () => {
+  useEffect(() => {
+    const run = () => prefetchCommonRoutes();
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(run, { timeout: 4000 });
+    } else {
+      timeoutId = setTimeout(run, 500);
+    }
+    return () => {
+      if (idleId !== undefined && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
+  }, []);
+
+  return (
+    <MaintenanceGuard>
+      <CustomerRoute>
+        <AccountStatusGuard>
+          <Layout><Outlet /></Layout>
+        </AccountStatusGuard>
+      </CustomerRoute>
+    </MaintenanceGuard>
+  );
+};
 
 const SA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <SuperAdminRoute>{children}</SuperAdminRoute>
@@ -196,30 +216,32 @@ function App() {
             {/* OAuth callback — Supabase redirects here after Google sign-in */}
             <Route path="/auth/callback"    element={<AuthCallback />} />
 
-            {/* Customer */}
-            <Route path="/app"           element={<C><Home /></C>} />
-            <Route path="/home"          element={<C><Home /></C>} />
-            <Route path="/profile"       element={<C><Profile /></C>} />
-            <Route path="/inventory"     element={<C><Inventory /></C>} />
-            <Route path="/shop"          element={<C><RewardsShop /></C>} />
-            <Route path="/games"         element={<C><MiniGames /></C>} />
-            <Route path="/progress"      element={<C><ProgressPath /></C>} />
-            <Route path="/qr"            element={<C><QRScanner /></C>} />
-            <Route path="/achievements"  element={<C><Achievements /></C>} />
-            <Route path="/missions"      element={<C><Missions /></C>} />
-            <Route path="/notifications" element={<C><Notifications /></C>} />
-            <Route path="/history"       element={<C><History /></C>} />
-            <Route path="/settings"                  element={<C><Settings /></C>} />
-            <Route path="/settings/edit-profile"    element={<C><EditProfile /></C>} />
-            <Route path="/settings/privacy"         element={<C><PrivacySecurity /></C>} />
-            <Route path="/settings/change-password" element={<C><ChangePassword /></C>} />
-            <Route path="/support"              element={<C><Support /></C>} />
-            <Route path="/support/live-chat"     element={<C><LiveChat /></C>} />
-            <Route path="/support/email"         element={<C><SupportEmail /></C>} />
-            <Route path="/support/call"          element={<C><SupportCall /></C>} />
-            <Route path="/events"        element={<C><SeasonalEvents /></C>} />
-            <Route path="/leaderboard"   element={<C><Leaderboard /></C>} />
-            <Route path="/stats"         element={<C><UserStats /></C>} />
+            {/* Customer — persistent layout (sidebar stays mounted) */}
+            <Route element={<CustomerShell />}>
+            <Route path="/app"           element={<Home />} />
+            <Route path="/home"          element={<Home />} />
+            <Route path="/profile"       element={<Profile />} />
+            <Route path="/inventory"     element={<Inventory />} />
+            <Route path="/shop"          element={<RewardsShop />} />
+            <Route path="/games"         element={<MiniGames />} />
+            <Route path="/progress"      element={<ProgressPath />} />
+            <Route path="/qr"            element={<QRScanner />} />
+            <Route path="/achievements"  element={<Achievements />} />
+            <Route path="/missions"      element={<Missions />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/history"       element={<History />} />
+            <Route path="/settings"                  element={<Settings />} />
+            <Route path="/settings/edit-profile"    element={<EditProfile />} />
+            <Route path="/settings/privacy"         element={<PrivacySecurity />} />
+            <Route path="/settings/change-password" element={<ChangePassword />} />
+            <Route path="/support"              element={<Support />} />
+            <Route path="/support/live-chat"     element={<LiveChat />} />
+            <Route path="/support/email"         element={<SupportEmail />} />
+            <Route path="/support/call"          element={<SupportCall />} />
+            <Route path="/events"        element={<SeasonalEvents />} />
+            <Route path="/leaderboard"   element={<Leaderboard />} />
+            <Route path="/stats"         element={<UserStats />} />
+            </Route>
 
             {/* Super Admin */}
             <Route path="/admin"                   element={<SA><AdminDashboard /></SA>} />

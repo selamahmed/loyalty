@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { activityLogService } from '../lib/activityLogger';
 import { fetchMyAccountStatus, isRestrictedStatus, type AccountStatus } from '../services/accountStatus';
 import { authCallbackUrl } from '../lib/appUrl';
-import { useCanonicalProfile, useFetchCanonicalProfile, useInvalidateProfile } from '../hooks/useCanonicalProfile';
+import { useCanonicalProfile, useInvalidateProfile } from '../hooks/useCanonicalProfile';
 import type { CanonicalProfile } from '../services/canonicalProfile';
 
 export type UserRole = 'customer' | 'super_admin' | 'store_admin' | 'cashier';
@@ -66,8 +66,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [sessionUser, setSessionUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authBootLoading, setAuthBootLoading] = useState(true);
+  const sessionRef = useRef<Session | null>(null);
+  sessionRef.current = session;
   const invalidateProfile = useInvalidateProfile();
-  const fetchProfile = useFetchCanonicalProfile();
   const profileFetchId = useRef(0);
   const syncedUserIdRef = useRef<string | null>(null);
   const syncAuthUserRef = useRef<(user: User, knownStatus?: AccountStatus | null) => Promise<void>>(async () => {});
@@ -107,8 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (alreadySynced && knownStatus === undefined) return;
 
     invalidateProfile(user.id);
-    await fetchProfile(user.id);
-  }, [signOutBannedUser, invalidateProfile, fetchProfile]);
+  }, [signOutBannedUser, invalidateProfile]);
 
   syncAuthUserRef.current = syncAuthUser;
 
@@ -123,8 +123,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAuthBootLoading(false);
       }
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       if (!mounted) return;
+      if (event === 'TOKEN_REFRESHED' && s?.access_token === sessionRef.current?.access_token) return;
       setSession(s);
       if (s?.user) void syncAuthUserRef.current(s.user);
       else setSessionUser(null);
@@ -142,11 +143,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!next.status) return;
           if (next.status === 'deleted') { void signOutBannedUser(); return; }
           invalidateProfile(sessionUser.id);
-          void fetchProfile(sessionUser.id);
         })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [sessionUser?.id, signOutBannedUser, invalidateProfile, fetchProfile]);
+  }, [sessionUser?.id, signOutBannedUser, invalidateProfile]);
 
   const authUser = useMemo((): AuthUser | null => {
     if (!sessionUser) return null;
@@ -166,21 +166,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isLoading = authBootLoading || (isAuthenticated && profileQueryLoading);
 
   const refreshProfile = useCallback(async () => {
-    if (sessionUser?.id) {
-      invalidateProfile(sessionUser.id);
-      await fetchProfile(sessionUser.id);
-    }
-  }, [sessionUser?.id, invalidateProfile, fetchProfile]);
+    if (sessionUser?.id) invalidateProfile(sessionUser.id);
+  }, [sessionUser?.id, invalidateProfile]);
 
-  const register = async (email: string, password: string, username: string) => {
+  const register = useCallback(async (email: string, password: string, username: string) => {
     const { error } = await supabase.auth.signUp({
       email, password,
       options: { data: { full_name: username, username, role: 'customer' } },
     });
     return error ? { success: false, error: error.message } : { success: true };
-  };
+  }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { success: false, error: error.message };
     if (data.user) {
@@ -193,17 +190,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isRestrictedStatus(status)) return { success: true, restricted: true };
     }
     return { success: true };
-  };
+  }, [signOutBannedUser, syncAuthUser]);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: authCallbackUrl() },
     });
     return error ? { success: false, error: error.message } : { success: true };
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     if (authUser) {
       void activityLogService.logActivity({
         userId: authUser.id,
@@ -222,25 +219,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
     } catch { /* ignore */ }
-  };
+  }, [authUser]);
+
+  const dashboardPath = useMemo(() => getDashboardPath(role), [role]);
+
+  const contextValue = useMemo((): AuthContextType => ({
+    authUser,
+    profile: canonicalProfile ?? null,
+    session,
+    role,
+    isAuthenticated,
+    isLoading,
+    loading: isLoading,
+    profileLoading: profileQueryLoading,
+    login,
+    register,
+    loginWithGoogle,
+    logout,
+    refreshProfile,
+    dashboardPath,
+  }), [
+    authUser, canonicalProfile, session, role, isAuthenticated, isLoading,
+    profileQueryLoading, login, register, loginWithGoogle, logout, refreshProfile, dashboardPath,
+  ]);
 
   return (
-    <AuthContext.Provider value={{
-      authUser,
-      profile: canonicalProfile ?? null,
-      session,
-      role,
-      isAuthenticated,
-      isLoading,
-      loading: isLoading,
-      profileLoading: profileQueryLoading,
-      login,
-      register,
-      loginWithGoogle,
-      logout,
-      refreshProfile,
-      dashboardPath: getDashboardPath(role),
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

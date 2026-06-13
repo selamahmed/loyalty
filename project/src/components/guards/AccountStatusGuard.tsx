@@ -10,6 +10,7 @@ const AccountStatusGuard: React.FC<{ children: React.ReactNode }> = ({ children 
   const [verifiedStatus, setVerifiedStatus] = useState<AccountStatus | null>(null);
   const [checking, setChecking] = useState(true);
   const lastVerifiedUser = useRef<string | null>(null);
+  const lastVisibilityCheck = useRef(0);
 
   useEffect(() => {
     if (isLoading || !authUser?.id || role !== 'customer') {
@@ -41,6 +42,9 @@ const AccountStatusGuard: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== 'visible' || !authUser?.id || role !== 'customer') return;
+      const now = Date.now();
+      if (now - lastVisibilityCheck.current < 60_000) return;
+      lastVisibilityCheck.current = now;
       void fetchMyAccountStatus(authUser.id).then(status => {
         setVerifiedStatus(status);
         if (status === 'deleted') void logout();

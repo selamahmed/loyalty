@@ -8,10 +8,12 @@ import {
 import AdminLayout from './AdminLayout';
 import {
   getAllEvents, createEvent, updateEvent, deleteEvent,
-  type AppEvent, type RewardPrize,
+  type AppEvent, type RewardPrize, type EventStatus,
 } from '../../services/events';
+import { getEventWinners, markWinnerDistributed, syncEventStatuses, finalizeEvent,
+  type EventWinner,
+} from '../../services/eventLeaderboard';
 import { useRealtimeTable } from '../../hooks/useRealtime';
-import { getLeaderboard } from '../../services/points';
 import NeoAvatar from '../../components/NeoAvatar';
 
 /* ─── Constants ───────────────────────────────────────────── */
@@ -47,14 +49,20 @@ const blankPrize = (rank: number): RewardPrize => ({
 /* ─── Form types ──────────────────────────────────────────── */
 interface FormState {
   title: string; description: string; banner: string;
-  startDate: string; endDate: string; distributionDate: string;
+  startDateTime: string; endDateTime: string; distributionDate: string;
   active: boolean; published: boolean; winnerCount: number;
   rewards: RewardPrize[];
 }
 
+const toLocalDatetime = (iso?: string | null) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const blankForm = (): FormState => ({
   title: '', description: '', banner: BANNERS[0].value,
-  startDate: today(), endDate: '', distributionDate: '',
+  startDateTime: `${today()}T00:00`, endDateTime: '', distributionDate: '',
   active: false, published: false, winnerCount: 3,
   rewards: [blankPrize(1), blankPrize(2), blankPrize(3)],
 });
@@ -63,8 +71,8 @@ const eventToForm = (ev: AppEvent): FormState => ({
   title:            ev.title,
   description:      ev.description ?? '',
   banner:           ev.color ?? BANNERS[0].value,
-  startDate:        fmtDate(ev.start_date),
-  endDate:          fmtDate(ev.end_date),
+  startDateTime:    toLocalDatetime(ev.start_date),
+  endDateTime:      toLocalDatetime(ev.end_date),
   distributionDate: ev.distribution_date ?? '',
   active:           ev.active,
   published:        ev.published ?? false,
@@ -78,11 +86,12 @@ const formToPayload = (f: FormState) => ({
   title:             f.title,
   description:       f.description,
   color:             f.banner,
-  start_date:        f.startDate        ? new Date(f.startDate).toISOString()        : undefined,
-  end_date:          f.endDate          ? new Date(f.endDate).toISOString()          : undefined,
+  start_date:        f.startDateTime ? new Date(f.startDateTime).toISOString() : undefined,
+  end_date:          f.endDateTime   ? new Date(f.endDateTime).toISOString()   : undefined,
   distribution_date: f.distributionDate ? new Date(f.distributionDate).toISOString() : undefined,
   active:            f.active,
   published:         f.published,
+  status:            (f.published ? 'active' : 'draft') as EventStatus,
   win_count:         f.winnerCount,
   rewards_json:      f.rewards,
   image:             null,
@@ -91,21 +100,24 @@ const formToPayload = (f: FormState) => ({
 });
 
 /* ─── Status helpers ──────────────────────────────────────── */
-function eventStatus(ev: AppEvent): 'live' | 'upcoming' | 'ended' | 'draft' {
+function eventStatus(ev: AppEvent): 'live' | 'upcoming' | 'ended' | 'draft' | 'distributed' {
+  if (ev.status === 'distributed') return 'distributed';
+  if (ev.status === 'ended') return 'ended';
+  if (ev.status === 'draft' || !ev.published) return 'draft';
   const now = Date.now();
   const start = ev.start_date ? new Date(ev.start_date).getTime() : 0;
   const end   = ev.end_date   ? new Date(ev.end_date).getTime()   : 0;
-  if (!ev.published) return 'draft';
-  if (now > end)     return 'ended';
-  if (now < start)   return 'upcoming';
+  if (now > end) return 'ended';
+  if (now < start) return 'upcoming';
   return 'live';
 }
 
 const STATUS_META = {
-  live:     { label:'Canlı',    cls:'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',   dot:'bg-green-500' },
-  upcoming: { label:'Yaklaşan', cls:'bg-blue-100  dark:bg-blue-900/30  text-blue-700  dark:text-blue-400',    dot:'bg-blue-500'  },
-  ended:    { label:'Bitti',    cls:'bg-gray-100  dark:bg-gray-700     text-gray-500  dark:text-gray-400',    dot:'bg-gray-400'  },
-  draft:    { label:'Taslak',   cls:'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400', dot:'bg-yellow-500' },
+  live:        { label:'Canlı',      cls:'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',   dot:'bg-green-500' },
+  upcoming:    { label:'Yaklaşan',   cls:'bg-blue-100  dark:bg-blue-900/30  text-blue-700  dark:text-blue-400',    dot:'bg-blue-500'  },
+  ended:       { label:'Bitti',      cls:'bg-gray-100  dark:bg-gray-700     text-gray-500  dark:text-gray-400',    dot:'bg-gray-400'  },
+  draft:       { label:'Taslak',     cls:'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400', dot:'bg-yellow-500' },
+  distributed: { label:'Dağıtıldı',  cls:'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400', dot:'bg-purple-500' },
 };
 
 /* ─── Countdown hook ──────────────────────────────────────── */
@@ -145,12 +157,29 @@ const AdminRewardEvents: React.FC = () => {
   const [expanded,     setExpanded]     = useState<number | null>(null);
   const [emojiIdx,     setEmojiIdx]     = useState<number | null>(null);
   const [togglingId,   setTogglingId]   = useState<string | null>(null);
-  const [winners, setWinners] = useState<{id:string;username:string;avatar_url:string|null;total_points:number;rank:number}[]>([]);
+  const [winnersByEvent, setWinnersByEvent] = useState<Record<string, EventWinner[]>>({});
+  const [distributingId, setDistributingId] = useState<string | null>(null);
 
   /* Load */
   const load = useCallback(async () => {
     try {
-      setEvents(await getAllEvents());
+      await syncEventStatuses().catch(() => {});
+      const evs = await getAllEvents();
+      setEvents(evs);
+      const ended = evs.filter(e => ['ended', 'distributed'].includes(e.status ?? '') || eventStatus(e) === 'ended' || eventStatus(e) === 'distributed');
+      for (const e of ended) {
+        if (new Date(e.end_date) < new Date() && e.status === 'active') {
+          await finalizeEvent(e.id).catch(() => {});
+        }
+      }
+      const refreshed = ended.length ? await getAllEvents() : evs;
+      if (ended.length) setEvents(refreshed);
+      const winnerEntries = await Promise.all(
+        (ended.length ? refreshed : evs)
+          .filter(e => eventStatus(e) === 'ended' || eventStatus(e) === 'distributed')
+          .map(async e => [e.id, await getEventWinners(e.id).catch(() => [])] as const),
+      );
+      setWinnersByEvent(Object.fromEntries(winnerEntries));
     } catch { setError('Etkinlikler yüklenemedi'); }
     finally   { setLoading(false); }
   }, []);
@@ -158,9 +187,20 @@ const AdminRewardEvents: React.FC = () => {
   useEffect(() => { load(); }, [load]);
   useRealtimeTable('events', load);
 
-  useEffect(() => {
-    getLeaderboard(10).then(setWinners).catch(() => {});
-  }, []);
+  const handleMarkDistributed = async (winnerId: string, eventId: string) => {
+    setDistributingId(winnerId);
+    try {
+      await markWinnerDistributed(winnerId);
+      const updated = await getEventWinners(eventId);
+      setWinnersByEvent(prev => ({ ...prev, [eventId]: updated }));
+      setEvents(prev => prev.map(e => {
+        if (e.id !== eventId) return e;
+        if (updated.every(w => w.distributed)) return { ...e, status: 'distributed' as EventStatus };
+        return e;
+      }));
+    } catch { setError('Dağıtım işaretlenemedi'); }
+    finally { setDistributingId(null); }
+  };
 
   /* Navigation */
   const openNew = () => { setEditingId(null); setForm(blankForm()); setError(''); setView('form'); };
@@ -169,7 +209,15 @@ const AdminRewardEvents: React.FC = () => {
 
   /* CRUD */
   const handleSave = async () => {
-    if (!form.title.trim() || !form.endDate) return;
+    if (!form.title.trim() || !form.endDateTime) return;
+    if (form.rewards.length !== form.winnerCount) {
+      setError(`Ödül sayısı (${form.rewards.length}) kazanan sayısı (${form.winnerCount}) ile eşleşmeli`);
+      return;
+    }
+    if (form.rewards.some(r => !r.rewardName.trim())) {
+      setError('Tüm sıralar için ödül adı girilmeli');
+      return;
+    }
     setSaving(true); setError('');
     try {
       const payload = formToPayload(form);
@@ -198,7 +246,12 @@ const AdminRewardEvents: React.FC = () => {
   const handleToggle = async (id: string, field: 'active' | 'published', cur: boolean) => {
     setTogglingId(id + field);
     try {
-      const u = await updateEvent(id, { [field]: !cur });
+      const updates: Partial<AppEvent> = { [field]: !cur };
+      if (field === 'published') {
+        updates.status = !cur ? 'active' : 'draft';
+        if (!cur) updates.active = true;
+      }
+      const u = await updateEvent(id, updates);
       setEvents(prev => prev.map(e => e.id === id ? u : e));
     } catch { /**/ }
     finally { setTogglingId(null); }
@@ -217,10 +270,11 @@ const AdminRewardEvents: React.FC = () => {
   /* Preview event obj */
   const previewEv: AppEvent = {
     id: editingId ?? '__preview__', title: form.title, description: form.description,
-    image: null, start_date: form.startDate, end_date: form.endDate,
+    image: null, start_date: form.startDateTime, end_date: form.endDateTime,
     active: form.active, multiplier: null, color: form.banner, emoji: null,
     created_at: today(), published: form.published, win_count: form.winnerCount,
     rewards_json: form.rewards, distribution_date: form.distributionDate || null,
+    status: form.published ? 'active' : 'draft',
   };
 
   /* Stats */
@@ -324,19 +378,21 @@ const AdminRewardEvents: React.FC = () => {
               const meta   = STATUS_META[status];
               const prizes = Array.isArray(ev.rewards_json) ? ev.rewards_json as RewardPrize[] : [];
               const banner = BANNERS.find(b => b.value === ev.color) ?? BANNERS[0];
-              const eventWinners = winners.slice(0, ev.win_count ?? 3);
+              const eventWinners = winnersByEvent[ev.id] ?? [];
               return (
                 <EventCard
                   key={ev.id}
                   ev={ev} prizes={prizes} status={status} meta={meta}
                   banner={banner} eventWinners={eventWinners}
                   deletingId={deletingId} togglingId={togglingId}
+                  distributingId={distributingId}
                   onEdit={() => openEdit(ev)}
                   onToggleActive={() => handleToggle(ev.id, 'active', ev.active)}
                   onTogglePublish={() => handleToggle(ev.id, 'published', ev.published ?? false)}
                   onDeleteConfirm={() => setDeletingId(ev.id)}
                   onDeleteCancel={() => setDeletingId(null)}
                   onDeleteExecute={() => handleDelete(ev.id)}
+                  onMarkDistributed={(winnerId) => void handleMarkDistributed(winnerId, ev.id)}
                 />
               );
             })}
@@ -406,11 +462,11 @@ const AdminRewardEvents: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="label">Başlangıç *</label>
-                <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className="input-field" />
+                <input type="datetime-local" value={form.startDateTime} onChange={e => setForm(f => ({ ...f, startDateTime: e.target.value }))} className="input-field" />
               </div>
               <div>
                 <label className="label">Bitiş *</label>
-                <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} className="input-field" />
+                <input type="datetime-local" value={form.endDateTime} onChange={e => setForm(f => ({ ...f, endDateTime: e.target.value }))} className="input-field" />
               </div>
               <div>
                 <label className="label flex items-center gap-1"><Clock size={11}/> Dağıtım Tarihi</label>
@@ -481,7 +537,7 @@ const AdminRewardEvents: React.FC = () => {
             </button>
             <button
               onClick={handleSave}
-              disabled={saving || !form.title.trim() || !form.endDate}
+              disabled={saving || !form.title.trim() || !form.endDateTime || form.rewards.length !== form.winnerCount}
               className="flex-1 py-3 rounded-xl border-2 border-black bg-[#7B6EF6] text-white font-black flex items-center justify-center gap-2 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {saving ? <Loader2 size={15} className="animate-spin"/> : saved ? <><Check size={15}/> Kaydedildi!</> : editingId ? '💾 Kaydet' : '✨ Oluştur'}
@@ -591,19 +647,20 @@ const RewardRow: React.FC<RewardRowProps> = ({ reward, expanded, emojiOpen, onTo
 /* ── EventCard ── */
 interface EventCardProps {
   ev: AppEvent; prizes: RewardPrize[];
-  status: 'live' | 'upcoming' | 'ended' | 'draft';
+  status: 'live' | 'upcoming' | 'ended' | 'draft' | 'distributed';
   meta: typeof STATUS_META['live'];
   banner: typeof BANNERS[number];
-  eventWinners: {id:string;username:string;avatar_url:string|null;total_points:number;rank:number}[];
-  deletingId: string | null; togglingId: string | null;
+  eventWinners: EventWinner[];
+  deletingId: string | null; togglingId: string | null; distributingId: string | null;
   onEdit: () => void;
   onToggleActive: () => void; onTogglePublish: () => void;
   onDeleteConfirm: () => void; onDeleteCancel: () => void; onDeleteExecute: () => void;
+  onMarkDistributed: (winnerId: string) => void;
 }
 const EventCard: React.FC<EventCardProps> = ({
   ev, prizes, status, meta, banner, eventWinners,
-  deletingId, togglingId, onEdit, onToggleActive, onTogglePublish,
-  onDeleteConfirm, onDeleteCancel, onDeleteExecute,
+  deletingId, togglingId, distributingId, onEdit, onToggleActive, onTogglePublish,
+  onDeleteConfirm, onDeleteCancel, onDeleteExecute, onMarkDistributed,
 }) => {
   const cd = useCountdown(status === 'live' ? ev.end_date : null);
 
@@ -696,21 +753,33 @@ const EventCard: React.FC<EventCardProps> = ({
           </div>
         </div>
 
-        {/* Winners from leaderboard */}
-        {status === 'ended' && eventWinners.length > 0 && (
+        {/* Final winners — event-specific points, locked at end time */}
+        {(status === 'ended' || status === 'distributed') && eventWinners.length > 0 && (
           <div className="mt-4 pt-4 border-t-2 border-gray-100 dark:border-gray-700">
             <p className="text-xs font-black text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-1.5">
-              <Star size={11} fill="currentColor"/> Liderlik Kazananları
+              <Star size={11} fill="currentColor"/> Kesin Kazananlar (etkinlik puanı)
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="space-y-2">
               {eventWinners.map(w => (
-                <div key={w.id} className={`flex items-center gap-2.5 p-2.5 rounded-xl border ${w.rank === 1 ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700'}`}>
-                  <span className="text-lg">{medal(w.rank)}</span>
-                  <NeoAvatar src={w.avatar_url} name={w.username} size={28} shape="circle"/>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{w.username}</p>
-                    <p className="text-[10px] text-amber-600 font-bold">{w.total_points.toLocaleString()} p</p>
+                <div key={w.id} className={`flex items-center gap-2.5 p-2.5 rounded-xl border ${w.final_rank === 1 ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700'}`}>
+                  <span className="text-lg">{medal(w.final_rank)}</span>
+                  <NeoAvatar src={w.profiles?.avatar_url ?? null} name={w.profiles?.username ?? '?'} size={28} shape="circle"/>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{w.profiles?.username ?? '—'}</p>
+                    <p className="text-[10px] text-amber-600 font-bold">{w.final_points.toLocaleString()} etkinlik puanı</p>
+                    <p className="text-[10px] text-gray-500 truncate">{w.prize_title}</p>
                   </div>
+                  {w.distributed ? (
+                    <span className="text-[10px] font-black text-green-600 flex-shrink-0">✓ Dağıtıldı</span>
+                  ) : (
+                    <button
+                      onClick={() => onMarkDistributed(w.id)}
+                      disabled={distributingId === w.id}
+                      className="text-[10px] font-black px-2 py-1 rounded-lg bg-[#7B6EF6] text-white border border-black flex-shrink-0 disabled:opacity-50"
+                    >
+                      {distributingId === w.id ? '...' : 'Dağıtıldı İşaretle'}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

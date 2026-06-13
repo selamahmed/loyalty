@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
@@ -277,152 +277,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   }, [authUser?.id, refreshProfile]);
 
-
-
-  const spendPoints = (amount: number): boolean => {
-
-    if (points >= amount) {
-
-      setPoints(p => p - amount);
-
-      setUser(u => ({ ...u, currentPoints: Math.max(0, u.currentPoints - amount) }));
-
-      return true;
-
-    }
-
-    return false;
-
-  };
-
-
-
-  const updateUser = async (data: Partial<AppUser>) => {
-
+  const updateUser = useCallback(async (data: Partial<AppUser>) => {
     setUser(prev => ({ ...prev, ...data }));
-
     if (authUser?.id) {
-
       try {
-
         await updateProfile(authUser.id, {
-
           username: data.username,
-
           avatar_url: data.avatar,
-
           phone: data.phone ?? null,
-
           bio: data.bio ?? null,
-
         });
-
         await refreshProfile();
-
       } catch (err) {
-
         captureError(err, { context: 'updateUser' });
-
       }
-
     }
+  }, [authUser?.id, refreshProfile]);
 
-  };
-
-
-
-  const updatePrivacySettings = async (data: Partial<PrivacySettings>) => {
-
+  const updatePrivacySettings = useCallback(async (data: Partial<PrivacySettings>) => {
     if (!authUser?.id) return;
-
     const next = { ...privacySettings, ...data };
-
     setPrivacySettings(next);
-
     try {
-
       await updateUserSettings(authUser.id, {
-
         public_profile: next.publicProfile,
-
         show_on_leaderboard: next.showOnLeaderboard,
-
         share_activity: next.shareActivity,
-
         login_alerts: next.loginAlerts,
-
         two_factor_enabled: next.twoFactor,
-
       });
-
       await refreshProfile();
-
     } catch (err) {
-
       captureError(err, { context: 'updatePrivacySettings' });
-
     }
+  }, [authUser?.id, privacySettings, refreshProfile]);
 
-  };
+  const spendPoints = useCallback((amount: number): boolean => {
+    if (points >= amount) {
+      setPoints(p => p - amount);
+      setUser(u => ({ ...u, currentPoints: Math.max(0, u.currentPoints - amount) }));
+      return true;
+    }
+    return false;
+  }, [points]);
 
+  const showRewardPopup = useCallback((data: RewardPopupData) => setRewardPopup(data), []);
+  const dismissRewardPopup = useCallback(() => setRewardPopup(null), []);
+  const setBgStylePersist = useCallback((val: string) => {
+    setBgStyle(val);
+    localStorage.setItem('bgStyle', val);
+  }, []);
 
+  const contextValue = useMemo(() => ({
+    theme,
+    toggleTheme,
+    user,
+    updateUser,
+    privacySettings,
+    updatePrivacySettings,
+    points,
+    earnReward,
+    spendPoints,
+    isLoggedIn: isAuthenticated,
+    showRewardPopup,
+    rewardPopup,
+    dismissRewardPopup,
+    soundEnabled,
+    setSoundEnabled,
+    notificationsEnabled,
+    setNotificationsEnabled,
+    isDarkMode,
+    isProfileLoading: profileLoading,
+    reloadProfile: refreshProfile,
+    bgStyle,
+    setBgStyle: setBgStylePersist,
+  }), [
+    theme, toggleTheme, user, updateUser, privacySettings, updatePrivacySettings,
+    points, earnReward, spendPoints, isAuthenticated, showRewardPopup, rewardPopup,
+    dismissRewardPopup, soundEnabled, notificationsEnabled, isDarkMode, profileLoading,
+    refreshProfile, bgStyle, setBgStylePersist,
+  ]);
 
   return (
-
-    <AppContext.Provider value={{
-
-      theme,
-
-      toggleTheme,
-
-      user,
-
-      updateUser,
-
-      privacySettings,
-
-      updatePrivacySettings,
-
-      points,
-
-      earnReward,
-
-      spendPoints,
-
-      isLoggedIn: isAuthenticated,
-
-      showRewardPopup: (data) => setRewardPopup(data),
-
-      rewardPopup,
-
-      dismissRewardPopup: () => setRewardPopup(null),
-
-      soundEnabled,
-
-      setSoundEnabled,
-
-      notificationsEnabled,
-
-      setNotificationsEnabled,
-
-      isDarkMode,
-
-      isProfileLoading: profileLoading,
-
-      reloadProfile: refreshProfile,
-
-      bgStyle,
-
-      setBgStyle: (val: string) => { setBgStyle(val); localStorage.setItem('bgStyle', val); },
-
-    }}>
-
+    <AppContext.Provider value={contextValue}>
       {children}
-
     </AppContext.Provider>
-
   );
-
 };
 
 

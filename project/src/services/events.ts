@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/supabase';
 
+export type EventStatus = 'draft' | 'active' | 'ended' | 'distributed';
+
 export type RewardPrize = {
   rank: number;
   label: string;
@@ -16,6 +18,7 @@ export type AppEvent = Database['public']['Tables']['events']['Row'] & {
   win_count?:         number;
   rewards_json?:      RewardPrize[] | null;
   distribution_date?: string | null;
+  status?:            EventStatus;
 };
 
 type EventInsert = Omit<AppEvent, 'id' | 'created_at'>;
@@ -25,11 +28,22 @@ export async function getActiveEvents(): Promise<AppEvent[]> {
   const { data, error } = await supabase
     .from('events')
     .select('*')
-    .eq('active', true)
+    .eq('status', 'active')
     .lte('start_date', now)
     .gte('end_date', now)
     .order('start_date', { ascending: false });
-  if (error) throw error;
+  if (error) {
+    // Fallback if status column not migrated yet
+    const fallback = await supabase
+      .from('events')
+      .select('*')
+      .eq('active', true)
+      .lte('start_date', now)
+      .gte('end_date', now)
+      .order('start_date', { ascending: false });
+    if (fallback.error) throw fallback.error;
+    return (fallback.data ?? []) as unknown as AppEvent[];
+  }
   return (data ?? []) as unknown as AppEvent[];
 }
 

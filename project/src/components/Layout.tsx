@@ -3,12 +3,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, ShoppingBag, Gamepad2, BarChart2, QrCode, Trophy,
   Target, Bell, History, Settings, User, Package,
-  Sun, Moon, Menu, X, Star, Zap, Shield, HelpCircle, ChevronDown,
+  Sun, Moon, Menu, X, Star, Zap, HelpCircle, ChevronDown,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import RewardPopup from './RewardPopup';
 import { playSound } from '../lib/sounds';
+import { prefetchRoute } from '../lib/routePrefetch';
 import NeoAvatar from './NeoAvatar';
 import { PageStickerBackdrop } from './StickerDecor';
 import { stickerPresetForPath } from '../lib/stickerLayouts';
@@ -67,7 +68,6 @@ const sidebarGroups: { category: string; emoji: string; items: NavItem[] }[] = [
     items: [
       { path: '/settings', icon: Settings,    label: 'Ayarlar',   iconColor: '#7B6EF6', iconBg: 'rgba(123,110,246,0.14)' },
       { path: '/support',  icon: HelpCircle,  label: 'Destek',    iconColor: '#22c55e', iconBg: 'rgba(34,197,94,0.14)' },
-      { path: '/admin',    icon: Shield,      label: 'Yönetici',  iconColor: '#ef4444', iconBg: 'rgba(239,68,68,0.14)' },
     ],
   },
 ];
@@ -81,13 +81,23 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
-  const { theme, toggleTheme, points, user, rewardPopup, dismissRewardPopup } = useApp();
+  const { theme, toggleTheme, points, user, rewardPopup, dismissRewardPopup, soundEnabled } = useApp();
   const location = useLocation();
   const navigate  = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});
   const navRef = React.useRef<HTMLElement>(null);
   const [canScrollDown, setCanScrollDown] = React.useState(false);
+
+  const playClick = React.useCallback(() => {
+    if (soundEnabled) playSound('click');
+  }, [soundEnabled]);
+
+  const navigateTo = React.useCallback((path: string) => {
+    playClick();
+    navigate(path);
+    setSidebarOpen(false);
+  }, [navigate, playClick]);
 
   const toggleGroup = (category: string) => {
     setCollapsedGroups(prev => ({ ...prev, [category]: !prev[category] }));
@@ -103,13 +113,15 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
 
   React.useEffect(() => {
     setCollapsedGroups(prev => {
+      let changed = false;
       const next = { ...prev };
       sidebarGroups.forEach(g => {
-        if (g.items.some(item => isNavActive(location.pathname, item.path))) {
+        if (g.items.some(item => isNavActive(location.pathname, item.path)) && next[g.category]) {
           next[g.category] = false;
+          changed = true;
         }
       });
-      return next;
+      return changed ? next : prev;
     });
     updateScrollHint();
   }, [location.pathname, updateScrollHint]);
@@ -202,7 +214,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
             type="button"
             className="sidebar-nav-btn"
             style={{ ['--nav-accent' as string]: '#C8FF00' } as React.CSSProperties}
-            onClick={() => { playSound('click'); navigate('/profile'); setSidebarOpen(false); }}
+            onClick={() => { playClick(); navigate('/profile'); setSidebarOpen(false); }}
           >
             <NeoAvatar
               src={user.avatar}
@@ -247,7 +259,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                   <button
                     type="button"
                     className={`sidebar-group-btn${hasActive ? ' sidebar-group-btn--active' : ''}`}
-                    onClick={() => { playSound('click'); toggleGroup(group.category); }}
+                    onClick={() => { playClick(); toggleGroup(group.category); }}
                   >
                     <span style={{ fontSize: 12 }}>{group.emoji}</span>
                     <span className="sidebar-group-btn__label">{group.category}</span>
@@ -269,7 +281,9 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                             type="button"
                             className={`sidebar-nav-btn${active ? ' sidebar-nav-btn--active' : ''}`}
                             style={{ ['--nav-accent' as string]: item.iconColor } as React.CSSProperties}
-                            onClick={() => { playSound('click'); navigate(item.path); setSidebarOpen(false); }}
+                            onClick={() => navigateTo(item.path)}
+                            onMouseEnter={() => prefetchRoute(item.path)}
+                            onFocus={() => prefetchRoute(item.path)}
                           >
                             <div className="sidebar-nav-btn__icon">
                               <item.icon size={14} color={active ? '#000' : item.iconColor} strokeWidth={2.5} />
@@ -289,7 +303,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
               <button
                 type="button"
                 className="sidebar-theme-btn"
-                onClick={() => { playSound('click'); toggleTheme(); }}
+                onClick={() => { playClick(); toggleTheme(); }}
               >
                 {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
                 <span>{theme === 'light' ? 'Karanlık Mod' : 'Açık Mod'}</span>
@@ -365,7 +379,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
               boxShadow: '0px 3px 0px var(--dark-border)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', color: 'var(--text-muted)',
-              transition: 'all 0.12s',
+              transition: 'color 0.12s, background-color 0.12s',
             }}
           >
             {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
@@ -380,7 +394,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
               boxShadow: '0px 3px 0px var(--dark-border)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', color: 'var(--text-muted)',
-              position: 'relative', transition: 'all 0.12s',
+              position: 'relative', transition: 'color 0.12s, background-color 0.12s',
             }}
           >
             <Bell size={16} />
@@ -413,7 +427,9 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                 return (
                   <button
                     key={item.path}
-                    onClick={() => navigate(item.path)}
+                    onClick={() => navigateTo(item.path)}
+                    onMouseEnter={() => prefetchRoute(item.path)}
+                    onFocus={() => prefetchRoute(item.path)}
                     style={{
                       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
                       gap: 3, padding: '4px 0', minHeight: 52, cursor: 'pointer',
@@ -424,7 +440,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                       padding: '6px 16px', borderRadius: 12,
                       background: active ? `var(--primary-blue)18` : 'transparent',
                       border: active ? '2px solid rgba(123,110,246,0.3)' : '2px solid transparent',
-                      transition: 'all 0.15s',
+                      transition: 'background-color 0.15s, border-color 0.15s',
                     }}>
                       <item.icon
                         size={22}
@@ -435,7 +451,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                     <span style={{
                       fontSize: 10, fontWeight: active ? 900 : 600,
                       color: active ? 'var(--primary-blue)' : 'var(--text-muted)',
-                      lineHeight: 1, transition: 'all 0.15s',
+                      lineHeight: 1, transition: 'color 0.15s, font-weight 0.15s',
                     }}>{item.label}</span>
                   </button>
                 );
@@ -444,7 +460,9 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
               {/* Center QR button */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, marginTop: -22 }}>
                 <button
-                  onClick={() => navigate('/qr')}
+                  onClick={() => navigateTo('/qr')}
+                  onMouseEnter={() => prefetchRoute('/qr')}
+                  onFocus={() => prefetchRoute('/qr')}
                   style={{
                     width: 56, height: 56, borderRadius: 16, cursor: 'pointer',
                     background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))',
@@ -473,7 +491,9 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                 return (
                   <button
                     key={item.path}
-                    onClick={() => navigate(item.path)}
+                    onClick={() => navigateTo(item.path)}
+                    onMouseEnter={() => prefetchRoute(item.path)}
+                    onFocus={() => prefetchRoute(item.path)}
                     style={{
                       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
                       gap: 3, padding: '4px 0', minHeight: 52, cursor: 'pointer',
@@ -484,7 +504,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                       padding: '6px 16px', borderRadius: 12,
                       background: active ? `var(--primary-blue)18` : 'transparent',
                       border: active ? '2px solid rgba(123,110,246,0.3)' : '2px solid transparent',
-                      transition: 'all 0.15s',
+                      transition: 'background-color 0.15s, border-color 0.15s',
                     }}>
                       <item.icon
                         size={22}
@@ -495,7 +515,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                     <span style={{
                       fontSize: 10, fontWeight: active ? 900 : 600,
                       color: active ? 'var(--primary-blue)' : 'var(--text-muted)',
-                      lineHeight: 1, transition: 'all 0.15s',
+                      lineHeight: 1, transition: 'color 0.15s, font-weight 0.15s',
                     }}>{item.label}</span>
                   </button>
                 );

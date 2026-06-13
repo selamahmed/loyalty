@@ -16,6 +16,7 @@ import {
 import { getActivityLogs } from '../../services/activityLogs';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 import { useAuth } from '../../context/AuthContext';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { activityLogService } from '../../lib/activityLogger';
 import type { Profile } from '../../services/admin';
 import type { ActivityLog } from '../../services/activityLogs';
@@ -94,16 +95,18 @@ const AdminUsers: React.FC = () => {
   const [feedback,     setFeedback]    = useState('');
   const [showRoleModal,setShowRoleModal] = useState(false);
   const [newRole,      setNewRole]     = useState<RoleType>('customer');
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   /* ── Load ── */
-  const load = useCallback(async () => {
+  const load = useCallback(async (searchOverride?: string) => {
     setLoading(true);
     try {
-      const profiles = await getAllUsersUnpaged(search || undefined);
+      const q = searchOverride ?? debouncedSearch;
+      const profiles = await getAllUsersUnpaged(q || undefined);
       setUsers(profiles.map(toEnriched));
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  }, [search]);
+  }, [debouncedSearch]);
 
   useEffect(() => { load(); }, [load]);
   useRealtimeTable('profiles', load);
@@ -296,7 +299,7 @@ const AdminUsers: React.FC = () => {
           <button onClick={exportCSV} className="flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:shadow-md transition-all">
             <Download size={14} /> CSV
           </button>
-          <button onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-sm border-2 border-black bg-[#7B6EF6] text-white hover:shadow-lg transition-all">
+          <button onClick={() => void load()} className="flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-sm border-2 border-black bg-[#7B6EF6] text-white hover:shadow-lg transition-all">
             <RefreshCw size={14} /> Yenile
           </button>
         </div>
@@ -325,7 +328,7 @@ const AdminUsers: React.FC = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && load()}
+            onKeyDown={e => e.key === 'Enter' && load(search)}
             placeholder="Kullanıcı adı veya e-posta ara..."
             className="w-full pl-9 pr-4 py-2.5 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm font-medium"
           />

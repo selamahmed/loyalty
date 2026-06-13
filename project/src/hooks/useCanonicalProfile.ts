@@ -8,7 +8,8 @@ export function profileQueryOptions(userId: string) {
   return {
     queryKey: [PROFILE_QUERY_KEY, userId] as const,
     queryFn: () => fetchCanonicalProfile(userId),
-    staleTime: 30_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   };
 }
 
@@ -20,7 +21,8 @@ export function useCanonicalProfile(userId: string | undefined) {
       return fetchCanonicalProfile(userId);
     },
     enabled: Boolean(userId),
-    staleTime: 30_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 

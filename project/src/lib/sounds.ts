@@ -1,6 +1,24 @@
-export const playSound = (type: 'click' | 'success' | 'error' | 'notification' | 'reward' | 'level-up') => {
+let audioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      void audioCtx.resume();
+    }
+    return audioCtx;
+  } catch {
+    return null;
+  }
+}
+
+export const playSound = (type: 'click' | 'success' | 'error' | 'notification' | 'reward' | 'level-up') => {
+  const audioContext = getAudioContext();
+  if (!audioContext) return;
+
+  try {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
@@ -16,7 +34,7 @@ export const playSound = (type: 'click' | 'success' | 'error' | 'notification' |
         duration = 0.05;
         break;
       case 'success':
-        frequency = 784; // G5
+        frequency = 784;
         duration = 0.2;
         break;
       case 'error':
@@ -32,7 +50,7 @@ export const playSound = (type: 'click' | 'success' | 'error' | 'notification' |
         duration = 0.25;
         break;
       case 'level-up':
-        frequency = 1047; // C6
+        frequency = 1047;
         duration = 0.3;
         break;
     }
@@ -43,7 +61,7 @@ export const playSound = (type: 'click' | 'success' | 'error' | 'notification' |
 
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + duration);
-  } catch (e) {
-    // Audio not supported, silently fail
+  } catch {
+    // Audio not supported
   }
 };

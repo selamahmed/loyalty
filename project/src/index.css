@@ -313,6 +313,14 @@
 .page-enter {
   animation: pageEnter 0.35s cubic-bezier(0.22,1,0.36,1) both;
 }
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .stagger-children > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
 
 /* ── Stagger children ── */
 @keyframes itemEnter {

@@ -3,6 +3,10 @@ import { Trophy, Star, Crown, TrendingUp, Gift, Sparkles, Timer, Users } from 'l
 import { useAuth } from '../context/AuthContext';
 import { getLeaderboard, type LeaderboardEntry } from '../services/points';
 import { getActiveEvents, type AppEvent, type RewardPrize } from '../services/events';
+import {
+  getEventLeaderboard, getEventWinners, getMyEventParticipation,
+  type EventLeaderboardEntry, type EventWinner,
+} from '../services/eventLeaderboard';
 import { supabase } from '../lib/supabase';
 import NeoAvatar from '../components/NeoAvatar';
 import StickerAccent from '../components/StickerAccent';
@@ -36,7 +40,7 @@ const useCountdown = (endDate: string) => {
 };
 
 /* ── Prize card per rank ── */
-const PrizeCard: React.FC<{ prize: RewardPrize; currentLeader?: LeaderboardEntry }> = ({ prize, currentLeader }) => {
+const PrizeCard: React.FC<{ prize: RewardPrize; currentLeader?: EventLeaderboardEntry }> = ({ prize, currentLeader }) => {
   const rankStyles: Record<number, { border: string; bg: string; badge: string; glow: string }> = {
     1: { border: '#f59e0b', bg: 'rgba(245,158,11,0.10)', badge: '#f59e0b', glow: 'rgba(245,158,11,0.2)' },
     2: { border: '#94a3b8', bg: 'rgba(148,163,184,0.08)', badge: '#94a3b8', glow: 'rgba(148,163,184,0.15)' },
@@ -79,15 +83,45 @@ const PrizeCard: React.FC<{ prize: RewardPrize; currentLeader?: LeaderboardEntry
   );
 };
 
-/* ── Active Event Banner (data from Supabase events table) ── */
-const ActiveEventBanner: React.FC<{ event: AppEvent; topPlayers: LeaderboardEntry[] }> = ({ event, topPlayers }) => {
-  const ended = new Date(event.end_date) < new Date();
+/* ── Active Event Banner — event-specific points leaderboard ── */
+const ActiveEventBanner: React.FC<{ event: AppEvent }> = ({ event }) => {
+  const ended = new Date(event.end_date) < new Date() || event.status === 'ended' || event.status === 'distributed';
   const cd = useCountdown(event.end_date);
   const prizes = (event.rewards_json as RewardPrize[] | null) ?? [];
   const bannerColor = event.color ?? '#FFE500';
   const isDarkBanner = bannerColor === '#7B6EF6' || bannerColor === '#FF3CAC';
   const textOnBanner = isDarkBanner ? '#fff' : '#000';
   const subOnBanner  = isDarkBanner ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.65)';
+  const [topPlayers, setTopPlayers] = React.useState<EventLeaderboardEntry[]>([]);
+  const [finalWinners, setFinalWinners] = React.useState<EventWinner[]>([]);
+
+  const loadEventBoard = React.useCallback(async () => {
+    try {
+      if (ended) {
+        setFinalWinners(await getEventWinners(event.id));
+      } else {
+        setTopPlayers(await getEventLeaderboard(event.id, event.win_count ?? 10));
+      }
+    } catch { /* keep stale */ }
+  }, [event.id, event.win_count, ended]);
+
+  React.useEffect(() => { void loadEventBoard(); }, [loadEventBoard]);
+
+  React.useEffect(() => {
+    if (ended) return;
+    const channel = supabase
+      .channel(`event_lb_${event.id}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'event_participants',
+        filter: `event_id=eq.${event.id}`,
+      }, () => { void loadEventBoard(); })
+      .subscribe();
+    const poll = setInterval(() => { void loadEventBoard(); }, 10000);
+    return () => { supabase.removeChannel(channel); clearInterval(poll); };
+  }, [event.id, ended, loadEventBoard]);
+
+  const displayPlayers = ended ? [] : topPlayers;
+  const winners = ended ? finalWinners : [];
 
   return (
     <div style={{ ...card, overflow: 'hidden' }}>
@@ -188,14 +222,14 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; topPlayers: LeaderboardEntr
 
       {/* ── Live leaders / Winners section ── */}
       <div style={{ padding: '16px 20px', background: 'var(--card-bg)' }}>
-        {!ended && topPlayers.length > 0 && (
+        {!ended && displayPlayers.length > 0 && (
           <>
             <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
               <TrendingUp size={15} color="#22c55e" /> Anlık Sıralama
-              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>— Sıralamanı yükselt, ödülü kap!</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>— Etkinlik puanına göre</span>
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {topPlayers.slice(0, event.win_count ?? 3).map((p, i) => {
+              {displayPlayers.slice(0, event.win_count ?? 3).map((p, i) => {
                 const prize = prizes[i];
                 return (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14, border: `2px solid ${['#f59e0b','#94a3b8','#f97316'][i] ?? 'var(--dark-border)'}`, background: i === 0 ? 'rgba(245,158,11,0.07)' : 'var(--tab-bg)' }}>
@@ -205,7 +239,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; topPlayers: LeaderboardEntr
                       <p style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.username}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                         <Star size={9} fill="#f59e0b" color="#f59e0b" />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b' }}>{p.total_points.toLocaleString()}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b' }}>{p.points.toLocaleString()} etkinlik puanı</span>
                       </div>
                     </div>
                     {/* What this rank wins */}
@@ -222,41 +256,35 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; topPlayers: LeaderboardEntr
           </>
         )}
 
-        {ended && topPlayers.length > 0 && (
+        {ended && winners.length > 0 && (
           <div>
             <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Sparkles size={16} color="#f59e0b" /> Kazananlar
+              <Sparkles size={16} color="#f59e0b" /> Kesin Kazananlar
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {topPlayers.slice(0, event.win_count ?? 3).map((w, i) => {
-                const prize = prizes[i];
-                return (
+              {winners.map((w, i) => (
                   <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, border: `2.5px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : '#f97316'}`, background: i === 0 ? 'rgba(245,158,11,0.08)' : 'var(--tab-bg)' }}>
                     <span style={{ fontSize: 22, flexShrink: 0 }}>{['🥇','🥈','🥉'][i] ?? '🏅'}</span>
-                    <Avatar url={w.avatar_url} name={w.username} size={36} border={`2px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : '#f97316'}`} />
+                    <Avatar url={w.profiles?.avatar_url ?? null} name={w.profiles?.username ?? '?'} size={36} border={`2px solid ${i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : '#f97316'}`} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0 }}>{w.username}</p>
+                      <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: 0 }}>{w.profiles?.username ?? '—'}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Star size={10} fill="#f59e0b" color="#f59e0b" />
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{w.total_points.toLocaleString()} pts</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{w.final_points.toLocaleString()} etkinlik puanı</span>
                       </div>
                     </div>
-                    {prize && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10, background: 'rgba(245,158,11,0.1)', border: '1.5px solid #f59e0b40', flexShrink: 0 }}>
-                        <span style={{ fontSize: 18 }}>{prize.rewardImage}</span>
-                        <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-dark)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prize.rewardName}</span>
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10, background: 'rgba(245,158,11,0.1)', border: '1.5px solid #f59e0b40', flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-dark)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.prize_title}</span>
+                    </div>
                     {i === 0 && <span style={{ fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: 999, background: '#f59e0b', color: 'black', border: '1.5px solid #d97706', flexShrink: 0 }}>ŞAMPİYON</span>}
                   </div>
-                );
-              })}
+                ))}
             </div>
           </div>
         )}
 
         {/* Empty — no players yet */}
-        {!ended && topPlayers.length === 0 && (
+        {!ended && displayPlayers.length === 0 && (
           <div style={{ textAlign: 'center', padding: '12px 0' }}>
             <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 4px' }}>Henüz kimse yok!</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>Puan kazanmaya başla ve ilk sıraya gir 🚀</p>
@@ -421,7 +449,7 @@ const Leaderboard: React.FC = () => {
         {/* ── Active events (Supabase) ── */}
         {activeEvents.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {activeEvents.map(ev => <ActiveEventBanner key={ev.id} event={ev} topPlayers={leaderboard.slice(0, 3)} />)}
+            {activeEvents.map(ev => <ActiveEventBanner key={ev.id} event={ev} />)}
           </div>
         )}
 
