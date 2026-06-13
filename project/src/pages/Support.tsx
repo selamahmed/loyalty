@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { HelpCircle, ChevronDown, ChevronUp, Mail, MessageSquare, Phone, Check, Send } from 'lucide-react';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 const card = {
   background: 'var(--card-bg)',
@@ -19,6 +21,12 @@ const faqs = [
   { q: 'Ödüllerimi nasıl kullanırım?', a: 'Ödül Mağazasına veya Puan Kullan sayfasına git, ödülünü seç ve onayla. Kuponun Envanterinde görünecektir.' },
   { q: 'QR kod taramam neden sayılmadı?', a: 'QR kodun açıkça görünür ve hasarsız olduğundan emin ol. Her benzersiz QR kod günde yalnızca bir kez taranabilir.' },
   { q: 'Mini oyun puanları nasıl çalışır?', a: 'Her mini oyun performansına göre puan verir. Puanlar kazandığında anında bakiyene eklenir.' },
+  { q: 'Seviye nasıl atlarım?', a: 'Puan kazandıkça XP biriktirirsin. Her seviyenin bir XP eşiği vardır. İlerleme Yolu sayfasından mevcut seviyeni ve bir sonraki seviye için ne kadar XP gerektiğini görebilirsin.' },
+  { q: 'Ödül alırken puan yetersiz hatası alıyorum.', a: 'Yeterli puanın olduğunu kontrol et. Sayfa yenilenmiş olabilir, Profil sayfandan bakiyeni doğrula. Sorun devam ederse destek ile iletişime geç.' },
+  { q: 'Google ile giriş yapamıyorum.', a: 'Google hesabının platformda kayıtlı olduğundan emin ol. Tarayıcı önbelleğini temizleyip tekrar dene. Sorun devam ederse e-posta ile giriş yapmayı dene.' },
+  { q: 'Günlük görevleri nasıl tamamlarım?', a: 'Görevler sayfasına git. Her görevin yanında ne yapman gerektiği yazar (QR tara, alışveriş yap, vb.). Görevi tamamlayınca puan otomatik eklenir.' },
+  { q: 'Liderlik tablosunda görünmüyorum.', a: 'Liderlik tablosu en fazla 50 kullanıcıyı gösterir. Seçili periyottaki (Haftalık/Aylık) puanın yeterliyse listede görünürsün. En Alta kaydır, "Senin Sıralaman" bölümünde kendi sıranı görebilirsin.' },
+  { q: 'Bildirimler gelmiyor.', a: 'Bildirimler sayfasında bildirimlerin etkin olduğunu kontrol et. Tarayıcı bildirim izinlerini de kontrol et. Sorun yaşıyorsan bildirimleri kapatıp tekrar aç.' },
 ];
 
 const contactOptions = [
@@ -29,17 +37,36 @@ const contactOptions = [
 
 const Support: React.FC = () => {
   const navigate = useNavigate();
+  const { authUser } = useAuth();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [form, setForm] = useState({ name: '', email: authUser?.email ?? '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setSubmitted(true);
-    setLoading(false);
+    setSubmitError('');
+    try {
+      const { error } = await supabase.from('support_tickets').insert({
+        user_id: authUser?.id ?? null,
+        type:    'contact',
+        status:  'open',
+        priority: 'normal',
+        name:    form.name,
+        email:   form.email,
+        subject: form.subject,
+        message: form.message,
+      });
+      if (error) throw error;
+      setSubmitted(true);
+      playSound('success');
+    } catch {
+      setSubmitError('Mesaj gönderilemedi. Lütfen tekrar deneyin.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -177,6 +204,9 @@ const Support: React.FC = () => {
                   <><Send size={16} /> Gönder</>
                 )}
               </button>
+              {submitError && (
+                <p style={{ fontSize: 12, color: '#ef4444', fontWeight: 700, margin: '4px 0 0', textAlign: 'center' }}>{submitError}</p>
+              )}
             </form>
           )}
         </div>

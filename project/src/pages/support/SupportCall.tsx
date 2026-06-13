@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Phone, Clock, Check, Copy } from 'lucide-react';
 import AccountPageShell, { Section, SaveButton, inputStyle } from '../../components/AccountPageShell';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { playSound } from '../../lib/sounds';
+import { supabase } from '../../lib/supabase';
 
 const PHONE = '+90 850 123 45 67';
 const HOURS = [
@@ -13,10 +15,12 @@ const HOURS = [
 
 const SupportCall: React.FC = () => {
   const { user } = useApp();
+  const { authUser } = useAuth();
   const [copied, setCopied] = useState(false);
   const [callback, setCallback] = useState({ phone: '', time: 'Sabah (09-12)', note: '' });
   const [loading, setLoading] = useState(false);
   const [requested, setRequested] = useState(false);
+  const [error, setError] = useState('');
 
   const handleCopy = () => {
     navigator.clipboard.writeText(PHONE).catch(() => {});
@@ -28,11 +32,29 @@ const SupportCall: React.FC = () => {
   const handleCallback = async () => {
     if (!callback.phone.trim()) return;
     setLoading(true);
+    setError('');
     playSound('click');
-    await new Promise(r => setTimeout(r, 900));
-    setRequested(true);
-    setLoading(false);
-    playSound('success');
+    try {
+      const { error: dbErr } = await supabase.from('support_tickets').insert({
+        user_id:        authUser?.id ?? null,
+        type:           'callback',
+        status:         'open',
+        priority:       'normal',
+        name:           user.username ?? authUser?.email ?? 'Kullanıcı',
+        email:          authUser?.email ?? '',
+        phone:          callback.phone,
+        subject:        'Geri Arama Talebi',
+        message:        callback.note || `Geri arama talebi — Tercih: ${callback.time}`,
+        preferred_time: callback.time,
+      });
+      if (dbErr) throw dbErr;
+      setRequested(true);
+      playSound('success');
+    } catch {
+      setError('Talep gönderilemedi. Lütfen tekrar deneyin.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isOpen = () => {
@@ -130,7 +152,7 @@ const SupportCall: React.FC = () => {
             </div>
             <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 4px' }}>Talebin alındı!</p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-              {user.username}, {callback.time} arasında seni arayacağız.
+              {user.username ?? 'Kullanıcı'}, {callback.time} arasında seni arayacağız.
             </p>
           </div>
         ) : (

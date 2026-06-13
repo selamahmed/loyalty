@@ -362,9 +362,51 @@ create or replace view public.leaderboard_monthly as
   group by p.id, p.username, p.avatar_url, p.level;
 
 -- ── Enable Supabase Realtime on required tables ──────────────
--- Without this, leaderboard real-time refresh won't fire
 alter publication supabase_realtime add table public.profiles;
 alter publication supabase_realtime add table public.points_transactions;
+
+-- ── SUPPORT TICKETS ──────────────────────────────────────────
+create table if not exists public.support_tickets (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid references public.profiles(id) on delete set null,
+  type          text not null default 'contact',     -- contact | callback | chat
+  status        text not null default 'open',        -- open | in_progress | resolved | closed
+  priority      text not null default 'normal',      -- low | normal | high | urgent
+  name          text not null default '',
+  email         text not null default '',
+  phone         text,
+  subject       text,
+  message       text not null default '',
+  preferred_time text,                               -- for callback requests
+  assigned_to   uuid references public.profiles(id) on delete set null,
+  admin_notes   text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+alter table public.support_tickets enable row level security;
+
+-- Anyone authenticated can INSERT their own ticket
+drop policy if exists "Users create tickets" on public.support_tickets;
+create policy "Users create tickets"
+  on public.support_tickets for insert
+  with check (true);
+
+-- Users can see their own tickets; admins see all
+drop policy if exists "Users read own tickets" on public.support_tickets;
+create policy "Users read own tickets"
+  on public.support_tickets for select
+  using (user_id = auth.uid() or public.is_admin());
+
+-- Only admins can update
+drop policy if exists "Admins update tickets" on public.support_tickets;
+create policy "Admins update tickets"
+  on public.support_tickets for update
+  using (public.is_admin())
+  with check (public.is_admin());
+
+-- Realtime for admin panel
+alter publication supabase_realtime add table public.support_tickets;
 
 -- ── DONE ─────────────────────────────────────────────────────
 select 'Patch applied successfully ✓' as status;

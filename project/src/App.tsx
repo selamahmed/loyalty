@@ -22,6 +22,7 @@ import ResetPassword    from './pages/ResetPassword';
 import Register         from './pages/Register';
 import Unauthorized     from './pages/Unauthorized';
 import AuthCallback     from './pages/AuthCallback';
+import AdminSupport     from './pages/admin/AdminSupport';
 import { NotFound, NoConnection, Maintenance } from './pages/ErrorPages';
 import CookieConsent  from './components/CookieConsent';
 
@@ -221,6 +222,7 @@ function App() {
             <Route path="/admin/points-economy"    element={<SA><AdminPointsEconomy /></SA>} />
             <Route path="/admin/audit-logs"        element={<SA><AdminAuditLogs /></SA>} />
             <Route path="/admin/settings"          element={<SA><AdminSettings /></SA>} />
+            <Route path="/admin/support"           element={<SA><AdminSupport /></SA>} />
 
             {/* Store Admin */}
             <Route path="/store-admin"                    element={<STA><StoreAdminDashboard /></STA>} />
