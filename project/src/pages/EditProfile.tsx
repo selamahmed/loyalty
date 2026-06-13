@@ -133,7 +133,7 @@ const EditProfile: React.FC = () => {
 
     void activityLogService.logActivity({
       userId:     authUser.id,
-      username:   form.username.trim() || authUser.username ?? authUser.name ?? authUser.email,
+      username:   form.username.trim() || (authUser.username ?? authUser.name ?? authUser.email),
       email:      authUser.email,
       role:       authUser.role,
       action:     'Profil güncellendi',
