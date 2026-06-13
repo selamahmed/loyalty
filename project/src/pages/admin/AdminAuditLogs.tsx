@@ -126,15 +126,15 @@ const AdminAuditLogs: React.FC = () => {
         log.device_type || 'N/A',
         log.browser || 'N/A',
         log.os || 'N/A',
-        log.country || 'N/A',
-        log.city || 'N/A',
-        "N/A",
-        "N/A",
-        "N/A",
-        log.amount || '',
+        log.country  || 'N/A',
+        log.city     || 'N/A',
+        log.region   || 'N/A',
+        log.isp      || 'N/A',
+        log.timezone || 'N/A',
+        log.amount   || '',
         log.risk_level || 'N/A',
-        "N/A",
-        "N/A",
+        log.device_name || 'N/A',
+        `${log.browser || ''} / ${log.os || ''}`,
       ]),
     ]
       .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
@@ -340,8 +340,8 @@ const AdminAuditLogs: React.FC = () => {
                   </td>
                   <td className="py-2 px-2 hidden md:table-cell">
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-900 dark:text-white truncate max-w-[110px]">{log.city}, {log.country}</p>
-                      <p className="text-xs text-gray-400 truncate max-w-[110px]">{"N/A"}</p>
+                      <p className="text-xs text-gray-900 dark:text-white truncate max-w-[110px]">{log.city || '?'}, {log.country || '?'}</p>
+                      <p className="text-xs text-gray-400 truncate max-w-[110px]">{log.timezone || log.region || '—'}</p>
                     </div>
                   </td>
                   <td className="py-2 px-2">
@@ -435,8 +435,8 @@ const AdminAuditLogs: React.FC = () => {
                   <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{selectedLog.user_id}</code>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Session ID</p>
-                  <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{"N/A"}</code>
+                  <p className="text-xs text-gray-500">Log ID</p>
+                  <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{selectedLog.id.slice(0, 8)}…</code>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Date & Time</p>
@@ -471,9 +471,9 @@ const AdminAuditLogs: React.FC = () => {
                   <p className="font-bold text-gray-900 dark:text-white">{selectedLog.os || 'Unknown'}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-xs text-gray-500">User Agent</p>
+                  <p className="text-xs text-gray-500">ISP / Network</p>
                   <p className="font-mono text-xs text-gray-600 dark:text-gray-400 break-all">
-                    {"N/A"}
+                    {selectedLog.isp || 'Unknown'}
                   </p>
                 </div>
               </div>
@@ -496,7 +496,7 @@ const AdminAuditLogs: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Region</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{"N/A"}</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.region || 'Unknown'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">IP Address</p>
@@ -504,11 +504,11 @@ const AdminAuditLogs: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">ISP</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{"N/A"}</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.isp || 'Unknown'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Timezone</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{"N/A"}</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{selectedLog.timezone || 'Unknown'}</p>
                 </div>
               </div>
             </div>

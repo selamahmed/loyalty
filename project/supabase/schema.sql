@@ -329,6 +329,9 @@ create table if not exists public.activity_logs (
   os          text,
   country     text,
   city        text,
+  region      text,
+  isp         text,
+  timezone    text,
   amount      integer,
   risk_level  risk_level default 'low',
   created_at  timestamptz not null default now()

@@ -219,6 +219,9 @@ export type Database = {
           os: string | null;
           country: string | null;
           city: string | null;
+          region: string | null;
+          isp: string | null;
+          timezone: string | null;
           amount: number | null;
           risk_level: 'low' | 'medium' | 'high' | null;
           created_at: string;

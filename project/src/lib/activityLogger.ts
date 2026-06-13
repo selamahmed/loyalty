@@ -17,79 +17,119 @@ export interface ActivityLogInput {
   os?: string;
   country?: string;
   city?: string;
+  region?: string;
+  isp?: string;
+  timezone?: string;
   amount?: number;
   riskLevel?: 'low' | 'medium' | 'high';
 }
 
-/* ── Auto-detect device info from User-Agent ── */
+/* ── Geolocation result ── */
+interface GeoInfo {
+  ip: string;
+  country: string;
+  city: string;
+  region: string;
+  isp: string;
+  timezone: string;
+}
+
+/* ── Session cache — one lookup per page session ── */
+let _geoCache: GeoInfo | null = null;
+let _geoFetching: Promise<GeoInfo> | null = null;
+
+async function fetchGeoInfo(): Promise<GeoInfo> {
+  if (_geoCache) return _geoCache;
+  if (_geoFetching) return _geoFetching;
+
+  _geoFetching = (async (): Promise<GeoInfo> => {
+    try {
+      /* ipapi.co — free, HTTPS, no key required; returns full geo + ISP + timezone */
+      const res = await fetch('https://ipapi.co/json/', {
+        signal: AbortSignal.timeout(5000),
+        headers: { Accept: 'application/json' },
+      });
+      if (!res.ok) throw new Error(`ipapi status ${res.status}`);
+      const d = await res.json();
+      _geoCache = {
+        ip:       d.ip        ?? '0.0.0.0',
+        country:  d.country_name ?? d.country ?? 'Unknown',
+        city:     d.city      ?? 'Unknown',
+        region:   d.region    ?? 'Unknown',
+        isp:      d.org       ?? 'Unknown',       // e.g. "AS47788 Superonline"
+        timezone: d.timezone  ?? 'Unknown',
+      };
+      return _geoCache;
+    } catch {
+      /* fallback: IP-only via ipify */
+      try {
+        const r2 = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
+        const j2 = await r2.json();
+        _geoCache = { ip: j2.ip ?? '0.0.0.0', country: 'Unknown', city: 'Unknown', region: 'Unknown', isp: 'Unknown', timezone: 'Unknown' };
+      } catch {
+        _geoCache = { ip: '0.0.0.0', country: 'Unknown', city: 'Unknown', region: 'Unknown', isp: 'Unknown', timezone: 'Unknown' };
+      }
+      return _geoCache!;
+    }
+  })();
+
+  return _geoFetching;
+}
+
+/* ── Browser device detection ── */
 function detectDevice() {
   const ua = navigator.userAgent;
 
-  // Browser
   let browser = 'Unknown';
-  if (/Edg\//.test(ua))         browser = 'Edge';
-  else if (/OPR\//.test(ua))    browser = 'Opera';
-  else if (/Chrome/.test(ua))   browser = 'Chrome';
-  else if (/Firefox/.test(ua))  browser = 'Firefox';
-  else if (/Safari/.test(ua))   browser = 'Safari';
+  if (/Edg\//.test(ua))       browser = 'Edge';
+  else if (/OPR\//.test(ua))  browser = 'Opera';
+  else if (/Chrome/.test(ua)) browser = 'Chrome';
+  else if (/Firefox/.test(ua))browser = 'Firefox';
+  else if (/Safari/.test(ua)) browser = 'Safari';
 
-  // OS
   let os = 'Unknown';
-  if (/Windows NT 10/.test(ua)) os = 'Windows 10/11';
-  else if (/Windows/.test(ua))  os = 'Windows';
-  else if (/iPhone/.test(ua))   os = 'iOS';
-  else if (/iPad/.test(ua))     os = 'iPadOS';
-  else if (/Android/.test(ua))  os = 'Android';
-  else if (/Mac OS X/.test(ua)) os = 'macOS';
-  else if (/Linux/.test(ua))    os = 'Linux';
+  if (/Windows NT 10/.test(ua))   os = 'Windows 10/11';
+  else if (/Windows/.test(ua))    os = 'Windows';
+  else if (/iPhone/.test(ua))     os = 'iOS';
+  else if (/iPad/.test(ua))       os = 'iPadOS';
+  else if (/Android/.test(ua))    os = 'Android';
+  else if (/Mac OS X/.test(ua))   os = 'macOS';
+  else if (/Linux/.test(ua))      os = 'Linux';
 
-  // Device type
   const isMobile = /Mobile|Android|iPhone/.test(ua);
   const isTablet = /iPad|Tablet/.test(ua);
   const deviceType = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop';
-
-  // Device name (OS + Browser short form)
   const deviceName = `${os} · ${browser}`;
 
   return { browser, os, deviceType, deviceName };
 }
 
-/* ── Fetch public IP (fire-and-forget, cached for session) ── */
-let _cachedIp: string | null = null;
-async function getPublicIp(): Promise<string> {
-  if (_cachedIp) return _cachedIp;
-  try {
-    const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
-    const json = await res.json();
-    _cachedIp = json.ip ?? null;
-    return _cachedIp ?? '0.0.0.0';
-  } catch {
-    return '0.0.0.0';
-  }
-}
-
+/* ─────────────────────────────────── */
 class ActivityLogService {
+
   async logActivity(log: ActivityLogInput): Promise<boolean> {
     try {
-      // Auto-fill device info if not provided
       const device = detectDevice();
-      const ip = log.ipAddress ?? await getPublicIp();
+      const geo    = await fetchGeoInfo();
 
       await logActivity({
-        user_id:     log.userId ?? null,
+        user_id:     log.userId     ?? null,
         username:    log.username,
         email:       log.email,
         role:        log.role,
         action:      log.action,
         action_type: log.actionType,
-        details:     log.details ?? null,
-        ip_address:  ip,
+        details:     log.details    ?? null,
+        ip_address:  log.ipAddress  ?? geo.ip,
         device_type: log.deviceType ?? device.deviceType,
         device_name: log.deviceName ?? device.deviceName,
         browser:     log.browser    ?? device.browser,
         os:          log.os         ?? device.os,
-        country:     log.country    ?? null,
-        city:        log.city       ?? null,
+        country:     log.country    ?? geo.country,
+        city:        log.city       ?? geo.city,
+        region:      log.region     ?? geo.region,
+        isp:         log.isp        ?? geo.isp,
+        timezone:    log.timezone   ?? geo.timezone,
         amount:      log.amount     ?? null,
         risk_level:  log.riskLevel  ?? 'low',
       });
@@ -113,7 +153,11 @@ class ActivityLogService {
   }
 
   async getIpAddress(): Promise<string> {
-    return getPublicIp();
+    return (await fetchGeoInfo()).ip;
+  }
+
+  async getGeoInfo(): Promise<GeoInfo> {
+    return fetchGeoInfo();
   }
 
   async getStats() {

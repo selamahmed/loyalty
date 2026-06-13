@@ -361,6 +361,12 @@ create or replace view public.leaderboard_monthly as
   where p.status = 'active'
   group by p.id, p.username, p.avatar_url, p.level;
 
+-- ── ACTIVITY LOGS: add region, isp, timezone columns ─────────
+alter table public.activity_logs
+  add column if not exists region   text,
+  add column if not exists isp      text,
+  add column if not exists timezone text;
+
 -- ── Enable Supabase Realtime on required tables ──────────────
 alter publication supabase_realtime add table public.profiles;
 alter publication supabase_realtime add table public.points_transactions;
