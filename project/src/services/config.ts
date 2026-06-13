@@ -64,6 +64,137 @@ export async function updateAppSettings(settings: Record<string, unknown>): Prom
   if (error) throw error;
 }
 
+/* ── System settings (AdminSettings page) ── */
+
+export interface SystemSettings {
+  economy: {
+    spend_to_points: number;
+    points_to_tl: number;
+    referral_bonus: number;
+    welcome_bonus: number;
+  };
+  multipliers: {
+    qr_base_points: number;
+    game_multiplier: number;
+    daily_mission_bonus: number;
+    streak_bonus: number;
+  };
+  limits: {
+    daily_earn_cap: number;
+    max_balance: number;
+    min_redeem_threshold: number;
+    transaction_cooldown_min: number;
+  };
+  flags: {
+    qr_enabled: boolean;
+    games_enabled: boolean;
+    referral_enabled: boolean;
+    streak_enabled: boolean;
+    push_notifications: boolean;
+    double_points_events: boolean;
+  };
+}
+
+export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
+  economy: { spend_to_points: 10, points_to_tl: 100, referral_bonus: 250, welcome_bonus: 100 },
+  multipliers: { qr_base_points: 75, game_multiplier: 1.5, daily_mission_bonus: 50, streak_bonus: 30 },
+  limits: { daily_earn_cap: 1000, max_balance: 50000, min_redeem_threshold: 500, transaction_cooldown_min: 30 },
+  flags: {
+    qr_enabled: true,
+    games_enabled: true,
+    referral_enabled: true,
+    streak_enabled: true,
+    push_notifications: true,
+    double_points_events: false,
+  },
+};
+
+export function parseSettingNumber(val: unknown, fallback: number): number {
+  if (typeof val === 'number' && Number.isFinite(val)) return val;
+  if (typeof val === 'string') {
+    const n = parseFloat(val.replace(',', '.'));
+    return Number.isFinite(n) ? n : fallback;
+  }
+  return fallback;
+}
+
+export function parseSettingBool(val: unknown, fallback: boolean): boolean {
+  if (val === true || val === 'true') return true;
+  if (val === false || val === 'false') return false;
+  return fallback;
+}
+
+export function appSettingsToSystem(rows: AppSetting[]): SystemSettings {
+  const map: Record<string, unknown> = {};
+  rows.forEach(r => { map[r.key] = r.value; });
+  const d = DEFAULT_SYSTEM_SETTINGS;
+
+  return {
+    economy: {
+      spend_to_points: parseSettingNumber(map.points_per_currency, d.economy.spend_to_points),
+      points_to_tl:    parseSettingNumber(map.points_to_tl, d.economy.points_to_tl),
+      referral_bonus:  parseSettingNumber(map.referral_bonus, d.economy.referral_bonus),
+      welcome_bonus:   parseSettingNumber(map.welcome_bonus, d.economy.welcome_bonus),
+    },
+    multipliers: {
+      qr_base_points:      parseSettingNumber(map.qr_scan_bonus, d.multipliers.qr_base_points),
+      game_multiplier:     parseSettingNumber(map.game_multiplier, d.multipliers.game_multiplier),
+      daily_mission_bonus: parseSettingNumber(
+        map.daily_mission_bonus ?? map.daily_login_bonus,
+        d.multipliers.daily_mission_bonus,
+      ),
+      streak_bonus: parseSettingNumber(map.streak_bonus, d.multipliers.streak_bonus),
+    },
+    limits: {
+      daily_earn_cap:           parseSettingNumber(map.max_daily_points, d.limits.daily_earn_cap),
+      max_balance:              parseSettingNumber(map.max_balance, d.limits.max_balance),
+      min_redeem_threshold:     parseSettingNumber(map.min_redeem_threshold, d.limits.min_redeem_threshold),
+      transaction_cooldown_min: parseSettingNumber(map.transaction_cooldown_min, d.limits.transaction_cooldown_min),
+    },
+    flags: {
+      qr_enabled:           parseSettingBool(map.qr_enabled, d.flags.qr_enabled),
+      games_enabled:        parseSettingBool(map.games_enabled, d.flags.games_enabled),
+      referral_enabled:     parseSettingBool(map.referral_enabled, d.flags.referral_enabled),
+      streak_enabled:       parseSettingBool(map.streak_enabled, d.flags.streak_enabled),
+      push_notifications:   parseSettingBool(map.push_notifications, d.flags.push_notifications),
+      double_points_events: parseSettingBool(map.double_points_enabled, d.flags.double_points_events),
+    },
+  };
+}
+
+export function systemToAppSettingsPayload(s: SystemSettings): Record<string, unknown> {
+  return {
+    points_per_currency:      s.economy.spend_to_points,
+    points_to_tl:             s.economy.points_to_tl,
+    referral_bonus:           s.economy.referral_bonus,
+    welcome_bonus:            s.economy.welcome_bonus,
+    qr_scan_bonus:            s.multipliers.qr_base_points,
+    game_multiplier:          s.multipliers.game_multiplier,
+    daily_mission_bonus:      s.multipliers.daily_mission_bonus,
+    daily_login_bonus:        s.multipliers.daily_mission_bonus,
+    streak_bonus:             s.multipliers.streak_bonus,
+    max_daily_points:         s.limits.daily_earn_cap,
+    max_balance:              s.limits.max_balance,
+    min_redeem_threshold:     s.limits.min_redeem_threshold,
+    transaction_cooldown_min: s.limits.transaction_cooldown_min,
+    qr_enabled:               s.flags.qr_enabled,
+    games_enabled:            s.flags.games_enabled,
+    referral_enabled:         s.flags.referral_enabled,
+    streak_enabled:           s.flags.streak_enabled,
+    push_notifications:       s.flags.push_notifications,
+    double_points_enabled:    s.flags.double_points_events,
+  };
+}
+
+export async function getSystemSettings(): Promise<SystemSettings> {
+  const rows = await getAppSettings();
+  return appSettingsToSystem(rows);
+}
+
+export async function saveSystemSettings(settings: SystemSettings): Promise<void> {
+  await updateAppSettings(systemToAppSettingsPayload(settings));
+}
+
 /* ── Daily Reward Config ── */
 export type DailyRewardConfig = {
   id: string;

@@ -58,6 +58,22 @@ insert into public.app_settings (key, value, description, category) values
   ('allow_new_registrations',     'true',   'Allow new user sign-ups',               'system')
 on conflict (key) do nothing;
 
+insert into public.app_settings (key, value, description, category) values
+  ('points_to_tl',               '100',   'Points needed per 1 TL value',           'economy'),
+  ('welcome_bonus',              '100',   'Welcome bonus for new users',            'economy'),
+  ('game_multiplier',            '1.5',   'Game points multiplier',                   'economy'),
+  ('streak_bonus',               '30',    'Streak bonus per consecutive day',       'economy'),
+  ('daily_mission_bonus',        '50',    'Bonus for completing daily missions',    'economy'),
+  ('max_balance',                '50000', 'Maximum points balance per account',     'economy'),
+  ('min_redeem_threshold',       '500',   'Minimum points required to redeem',      'economy'),
+  ('transaction_cooldown_min',   '30',    'Minutes between QR scans',               'economy'),
+  ('qr_enabled',                 'true',  'QR scanning module enabled',             'features'),
+  ('games_enabled',              'true',  'Mini games module enabled',              'features'),
+  ('referral_enabled',           'true',  'Referral system enabled',                'features'),
+  ('streak_enabled',             'true',  'Streak tracking enabled',                'features'),
+  ('push_notifications',         'true',  'Push notifications enabled',             'features')
+on conflict (key) do nothing;
+
 -- ── DAILY REWARD CONFIG ──────────────────────────────────────
 
 create table if not exists public.daily_reward_config (

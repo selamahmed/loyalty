@@ -1,53 +1,19 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Settings, Save, CheckCircle, Loader, Zap, ToggleLeft, ToggleRight, TrendingUp, ShieldCheck, Sliders, AlertTriangle, Wrench, Power, X, Clock } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Settings, Save, CheckCircle, Loader, Zap, ToggleLeft, ToggleRight, TrendingUp, ShieldCheck, Sliders, AlertTriangle, Wrench, Power, X, Clock, RefreshCw } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getAppSettings, updateAppSettings, getMaintenanceStatus, setMaintenanceMode, type MaintenanceStatus } from '../../services/config';
+import {
+  getMaintenanceStatus,
+  setMaintenanceMode,
+  getSystemSettings,
+  saveSystemSettings,
+  DEFAULT_SYSTEM_SETTINGS,
+  type MaintenanceStatus,
+  type SystemSettings,
+} from '../../services/config';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 
-/* ─── Types ─── */
-interface PointsEconomy {
-  spend_to_points: number;     // TL spent → points earned (e.g. 10 = 1₺ → 10pts)
-  points_to_tl: number;        // Points needed per 1₺ value (e.g. 100 = 100pts → 1₺)
-  referral_bonus: number;
-  welcome_bonus: number;
-}
-
-interface EventMultipliers {
-  qr_base_points: number;      // Base points per QR scan
-  game_multiplier: number;     // e.g. 1.5 = 1.5x
-  daily_mission_bonus: number; // bonus per completed mission
-  streak_bonus: number;        // points for consecutive day streak
-}
-
-interface UserLimits {
-  daily_earn_cap: number;
-  max_balance: number;
-  min_redeem_threshold: number;
-  transaction_cooldown_min: number;
-}
-
-interface FeatureFlags {
-  qr_enabled: boolean;
-  games_enabled: boolean;
-  referral_enabled: boolean;
-  streak_enabled: boolean;
-  push_notifications: boolean;
-  double_points_events: boolean;
-}
-
-interface AllSettings {
-  economy: PointsEconomy;
-  multipliers: EventMultipliers;
-  limits: UserLimits;
-  flags: FeatureFlags;
-}
-
-const DEFAULTS: AllSettings = {
-  economy: { spend_to_points: 10, points_to_tl: 100, referral_bonus: 250, welcome_bonus: 100 },
-  multipliers: { qr_base_points: 75, game_multiplier: 1.5, daily_mission_bonus: 50, streak_bonus: 30 },
-  limits: { daily_earn_cap: 1000, max_balance: 50000, min_redeem_threshold: 500, transaction_cooldown_min: 30 },
-  flags: { qr_enabled: true, games_enabled: true, referral_enabled: true, streak_enabled: true, push_notifications: true, double_points_events: false },
-};
+type AllSettings = SystemSettings;
+const DEFAULTS = DEFAULT_SYSTEM_SETTINGS;
 
 /* ─── Slider control ─── */
 const SliderControl: React.FC<{
@@ -165,6 +131,8 @@ const MaintenancePanel: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [mMessage,  setMMessage]  = useState('');
   const [mTime,     setMTime]     = useState('');
+  const [savedMsg,  setSavedMsg]  = useState('');
+  const [mError, setMError] = useState('');
 
   const loadStatus = useCallback(async () => {
     try {
@@ -176,8 +144,27 @@ const MaintenancePanel: React.FC = () => {
   }, []);
 
   useEffect(() => { loadStatus(); }, [loadStatus]);
+  useRealtimeTable('app_settings', loadStatus);
 
-  const [mError, setMError] = useState('');
+  const isOn = mStatus?.enabled ?? false;
+  const messageDirty = mStatus && (mMessage !== mStatus.message || mTime !== mStatus.estimated_time);
+
+  const handleSaveMessage = async () => {
+    setMSaving(true);
+    setMError('');
+    setSavedMsg('');
+    try {
+      await setMaintenanceMode(isOn, mMessage, mTime);
+      await loadStatus();
+      setSavedMsg('Mesaj kaydedildi');
+      setTimeout(() => setSavedMsg(''), 2500);
+    } catch (e) {
+      const msg = (e as { message?: string })?.message ?? 'Bilinmeyen hata';
+      setMError(`Kaydedilemedi: ${msg}`);
+    } finally {
+      setMSaving(false);
+    }
+  };
 
   const handleToggle = async (enable: boolean) => {
     setMSaving(true);
@@ -261,6 +248,31 @@ const MaintenancePanel: React.FC = () => {
         </div>
 
         {/* Big toggle button */}
+        {messageDirty && (
+          <button
+            type="button"
+            onClick={handleSaveMessage}
+            disabled={mSaving}
+            style={{
+              width: '100%', padding: '10px 0', borderRadius: 14, fontWeight: 900, fontSize: 13,
+              marginBottom: 12, cursor: mSaving ? 'not-allowed' : 'pointer',
+              border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
+              background: 'var(--tab-bg)', color: 'var(--text-dark)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              opacity: mSaving ? 0.6 : 1,
+            }}
+          >
+            {mSaving ? <Loader size={14} style={{ animation: 'spin 0.7s linear infinite' }} /> : <Save size={14} />}
+            Bakım Mesajını Kaydet
+          </button>
+        )}
+
+        {savedMsg && (
+          <p style={{ margin: '0 0 12px', textAlign: 'center', fontSize: 12, color: '#16a34a', fontWeight: 800 }}>
+            ✓ {savedMsg}
+          </p>
+        )}
+
         <button
           onClick={() => setShowConfirm(true)}
           disabled={mLoading || mSaving}
@@ -340,85 +352,63 @@ const AdminSettings: React.FC = () => {
   const [draft, setDraft]       = useState<AllSettings>(DEFAULTS);
   const [saving, setSaving]     = useState(false);
   const [saved2, setSaved2]     = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [dbLoaded, setDbLoaded] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  /* Load settings from DB on mount */
-  const loadSettings = useCallback(async () => {
+  const loadSettings = useCallback(async (silent = false) => {
+    if (!silent) setDbLoaded(false);
+    else setRefreshing(true);
+    setLoadError('');
     try {
-      const rows = await getAppSettings();
-      if (rows.length === 0) { setDbLoaded(true); return; }
-      const map: Record<string, unknown> = {};
-      rows.forEach(r => { map[r.key] = r.value; });
-
-      const merged: AllSettings = {
-        economy: {
-          spend_to_points:       Number(map['points_per_currency'] ?? DEFAULTS.economy.spend_to_points),
-          points_to_tl:          DEFAULTS.economy.points_to_tl,
-          referral_bonus:        Number(map['referral_bonus'] ?? DEFAULTS.economy.referral_bonus),
-          welcome_bonus:         DEFAULTS.economy.welcome_bonus,
-        },
-        multipliers: {
-          qr_base_points:        Number(map['qr_scan_bonus'] ?? DEFAULTS.multipliers.qr_base_points),
-          game_multiplier:       DEFAULTS.multipliers.game_multiplier,
-          daily_mission_bonus:   Number(map['daily_login_bonus'] ?? DEFAULTS.multipliers.daily_mission_bonus),
-          streak_bonus:          DEFAULTS.multipliers.streak_bonus,
-        },
-        limits: {
-          daily_earn_cap:        Number(map['max_daily_points'] ?? DEFAULTS.limits.daily_earn_cap),
-          max_balance:           DEFAULTS.limits.max_balance,
-          min_redeem_threshold:  DEFAULTS.limits.min_redeem_threshold,
-          transaction_cooldown_min: DEFAULTS.limits.transaction_cooldown_min,
-        },
-        flags: {
-          qr_enabled:            map['maintenance_mode'] !== 'true',
-          games_enabled:         DEFAULTS.flags.games_enabled,
-          referral_enabled:      DEFAULTS.flags.referral_enabled,
-          streak_enabled:        DEFAULTS.flags.streak_enabled,
-          push_notifications:    DEFAULTS.flags.push_notifications,
-          double_points_events:  map['double_points_enabled'] === 'true',
-        },
-      };
-      setSaved(merged);
-      setDraft(merged);
-    } catch { /* fallback to defaults */ } finally { setDbLoaded(true); }
+      const settings = await getSystemSettings();
+      setSaved(settings);
+      setDraft(settings);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Ayarlar yüklenemedi');
+    } finally {
+      setDbLoaded(true);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => { loadSettings(); }, [loadSettings]);
 
-  /* realtime: reload when app_settings changes */
-  useRealtimeTable('app_settings', loadSettings);
-
   const isDirty = JSON.stringify(saved) !== JSON.stringify(draft);
+  const isDirtyRef = useRef(isDirty);
+  useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
 
-  const setEco = useCallback((patch: Partial<PointsEconomy>) => setDraft(d => ({ ...d, economy: { ...d.economy, ...patch } })), []);
-  const setMul = useCallback((patch: Partial<EventMultipliers>) => setDraft(d => ({ ...d, multipliers: { ...d.multipliers, ...patch } })), []);
-  const setLim = useCallback((patch: Partial<UserLimits>) => setDraft(d => ({ ...d, limits: { ...d.limits, ...patch } })), []);
-  const setFlag = useCallback((patch: Partial<FeatureFlags>) => setDraft(d => ({ ...d, flags: { ...d.flags, ...patch } })), []);
+  useRealtimeTable('app_settings', () => {
+    if (!isDirtyRef.current) loadSettings(true);
+  });
+
+  const setEco = useCallback((patch: Partial<AllSettings['economy']>) => setDraft(d => ({ ...d, economy: { ...d.economy, ...patch } })), []);
+  const setMul = useCallback((patch: Partial<AllSettings['multipliers']>) => setDraft(d => ({ ...d, multipliers: { ...d.multipliers, ...patch } })), []);
+  const setLim = useCallback((patch: Partial<AllSettings['limits']>) => setDraft(d => ({ ...d, limits: { ...d.limits, ...patch } })), []);
+  const setFlag = useCallback((patch: Partial<AllSettings['flags']>) => setDraft(d => ({ ...d, flags: { ...d.flags, ...patch } })), []);
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError('');
+    setSaved2(false);
     try {
-      await updateAppSettings({
-        'points_per_currency':  draft.economy.spend_to_points,
-        'referral_bonus':       draft.economy.referral_bonus,
-        'qr_scan_bonus':        draft.multipliers.qr_base_points,
-        'daily_login_bonus':    draft.multipliers.daily_mission_bonus,
-        'max_daily_points':     draft.limits.daily_earn_cap,
-        'double_points_enabled': draft.flags.double_points_events,
-        'maintenance_mode':     !draft.flags.qr_enabled,
-      });
+      await saveSystemSettings(draft);
       setSaved(draft);
-    } catch (e) { console.error(e); } finally {
-      setSaving(false);
       setSaved2(true);
       setTimeout(() => setSaved2(false), 2500);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Kaydedilemedi');
+    } finally {
+      setSaving(false);
     }
   };
 
   if (!dbLoaded) return (
     <AdminLayout>
-      <div className="p-6 flex items-center justify-center h-64">
-        <div className="w-10 h-10 border-4 border-[#7B6EF6] border-t-transparent rounded-full animate-spin" />
+      <div className="p-6 flex flex-col items-center justify-center h-64 gap-3">
+        <Loader size={40} color="#7B6EF6" style={{ animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ fontWeight: 700, color: 'var(--text-muted)', fontSize: 13 }}>Ayarlar yükleniyor…</p>
       </div>
     </AdminLayout>
   );
@@ -434,21 +424,48 @@ const AdminSettings: React.FC = () => {
       <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto" style={{ paddingBottom: isDirty ? 100 : undefined }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Sliders size={22} color="white" />
           </div>
-          <div>
+          <div style={{ flex: 1, minWidth: 160 }}>
             <h1 style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)', margin: 0 }}>Sistem Ayarları</h1>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Değerleri gerçek zamanlı olarak yapılandırın</p>
           </div>
+          <button
+            type="button"
+            onClick={() => loadSettings(true)}
+            disabled={refreshing}
+            style={{
+              padding: '8px 14px', borderRadius: 12, fontWeight: 900, fontSize: 12,
+              background: 'var(--card-bg)', color: 'var(--text-dark)',
+              border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              opacity: refreshing ? 0.6 : 1,
+            }}
+          >
+            <RefreshCw size={14} style={refreshing ? { animation: 'spin 0.8s linear infinite' } : undefined} />
+            Yenile
+          </button>
           {saved2 && (
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 12, background: 'rgba(34,197,94,0.1)', border: '2px solid #22c55e' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 12, background: 'rgba(34,197,94,0.1)', border: '2px solid #22c55e' }}>
               <CheckCircle size={14} color="#16a34a" />
               <span style={{ fontSize: 12, fontWeight: 900, color: '#16a34a' }}>Kaydedildi</span>
             </div>
           )}
         </div>
+
+        {loadError && (
+          <div style={{ padding: '12px 16px', borderRadius: 14, background: 'rgba(239,68,68,0.08)', border: '2px solid #ef4444', color: '#dc2626', fontWeight: 800, fontSize: 13 }}>
+            {loadError}
+          </div>
+        )}
+
+        {saveError && (
+          <div style={{ padding: '12px 16px', borderRadius: 14, background: 'rgba(239,68,68,0.08)', border: '2px solid #ef4444', color: '#dc2626', fontWeight: 800, fontSize: 13 }}>
+            Kaydedilemedi: {saveError}
+          </div>
+        )}
 
         {/* ── 0. Maintenance Mode ── */}
         <MaintenancePanel />
