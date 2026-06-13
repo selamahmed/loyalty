@@ -279,3 +279,32 @@ export function getInitialsBg(seed: string): string {
   let h = fnv1a((seed || 'u').toLowerCase());
   return colors[h % colors.length];
 }
+
+/* ── Neo avatar seed storage (avatar_url = "neo:seed") ─────── */
+
+export const NEO_AVATAR_PREFIX = 'neo:';
+
+export function isNeoAvatarUrl(url?: string | null): boolean {
+  return !!url?.startsWith(NEO_AVATAR_PREFIX);
+}
+
+export function getNeoAvatarSeed(url?: string | null): string | null {
+  if (!isNeoAvatarUrl(url)) return null;
+  const seed = url!.slice(NEO_AVATAR_PREFIX.length).trim();
+  return seed || null;
+}
+
+export function toNeoAvatarUrl(seed: string): string {
+  return `${NEO_AVATAR_PREFIX}${seed}`;
+}
+
+export function generateRandomAvatarSeed(): string {
+  return `av_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function generateAvatarSeedOptions(count = 6, include?: string | null): string[] {
+  const seeds = new Set<string>();
+  if (include) seeds.add(include);
+  while (seeds.size < count) seeds.add(generateRandomAvatarSeed());
+  return Array.from(seeds).slice(0, count);
+}

@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Check, Trash2, Upload, RefreshCw, AlertCircle } from 'lucide-react';
+import React, { useState, useRef, useMemo } from 'react';
+import { Camera, Check, Trash2, Upload, RefreshCw, AlertCircle, Sparkles } from 'lucide-react';
 import AccountPageShell, { Section, SaveButton, inputStyle } from '../components/AccountPageShell';
 import NeoAvatar from '../components/NeoAvatar';
 import { useApp } from '../context/AppContext';
@@ -8,6 +8,13 @@ import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { activityLogService } from '../lib/activityLogger';
 import { uploadAvatar, deleteAvatar } from '../services/profile';
+import {
+  generateAvatarSeedOptions,
+  generateRandomAvatarSeed,
+  getNeoAvatarSeed,
+  isNeoAvatarUrl,
+  toNeoAvatarUrl,
+} from '../lib/avatarGenerator';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 11, fontWeight: 900, color: 'var(--text-muted)',
@@ -15,9 +22,10 @@ const labelStyle: React.CSSProperties = {
 };
 
 const ACCEPTED = 'image/jpeg,image/png,image/webp,image/gif';
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_BYTES = 5 * 1024 * 1024;
 
-/* ── Upload progress ring ───────────────────────────────── */
+type AvatarMode = 'photo' | 'neo' | 'default';
+
 const ProgressRing: React.FC<{ pct: number }> = ({ pct }) => {
   const r = 38; const circ = 2 * Math.PI * r;
   return (
@@ -34,7 +42,12 @@ const ProgressRing: React.FC<{ pct: number }> = ({ pct }) => {
   );
 };
 
-/* ── Component ─────────────────────────────────────────── */
+function initialAvatarMode(avatar: string): AvatarMode {
+  if (!avatar) return 'default';
+  if (isNeoAvatarUrl(avatar)) return 'neo';
+  return 'photo';
+}
+
 const EditProfile: React.FC = () => {
   const { user, updateUser } = useApp();
   const { authUser } = useAuth();
@@ -46,36 +59,69 @@ const EditProfile: React.FC = () => {
     bio:      user.bio   ?? '',
   });
 
-  /* Avatar states */
-  const [previewUrl,  setPreviewUrl]  = useState<string | null>(null); // local blob preview
-  const [pendingFile, setPendingFile] = useState<File | null>(null);   // file waiting to upload
+  const savedNeoSeed = getNeoAvatarSeed(user.avatar);
+  const [avatarMode, setAvatarMode] = useState<AvatarMode>(() => initialAvatarMode(user.avatar));
+  const [neoSeed, setNeoSeed] = useState<string | null>(() => savedNeoSeed);
+  const [neoOptions, setNeoOptions] = useState<string[]>(() =>
+    generateAvatarSeedOptions(6, savedNeoSeed ?? generateRandomAvatarSeed()),
+  );
+
+  const [previewUrl,  setPreviewUrl]  = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploading,   setUploading]   = useState(false);
   const [uploadPct,   setUploadPct]   = useState(0);
   const [uploadErr,   setUploadErr]   = useState('');
-
-  /* current saved avatar (real URL in DB, or null = use generated) */
-  const [savedAvatar, setSavedAvatar] = useState<string | null>(user.avatar || null);
+  const [savedAvatar, setSavedAvatar] = useState<string | null>(
+    user.avatar && !isNeoAvatarUrl(user.avatar) ? user.avatar : null,
+  );
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
 
-  /* ── Pick a file ── */
+  const displayName = form.username || authUser?.name || authUser?.email || 'user';
+
+  const photoSrc = useMemo(() => {
+    if (avatarMode !== 'photo') return null;
+    return previewUrl ?? savedAvatar;
+  }, [avatarMode, previewUrl, savedAvatar]);
+
   const handlePickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!fileRef.current) fileRef.current = e.target;
     if (!file) return;
     if (!file.type.startsWith('image/')) { setUploadErr('Sadece resim dosyası yükleyebilirsiniz.'); return; }
     if (file.size > MAX_BYTES)           { setUploadErr('Dosya 5 MB\'dan büyük olamaz.');            return; }
     setUploadErr('');
+    setAvatarMode('photo');
     setPendingFile(file);
     setPreviewUrl(URL.createObjectURL(file));
-    // Reset input so the same file can be picked again if needed
     e.target.value = '';
   };
 
-  /* ── Reset to generated avatar ── */
+  const handleShuffleNeo = () => {
+    playSound('click');
+    const next = generateAvatarSeedOptions(6);
+    setNeoOptions(next);
+    setNeoSeed(next[0]);
+    setAvatarMode('neo');
+    setPendingFile(null);
+    setPreviewUrl(null);
+    setUploadErr('');
+  };
+
+  const handlePickNeo = (seed: string) => {
+    playSound('click');
+    setNeoSeed(seed);
+    setAvatarMode('neo');
+    setPendingFile(null);
+    setPreviewUrl(null);
+    setUploadErr('');
+  };
+
   const handleResetAvatar = () => {
+    playSound('click');
+    setAvatarMode('default');
+    setNeoSeed(null);
     setPendingFile(null);
     setPreviewUrl(null);
     setSavedAvatar(null);
@@ -83,19 +129,16 @@ const EditProfile: React.FC = () => {
     if (authUser?.id) deleteAvatar(authUser.id).catch(() => {});
   };
 
-  /* ── Upload to Supabase Storage then save profile ── */
   const handleSave = async () => {
     if (!authUser?.id) return;
     setSaving(true);
     setUploadErr('');
 
-    let finalAvatarUrl: string | null = savedAvatar;
+    let finalAvatarUrl = '';
 
-    /* If user picked a new file, upload it first */
-    if (pendingFile) {
-      try {
+    try {
+      if (avatarMode === 'photo' && pendingFile) {
         setUploading(true);
-        // Simulate progress ticks while the real upload runs
         const ticker = setInterval(() => setUploadPct(p => Math.min(p + 8, 90)), 150);
         finalAvatarUrl = await uploadAvatar(authUser.id, pendingFile);
         clearInterval(ticker);
@@ -104,48 +147,64 @@ const EditProfile: React.FC = () => {
         setSavedAvatar(finalAvatarUrl);
         setPendingFile(null);
         setPreviewUrl(null);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Fotoğraf yüklenemedi.';
-        setUploadErr(msg);
-        setSaving(false);
-        setUploading(false);
-        setUploadPct(0);
-        return;
-      } finally {
-        setUploading(false);
-        setUploadPct(0);
+      } else if (avatarMode === 'photo' && savedAvatar) {
+        finalAvatarUrl = savedAvatar;
+      } else if (avatarMode === 'neo' && neoSeed) {
+        finalAvatarUrl = toNeoAvatarUrl(neoSeed);
+        await deleteAvatar(authUser.id);
+        setSavedAvatar(null);
+      } else {
+        finalAvatarUrl = '';
+        await deleteAvatar(authUser.id);
+        setSavedAvatar(null);
       }
+
+      await updateUser({
+        username: form.username.trim() || user.username,
+        email:    form.email.trim()    || user.email,
+        phone:    form.phone.trim(),
+        bio:      form.bio.trim(),
+        avatar:   finalAvatarUrl,
+      });
+
+      playSound('success');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+
+      void activityLogService.logActivity({
+        userId:     authUser.id,
+        username:   form.username.trim() || (authUser.username ?? authUser.name ?? authUser.email),
+        email:      authUser.email,
+        role:       authUser.role,
+        action:     'Profil güncellendi',
+        actionType: 'profile_update',
+        riskLevel:  'low',
+        details:    {
+          avatarMode,
+          avatarChanged: true,
+          neoSeed: avatarMode === 'neo' ? neoSeed : null,
+        },
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Kaydedilemedi.';
+      setUploadErr(msg);
+    } finally {
+      setSaving(false);
+      setUploading(false);
+      setUploadPct(0);
     }
-
-    /* Save text fields + avatar_url to Supabase via AppContext.updateUser */
-    await updateUser({
-      username: form.username.trim() || user.username,
-      email:    form.email.trim()    || user.email,
-      phone:    form.phone.trim(),
-      bio:      form.bio.trim(),
-      avatar:   finalAvatarUrl ?? '',
-    });
-
-    playSound('success');
-    setSaved(true);
-    setSaving(false);
-    setTimeout(() => setSaved(false), 2500);
-
-    void activityLogService.logActivity({
-      userId:     authUser.id,
-      username:   form.username.trim() || (authUser.username ?? authUser.name ?? authUser.email),
-      email:      authUser.email,
-      role:       authUser.role,
-      action:     'Profil güncellendi',
-      actionType: 'profile_update',
-      riskLevel:  'low',
-      details:    { avatarChanged: !!pendingFile || finalAvatarUrl !== savedAvatar },
-    });
   };
 
-  /* ── Displayed avatar source ── */
-  const displaySrc = previewUrl ?? savedAvatar;
-  const displayName = form.username || authUser?.name || authUser?.email || 'user';
+  const btnStyle = (active = false): React.CSSProperties => ({
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '6px 14px', borderRadius: 10, fontSize: 12, fontWeight: 800,
+    background: active ? '#7B6EF6' : 'var(--card-bg)',
+    color: active ? '#fff' : 'var(--text-muted)',
+    border: '2.5px solid #000',
+    boxShadow: active ? '0 3px 0 #000' : '0 3px 0 var(--dark-border)',
+    cursor: 'pointer',
+    opacity: uploading ? 0.5 : 1,
+  });
 
   return (
     <AccountPageShell
@@ -155,15 +214,11 @@ const EditProfile: React.FC = () => {
       title={tr.settings.editProfile}
       subtitle="Kişisel bilgilerini güncelle"
     >
-      {/* ── Avatar picker ────────────────────────────────── */}
+      {/* ── Avatar preview ── */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-
-        {/* Avatar circle with camera overlay */}
         <div style={{ position: 'relative', width: 90, height: 90 }}>
-          {/* Upload progress ring */}
           {uploading && <ProgressRing pct={uploadPct} />}
 
-          {/* The avatar itself */}
           <div
             onClick={() => !uploading && fileRef.current?.click()}
             style={{
@@ -173,11 +228,11 @@ const EditProfile: React.FC = () => {
               boxShadow: '0 4px 0 var(--dark-border)',
               cursor: uploading ? 'wait' : 'pointer',
               opacity: uploading ? 0.6 : 1,
-              transition: 'opacity 0.2s',
             }}
           >
             <NeoAvatar
-              src={displaySrc}
+              src={photoSrc}
+              seed={avatarMode === 'neo' ? neoSeed : undefined}
               name={displayName}
               email={authUser?.email}
               size={84}
@@ -186,7 +241,6 @@ const EditProfile: React.FC = () => {
             />
           </div>
 
-          {/* Camera badge */}
           {!uploading && (
             <div
               onClick={() => fileRef.current?.click()}
@@ -197,13 +251,12 @@ const EditProfile: React.FC = () => {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', boxShadow: '0 2px 0 #000',
               }}
-              title="Fotoğraf değiştir"
+              title="Fotoğraf yükle"
             >
               <Camera size={13} color="white" />
             </div>
           )}
 
-          {/* Upload spinner overlay */}
           {uploading && (
             <div style={{
               position: 'absolute', inset: 0, borderRadius: '50%',
@@ -215,50 +268,20 @@ const EditProfile: React.FC = () => {
           )}
         </div>
 
-        {/* Hidden file input */}
-        <input
-          ref={fileRef}
-          type="file"
-          accept={ACCEPTED}
-          style={{ display: 'none' }}
-          onChange={handlePickFile}
-        />
+        <input ref={fileRef} type="file" accept={ACCEPTED} style={{ display: 'none' }} onChange={handlePickFile} />
 
-        {/* Action buttons below avatar */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', borderRadius: 10, fontSize: 12, fontWeight: 800,
-              background: '#7B6EF6', color: '#fff',
-              border: '2.5px solid #000', boxShadow: '0 3px 0 #000',
-              cursor: 'pointer', opacity: uploading ? 0.5 : 1,
-            }}
-          >
-            <Upload size={13} /> Fotoğraf Yükle
+          <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} style={btnStyle(avatarMode === 'photo')}>
+            <Upload size={13} /> Fotoğraf
           </button>
-
-          {(displaySrc) && (
-            <button
-              onClick={handleResetAvatar}
-              disabled={uploading}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 14px', borderRadius: 10, fontSize: 12, fontWeight: 800,
-                background: 'var(--card-bg)', color: 'var(--text-muted)',
-                border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
-                cursor: 'pointer', opacity: uploading ? 0.5 : 1,
-              }}
-              title="Otomatik oluşturulan avatara geri dön"
-            >
-              <RefreshCw size={13} /> Sıfırla
-            </button>
-          )}
+          <button type="button" onClick={handleShuffleNeo} disabled={uploading} style={btnStyle(avatarMode === 'neo')}>
+            <Sparkles size={13} /> Otomatik Avatar
+          </button>
+          <button type="button" onClick={handleResetAvatar} disabled={uploading} style={btnStyle(avatarMode === 'default')}>
+            <RefreshCw size={13} /> Varsayılan
+          </button>
         </div>
 
-        {/* Pending file name */}
         {pendingFile && !uploading && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6, fontSize: 11,
@@ -266,17 +289,17 @@ const EditProfile: React.FC = () => {
             padding: '4px 12px', borderRadius: 8, border: '1.5px solid rgba(123,110,246,0.3)',
           }}>
             <Camera size={12} />
-            {pendingFile.name} &nbsp;·&nbsp; {(pendingFile.size / 1024).toFixed(0)} KB
+            {pendingFile.name} · {(pendingFile.size / 1024).toFixed(0)} KB
             <button
-              onClick={() => { setPendingFile(null); setPreviewUrl(null); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              type="button"
+              onClick={() => { setPendingFile(null); setPreviewUrl(null); setAvatarMode(savedAvatar ? 'photo' : neoSeed ? 'neo' : 'default'); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               <Trash2 size={12} color="#ef4444" />
             </button>
           </div>
         )}
 
-        {/* Error */}
         {uploadErr && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
@@ -286,19 +309,65 @@ const EditProfile: React.FC = () => {
             <AlertCircle size={13} /> {uploadErr}
           </div>
         )}
-
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, margin: 0, textAlign: 'center' }}>
-          {displaySrc ? 'Sıfırla\'ya tıklayarak otomatik avatara dönebilirsin' : 'Fotoğraf yüklenmezse otomatik avatar oluşturulur'}
-        </p>
       </div>
 
-      {/* ── Text fields ──────────────────────────────────── */}
+      {/* ── Neo avatar picker ── */}
+      <Section title="Otomatik Avatar Seç" emoji="🎨">
+        <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, lineHeight: 1.5 }}>
+            Beğendiğin bir avatarı seç veya yeni avatarlar oluştur. Kaydettiğinde Supabase&apos;de saklanır.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {neoOptions.map(seed => {
+              const selected = avatarMode === 'neo' && neoSeed === seed;
+              return (
+                <button
+                  key={seed}
+                  type="button"
+                  onClick={() => handlePickNeo(seed)}
+                  style={{
+                    padding: 8,
+                    borderRadius: 14,
+                    border: selected ? '3px solid #7B6EF6' : '2.5px solid var(--dark-border)',
+                    boxShadow: selected ? '0 4px 0 #7B6EF6' : '0 3px 0 var(--dark-border)',
+                    background: selected ? 'rgba(123,110,246,0.12)' : 'var(--card-bg)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.15s ease',
+                  }}
+                >
+                  <NeoAvatar seed={seed} name={displayName} email={authUser?.email} size={64} shape="rounded" />
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleShuffleNeo}
+            disabled={uploading || saving}
+            style={{
+              ...btnStyle(false),
+              width: '100%',
+              justifyContent: 'center',
+              padding: '10px 14px',
+            }}
+          >
+            <RefreshCw size={14} /> Yeni Avatarlar Oluştur
+          </button>
+        </div>
+      </Section>
+
+      {/* ── Text fields ── */}
       <Section title="Kişisel Bilgiler" emoji="📝">
         <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
-            { key: 'username', label: 'Kullanıcı Adı',  type: 'text'  },
-            { key: 'email',    label: 'E-posta',         type: 'email' },
-            { key: 'phone',    label: 'Telefon',         type: 'tel',  placeholder: '+90 5XX XXX XX XX' },
+            { key: 'username', label: 'Kullanıcı Adı', type: 'text' },
+            { key: 'email',    label: 'E-posta',       type: 'email' },
+            { key: 'phone',    label: 'Telefon',       type: 'tel', placeholder: '+90 5XX XXX XX XX' },
           ].map(field => (
             <div key={field.key}>
               <label style={labelStyle}>{field.label}</label>
@@ -324,7 +393,6 @@ const EditProfile: React.FC = () => {
         </div>
       </Section>
 
-      {/* ── Success banner ───────────────────────────────── */}
       {saved && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,

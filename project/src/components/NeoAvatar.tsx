@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { generateNeoAvatar, getInitials, getInitialsBg } from '../lib/avatarGenerator';
+import { generateNeoAvatar, getInitials, getInitialsBg, getNeoAvatarSeed } from '../lib/avatarGenerator';
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -26,6 +26,8 @@ export interface NeoAvatarProps {
   name?: string | null;
   /** Email — used as fallback seed when name is absent */
   email?: string | null;
+  /** Explicit avatar seed — overrides name/email when no photo */
+  seed?: string | null;
   /** Pixel size (width = height). Default: 40 */
   size?: number;
   /** Border-radius style. Default: 'rounded' */
@@ -56,6 +58,7 @@ export const NeoAvatar: React.FC<NeoAvatarProps> = ({
   src,
   name,
   email,
+  seed,
   size    = 40,
   shape   = 'rounded',
   className = '',
@@ -65,13 +68,15 @@ export const NeoAvatar: React.FC<NeoAvatarProps> = ({
   border  = true,
 }) => {
   const [imgFailed, setImgFailed] = useState(false);
-  const seed = (name || email || 'user').trim();
+  const neoSeedFromSrc = getNeoAvatarSeed(src);
+  const photoSrc = src && !neoSeedFromSrc ? src : null;
+  const effectiveSeed = (seed ?? neoSeedFromSrc ?? (name || email || 'user')).trim();
 
   // Memoize SVG generation — same seed = same avatar, no recompute unless seed changes
-  const svgHtml = useMemo(() => generateNeoAvatar(seed), [seed]);
+  const svgHtml = useMemo(() => generateNeoAvatar(effectiveSeed), [effectiveSeed]);
 
   const initials = getInitials(name, email);
-  const initialsBg = getInitialsBg(seed);
+  const initialsBg = getInitialsBg(effectiveSeed);
 
   const radius  = radiusFor(shape, size);
   const cursor  = onClick ? 'cursor-pointer' : '';
@@ -94,7 +99,7 @@ export const NeoAvatar: React.FC<NeoAvatarProps> = ({
   };
 
   /* ── Priority 1: Uploaded image ── */
-  if (src && !imgFailed) {
+  if (photoSrc && !imgFailed) {
     return (
       <div
         className={`${cursor} ${className}`}
@@ -103,7 +108,7 @@ export const NeoAvatar: React.FC<NeoAvatarProps> = ({
         title={tooltip}
       >
         <img
-          src={src}
+          src={photoSrc}
           alt={initials}
           width={size}
           height={size}
