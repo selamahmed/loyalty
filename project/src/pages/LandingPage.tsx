@@ -4,7 +4,7 @@ import { ArrowRight, Sun, Moon, Menu, X } from 'lucide-react';
 import { DoodleField } from '../components/neo/NeoBrutalDecor';
 import AppLogo from '../components/AppLogo';
 import HeroGroupComposition from '../components/HeroGroupComposition';
-import { LANDING_HERO_HEADLINE_SHAPE_URLS } from '../lib/landingHeroAssets';
+import { LANDING_HERO_CENTER_URL, LANDING_HERO_HEADLINE_SHAPE_URLS } from '../lib/landingHeroAssets';
 import { useTheme } from '../context/ThemeContext';
 
 const LandingBelowFold = React.lazy(() => import('./LandingBelowFold'));
@@ -23,6 +23,16 @@ const LandingPage: React.FC = () => {
   const [hovered, setHovered] = React.useState<number | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [showHeroBackdrop, setShowHeroBackdrop] = React.useState(false);
+
+  React.useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = LANDING_HERO_CENTER_URL;
+    link.type = 'image/svg+xml';
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, []);
 
   React.useEffect(() => {
     const loadBackdrop = () => setShowHeroBackdrop(true);

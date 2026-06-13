@@ -454,6 +454,38 @@ const Leaderboard: React.FC = () => {
   tabRef.current = tab;
   authUserRef.current = authUser;
 
+  const fetchMyRank = React.useCallback(async (userId: string, period: 'weekly' | 'monthly' | 'alltime') => {
+    try {
+      if (period === 'alltime') {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url, level, total_points')
+          .eq('id', userId)
+          .single();
+        if (!data) return;
+        const { count } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'active')
+          .gt('total_points', data.total_points);
+        setMyRankEntry({ ...data, rank: (count ?? 0) + 1 });
+      }
+    } catch { /**/ }
+  }, []);
+
+  const loadPrizeEvents = React.useCallback(async () => {
+    try {
+      setActiveEvents(await getLeaderboardPrizeEvents());
+    } catch {
+      try {
+        const evs = await getActiveEvents();
+        setActiveEvents(evs.filter(e => Array.isArray(e.rewards_json) && (e.rewards_json as RewardPrize[]).length > 0));
+      } catch {
+        setActiveEvents([]);
+      }
+    }
+  }, []);
+
   const loadLeaderboard = React.useCallback(async (period: 'weekly' | 'monthly' | 'alltime', silent = false) => {
     if (!silent) setIsLoading(true);
     try {
@@ -471,7 +503,7 @@ const Leaderboard: React.FC = () => {
     } finally {
       if (!silent) setIsLoading(false);
     }
-  }, []);
+  }, [fetchMyRank]);
 
   useEffect(() => {
     if (tab === 'events') return;
@@ -517,41 +549,6 @@ const Leaderboard: React.FC = () => {
     }, 15000);
     return () => clearInterval(interval);
   }, [loadLeaderboard]);
-
-  const fetchMyRank = React.useCallback(async (userId: string, period: 'weekly' | 'monthly' | 'alltime') => {
-    try {
-      if (period === 'alltime') {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, username, avatar_url, level, total_points')
-          .eq('id', userId)
-          .single();
-        if (!data) return;
-        // Count how many users have more points
-        const { count } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'active')
-          .gt('total_points', data.total_points);
-        setMyRankEntry({ ...data, rank: (count ?? 0) + 1 });
-      }
-      // For weekly/monthly — just note position if not in top 50
-    } catch { /**/ }
-  }, []);
-
-  // Load prize-pool events for leaderboard banners
-  const loadPrizeEvents = React.useCallback(async () => {
-    try {
-      setActiveEvents(await getLeaderboardPrizeEvents());
-    } catch {
-      try {
-        const evs = await getActiveEvents();
-        setActiveEvents(evs.filter(e => Array.isArray(e.rewards_json) && (e.rewards_json as RewardPrize[]).length > 0));
-      } catch {
-        setActiveEvents([]);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     void loadPrizeEvents();
