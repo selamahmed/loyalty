@@ -36,7 +36,8 @@ const AppLogo: React.FC<AppLogoProps> = ({
         width={size}
         height={size}
         className={className}
-        decoding="async"
+        decoding={priority ? 'sync' : 'async'}
+        loading={priority ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : 'auto'}
         style={{
           width: size,

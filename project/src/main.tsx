@@ -2,17 +2,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
-import '@fontsource/archivo-black/400.css';
-import '@fontsource/space-grotesk/400.css';
-import '@fontsource/space-grotesk/500.css';
-import '@fontsource/space-grotesk/600.css';
-import '@fontsource/space-grotesk/700.css';
 import './index.css';
+import { loadDeferredFonts } from './lib/loadDeferredFonts';
 import { checkSupabaseConnection } from './lib/supabase';
 import ErrorBoundary from './components/ErrorBoundary';
 import { initMonitoring } from './lib/monitoring';
-
-initMonitoring();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,3 +29,15 @@ createRoot(document.getElementById('root')!).render(
     </ErrorBoundary>
   </StrictMode>,
 );
+
+if ('requestIdleCallback' in window) {
+  window.requestIdleCallback(() => {
+    loadDeferredFonts();
+    initMonitoring();
+  }, { timeout: 2500 });
+} else {
+  setTimeout(() => {
+    loadDeferredFonts();
+    initMonitoring();
+  }, 1);
+}

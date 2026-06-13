@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "vite",
     "optimize:logo": "node scripts/optimize-logo.mjs",
+    "copy:critical-fonts": "node scripts/copy-critical-fonts.mjs",
+    "prebuild": "npm run copy:critical-fonts",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 5000",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
