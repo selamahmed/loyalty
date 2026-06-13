@@ -36,8 +36,7 @@ const PrivacySecurity: React.FC = () => {
 
   const handleSave = async () => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 700));
-    updatePrivacySettings(settings);
+    await updatePrivacySettings(settings);
     playSound('success');
     setSaved(true);
     setLoading(false);

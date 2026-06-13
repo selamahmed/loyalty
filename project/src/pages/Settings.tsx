@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
 import { usePushNotification } from '../hooks/usePushNotification';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 
 const card = {
   background: 'var(--card-bg)',
@@ -179,6 +181,16 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
+        <StickerHero
+          page="settings"
+          bg="linear-gradient(135deg,#60a5fa 0%,#2563eb 100%)"
+          badge="⚙️ AYARLAR"
+          title="Tercihlerini"
+          highlight="yönet!"
+          accentSeed="settings-hero-accent"
+          height={120}
+        />
+
         {/* ── Appearance ── */}
         <Section title={tr.settings.appearance || 'Görünüm'} emoji="🎨">
           <Row
@@ -276,10 +288,12 @@ const Settings: React.FC = () => {
           width: '100%', ...card, border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626',
           padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           cursor: 'pointer', background: 'rgba(239,68,68,0.06)', transition: 'transform 0.1s, box-shadow 0.1s',
+          position: 'relative', overflow: 'visible',
         }}
           onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 #dc2626'; }}
           onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 #dc2626'; }}
         >
+          <StickerAccent seed="settings-logout" size={20} rotate={8} style={{ position: 'absolute', top: -6, right: 10 }} />
           <LogOut size={18} color="#ef4444" />
           <span style={{ fontWeight: 900, fontSize: 15, color: '#ef4444' }}>{tr.settings.logout}</span>
         </button>

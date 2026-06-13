@@ -1,27 +1,27 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { playSound } from '../lib/sounds';
+import { getLevelConfig, DEFAULT_LEVELS, calcXpProgress, type LevelConfig } from '../services/xp';
+import LevelBadge, { LevelBadgeRow } from '../components/LevelBadge';
+import DuoProgressPath from '../components/DuoProgressPath';
+import { getLevelBadge } from '../lib/levelBadges';
+import StickerAccent from '../components/StickerAccent';
+import { TIER_FIGURE_SEEDS } from '../lib/pageStickers';
 
-/* ══════════════════════════════════════════════════
-   STATIC LEVEL DATA  (XP thresholds & rewards)
-══════════════════════════════════════════════════ */
-const LEVELS = [
-  { level:  1, title: 'Acemi',       xp:     0, reward: 'Hoş Geldin Paketi',   bonus: 0   },
-  { level:  2, title: 'Kaşif',       xp:   200, reward: '+50 Bonus Puan',      bonus: 50  },
-  { level:  3, title: 'Arayıcı',     xp:   500, reward: '%10 İndirim Kuponu',  bonus: 0   },
-  { level:  4, title: 'Maceracı',    xp:   900, reward: '+100 Bonus Puan',     bonus: 100 },
-  { level:  5, title: 'Savaşçı',     xp:  1400, reward: 'Özel Rozet',          bonus: 0   },
-  { level:  6, title: 'Şampiyon',    xp:  2000, reward: '+200 Bonus Puan',     bonus: 200 },
-  { level:  7, title: 'Kahraman',    xp:  2700, reward: 'Ücretsiz Kahve',      bonus: 0   },
-  { level:  8, title: 'Efsane',      xp:  3500, reward: '+300 Bonus Puan',     bonus: 300 },
-  { level:  9, title: 'Mitik',       xp:  4400, reward: 'Gizem Kutusu',        bonus: 0   },
-  { level: 10, title: 'İlahi',       xp:  5500, reward: '+500 Bonus Puan',     bonus: 500 },
-  { level: 11, title: 'Kozmik',      xp:  6800, reward: 'Özel Ürün',           bonus: 0   },
-  { level: 12, title: 'Yıldız',      xp:  8200, reward: '+1000 Bonus Puan',    bonus: 1000},
-  { level: 15, title: 'Yüce',        xp: 12000, reward: 'VIP Statüsü',         bonus: 0   },
-  { level: 20, title: 'Ölümsüz',     xp: 20000, reward: 'Efsanevi Paket',      bonus: 0   },
-];
+type LevelRow = { level: number; title: string; xp: number; reward: string; bonus: number };
+
+function mapLevels(rows: LevelConfig[]): LevelRow[] {
+  return rows.map(r => ({
+    level: r.level,
+    title: r.title,
+    xp: r.xp_required,
+    reward: r.reward_label ?? '',
+    bonus: r.bonus_points,
+  }));
+}
+
+const FALLBACK_LEVELS = mapLevels(DEFAULT_LEVELS);
 
 const TIERS = [
   { from:  1, to:  4, label: 'BAŞLANGIÇ', emoji: '🌱', color: '#FFE500', bg: 'rgba(255,229,0,0.08)'  },
@@ -42,8 +42,8 @@ const clr = (lv: number) =>
   LEVEL_COLORS[lv] ?? ['#FFE500','#FF5722','#4CAF50','#2196F3','#FF9800'][lv % 5];
 
 const getTier  = (lv: number) => TIERS.find(t => lv >= t.from && lv <= t.to) ?? TIERS[0];
-const getLvlData = (lv: number) => LEVELS.find(l => l.level === lv) ?? LEVELS[0];
-const getNextLvlData = (lv: number) => LEVELS.find(l => l.level > lv);
+const getLvlData = (levels: LevelRow[], lv: number) => levels.find(l => l.level === lv) ?? levels[0];
+const getNextLvlData = (levels: LevelRow[], lv: number) => levels.find(l => l.level > lv);
 
 /* ══════════════════════════════════════════════════
    SVG DECORATIONS
@@ -73,50 +73,16 @@ const SvgZigzag: React.FC<{ color?: string; w?: number }> = ({ color = '#FFE500'
   </svg>
 );
 
-/* ── Tier mascots ── */
-const TierMascot: React.FC<{ tier: typeof TIERS[0]; size?: number }> = ({ tier, size = 56 }) => {
-  const s = size;
-  if (tier.label === 'BAŞLANGIÇ') return (
-    <svg width={s} height={s} viewBox="0 0 56 56" style={{ display:'block', filter:'drop-shadow(2px 3px 0 #000)' }}>
-      <rect x="23" y="34" width="10" height="16" rx="3" fill="#8B4513" stroke="#000" strokeWidth="2"/>
-      <ellipse cx="28" cy="22" rx="14" ry="16" fill={tier.color} stroke="#000" strokeWidth="2.5"/>
-      <ellipse cx="22" cy="14" rx="6" ry="8" fill={tier.color} stroke="#000" strokeWidth="2" transform="rotate(-20,22,14)"/>
-      <ellipse cx="34" cy="13" rx="5" ry="7" fill={tier.color} stroke="#000" strokeWidth="2" transform="rotate(15,34,13)"/>
-      <circle cx="24" cy="22" r="2.5" fill="#000"/><circle cx="32" cy="22" r="2.5" fill="#000"/>
-      <path d="M24 28 Q28 32 32 28" stroke="#000" strokeWidth="2" fill="none" strokeLinecap="round"/>
-    </svg>
-  );
-  if (tier.label === 'SAVAŞÇI') return (
-    <svg width={s} height={s} viewBox="0 0 56 56" style={{ display:'block', filter:'drop-shadow(2px 3px 0 #000)' }}>
-      <rect x="26" y="4" width="6" height="36" rx="3" fill={tier.color} stroke="#000" strokeWidth="2.5"/>
-      <polygon points="29,2 36,12 29,10 22,12" fill={tier.color} stroke="#000" strokeWidth="2.5" strokeLinejoin="round"/>
-      <rect x="14" y="22" width="30" height="7" rx="3" fill="#9E9E9E" stroke="#000" strokeWidth="2"/>
-      <rect x="20" y="38" width="18" height="14" rx="4" fill="#757575" stroke="#000" strokeWidth="2"/>
-    </svg>
-  );
-  if (tier.label === 'KAHRAMAN') return (
-    <svg width={s} height={s} viewBox="0 0 56 56" style={{ display:'block', filter:'drop-shadow(2px 3px 0 #000)' }}>
-      <path d="M28 4 L10 16 L10 32 Q10 46 28 52 Q46 46 46 32 L46 16 Z" fill={tier.color} stroke="#000" strokeWidth="2.5" strokeLinejoin="round"/>
-      <path d="M28 14 L32 24 L43 24 L34 30 L37 41 L28 35 L19 41 L22 30 L13 24 L24 24 Z" fill="#fff" stroke="#000" strokeWidth="1.5"/>
-    </svg>
-  );
-  if (tier.label === 'EFSANE') return (
-    <svg width={s} height={s} viewBox="0 0 56 56" style={{ display:'block', filter:'drop-shadow(2px 3px 0 #000)' }}>
-      <ellipse cx="28" cy="42" rx="16" ry="6" fill="#FF9800" stroke="#000" strokeWidth="2"/>
-      <path d="M18 42 Q14 28 20 18 Q24 10 28 8 Q26 20 30 22 Q32 14 36 10 Q40 20 36 30 Q34 36 38 42 Z" fill={tier.color} stroke="#000" strokeWidth="2.5" strokeLinejoin="round"/>
-      <path d="M22 42 Q22 32 26 26 Q27 32 28 34 Q30 28 32 24 Q34 34 34 42 Z" fill="#FFEB3B" stroke="#000" strokeWidth="1.5"/>
-    </svg>
-  );
-  return (
-    <svg width={s} height={s} viewBox="0 0 56 56" style={{ display:'block', filter:'drop-shadow(2px 3px 0 #000)' }}>
-      <rect x="10" y="34" width="36" height="14" rx="4" fill={tier.color} stroke="#000" strokeWidth="2.5"/>
-      <path d="M10 34 L10 18 L19 28 L28 10 L37 28 L46 18 L46 34 Z" fill={tier.color} stroke="#000" strokeWidth="2.5" strokeLinejoin="round"/>
-      <circle cx="28" cy="10" r="4" fill="#FFE500" stroke="#000" strokeWidth="2"/>
-      <circle cx="10" cy="18" r="3" fill="#FFE500" stroke="#000" strokeWidth="2"/>
-      <circle cx="46" cy="18" r="3" fill="#FFE500" stroke="#000" strokeWidth="2"/>
-    </svg>
-  );
-};
+/* ── Tier mascots (shape stickers) ── */
+const TierMascot: React.FC<{ tier: typeof TIERS[0]; size?: number }> = ({ tier, size = 56 }) => (
+  <StickerAccent
+    seed={TIER_FIGURE_SEEDS[tier.label] ?? `tier-shape-${tier.label}`}
+    variant="shape"
+    figure
+    size={size}
+    rotate={-6}
+  />
+);
 
 /* ── XP Progress bar ── */
 const XpBar: React.FC<{ pct: number; color: string; label?: string }> = ({ pct, color, label }) => (
@@ -134,105 +100,37 @@ const Skeleton: React.FC<{ h?: number; w?: string; r?: number }> = ({ h=18, w='1
   <div style={{ height:h, width:w, borderRadius:r, background:'var(--tab-bg)', border:'2px solid var(--dark-border)', animation:'skeleton-pulse 1.5s ease-in-out infinite' }}/>
 );
 
-/* ── Path geometry ── */
-const NODE_X   = [155, 265, 155, 45, 155, 265, 155, 45, 155, 265, 155, 45, 155, 155];
-const NODE_GAP = 130;
-const PATH_W   = 330;
-
 /* ══════════════════════════════════════════════════
-   LEVEL NODE
+   TIER LEVEL TRACK (neo-brutal vertical list)
 ══════════════════════════════════════════════════ */
-const LevelNode: React.FC<{
-  level:      number;
-  title:      string;
-  xp:         number;
-  bonus:      number;
-  reward:     string;
-  unlocked:   boolean;
-  isCurrent:  boolean;
-  isSelected: boolean;
-  posX:       number;
-  onClick:    () => void;
-}> = ({ level, title, xp, bonus, reward, unlocked, isCurrent, isSelected, posX, onClick }) => {
-  const color      = clr(level);
-  const size       = isCurrent ? 88 : unlocked ? 76 : 66;
-  const shadow     = isSelected ? 2 : isCurrent ? 6 : 5;
-  const labelRight = posX > 165;
+type EnrichedLevel = LevelRow & { unlocked: boolean; isCurrent: boolean };
 
-  return (
-    <div style={{ position:'relative', width:size, height:size }}>
-      {isCurrent && (
-        <div className="ring-pulse" style={{ position:'absolute', inset:-8, borderRadius:size*0.35+8, border:`3px solid ${color}`, boxShadow:`0 0 0 3px ${color}55`, pointerEvents:'none' }}/>
-      )}
-
-      <button
-        onClick={() => { playSound('click'); onClick(); }}
-        className={isCurrent ? 'node-wobble' : unlocked ? 'node-float' : ''}
-        style={{
-          width:size, height:size, borderRadius: isCurrent ? 24 : 20,
-          background: unlocked || isCurrent ? color : 'var(--card-bg)',
-          border:'3.5px solid #000', boxShadow:`${shadow}px ${shadow}px 0 #000`,
-          transform: isSelected ? `translate(${shadow-1}px,${shadow-1}px)` : 'none',
-          cursor:'pointer', display:'flex', flexDirection:'column',
-          alignItems:'center', justifyContent:'center', padding:0,
-          position:'relative', overflow:'hidden', transition:'transform 0.08s,box-shadow 0.08s',
-        }}
-      >
-        {!unlocked && !isCurrent && (
-          <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:0.12 }}>
-            <defs><pattern id={`h${level}`} width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-              <line x1="0" y1="0" x2="0" y2="8" stroke="#000" strokeWidth="3.5"/>
-            </pattern></defs>
-            <rect width="100%" height="100%" fill={`url(#h${level})`}/>
-          </svg>
-        )}
-
-        {unlocked ? (
-          <svg width={size*0.46} height={size*0.46} viewBox="0 0 32 32">
-            <polyline points="6,17 13,24 26,8" fill="none" stroke="#000" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        ) : isCurrent ? (
-          <>
-            <span style={{ fontSize:9, fontWeight:900, color:'#000', letterSpacing:'0.1em', lineHeight:1 }}>LV</span>
-            <span style={{ fontSize:28, fontWeight:900, color:'#000', lineHeight:1 }}>{level}</span>
-          </>
-        ) : (
-          <>
-            <span style={{ fontSize:18, lineHeight:1 }}>🔒</span>
-            <span style={{ fontSize:9, fontWeight:900, color:'var(--text-muted)', letterSpacing:'0.06em', lineHeight:1.4 }}>Lv.{level}</span>
-          </>
-        )}
-
-        <div style={{ position:'absolute', top:5, left:7, width:'34%', height:'26%', borderRadius:6, background:'rgba(255,255,255,0.4)', pointerEvents:'none' }}/>
-      </button>
-
-      {isCurrent && (
-        <div className="badge-float" style={{ position:'absolute', top:-32, left:'50%', transform:'translateX(-50%)', whiteSpace:'nowrap', background:color, border:'2.5px solid #000', boxShadow:'2px 2px 0 #000', borderRadius:8, padding:'3px 9px', fontSize:9, fontWeight:900, color:'#000', letterSpacing:'0.08em' }}>
-          ● ŞU AN
-        </div>
-      )}
-
-      {!isCurrent && (
-        <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'#000', color:'#fff', borderRadius:6, padding:'2px 8px', fontSize:9, fontWeight:900, letterSpacing:'0.06em', whiteSpace:'nowrap', border:'2px solid #000' }}>
-          Lv.{level}
-        </div>
-      )}
-
-      {bonus > 0 && (
-        <div style={{ position:'absolute', bottom:-11, right:-10, background:'#FFE500', border:'2.5px solid #000', boxShadow:'2px 2px 0 #000', borderRadius:7, padding:'2px 7px', fontSize:9, fontWeight:900, color:'#000', whiteSpace:'nowrap' }}>
-          ⭐{bonus}
-        </div>
-      )}
-
-      <div style={{ position:'absolute', top:'50%', transform:'translateY(-50%)', [labelRight ? 'right' : 'left']:size+14, textAlign: labelRight ? 'right' : 'left', minWidth:86, pointerEvents:'none' }}>
-        <span style={{ display:'block', fontWeight:900, fontSize:12, color:'var(--text-dark)', lineHeight:1.2 }}>{title}</span>
-        <span style={{ display:'block', fontWeight:700, fontSize:10, marginTop:3, color: unlocked ? '#22c55e' : 'var(--text-muted)' }}>
-          {unlocked ? `✓ ${reward}` : `${xp.toLocaleString()} XP`}
-        </span>
-      </div>
+const TierLevelTrack: React.FC<{
+  tier: typeof TIERS[0];
+  levels: EnrichedLevel[];
+  tierDone: number;
+  currentRef: React.RefObject<HTMLButtonElement>;
+  selectedLevel: number | null;
+  onSelect: (level: number) => void;
+}> = ({ tier, levels, tierDone, currentRef, selectedLevel, onSelect }) => (
+  <div className="progress-tier-panel tier-slide">
+    <div className="progress-tier-panel__head">
+      <p className="progress-tier-panel__eyebrow">{tier.emoji} {tier.label}</p>
+      <p className="progress-tier-panel__title">
+        Lv.{tier.from}–{tier.to === 99 ? '∞' : tier.to}
+        <span className="progress-tier-panel__count">{tierDone}/{levels.length}</span>
+      </p>
     </div>
-  );
-};
+
+    <DuoProgressPath
+      levels={levels}
+      tierColor={tier.color}
+      currentRef={currentRef}
+      selectedLevel={selectedLevel}
+      onSelect={onSelect}
+    />
+  </div>
+);
 
 /* ══════════════════════════════════════════════════
    MAIN PAGE
@@ -240,35 +138,47 @@ const LevelNode: React.FC<{
 const ProgressPath: React.FC = () => {
   const { profile, loading: authLoading } = useAuth();
 
+  const [levelRows, setLevelRows] = useState<LevelRow[]>(FALLBACK_LEVELS);
+  const [levelConfig, setLevelConfig] = useState<LevelConfig[]>(DEFAULT_LEVELS);
+
   /* Live values (updated by realtime) */
-  const [livePoints, setLivePoints] = useState<number | null>(null);
-  const [liveLevel,  setLiveLevel]  = useState<number | null>(null);
-  const [rtBadge,    setRtBadge]    = useState(false); // flash "CANLI" badge on update
+  const [liveXp,    setLiveXp]    = useState<number | null>(null);
+  const [liveLevel, setLiveLevel] = useState<number | null>(null);
+  const [rtBadge,   setRtBadge]   = useState(false);
 
   const [animXp,       setAnimXp]       = useState(0);
   const [activeTierIdx, setActiveTierIdx] = useState(0);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
-  const currentRef = useRef<HTMLDivElement>(null);
+  const currentRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    getLevelConfig()
+      .then(rows => {
+        setLevelConfig(rows);
+        setLevelRows(mapLevels(rows));
+      })
+      .catch(() => {
+        setLevelConfig(DEFAULT_LEVELS);
+        setLevelRows(FALLBACK_LEVELS);
+      });
+  }, []);
 
   /* ── Computed values ── */
-  const userPoints = livePoints ?? profile?.total_points ?? 0;
-  const userLevel  = liveLevel  ?? profile?.level        ?? 1;
+  const userXp    = liveXp    ?? profile?.xp           ?? 0;
+  const userLevel = liveLevel ?? profile?.level        ?? 1;
 
-  const currentLvl = getLvlData(userLevel);
-  const nextLvl    = getNextLvlData(userLevel);
-  const xpCurrent  = currentLvl.xp;
-  const xpNext     = nextLvl?.xp ?? (currentLvl.xp + 2000);
-  const xpInLevel  = Math.max(0, userPoints - xpCurrent);
-  const xpNeeded   = xpNext - xpCurrent;
-  const xpPct      = Math.min(100, Math.round((xpInLevel / xpNeeded) * 100));
-  const xpLeft     = Math.max(0, xpNext - userPoints);
-  const isMaxLevel = !nextLvl;
+  const xpProgress = calcXpProgress(userXp, userLevel, levelConfig);
+  const currentLvl = getLvlData(levelRows, userLevel);
+  const nextLvl    = getNextLvlData(levelRows, userLevel);
+  const xpPct      = xpProgress.pct;
+  const xpLeft     = xpProgress.remaining;
+  const isMaxLevel = xpProgress.isMaxLevel;
 
   const currentTier    = getTier(userLevel);
   const activeTier     = TIERS[activeTierIdx] ?? TIERS[0];
 
-  /* Enrich LEVELS with computed unlocked state */
-  const enriched = LEVELS.map(l => ({
+  /* Enrich levels with computed unlocked state */
+  const enriched = levelRows.map(l => ({
     ...l,
     unlocked:  l.level < userLevel,
     isCurrent: l.level === userLevel,
@@ -276,8 +186,7 @@ const ProgressPath: React.FC = () => {
   const unlockedCount = enriched.filter(l => l.unlocked || l.isCurrent).length;
 
   const filteredLevels = enriched.filter(l => l.level >= activeTier.from && l.level <= activeTier.to);
-  const nodeYs = filteredLevels.map((_, i) => (filteredLevels.length - 1 - i) * NODE_GAP + 68);
-  const totalH = filteredLevels.length * NODE_GAP + 100;
+  const tierDone = filteredLevels.filter(l => l.unlocked || l.isCurrent).length;
   const selLvl = enriched.find(l => l.level === selectedLevel);
 
   /* ── Realtime subscription ── */
@@ -289,9 +198,9 @@ const ProgressPath: React.FC = () => {
         event: 'UPDATE', schema: 'public', table: 'profiles',
         filter: `id=eq.${profile.id}`,
       }, (payload) => {
-        const p = payload.new as { total_points?: number; level?: number };
-        if (p.total_points !== undefined) setLivePoints(p.total_points);
-        if (p.level !== undefined)        setLiveLevel(p.level);
+        const p = payload.new as { xp?: number; level?: number };
+        if (p.xp !== undefined)    setLiveXp(p.xp);
+        if (p.level !== undefined) setLiveLevel(p.level);
         setRtBadge(true);
         setTimeout(() => setRtBadge(false), 3000);
       })
@@ -316,20 +225,6 @@ const ProgressPath: React.FC = () => {
     const t = setTimeout(() => currentRef.current?.scrollIntoView({ behavior:'smooth', block:'center' }), 500);
     return () => clearTimeout(t);
   }, [activeTierIdx]);
-
-  /* ── Build SVG winding path ── */
-  const buildPath = useCallback(() => {
-    if (nodeYs.length < 2) return '';
-    let d = '';
-    for (let i = 0; i < nodeYs.length - 1; i++) {
-      const xi = NODE_X[i % NODE_X.length], yi = nodeYs[i];
-      const xn = NODE_X[(i+1) % NODE_X.length], yn = nodeYs[i+1];
-      const my = (yi + yn) / 2;
-      if (i === 0) d += `M ${xi} ${yi} `;
-      d += `C ${xi} ${my}, ${xn} ${my}, ${xn} ${yn} `;
-    }
-    return d;
-  }, [nodeYs]);
 
   /* ── Loading state ── */
   if (authLoading) return (
@@ -386,6 +281,24 @@ const ProgressPath: React.FC = () => {
 
       <div className="page-enter p-3 sm:p-4 max-w-lg mx-auto" style={{ position:'relative', zIndex:1, display:'flex', flexDirection:'column', gap:16, paddingBottom:32 }}>
 
+        {/* Group sticker accents */}
+        <div style={{ position:'absolute', inset:0, pointerEvents:'none', overflow:'hidden', zIndex:0 }} aria-hidden>
+          {[
+            { group: 'Group 73.svg', top: 72, right: -8, size: 56, rotate: 12 },
+            { group: 'Group 74.svg', top: 280, left: -10, size: 48, rotate: -8 },
+            { group: 'Group 75.svg', bottom: 120, right: 4, size: 52, rotate: 6 },
+          ].map(s => (
+            <StickerAccent
+              key={s.group}
+              group={s.group}
+              variant="colorful"
+              size={s.size}
+              rotate={s.rotate}
+              style={{ position:'absolute', top: s.top, right: s.right, bottom: s.bottom, left: s.left, opacity: 0.88 }}
+            />
+          ))}
+        </div>
+
         {/* ═══ HEADER ═══ */}
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
           <div>
@@ -402,15 +315,11 @@ const ProgressPath: React.FC = () => {
         </div>
 
         {/* ═══ HERO CARD ═══ */}
-        <div style={{ border:'3px solid #000', boxShadow:'6px 6px 0 #000', borderRadius:22, background:'var(--card-bg)', overflow:'hidden', position:'relative' }}>
+        <div style={{ border:'3px solid #000', boxShadow:'6px 6px 0 #000', borderRadius:22, background:'var(--card-bg)', overflow:'hidden', position:'relative', zIndex:1 }}>
 
           {/* Decorations */}
-          <div style={{ position:'absolute', top:10, right:12, opacity:0.7, zIndex:0 }} className="stk-fa">
-            <SvgStar size={24} fill={currentTier.color}/>
-          </div>
-          <div style={{ position:'absolute', bottom:40, right:8, opacity:0.55, zIndex:0 }} className="stk-spin">
-            <SvgDiamond size={16} fill={currentTier.color}/>
-          </div>
+          <StickerAccent group="Group 61.svg" variant="colorful" size={40} rotate={8} style={{ position:'absolute', top:8, right:10, zIndex:0, opacity:0.9 }} />
+          <StickerAccent seed="progress-hero-accent" variant="shape" size={32} rotate={-12} style={{ position:'absolute', bottom:36, right:6, zIndex:0, opacity:0.75 }} />
 
           {/* Tier stripe */}
           <div style={{ background:currentTier.color, borderBottom:'3px solid #000', padding:'11px 18px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'relative', zIndex:1 }}>
@@ -421,39 +330,31 @@ const ProgressPath: React.FC = () => {
                 <p style={{ fontSize:14, fontWeight:900, color:'#000', margin:0, lineHeight:1 }}>{currentLvl.title}</p>
               </div>
             </div>
-            <div style={{ background:'#000', color:currentTier.color, border:'2.5px solid #000', borderRadius:10, padding:'4px 12px', fontSize:13, fontWeight:900, letterSpacing:'0.06em', boxShadow:'3px 3px 0 rgba(0,0,0,0.3)' }}>
-              LV.{userLevel}
-            </div>
+            <LevelBadge level={userLevel} width={40} />
           </div>
 
           {/* XP section */}
           <div style={{ padding:'16px 18px 14px', position:'relative', zIndex:1 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:14 }}>
-              <div style={{ width:78, height:78, flexShrink:0, border:'3.5px solid #000', boxShadow:'5px 5px 0 #000', borderRadius:18, background:clr(userLevel), display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
-                <span style={{ fontSize:8, fontWeight:900, color:'#000', letterSpacing:'0.08em' }}>SEVİYE</span>
-                <span style={{ fontSize:32, fontWeight:900, color:'#000', lineHeight:1 }}>{userLevel}</span>
-              </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <p style={{ fontWeight:900, fontSize:18, color:'var(--text-dark)', margin:'0 0 3px' }}>{currentLvl.title}</p>
+            <LevelBadgeRow level={userLevel} width={68} subtitle={currentLvl.title} />
+            <div style={{ marginTop: 12 }}>
                 <p style={{ fontSize:11, color:'var(--text-muted)', margin:'0 0 10px', fontWeight:700 }}>
                   {isMaxLevel
                     ? '👑 Maksimum seviyeye ulaştın!'
-                    : `⚡ ${xpLeft.toLocaleString()} XP daha → Lv.${nextLvl!.level}`}
+                    : `⚡ ${xpLeft.toLocaleString()} XP sonraki rozete`}
                 </p>
                 <XpBar
                   pct={isMaxLevel ? 100 : animXp}
                   color={currentTier.color}
                   label={isMaxLevel ? 'MAX SEVİYE' : undefined}
                 />
-              </div>
             </div>
           </div>
 
           {/* Stats row */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', borderTop:'3px solid #000' }}>
             {[
-              { emoji:'⚡', val: userPoints.toLocaleString(),   label:'TOPLAM XP',  color:'#FFE500' },
-              { emoji:'🏆', val: `${unlockedCount}/${LEVELS.length}`, label:'AÇILAN',  color:'#2196F3' },
+              { emoji:'⚡', val: userXp.toLocaleString(),   label:'TOPLAM XP',  color:'#FFE500' },
+              { emoji:'🏆', val: `${unlockedCount}/${levelRows.length}`, label:'AÇILAN',  color:'#2196F3' },
               { emoji:'🎯', val: currentTier.label,              label:'RÜTBE',      color:currentTier.color },
             ].map((s, i) => (
               <div key={s.label} style={{ padding:'11px 6px', textAlign:'center', borderLeft: i > 0 ? '3px solid #000' : 'none', position:'relative', overflow:'hidden' }}>
@@ -471,7 +372,7 @@ const ProgressPath: React.FC = () => {
             <div style={{ padding:'12px 18px', borderTop:'3px solid #000', background:'var(--tab-bg)' }}>
               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
                 <span style={{ fontSize:10, fontWeight:900, color:'var(--text-dark)' }}>
-                  {userPoints.toLocaleString()} / {xpNext.toLocaleString()} XP
+                  {xpProgress.inLevel.toLocaleString()} / {xpProgress.needed.toLocaleString()} XP (Lv.{userLevel})
                 </span>
                 <span style={{ fontSize:10, fontWeight:900, color:currentTier.color }}>
                   Lv.{userLevel} → Lv.{nextLvl!.level}
@@ -496,9 +397,10 @@ const ProgressPath: React.FC = () => {
               return (
                 <button key={t.label} className="nb-press"
                   onClick={() => { playSound('click'); setActiveTierIdx(i); setSelectedLevel(null); }}
-                  style={{ flexShrink:0, display:'flex', alignItems:'center', gap:8, padding:'9px 14px', borderRadius:13, cursor:'pointer', background: active ? t.color : 'var(--card-bg)', border:'3px solid #000', boxShadow: active ? '4px 4px 0 #000' : '3px 3px 0 #000', color:'#000', fontWeight:900, fontSize:11, letterSpacing:'0.04em', position:'relative', transition:'box-shadow 0.08s,transform 0.08s' }}>
+                  style={{ flexShrink:0, display:'flex', alignItems:'center', gap:8, padding:'9px 14px', borderRadius:13, cursor:'pointer', background: active ? t.color : 'var(--card-bg)', border:'3px solid #000', boxShadow: active ? '4px 4px 0 #000' : '3px 3px 0 #000', color:'#000', fontWeight:900, fontSize:11, letterSpacing:'0.04em', position:'relative', transition:'box-shadow 0.08s,transform 0.08s', overflow:'visible' }}>
                   <span style={{ fontSize:15 }}>{t.emoji}</span>
                   {t.label}
+                  {active && <StickerAccent seed={`progress-tier-${t.label}`} size={18} rotate={10} style={{ position:'absolute', top:-6, right:-4 }} />}
                   {inTier && (
                     <span style={{ position:'absolute', top:-5, right:-5, width:11, height:11, borderRadius:'50%', background: active ? '#000' : t.color, border:'2px solid #000' }}/>
                   )}
@@ -508,91 +410,23 @@ const ProgressPath: React.FC = () => {
           </div>
         </div>
 
-        {/* ═══ WINDING PATH ═══ */}
-        <div className="tier-slide" key={activeTier.label} style={{ position:'relative' }}>
-
-          {/* Tier banner */}
-          <div style={{ display:'flex', alignItems:'center', gap:14, border:'3px solid #000', boxShadow:'5px 5px 0 #000', borderRadius:18, padding:'12px 16px 12px 12px', background:activeTier.bg, marginBottom:20, overflow:'hidden', position:'relative' }}>
-            <div style={{ position:'absolute', left:0, top:0, bottom:0, width:8, background:activeTier.color, borderRadius:'15px 0 0 15px' }}/>
-            <div style={{ marginLeft:4 }}><TierMascot tier={activeTier} size={50}/></div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                <span style={{ background:activeTier.color, border:'2.5px solid #000', borderRadius:7, padding:'2px 10px', fontSize:10, fontWeight:900, color:'#000', letterSpacing:'0.08em', boxShadow:'2px 2px 0 #000' }}>{activeTier.emoji} {activeTier.label}</span>
-                <span style={{ background:'#000', color:'#fff', borderRadius:7, padding:'2px 8px', fontSize:9, fontWeight:900, letterSpacing:'0.06em' }}>
-                  Lv.{activeTier.from}–{activeTier.to === 99 ? '∞' : activeTier.to}
-                </span>
-              </div>
-              <p style={{ fontWeight:900, fontSize:13, color:'var(--text-dark)', margin:0 }}>Seviye Ödülleri</p>
-              <p style={{ fontSize:10, fontWeight:700, color:'var(--text-muted)', margin:'2px 0 0' }}>
-                {filteredLevels.filter(l => l.unlocked || l.isCurrent).length}/{filteredLevels.length} tamamlandı
-              </p>
-            </div>
-            <div style={{ background:'#000', color:'#fff', border:'2.5px solid #000', boxShadow:'2px 2px 0 #000', borderRadius:10, padding:'5px 10px', textAlign:'center', flexShrink:0 }}>
-              <div style={{ fontSize:18, fontWeight:900, lineHeight:1 }}>{filteredLevels.filter(l => l.unlocked || l.isCurrent).length}</div>
-              <div style={{ fontSize:8, fontWeight:900, opacity:0.6, letterSpacing:'0.06em' }}>/{filteredLevels.length}</div>
-            </div>
-          </div>
-
-          {/* Background stickers */}
-          <div style={{ position:'absolute', inset:0, pointerEvents:'none', overflow:'hidden' }}>
-            <div className="stk-spin" style={{ position:'absolute', top:14, left:8, opacity:0.85 }}><SvgStar size={30} fill={activeTier.color}/></div>
-            <div className="stk-fa"   style={{ position:'absolute', top:8, right:10, opacity:0.85 }}><SvgBolt size={26} fill={activeTier.color}/></div>
-            <div className="stk-spin" style={{ position:'absolute', top:'38%', left:4, opacity:0.7 }}><SvgDiamond size={20} fill={activeTier.color}/></div>
-            <div className="stk-fb"   style={{ position:'absolute', bottom:'20%', left:6, opacity:0.7 }}><SvgZigzag color={activeTier.color} w={70}/></div>
-          </div>
-
-          {/* Path canvas */}
-          <div style={{ position:'relative', width:PATH_W, margin:'0 auto', height:totalH }}>
-            <svg width={PATH_W} height={totalH} style={{ position:'absolute', inset:0, overflow:'visible' }}>
-              <path d={buildPath()} fill="none" stroke="#000" strokeWidth={14} strokeLinecap="round" opacity={0.08} transform="translate(5,5)"/>
-              <path d={buildPath()} fill="none" stroke="var(--card-bg)" strokeWidth={10} strokeLinecap="round"/>
-              <path d={buildPath()} fill="none" stroke="#000" strokeWidth={10} strokeLinecap="round" strokeOpacity={0.2}/>
-              <path className="dash-path" d={buildPath()} fill="none" stroke={activeTier.color} strokeWidth={5} strokeLinecap="round" strokeDasharray="12 12" opacity={0.9}/>
-            </svg>
-
-            {/* Spinning deco between nodes */}
-            {filteredLevels.slice(0,-1).map((lvl, i) => {
-              const xi = NODE_X[i % NODE_X.length], xn = NODE_X[(i+1) % NODE_X.length];
-              const midX = (xi + xn) / 2, midY = (nodeYs[i] + nodeYs[i+1]) / 2;
-              const shapes = [<SvgStar key="s" size={18} fill={clr(lvl.level)}/>, <SvgDiamond key="d" size={16} fill={clr(lvl.level)}/>, <SvgBolt key="b" size={18} fill={clr(lvl.level)}/>, <SvgStar key="s2" size={14} fill={clr(lvl.level)}/>];
-              return (
-                <div key={`deco-${i}`} className="deco-spin" style={{ position:'absolute', left:midX-10, top:midY-10, animationDuration:`${3.5+(i%4)*0.7}s`, animationDelay:`${i*0.25}s`, pointerEvents:'none' }}>
-                  {shapes[i % shapes.length]}
-                </div>
-              );
-            })}
-
-            {/* Level nodes */}
-            {filteredLevels.map((lvl, i) => {
-              const posX     = NODE_X[i % NODE_X.length];
-              const posY     = nodeYs[i];
-              const nodeSize = lvl.isCurrent ? 88 : lvl.unlocked ? 76 : 66;
-              return (
-                <div key={`node-${lvl.level}`} ref={lvl.isCurrent ? currentRef : undefined}
-                  style={{ position:'absolute', left:posX-nodeSize/2, top:posY-nodeSize/2, zIndex: lvl.isCurrent ? 20 : 10 }}>
-                  <LevelNode
-                    {...lvl}
-                    posX={posX}
-                    isSelected={selectedLevel === lvl.level}
-                    onClick={() => setSelectedLevel(selectedLevel === lvl.level ? null : lvl.level)}
-                  />
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Tip */}
-          <div style={{ display:'flex', justifyContent:'center', marginTop:8, gap:10 }}>
-            <SvgZigzag color={activeTier.color} w={60}/>
-            <SvgBolt size={22} fill={activeTier.color}/>
-            <SvgZigzag color={activeTier.color} w={60}/>
-          </div>
-        </div>
+        {/* ═══ TIER LEVEL TRACK ═══ */}
+        <TierLevelTrack
+          key={activeTier.label}
+          tier={activeTier}
+          levels={filteredLevels}
+          tierDone={tierDone}
+          currentRef={currentRef}
+          selectedLevel={selectedLevel}
+          onSelect={(level) => setSelectedLevel(selectedLevel === level ? null : level)}
+        />
 
         {/* ═══ MAX LEVEL CARD ═══ */}
-        <div style={{ display:'flex', alignItems:'center', gap:16, border:'3.5px solid #000', boxShadow:'6px 6px 0 #000', borderRadius:20, padding:'14px 18px', background:'#E91E63', position:'relative', overflow:'hidden' }}>
-          <div className="stk-spin" style={{ position:'absolute', top:8, right:12 }}><SvgStar size={22} fill="#FFE500"/></div>
-          <div style={{ width:52, height:52, borderRadius:14, flexShrink:0, background:'#000', border:'3px solid #000', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>👑</div>
+        <div style={{ display:'flex', alignItems:'center', gap:16, border:'3.5px solid #000', boxShadow:'6px 6px 0 #000', borderRadius:20, padding:'14px 18px', background:'#E91E63', position:'relative', overflow:'visible' }}>
+          <StickerAccent group="Group 77.svg" variant="colorful" size={44} rotate={6} style={{ position:'absolute', top:-10, right:10, zIndex:2 }} />
+          <div style={{ width:52, height:52, borderRadius:14, flexShrink:0, background:'#000', border:'3px solid #000', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+            <StickerAccent seed="progress-max-tier" variant="shape" figure size={40} rotate={0} />
+          </div>
           <div>
             <p style={{ fontWeight:900, fontSize:16, color:'#000', margin:0 }}>Maksimum Seviye</p>
             <p style={{ fontSize:12, color:'#000', margin:'2px 0 0', fontWeight:700, opacity:0.75 }}>Efsane ol. Tarihe geç.</p>
@@ -605,16 +439,14 @@ const ProgressPath: React.FC = () => {
       {selLvl && (
         <div className="popup-in" style={{ position:'fixed', left:10, right:10, bottom:76, zIndex:200, border:'3.5px solid #000', boxShadow:'7px 7px 0 #000', borderRadius:24, overflow:'hidden', background:'var(--card-bg)' }}>
 
-          <div style={{ background:clr(selLvl.level), borderBottom:'3px solid #000', padding:'12px 16px', display:'flex', alignItems:'center', gap:12, position:'relative' }}>
+          <div style={{ background:clr(selLvl.level), borderBottom:'3px solid #000', padding:'14px 16px', display:'flex', alignItems:'center', gap:14, position:'relative' }}>
             <div className="stk-spin" style={{ position:'absolute', top:6, right:48 }}><SvgStar size={18} fill="#fff"/></div>
-            <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#000', border:'2.5px solid #000', display:'flex', alignItems:'center', justifyContent:'center', fontSize: selLvl.unlocked ? 22 : 18, fontWeight:900, color:clr(selLvl.level) }}>
-              {selLvl.unlocked ? '✓' : selLvl.level}
-            </div>
+            <LevelBadge level={selLvl.level} width={44} dimmed={!selLvl.unlocked && !selLvl.isCurrent} />
             <div style={{ flex:1 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:2 }}>
-                <span style={{ background:'#000', color:clr(selLvl.level), borderRadius:7, padding:'2px 8px', fontSize:9, fontWeight:900, letterSpacing:'0.06em' }}>Lv.{selLvl.level}</span>
-                {selLvl.isCurrent && <span style={{ fontSize:9, fontWeight:900, color:'#000' }}>● ŞU AN</span>}
-                {selLvl.unlocked && <span style={{ background:'#000', color:'#22c55e', borderRadius:7, padding:'2px 8px', fontSize:9, fontWeight:900 }}>✓ AÇIK</span>}
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4, flexWrap:'wrap' }}>
+                <span style={{ fontSize:12, fontWeight:900, color:'#000' }}>{getLevelBadge(selLvl.level).label}</span>
+                {selLvl.isCurrent && <span style={{ fontSize:9, fontWeight:900, color:'#9122FF' }}>● ŞU AN</span>}
+                {selLvl.unlocked && <span style={{ fontSize:9, fontWeight:900, color:'#22c55e' }}>✓ AÇIK</span>}
               </div>
               <p style={{ fontWeight:900, fontSize:20, color:'#000', margin:0, lineHeight:1 }}>{selLvl.title}</p>
             </div>
@@ -629,7 +461,7 @@ const ProgressPath: React.FC = () => {
               <p style={{ fontSize:13, color:'var(--text-muted)', margin:0, lineHeight:1.6, fontWeight:600 }}>
                 {selLvl.unlocked || selLvl.isCurrent
                   ? `🎉 Bu seviyeyi tamamladın! "${selLvl.reward}" ödülünü kazandın.`
-                  : `🔒 Bu seviyeye ulaşmak için ${selLvl.xp.toLocaleString()} XP gerekli. ${Math.max(0, selLvl.xp - userPoints).toLocaleString()} XP kaldı.`}
+                  : `🔒 Bu seviyeye ulaşmak için ${selLvl.xp.toLocaleString()} XP gerekli. ${Math.max(0, selLvl.xp - userXp).toLocaleString()} XP kaldı.`}
                 {selLvl.bonus > 0 && ` Ayrıca +${selLvl.bonus} bonus puan kazanırsın!`}
               </p>
             </div>
@@ -637,10 +469,10 @@ const ProgressPath: React.FC = () => {
             {!selLvl.unlocked && !selLvl.isCurrent && selLvl.xp > 0 && (
               <div>
                 <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
-                  <span style={{ fontSize:10, fontWeight:900, color:'var(--text-dark)' }}>{userPoints.toLocaleString()} XP</span>
+                  <span style={{ fontSize:10, fontWeight:900, color:'var(--text-dark)' }}>{userXp.toLocaleString()} XP</span>
                   <span style={{ fontSize:10, fontWeight:900, color:'var(--text-muted)' }}>{selLvl.xp.toLocaleString()} XP</span>
                 </div>
-                <XpBar pct={Math.min(100, Math.round((userPoints / selLvl.xp) * 100))} color={clr(selLvl.level)}/>
+                <XpBar pct={Math.min(100, Math.round((userXp / selLvl.xp) * 100))} color={clr(selLvl.level)}/>
               </div>
             )}
 

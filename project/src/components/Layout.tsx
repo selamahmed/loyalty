@@ -9,6 +9,9 @@ import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import RewardPopup from './RewardPopup';
 import { playSound } from '../lib/sounds';
+import NeoAvatar from './NeoAvatar';
+import { PageStickerBackdrop } from './StickerDecor';
+import { stickerPresetForPath } from '../lib/stickerLayouts';
 
 const navItems = [
   { path: '/home',     icon: Home,        label: 'Sayfa'    },
@@ -54,7 +57,7 @@ const sidebarGroups: { category: string; emoji: string; items: NavItem[] }[] = [
     items: [
       { path: '/leaderboard', icon: Trophy,    label: 'Lider Tablosu', iconColor: '#FFE500', iconBg: 'rgba(255,229,0,0.18)' },
       { path: '/stats',       icon: BarChart2, label: 'İstatistikler', iconColor: '#3b82f6', iconBg: 'rgba(59,130,246,0.14)' },
-      { path: '/history',     icon: History,   label: 'Geçmiş',        iconColor: '#6b7280', iconBg: 'rgba(107,114,128,0.14)' },
+      { path: '/history',     icon: History,   label: 'Geçmiş',        iconColor: '#56C8FF', iconBg: 'rgba(86,200,255,0.14)' },
       { path: '/events',      icon: Zap,       label: 'Etkinlikler',   iconColor: '#ec4899', iconBg: 'rgba(236,72,153,0.14)' },
     ],
   },
@@ -135,7 +138,8 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
   }
 
   return (
-    <div className="page-container flex overflow-x-hidden">
+    <div className="page-container flex overflow-x-hidden" style={{ position: 'relative' }}>
+      <PageStickerBackdrop preset={stickerPresetForPath(location.pathname)} />
       {rewardPopup && <RewardPopup data={rewardPopup} onDismiss={dismissRewardPopup} />}
 
       {sidebarOpen && (
@@ -188,19 +192,18 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
         {/* User + points */}
         <div style={{ padding: '8px 12px', borderBottom: '2px solid var(--dark-border)', flexShrink: 0 }}>
           <button
+            type="button"
+            className="sidebar-nav-btn"
+            style={{ ['--nav-accent' as string]: '#C8FF00' } as React.CSSProperties}
             onClick={() => { playSound('click'); navigate('/profile'); setSidebarOpen(false); }}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
-              background: 'var(--tab-bg)', border: '2px solid var(--dark-border)',
-              borderRadius: 12, cursor: 'pointer', textAlign: 'left',
-            }}
           >
-            <div style={{
-              width: 30, height: 30, borderRadius: '50%', overflow: 'hidden',
-              border: '2px solid var(--dark-border)', flexShrink: 0,
-            }}>
-              <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
+            <NeoAvatar
+              src={user.avatar}
+              name={user.username}
+              email={user.email}
+              size={30}
+              shape="circle"
+            />
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.username}
@@ -209,7 +212,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
             </div>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 3, padding: '4px 7px', borderRadius: 8,
-              background: '#FFE500', border: '1.5px solid var(--dark-border)', flexShrink: 0,
+              background: '#FFE500', border: '2px solid var(--dark-border)', boxShadow: '1px 1px 0 var(--dark-border)', flexShrink: 0,
             }}>
               <Star size={10} fill="#000" color="#000" />
               <span style={{ fontSize: 11, fontWeight: 900, color: '#000' }}>{points.toLocaleString()}</span>
@@ -233,69 +236,38 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
               const collapsed = collapsedGroups[group.category] ?? false;
 
               return (
-                <div key={group.category} style={{ marginBottom: 4 }}>
+                <div key={group.category} className="sidebar-group">
                   <button
                     type="button"
+                    className={`sidebar-group-btn${hasActive ? ' sidebar-group-btn--active' : ''}`}
                     onClick={() => { playSound('click'); toggleGroup(group.category); }}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '6px 8px', background: 'none', border: 'none', cursor: 'pointer',
-                      borderRadius: 8,
-                    }}
                   >
-                    <span style={{ fontSize: 11 }}>{group.emoji}</span>
-                    <span style={{
-                      flex: 1, textAlign: 'left', fontSize: 9, fontWeight: 900,
-                      color: hasActive ? 'var(--primary-blue)' : 'var(--text-muted)',
-                      textTransform: 'uppercase', letterSpacing: '0.1em',
-                    }}>
-                      {group.category}
-                    </span>
-                    <span style={{
-                      fontSize: 9, fontWeight: 800, color: 'var(--text-muted)',
-                      background: 'var(--tab-bg)', padding: '1px 6px', borderRadius: 999,
-                      border: '1px solid var(--divider-dash)',
-                    }}>
-                      {group.items.length}
-                    </span>
+                    <span style={{ fontSize: 12 }}>{group.emoji}</span>
+                    <span className="sidebar-group-btn__label">{group.category}</span>
+                    <span className="sidebar-group-btn__count">{group.items.length}</span>
                     <ChevronDown
                       size={13}
-                      color="var(--text-muted)"
+                      color="var(--text-dark)"
                       style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0 }}
                     />
                   </button>
 
                   {!collapsed && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, paddingLeft: 2 }}>
+                    <div className="sidebar-nav-items">
                       {group.items.map(item => {
                         const active = isNavActive(location.pathname, item.path);
                         return (
                           <button
                             key={item.path}
+                            type="button"
+                            className={`sidebar-nav-btn${active ? ' sidebar-nav-btn--active' : ''}`}
+                            style={{ ['--nav-accent' as string]: item.iconColor } as React.CSSProperties}
                             onClick={() => { playSound('click'); navigate(item.path); setSidebarOpen(false); }}
-                            style={{
-                              width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                              padding: '7px 8px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
-                              fontSize: 12, fontWeight: active ? 900 : 600,
-                              background: active ? 'rgba(123,110,246,0.12)' : 'transparent',
-                              color: active ? 'var(--primary-blue)' : 'var(--text-dark)',
-                              border: 'none',
-                              transition: 'background 0.12s',
-                            }}
-                            onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--tab-bg)'; }}
-                            onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = active ? 'rgba(123,110,246,0.12)' : 'transparent'; }}
                           >
-                            <div style={{
-                              width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-                              background: active ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : item.iconBg,
-                              border: `1.5px solid ${active ? 'var(--dark-border)' : `${item.iconColor}33`}`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                              <item.icon size={13} color={active ? 'white' : item.iconColor} strokeWidth={active ? 2.5 : 2} />
+                            <div className="sidebar-nav-btn__icon">
+                              <item.icon size={14} color={active ? '#000' : item.iconColor} strokeWidth={2.5} />
                             </div>
-                            <span style={{ flex: 1, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {item.label}
-                            </span>
+                            <span className="sidebar-nav-btn__label">{item.label}</span>
                           </button>
                         );
                       })}
@@ -306,15 +278,11 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
             })}
 
             {/* Theme toggle inside scroll area footer */}
-            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1.5px dashed var(--divider-dash)' }}>
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '2px dashed var(--dark-border)' }}>
               <button
+                type="button"
+                className="sidebar-theme-btn"
                 onClick={() => { playSound('click'); toggleTheme(); }}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
-                  background: 'var(--tab-bg)', color: 'var(--text-dark)',
-                  border: '2px solid var(--dark-border)', fontSize: 11, fontWeight: 800,
-                }}
               >
                 {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
                 <span>{theme === 'light' ? 'Karanlık Mod' : 'Açık Mod'}</span>
@@ -335,13 +303,6 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
             </div>
           )}
         </div>
-
-        <style>{`
-          .sidebar-nav { scrollbar-width: thin; scrollbar-color: var(--primary-blue) transparent; }
-          .sidebar-nav::-webkit-scrollbar { width: 5px; }
-          .sidebar-nav::-webkit-scrollbar-thumb { background: var(--divider-dash); border-radius: 999px; }
-          .sidebar-nav::-webkit-scrollbar-thumb:hover { background: var(--primary-blue); }
-        `}</style>
       </aside>
 
       {/* ── Main content ── */}
@@ -423,7 +384,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
           </button>
         </header>
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto" style={{ paddingBottom: 88 }}>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto" style={{ paddingBottom: 88, position: 'relative', zIndex: 1 }}>
           {children}
         </main>
 

@@ -8,6 +8,7 @@ import Layout from './components/Layout';
 
 // Route Guards (small — always loaded)
 import CustomerRoute     from './components/guards/CustomerRoute';
+import AccountStatusGuard from './components/guards/AccountStatusGuard';
 import SuperAdminRoute   from './components/guards/SuperAdminRoute';
 import StoreAdminRoute   from './components/guards/StoreAdminRoute';
 import CashierRoute      from './components/guards/CashierRoute';
@@ -52,7 +53,6 @@ const UserStats      = React.lazy(() => import('./pages/UserStats'));
 
 // ── Lazy: Super Admin pages ──────────────────────────────────────────────────
 const AdminDashboard    = React.lazy(() => import('./pages/admin/AdminDashboard'));
-const AdminDashboard2   = React.lazy(() => import('./pages/admin/AdminDashboard2'));
 const AdminAnalytics    = React.lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminUsers        = React.lazy(() => import('./pages/admin/AdminUsers'));
 const AdminRewards      = React.lazy(() => import('./pages/admin/AdminRewards'));
@@ -98,7 +98,11 @@ const Spinner: React.FC = () => (
 // ── Helpers ───────────────────────────────────────────────────────────────
 const C: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <MaintenanceGuard>
-    <CustomerRoute><Layout>{children}</Layout></CustomerRoute>
+    <CustomerRoute>
+      <AccountStatusGuard>
+        <Layout>{children}</Layout>
+      </AccountStatusGuard>
+    </CustomerRoute>
   </MaintenanceGuard>
 );
 
@@ -205,10 +209,8 @@ function App() {
 
             {/* Super Admin */}
             <Route path="/admin"                   element={<SA><AdminDashboard /></SA>} />
-            <Route path="/admin/dashboard-v2"      element={<SA><AdminDashboard2 /></SA>} />
             <Route path="/admin/analytics"         element={<SA><AdminAnalytics /></SA>} />
             <Route path="/admin/users"             element={<SA><AdminUsers /></SA>} />
-            <Route path="/admin/users-v2"          element={<SA><AdminUsers /></SA>} />
             <Route path="/admin/rewards"           element={<SA><AdminRewards /></SA>} />
             <Route path="/admin/reward-events"     element={<SA><AdminRewardEvents /></SA>} />
             <Route path="/admin/events"            element={<SA><AdminEvents /></SA>} />

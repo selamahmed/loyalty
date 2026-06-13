@@ -175,12 +175,25 @@ const AdminUsers: React.FC = () => {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, status } : u));
       setSelected(prev => prev?.id === userId ? { ...prev, status } : prev);
       toast('Durum güncellendi');
+      if (status !== 'active') {
+        void broadcastNotification({
+          type: 'system',
+          title: status === 'suspended' ? 'Hesap Askıya Alındı' : 'Hesabınız Yasaklandı',
+          message: status === 'suspended'
+            ? 'Hesabınız geçici olarak askıya alındı. Puan kazanma ve oyunlar devre dışı. Destek ile iletişime geçin.'
+            : 'Hesabınıza erişim kapatıldı. Destek ekibiyle iletişime geçin.',
+          icon: status === 'suspended' ? '⏸️' : '🚫',
+          userIds: [userId],
+        }).catch(() => {});
+      }
       const actionType = status === 'suspended' ? 'account_suspended' : status === 'deleted' ? 'account_deleted' : 'admin_action';
       const actionLabel = status === 'suspended' ? `Kullanıcı askıya alındı: ${target?.username ?? userId}`
         : status === 'deleted' ? `Kullanıcı yasaklandı: ${target?.username ?? userId}`
         : `Kullanıcı aktifleştirildi: ${target?.username ?? userId}`;
       logAdminAction(actionType, actionLabel, { targetUserId: userId, targetUsername: target?.username, newStatus: status }, status === 'deleted' ? 'high' : 'medium');
-    } catch { toast('Hata oluştu'); }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Durum güncellenemedi — patch_account_status.sql çalıştırın');
+    }
     finally { setWorking(false); }
   };
 

@@ -237,18 +237,12 @@ const AdminDailyRewards: React.FC = () => {
           </p>
         </div>
 
-        {/* Reset user state (dev tool) */}
-        <div style={{ borderRadius: 18, border: '2.5px dashed #e5e7eb', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 2px' }}>Kullanıcı Durumunu Sıfırla</p>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Test amaçlı — tarayıcıdaki günlük ödül durumunu siler</p>
-          </div>
-          <button onClick={() => { localStorage.removeItem('nexreward_daily_state'); window.location.reload(); }}
-            style={{ padding: '8px 16px', borderRadius: 12, border: '2.5px solid #ef4444', background: 'rgba(239,68,68,0.08)', fontWeight: 900, fontSize: 12, color: '#ef4444', cursor: 'pointer', boxShadow: '0 3px 0 #dc2626', whiteSpace: 'nowrap' }}
-            onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 #000'; }}
-            onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #dc2626'; }}>
-            Sıfırla
-          </button>
+        {/* Streak is stored in Supabase user_streaks — no local reset */}
+        <div style={{ borderRadius: 18, border: '2.5px dashed #e5e7eb', padding: '14px 20px' }}>
+          <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 2px' }}>Günlük Seri (Supabase)</p>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
+            Kullanıcı serileri artık <code>user_streaks</code> tablosunda tutulur. Test için Admin → Kullanıcılar üzerinden yönetin.
+          </p>
         </div>
 
       </div>

@@ -5,6 +5,8 @@ import { getLeaderboard, type LeaderboardEntry } from '../services/points';
 import { getActiveEvents, type AppEvent, type RewardPrize } from '../services/events';
 import { supabase } from '../lib/supabase';
 import NeoAvatar from '../components/NeoAvatar';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 
 const card = {
   background: 'var(--card-bg)',
@@ -14,8 +16,8 @@ const card = {
 };
 
 /* ── Thin wrapper so the rest of the file uses the same API ── */
-const Avatar: React.FC<{ url: string | null; name: string; size?: number }> = ({ url, name, size = 40 }) => (
-  <NeoAvatar src={url} name={name} size={size} shape="circle" border />
+const Avatar: React.FC<{ url: string | null; name: string; size?: number; border?: string }> = ({ url, name, size = 40, border }) => (
+  <NeoAvatar src={url} name={name} size={size} shape="circle" border={border !== undefined ? Boolean(border) : true} />
 );
 
 const TAB_LABELS: Record<string, string> = { weekly: 'Bu Hafta', monthly: 'Bu Ay', alltime: 'Tüm Zamanlar' };
@@ -407,6 +409,15 @@ const Leaderboard: React.FC = () => {
           }
         `}</style>
 
+        <StickerHero
+          page="leaderboard"
+          bg="linear-gradient(135deg,#f59e0b 0%,#d97706 100%)"
+          badge="👑 LİDERLİK"
+          title="Zirveye çık,"
+          highlight="efsane ol!"
+          accentSeed="lb-hero-accent"
+        />
+
         {/* ── Active events (Supabase) ── */}
         {activeEvents.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -419,12 +430,15 @@ const Leaderboard: React.FC = () => {
           {(['weekly', 'monthly', 'alltime'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               flex: 1, padding: '11px 6px', borderRadius: 12, fontWeight: 900, fontSize: 12,
-              cursor: 'pointer', transition: 'all 0.1s',
+              cursor: 'pointer', transition: 'all 0.1s', position: 'relative',
               background: tab === t ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
               color: tab === t ? 'white' : 'var(--text-dark)',
               border: '3px solid var(--dark-border)',
               boxShadow: tab === t ? '0 5px 0 var(--dark-border)' : '0 4px 0 var(--dark-border)',
-            }}>{TAB_LABELS[t]}</button>
+            }}>
+              {TAB_LABELS[t]}
+              {tab === t && <StickerAccent seed={`lb-tab-${t}`} size={16} rotate={12} style={{ position: 'absolute', top: -5, right: 4 }} />}
+            </button>
           ))}
         </div>
 
@@ -433,8 +447,9 @@ const Leaderboard: React.FC = () => {
           ...card,
           background: 'linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
           border: '3px solid #f59e0b', boxShadow: '0 6px 0 #d97706',
-          padding: 'clamp(16px,4vw,28px)',
+          padding: 'clamp(16px,4vw,28px)', position: 'relative', overflow: 'visible',
         }}>
+          <StickerAccent seed="lb-podium" variant="shape" size={32} rotate={-6} style={{ position: 'absolute', top: -10, right: 12, zIndex: 2 }} />
           <h2 style={{ textAlign: 'center', fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: '0 0 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <Crown size={20} color="#f59e0b" /> Top 3 Şampiyonlar
           </h2>

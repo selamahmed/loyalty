@@ -551,6 +551,22 @@ const AdminSettings: React.FC = () => {
             onChange={v => setLim({ daily_earn_cap: v })}
           />
           <SliderControl
+            label="Günlük XP Tavanı"
+            description="Bir kullanıcının günde kazanabileceği maksimum XP"
+            value={lim.max_daily_xp} min={50} max={5000} step={50} unit="XP/gün"
+            color="#7B6EF6"
+            preview={`İlerleme yolu XP kazanımları bu limite tabidir`}
+            onChange={v => setLim({ max_daily_xp: v })}
+          />
+          <SliderControl
+            label="XP / Puan Oranı"
+            description="Kuralda XP=0 ise: kazanılan XP = puan × oran"
+            value={lim.xp_points_ratio} min={0} max={5} step={0.5} unit="x"
+            color="#a78bfa"
+            preview={`100 puan = ${100 * lim.xp_points_ratio} XP (varsayılan kuralda)`}
+            onChange={v => setLim({ xp_points_ratio: v })}
+          />
+          <SliderControl
             label="Maksimum Bakiye"
             description="Bir hesapta birikebilecek en fazla puan miktarı"
             value={lim.max_balance} min={1000} max={100000} step={1000} unit="puan"

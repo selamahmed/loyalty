@@ -81,6 +81,8 @@ export interface SystemSettings {
   };
   limits: {
     daily_earn_cap: number;
+    max_daily_xp: number;
+    xp_points_ratio: number;
     max_balance: number;
     min_redeem_threshold: number;
     transaction_cooldown_min: number;
@@ -98,7 +100,7 @@ export interface SystemSettings {
 export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   economy: { spend_to_points: 10, points_to_tl: 100, referral_bonus: 250, welcome_bonus: 100 },
   multipliers: { qr_base_points: 75, game_multiplier: 1.5, daily_mission_bonus: 50, streak_bonus: 30 },
-  limits: { daily_earn_cap: 1000, max_balance: 50000, min_redeem_threshold: 500, transaction_cooldown_min: 30 },
+  limits: { daily_earn_cap: 1000, max_daily_xp: 500, xp_points_ratio: 1, max_balance: 50000, min_redeem_threshold: 500, transaction_cooldown_min: 30 },
   flags: {
     qr_enabled: true,
     games_enabled: true,
@@ -147,6 +149,8 @@ export function appSettingsToSystem(rows: AppSetting[]): SystemSettings {
     },
     limits: {
       daily_earn_cap:           parseSettingNumber(map.max_daily_points, d.limits.daily_earn_cap),
+      max_daily_xp:             parseSettingNumber(map.max_daily_xp, d.limits.max_daily_xp),
+      xp_points_ratio:          parseSettingNumber(map.xp_points_ratio, d.limits.xp_points_ratio),
       max_balance:              parseSettingNumber(map.max_balance, d.limits.max_balance),
       min_redeem_threshold:     parseSettingNumber(map.min_redeem_threshold, d.limits.min_redeem_threshold),
       transaction_cooldown_min: parseSettingNumber(map.transaction_cooldown_min, d.limits.transaction_cooldown_min),
@@ -174,6 +178,8 @@ export function systemToAppSettingsPayload(s: SystemSettings): Record<string, un
     daily_login_bonus:        s.multipliers.daily_mission_bonus,
     streak_bonus:             s.multipliers.streak_bonus,
     max_daily_points:         s.limits.daily_earn_cap,
+    max_daily_xp:             s.limits.max_daily_xp,
+    xp_points_ratio:          s.limits.xp_points_ratio,
     max_balance:              s.limits.max_balance,
     min_redeem_threshold:     s.limits.min_redeem_threshold,
     transaction_cooldown_min: s.limits.transaction_cooldown_min,

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Check, Flame, Gift, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
+import { isStreakClaimedToday, nextStreakDay } from '../services/streaks';
 
 /* ─────────────────────────────────────────────
    Shared config type — also used by AdminDailyRewards
@@ -34,30 +36,12 @@ const DAY_THEME = [
 ];
 
 const CONFIG_KEY = 'nexreward_daily_config';
-const STATE_KEY  = 'nexreward_daily_state';
-
-interface DailyState {
-  streakDay: number;
-  lastClaimDate: string | null;
-}
 
 function today() { return new Date().toISOString().slice(0, 10); }
 
 function loadConfig(): DayReward[] {
   try { const r = localStorage.getItem(CONFIG_KEY); if (r) return JSON.parse(r); } catch {}
   return DEFAULT_REWARDS;
-}
-function loadState(): DailyState {
-  try { const r = localStorage.getItem(STATE_KEY); if (r) return JSON.parse(r); } catch {}
-  return { streakDay: 1, lastClaimDate: null };
-}
-function saveState(s: DailyState) { localStorage.setItem(STATE_KEY, JSON.stringify(s)); }
-
-function computeAvailableDay(state: DailyState): { day: number; alreadyClaimed: boolean } {
-  const t = today();
-  if (state.lastClaimDate === t) return { day: state.streakDay === 0 ? 1 : state.streakDay, alreadyClaimed: true };
-  const next = state.streakDay >= 7 ? 1 : (state.streakDay + 1);
-  return { day: state.lastClaimDate === null ? 1 : next, alreadyClaimed: false };
 }
 
 const brutal = {
@@ -136,23 +120,31 @@ const DayCard: React.FC<{ reward: DayReward; status: 'past' | 'today' | 'future'
 
 /* ─── Main Modal ─── */
 export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { addPoints } = useApp() as any;
-  const [rewards]          = useState<DayReward[]>(loadConfig);
-  const [state, setState]  = useState<DailyState>(loadState);
-  const [claimed, setClaimed]     = useState(false);
+  const { earnReward, reloadProfile } = useApp();
+  const { profile } = useAuth();
+  const [rewards] = useState<DayReward[]>(loadConfig);
+  const [claimed, setClaimed] = useState(false);
   const [claimAnim, setClaimAnim] = useState(false);
+  const [earnedPoints, setEarnedPoints] = useState(0);
 
-  const { day: currentDay, alreadyClaimed } = computeAvailableDay(state);
+  const streakInfo = profile ? {
+    current_streak: profile.current_streak,
+    longest_streak: profile.longest_streak,
+    last_claim_date: profile.last_claim_date,
+  } : null;
+
+  const alreadyClaimed = isStreakClaimedToday(streakInfo);
+  const currentDay = alreadyClaimed
+    ? (streakInfo?.current_streak ?? 1)
+    : nextStreakDay(streakInfo);
   const todayReward = rewards.find(r => r.day === currentDay) || rewards[0];
   const theme = DAY_THEME[(todayReward.day - 1) % DAY_THEME.length];
-
-  const streakCount = state.lastClaimDate === today() ? state.streakDay : Math.max(currentDay - 1, 0);
+  const streakCount = streakInfo?.current_streak ?? 0;
 
   const getStatus = (r: DayReward): 'past' | 'today' | 'future' => {
-    const cs = state;
-    if (cs.lastClaimDate === today()) {
-      if (r.day < cs.streakDay) return 'past';
-      if (r.day === cs.streakDay) return 'today';
+    if (alreadyClaimed) {
+      if (r.day < currentDay) return 'past';
+      if (r.day === currentDay) return 'today';
       return 'future';
     }
     if (r.day < currentDay) return 'past';
@@ -162,10 +154,12 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
 
   const handleClaim = () => {
     if (alreadyClaimed || claimed) return;
-    const newState: DailyState = { streakDay: currentDay, lastClaimDate: today() };
-    saveState(newState);
-    setState(newState);
-    if (typeof addPoints === 'function') addPoints(todayReward.points);
+    void earnReward('daily_login').then(result => {
+      if (result) {
+        setEarnedPoints(result.points);
+        void reloadProfile();
+      }
+    });
     setClaimAnim(true);
     setClaimed(true);
     setTimeout(() => setClaimAnim(false), 1000);
@@ -398,7 +392,7 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
               }}
             >
               {claimAnim
-                ? <><Check size={18} strokeWidth={3} /> +{todayReward.points} puan kazandın!</>
+                ? <><Check size={18} strokeWidth={3} /> +{earnedPoints || todayReward.points} puan kazandın!</>
                 : <><Gift size={18} strokeWidth={2.5} /> Ödülü Topla</>
               }
             </button>
@@ -426,11 +420,17 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
 /* ─── Hook ─── */
 export function useDailyReward() {
   const [show, setShow] = useState(false);
+  const { profile } = useAuth();
   useEffect(() => {
     const t = setTimeout(() => {
-      if (loadState().lastClaimDate !== today()) setShow(true);
+      const streakInfo = profile ? {
+        last_claim_date: profile.last_claim_date,
+        current_streak: profile.current_streak,
+        longest_streak: profile.longest_streak,
+      } : null;
+      if (!isStreakClaimedToday(streakInfo)) setShow(true);
     }, 800);
     return () => clearTimeout(t);
-  }, []);
+  }, [profile?.last_claim_date]);
   return { show, setShow };
 }

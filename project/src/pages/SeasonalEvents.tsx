@@ -4,6 +4,8 @@ import { getAllEvents } from '../services/events';
 import type { AppEvent } from '../services/events';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 
 const card = {
   background: 'var(--card-bg)',
@@ -136,8 +138,18 @@ const SeasonalEvents: React.FC = () => {
           </p>
         </div>
 
+        <StickerHero
+          page="events"
+          bg="linear-gradient(135deg,#ec4899 0%,#be185d 100%)"
+          badge="🌟 ETKİNLİK"
+          title="Sınırlı süre"
+          highlight="ödüller kazan!"
+          accentSeed="events-hero-accent"
+        />
+
         {/* How it works */}
-        <div style={{ ...card, padding: '16px 18px' }}>
+        <div style={{ ...card, padding: '16px 18px', position: 'relative', overflow: 'visible' }}>
+          <StickerAccent seed="events-howto" variant="shape" size={28} rotate={-8} style={{ position: 'absolute', top: -8, right: 10, zIndex: 2 }} />
           <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>
             Nasıl çalışır?
           </p>
@@ -182,9 +194,10 @@ const SeasonalEvents: React.FC = () => {
                     background: 'var(--card-bg)',
                     border: `2.5px solid ${selected ? color : 'var(--dark-border)'}`,
                     boxShadow: selected ? `0 5px 0 ${color}` : '0 3px 0 var(--dark-border)',
-                    borderRadius: 16, overflow: 'hidden',
+                    borderRadius: 16, overflow: 'visible', position: 'relative',
                   }}
                 >
+                  {selected && <StickerAccent seed={`event-chip-${event.id}`} size={20} rotate={-8} style={{ position: 'absolute', top: -6, right: 6, zIndex: 3 }} />}
                   <div style={{
                     height: 56, background: color, position: 'relative',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -9,6 +9,8 @@ import { spendPoints as spendPointsService } from '../services/points';
 import type { Reward } from '../services/rewards';
 import { playSound } from '../lib/sounds';
 import { WinningParticles } from '../components/WinningParticles';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 import { activityLogService } from '../lib/activityLogger';
 
 const card = {
@@ -215,12 +217,22 @@ const RewardsShop: React.FC = () => {
           </div>
         </div>
 
+        <StickerHero
+          page="shop"
+          bg="linear-gradient(135deg,#fbbf24 0%,#d97706 100%)"
+          badge="🛍️ MAĞAZA"
+          title="Puanlarınla"
+          highlight="ödül al!"
+          accentSeed="shop-hero-accent"
+        />
+
         {/* ── Balance banner ── */}
         <div style={{
           ...card,
           background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)',
-          padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'hidden',
+          padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'visible',
         }}>
+          <StickerAccent seed="shop-balance" size={36} rotate={-10} style={{ position: 'absolute', top: -8, right: 12, zIndex: 2 }} />
           <div style={{ position: 'absolute', top: -25, right: -25, width: 110, height: 110, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
           <Star size={32} fill="white" color="white" />
           <div style={{ flex: 1 }}>
@@ -272,7 +284,7 @@ const RewardsShop: React.FC = () => {
               style={{
                 display: 'flex', alignItems: 'center', gap: 7,
                 padding: '9px 16px', borderRadius: 12, fontWeight: 900, fontSize: 12,
-                cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', transition: 'all 0.12s',
+                cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', transition: 'all 0.12s', position: 'relative',
                 background: category === cat.id ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
                 color: category === cat.id ? 'white' : 'var(--text-dark)',
                 border: '3px solid var(--dark-border)',
@@ -280,6 +292,7 @@ const RewardsShop: React.FC = () => {
               }}
             >
               <span>{cat.emoji}</span> {cat.label}
+              {category === cat.id && <StickerAccent seed={`shop-cat-${cat.id}`} size={16} rotate={8} style={{ position: 'absolute', top: -5, right: 4 }} />}
             </button>
           ))}
         </div>

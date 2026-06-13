@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { activityLogService } from '../lib/activityLogger';
+import { isRestrictedStatus } from '../services/accountStatus';
+import AuthPageShell from '../components/AuthPageShell';
+import StickerAccent from '../components/StickerAccent';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
@@ -15,7 +18,7 @@ const GoogleIcon = () => (
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, loginWithGoogle, dashboardPath, isAuthenticated, isLoading } = useAuth();
+  const { login, loginWithGoogle, dashboardPath, isAuthenticated, isLoading, profile, role } = useAuth();
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [showPass, setShowPass]   = useState(false);
@@ -35,9 +38,13 @@ const Login: React.FC = () => {
   // If already authenticated (e.g. page refresh), redirect immediately
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
+      if (role === 'customer' && isRestrictedStatus(profile?.status)) {
+        navigate('/home', { replace: true });
+        return;
+      }
       navigate(dashboardPath, { replace: true });
     }
-  }, [isAuthenticated, isLoading, dashboardPath, navigate]);
+  }, [isAuthenticated, isLoading, dashboardPath, navigate, profile?.status, role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +64,9 @@ const Login: React.FC = () => {
     }
     activityLogService.logActivity({
       username: email.split('@')[0], email, role: 'customer',
-      action: 'Kullanıcı giriş yaptı', actionType: 'login',
-      details: { method: 'email' },
+      action: result.restricted ? 'Askıya alınmış hesap girişi' : 'Kullanıcı giriş yaptı',
+      actionType: 'login',
+      details: { method: 'email', restricted: result.restricted ?? false },
     });
     navigate(dashboardPath, { replace: true });
   };
@@ -76,9 +84,9 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen page-container flex items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-4">
-        <div className="card p-8 space-y-6">
+    <AuthPageShell>
+        <div className="card p-8 space-y-6" style={{ position: 'relative', overflow: 'visible' }}>
+          <StickerAccent seed="login-card-accent" variant="shape" size={36} rotate={-10} style={{ position: 'absolute', top: -10, right: -6, zIndex: 2 }} />
 
           {/* Logo */}
           <div className="flex flex-col items-center gap-3">
@@ -207,8 +215,7 @@ const Login: React.FC = () => {
           </button>
         </div>
 
-      </div>
-    </div>
+    </AuthPageShell>
   );
 };
 

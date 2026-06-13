@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Search, ChevronRight, ChevronDown, Clock } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import InventoryDetailModal from '../components/InventoryDetailModal';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 import { playSound } from '../lib/sounds';
 
 const card = {
@@ -176,6 +178,15 @@ const Inventory: React.FC = () => {
           </p>
         </div>
 
+        <StickerHero
+          page="inventory"
+          bg="linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%)"
+          badge="🎫 ENVANTER"
+          title="Biletlerin"
+          highlight="burada!"
+          accentSeed="inv-hero-accent"
+        />
+
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
           {[
@@ -242,9 +253,10 @@ const Inventory: React.FC = () => {
                     background: on ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'transparent',
                     color: on ? 'white' : 'var(--text-muted)',
                     fontWeight: 900, fontSize: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                    transition: 'all 0.15s',
+                    transition: 'all 0.15s', position: 'relative',
                   }}
                 >
+                  {on && <StickerAccent seed={`inv-tab-${tab.id}`} size={14} rotate={10} style={{ position: 'absolute', top: -4, right: 2 }} />}
                   <span style={{ fontSize: 14 }}>{tab.emoji}</span>
                   <span>{tab.label}</span>
                   {counts[tab.id as keyof typeof counts] > 0 && (

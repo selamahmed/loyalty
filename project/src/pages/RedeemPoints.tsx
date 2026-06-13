@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Star, Check, X, Gift, Tag, ArrowRight, AlertCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../lib/tr';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 
 const conversionOptions = [
   { id: '1', label: '$5 Gift Card', points: 500, value: '$5.00', icon: '💳' },
@@ -131,6 +133,15 @@ const RedeemPoints: React.FC = () => {
         />
       )}
 
+      <StickerHero
+        page="redeem"
+        bg="linear-gradient(135deg,#f59e0b 0%,#d97706 100%)"
+        badge="⭐ PUAN"
+        title="Puanlarını"
+        highlight="dönüştür!"
+        accentSeed="redeem-hero-accent"
+      />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black text-gray-900 dark:text-white">Redeem Points</h1>
         <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border-2 border-amber-200 dark:border-amber-700">
@@ -150,7 +161,9 @@ const RedeemPoints: React.FC = () => {
                 key={opt.id}
                 onClick={() => setSelected(opt)}
                 className={`card p-4 text-left transition-all duration-200 hover:shadow-md active:scale-[0.98] ${!canAfford ? 'opacity-60' : 'hover:scale-[1.01]'}`}
+                style={{ position: 'relative', overflow: 'visible' }}
               >
+                <StickerAccent seed={`redeem-opt-${opt.id}`} size={20} rotate={-8} style={{ position: 'absolute', top: -6, right: 8 }} />
                 <div className="flex items-center gap-3">
                   <div className="text-3xl w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                     {opt.icon}

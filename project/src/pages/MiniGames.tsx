@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Gamepad2, Star, Trophy, X, RotateCcw, Play, Zap } from 'lucide-react';
+import { Gamepad2, Star, Trophy, X, RotateCcw, Play } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { tr } from '../lib/tr';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 
 // --- Spin Wheel Game ---
 const wheelSegments = [
@@ -15,7 +18,7 @@ const wheelSegments = [
   { label: '200 pts', value: 200, color: '#ec4899' },
 ];
 
-const SpinWheel: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
+const SpinWheel: React.FC<{ onWin: () => void }> = ({ onWin }) => {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<number | null>(null);
@@ -32,7 +35,7 @@ const SpinWheel: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
     setTimeout(() => {
       setSpinning(false);
       setResult(wheelSegments[segIdx].value);
-      if (wheelSegments[segIdx].value > 0) onWin(wheelSegments[segIdx].value);
+      if (wheelSegments[segIdx].value > 0) onWin();
       setCanSpin(false);
     }, 3000);
   };
@@ -98,7 +101,7 @@ const SpinWheel: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
 
 // --- Memory Game ---
 const memoryCards = ['🎮', '⭐', '🏆', '🎁', '🔥', '💎', '🎯', '🚀'];
-const MemoryGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
+const MemoryGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
   const [cards, setCards] = useState<{ id: number; emoji: string; flipped: boolean; matched: boolean }[]>([]);
   const [flipped, setFlipped] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
@@ -138,7 +141,7 @@ const MemoryGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
           if (matched.every(c => c.matched)) {
             setWon(true);
             const pts = Math.max(50, 200 - moves * 5);
-            onWin(pts);
+            onWin();
           }
         } else {
           setCards(prev => prev.map(c => newFlipped.includes(c.id) ? { ...c, flipped: false } : c));
@@ -179,92 +182,10 @@ const MemoryGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
   );
 };
 
-// --- Quiz Game ---
-const quizQuestions = [
-  { q: 'How many points for a daily login?', options: ['5', '10', '20', '50'], answer: 2 },
-  { q: 'What level is "Champion"?', options: ['4', '6', '8', '10'], answer: 1 },
-  { q: 'Which feature earns the most points per scan?', options: ['Daily login', 'QR Code', 'Profile update', 'Browse shop'], answer: 1 },
-  { q: 'How many days for the "Week Warrior" streak?', options: ['3', '5', '7', '14'], answer: 2 },
-  { q: 'What rarity is the "Legend" achievement?', options: ['Common', 'Rare', 'Epic', 'Legendary'], answer: 3 },
-];
 
-const QuizGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
-  const [qIdx, setQIdx] = useState(0);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const [done, setDone] = useState(false);
-  const [answered, setAnswered] = useState(false);
-
-  const reset = () => { setQIdx(0); setSelected(null); setScore(0); setDone(false); setAnswered(false); };
-
-  const handleAnswer = (idx: number) => {
-    if (answered) return;
-    setSelected(idx);
-    setAnswered(true);
-    const correct = idx === quizQuestions[qIdx].answer;
-    if (correct) setScore(s => s + 1);
-    setTimeout(() => {
-      if (qIdx + 1 >= quizQuestions.length) {
-        setDone(true);
-        const pts = (score + (correct ? 1 : 0)) * 25;
-        onWin(pts);
-      } else {
-        setQIdx(q => q + 1);
-        setSelected(null);
-        setAnswered(false);
-      }
-    }, 1000);
-  };
-
-  const q = quizQuestions[qIdx];
-
-  return (
-    <div className="space-y-4 max-w-sm mx-auto">
-      {done ? (
-        <div className="text-center space-y-4">
-          <div className="text-5xl">🧠</div>
-          <h3 className="font-black text-2xl text-gray-900 dark:text-white">{score}/{quizQuestions.length} Correct!</h3>
-          <p className="text-gray-500">You earned <span className="font-black text-amber-500">{score * 25} points</span></p>
-          <button onClick={reset} className="btn-primary px-8">Play Again</button>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-gray-500">Q {qIdx + 1}/{quizQuestions.length}</span>
-            <span className="badge bg-[#7B6EF6]/10 dark:bg-[#4F8EF7]/20 text-[#7B6EF6] dark:text-[#4F8EF7]">Score: {score}</span>
-          </div>
-          <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full">
-            <div className="h-full bg-[#7B6EF6] dark:bg-[#4F8EF7] rounded-full transition-all" style={{ width: `${(qIdx / quizQuestions.length) * 100}%` }} />
-          </div>
-          <div className="card p-4">
-            <p className="font-bold text-gray-900 dark:text-white">{q.q}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {q.options.map((opt, i) => (
-              <button
-                key={i}
-                onClick={() => handleAnswer(i)}
-                className={`p-3 rounded-2xl border-2 font-medium text-sm transition-all ${
-                  !answered ? 'bg-white dark:bg-gray-800 border-black dark:border-gray-600 hover:bg-[#7B6EF6]/10 dark:hover:bg-[#4F8EF7]/20'
-                  : i === q.answer ? 'bg-green-100 dark:bg-green-900/30 border-green-500 text-green-700 dark:text-green-300'
-                  : i === selected && selected !== q.answer ? 'bg-red-100 dark:bg-red-900/30 border-red-500 text-red-700 dark:text-red-300'
-                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400'
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-// --- Cup Catch Game ---
 type FallingItem = { id: number; x: number; y: number; type: 'gift' | 'star' | 'bomb' };
 
-const CatchGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
+const CatchGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'done'>('idle');
   const [displayItems, setDisplayItems] = useState<FallingItem[]>([]);
   const [displayScore, setDisplayScore] = useState(0);
@@ -362,7 +283,7 @@ const CatchGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
         activeRef.current = false;
         clearInterval(spawnId); clearInterval(loopId); clearInterval(timerId);
         setGameState('done');
-        onWin(Math.max(0, scoreRef.current) * 5);
+        onWin();
       }
     }, 1000);
 
@@ -506,142 +427,199 @@ const CatchGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
   );
 };
 
-// --- Flappy Bird Style Game ---
-const FlappyGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
-  const [active, setActive] = useState(false);
-  const [birdY, setBirdY] = useState(150);
-  const [score, setScore] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
-  const [pipes, setPipes] = useState<{ id: number; x: number; gapY: number }[]>([]);
-  const nextId = useRef(0);
+// --- Flappy Bird Style Game (fixed physics & collision) ---
+const FLAPPY_W = 320;
+const FLAPPY_H = 320;
+const FLAPPY_BIRD_X = 64;
+const FLAPPY_PIPE_W = 52;
+const FLAPPY_GAP = 92;
+
+const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
+  const [phase, setPhase] = useState<'idle' | 'playing' | 'over'>('idle');
+  const [renderTick, setRenderTick] = useState(0);
+  const [displayScore, setDisplayScore] = useState(0);
+
+  const birdRef = useRef({ y: FLAPPY_H / 2 - 20, vy: 0 });
+  const pipesRef = useRef<{ id: number; x: number; gapY: number; passed: boolean }[]>([]);
+  const scoreRef = useRef(0);
+  const nextIdRef = useRef(0);
+  const activeRef = useRef(false);
+  const awardedRef = useRef(false);
 
   const start = () => {
-    setBirdY(150);
-    setScore(0);
-    setGameOver(false);
-    setPipes([]);
-    setActive(true);
-    nextId.current = 0;
+    birdRef.current = { y: FLAPPY_H / 2 - 20, vy: 0 };
+    pipesRef.current = [];
+    scoreRef.current = 0;
+    nextIdRef.current = 0;
+    awardedRef.current = false;
+    setDisplayScore(0);
+    setPhase('playing');
+    activeRef.current = true;
+    setRenderTick(t => t + 1);
   };
 
+  const flap = () => {
+    if (phase !== 'playing') return;
+    birdRef.current.vy = -6.5;
+  };
+
+  const endGame = useCallback(() => {
+    if (!activeRef.current) return;
+    activeRef.current = false;
+    setPhase('over');
+    if (!awardedRef.current) {
+      awardedRef.current = true;
+      onWin();
+    }
+  }, [onWin]);
+
   useEffect(() => {
-    if (!active || gameOver) return;
+    if (phase !== 'playing') return;
 
-    // Gravity
-    const gravityInterval = setInterval(() => {
-      setBirdY(prev => Math.min(280, prev + 5));
-    }, 50);
+    let spawnTimer = 0;
+    const loop = setInterval(() => {
+      if (!activeRef.current) return;
 
-    // Pipe generation
-    const pipeInterval = setInterval(() => {
-      const gapY = Math.random() * 120 + 40;
-      setPipes(prev => [...prev, { id: nextId.current++, x: 400, gapY }]);
-    }, 2500);
+      const bird = birdRef.current;
+      bird.vy = Math.min(bird.vy + 0.38, 8);
+      bird.y += bird.vy;
 
-    // Pipe movement
-    const moveInterval = setInterval(() => {
-      setPipes(prev => {
-        const updated = prev
-          .map(p => ({ ...p, x: p.x - 6 }))
-          .filter(p => p.x > -40);
+      spawnTimer += 1;
+      if (spawnTimer >= 55) {
+        spawnTimer = 0;
+        const gapY = 50 + Math.random() * (FLAPPY_H - FLAPPY_GAP - 100);
+        pipesRef.current.push({ id: nextIdRef.current++, x: FLAPPY_W + 10, gapY, passed: false });
+      }
 
-        updated.forEach(p => {
-          if (p.x === 0) setScore(s => s + 1);
-          if (p.x < 50 && p.x > -40) {
-            if (birdY < p.gapY || birdY > p.gapY + 80) {
-              setGameOver(true);
-              setActive(false);
-            }
+      pipesRef.current = pipesRef.current
+        .map(p => {
+          const x = p.x - 3.2;
+          let passed = p.passed;
+          if (!passed && x + FLAPPY_PIPE_W < FLAPPY_BIRD_X) {
+            passed = true;
+            scoreRef.current += 1;
+            setDisplayScore(scoreRef.current);
           }
-        });
-        if (birdY > 280) {
-          setGameOver(true);
-          setActive(false);
+          return { ...p, x, passed };
+        })
+        .filter(p => p.x > -FLAPPY_PIPE_W - 10);
+
+      const birdTop = bird.y;
+      const birdBottom = bird.y + 28;
+      const birdLeft = FLAPPY_BIRD_X;
+      const birdRight = FLAPPY_BIRD_X + 32;
+
+      if (birdBottom >= FLAPPY_H - 8 || birdTop <= 0) {
+        endGame();
+        return;
+      }
+
+      for (const p of pipesRef.current) {
+        const pipeLeft = p.x;
+        const pipeRight = p.x + FLAPPY_PIPE_W;
+        const gapTop = p.gapY;
+        const gapBottom = p.gapY + FLAPPY_GAP;
+
+        const overlapX = birdRight > pipeLeft + 4 && birdLeft < pipeRight - 4;
+        if (overlapX && (birdTop < gapTop || birdBottom > gapBottom)) {
+          endGame();
+          return;
         }
-        return updated;
-      });
-    }, 40);
+      }
 
-    return () => {
-      clearInterval(gravityInterval);
-      clearInterval(pipeInterval);
-      clearInterval(moveInterval);
-    };
-  }, [active, gameOver, birdY]);
+      setRenderTick(t => t + 1);
+    }, 1000 / 60);
 
-  useEffect(() => {
-    if (gameOver) onWin(score * 10);
-  }, [gameOver, score, onWin]);
+    return () => clearInterval(loop);
+  }, [phase, endGame]);
 
-  const flap = () => setBirdY(prev => Math.max(0, prev - 60));
+  void renderTick;
+
+  const pipes = pipesRef.current;
+  const birdY = birdRef.current.y;
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {!active && !gameOver && (
+      {phase === 'idle' && (
         <div className="text-center space-y-3">
           <div className="text-5xl animate-float">🐦</div>
           <p style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Tıkla ve uç! Borulardan kaç!</p>
           <button onClick={start} className="btn-primary px-8">Oyunu Başlat</button>
         </div>
       )}
-      {gameOver && (
+      {phase === 'over' && (
         <div className="text-center space-y-3">
           <div className="text-5xl">💥</div>
-          <p style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)' }}>Skor: {score}</p>
-          <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Kazanıldı: <span style={{ fontWeight: 900, color: '#f59e0b' }}>{score * 10} puan</span></p>
+          <p style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)' }}>Skor: {displayScore}</p>
+          <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Kazanıldı: <span style={{ fontWeight: 900, color: '#f59e0b' }}>{displayScore * 10} puan</span></p>
           <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>
         </div>
       )}
-      {active && (
+      {phase === 'playing' && (
         <div className="w-full max-w-xs">
-          <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 900, color: 'var(--text-dark)' }}>Skor: {score}</div>
-          <button
+          <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 900, color: 'var(--text-dark)' }}>Skor: {displayScore}</div>
+          <div
+            role="button"
+            tabIndex={0}
             onClick={flap}
+            onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') flap(); }}
             style={{
-              position: 'relative', width: '100%', height: 320,
-              background: 'var(--card-bg)',
+              position: 'relative', width: FLAPPY_W, height: FLAPPY_H, maxWidth: '100%',
+              margin: '0 auto',
+              background: 'linear-gradient(180deg, #87CEEB 0%, #E0F4FF 70%, #90EE90 100%)',
               border: '3px solid var(--dark-border)',
               boxShadow: '5px 5px 0 var(--dark-border)',
-              borderRadius: 18, overflow: 'hidden', display: 'block', cursor: 'pointer',
+              borderRadius: 18, overflow: 'hidden', cursor: 'pointer', userSelect: 'none',
             }}
           >
-            {/* Grid bg */}
-            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.06 }} xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="fgrid" width="28" height="28" patternUnits="userSpaceOnUse">
-                  <path d="M 28 0 L 0 0 0 28" fill="none" stroke="currentColor" strokeWidth="1"/>
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#fgrid)"/>
-            </svg>
-            {/* Bird */}
-            <div
-              style={{ position: 'absolute', left: 32, fontSize: 28, lineHeight: 1, top: `${birdY}px`, transition: 'top 0.05s' }}
-            >
-              🐦
-            </div>
+            {/* Clouds */}
+            <div style={{ position: 'absolute', top: 24, left: 40, fontSize: 28, opacity: 0.7 }}>☁️</div>
+            <div style={{ position: 'absolute', top: 48, right: 30, fontSize: 22, opacity: 0.5 }}>☁️</div>
 
             {/* Pipes */}
-            {pipes.map(pipe => (
-              <div key={pipe.id} style={{
-                position: 'absolute', top: 0, width: 44,
-                background: '#22c55e', border: '3px solid #000',
-                boxShadow: '3px 0 0 #000',
-                left: `${pipe.x}px`, height: `${pipe.gapY}px`,
-              }} />
-            ))}
-            {pipes.map(pipe => (
-              <div key={`bottom-${pipe.id}`} style={{
-                position: 'absolute', bottom: 0, width: 44,
-                background: '#22c55e', border: '3px solid #000',
-                boxShadow: '3px 0 0 #000',
-                left: `${pipe.x}px`, height: `${280 - pipe.gapY - 80}px`,
-              }} />
+            {pipes.map(p => (
+              <React.Fragment key={p.id}>
+                <div style={{
+                  position: 'absolute', left: p.x, top: 0, width: FLAPPY_PIPE_W, height: p.gapY,
+                  background: 'linear-gradient(90deg, #16a34a, #22c55e)',
+                  border: '3px solid #000', borderBottom: 'none',
+                  boxShadow: 'inset -4px 0 0 rgba(0,0,0,0.15)',
+                }}>
+                  <div style={{ position: 'absolute', bottom: -8, left: -4, right: -4, height: 14, background: '#15803d', border: '3px solid #000', borderRadius: 4 }} />
+                </div>
+                <div style={{
+                  position: 'absolute', left: p.x, top: p.gapY + FLAPPY_GAP, width: FLAPPY_PIPE_W,
+                  height: FLAPPY_H - p.gapY - FLAPPY_GAP,
+                  background: 'linear-gradient(90deg, #16a34a, #22c55e)',
+                  border: '3px solid #000', borderTop: 'none',
+                }}>
+                  <div style={{ position: 'absolute', top: -8, left: -4, right: -4, height: 14, background: '#15803d', border: '3px solid #000', borderRadius: 4 }} />
+                </div>
+              </React.Fragment>
             ))}
 
-            {/* Ground line */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'var(--dark-border)' }} />
-          </button>
+            {/* Bird SVG */}
+            <div style={{
+              position: 'absolute', left: FLAPPY_BIRD_X, top: birdY,
+              width: 36, height: 28, transform: `rotate(${Math.max(-25, Math.min(35, birdRef.current.vy * 3))}deg)`,
+              transition: 'transform 0.08s',
+            }}>
+              <svg viewBox="0 0 36 28" width="36" height="28">
+                <ellipse cx="16" cy="14" rx="14" ry="11" fill="#FFE500" stroke="#000" strokeWidth="2.5" />
+                <circle cx="22" cy="10" r="3.5" fill="#fff" stroke="#000" strokeWidth="1.5" />
+                <circle cx="23" cy="10" r="1.5" fill="#000" />
+                <polygon points="28,12 36,14 28,16" fill="#FF6B00" stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
+                <ellipse cx="10" cy="18" rx="7" ry="4" fill="#f59e0b" stroke="#000" strokeWidth="1.5" />
+              </svg>
+            </div>
+
+            {/* Ground */}
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0, height: 28,
+              background: 'linear-gradient(180deg, #84cc16, #65a30d)',
+              borderTop: '3px solid #000',
+            }} />
+          </div>
           <p style={{ textAlign: 'center', marginTop: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>Uçmak için tıkla</p>
         </div>
       )}
@@ -649,80 +627,198 @@ const FlappyGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
   );
 };
 
-// --- Snake Game ---
-const SnakeGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
-  const [active, setActive] = useState(false);
-  const [snake, setSnake] = useState<[number, number][]>([[5, 5]]);
-  const [food, setFood] = useState<[number, number]>([10, 10]);
-  const [direction, setDirection] = useState<[number, number]>([1, 0]);
+// --- Snake Game (canvas + cached background) ---
+const SNAKE_GRID = 15;
+const SNAKE_CELL = 18;
+const SNAKE_TICK_MS = 160;
+const SNAKE_BOARD = SNAKE_GRID * SNAKE_CELL;
+
+let snakeBgCanvas: HTMLCanvasElement | null = null;
+
+function getSnakeBgCanvas(): HTMLCanvasElement {
+  if (snakeBgCanvas) return snakeBgCanvas;
+  const canvas = document.createElement('canvas');
+  canvas.width = SNAKE_BOARD;
+  canvas.height = SNAKE_BOARD;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  const bg = ctx.createRadialGradient(SNAKE_BOARD * 0.3, SNAKE_BOARD * 0.3, 0, SNAKE_BOARD * 0.5, SNAKE_BOARD * 0.5, SNAKE_BOARD * 0.7);
+  bg.addColorStop(0, '#1a3a2a');
+  bg.addColorStop(1, '#0c1a12');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, SNAKE_BOARD, SNAKE_BOARD);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  for (let y = 0; y < SNAKE_GRID; y += 1) {
+    for (let x = 0; x < SNAKE_GRID; x += 1) {
+      ctx.fillRect(x * SNAKE_CELL + SNAKE_CELL / 2 - 1, y * SNAKE_CELL + SNAKE_CELL / 2 - 1, 2, 2);
+    }
+  }
+
+  snakeBgCanvas = canvas;
+  return canvas;
+}
+
+function randomFood(snake: [number, number][]): [number, number] {
+  let pos: [number, number];
+  do {
+    pos = [Math.floor(Math.random() * SNAKE_GRID), Math.floor(Math.random() * SNAKE_GRID)];
+  } while (snake.some(s => s[0] === pos[0] && s[1] === pos[1]));
+  return pos;
+}
+
+type SnakeGameState = {
+  snake: [number, number][];
+  food: [number, number];
+  dir: [number, number];
+  nextDir: [number, number];
+  score: number;
+  awarded: boolean;
+};
+
+function drawSnakeBoard(ctx: CanvasRenderingContext2D, g: SnakeGameState) {
+  ctx.drawImage(getSnakeBgCanvas(), 0, 0);
+
+  const fx = g.food[0] * SNAKE_CELL + SNAKE_CELL / 2;
+  const fy = g.food[1] * SNAKE_CELL + SNAKE_CELL / 2;
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.arc(fx, fy, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#166534';
+  ctx.beginPath();
+  ctx.arc(fx - 2, fy - 3, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  for (let i = g.snake.length - 1; i >= 0; i -= 1) {
+    const seg = g.snake[i];
+    const isHead = i === 0;
+    const pad = isHead ? 1 : 2;
+    const size = SNAKE_CELL - pad * 2;
+    const x = seg[0] * SNAKE_CELL + pad;
+    const y = seg[1] * SNAKE_CELL + pad;
+
+    ctx.fillStyle = isHead ? '#22c55e' : i % 2 ? '#15803d' : '#16a34a';
+    ctx.fillRect(x, y, size, size);
+
+    if (isHead) {
+      const cx = x + size / 2;
+      const cy = y + size / 2;
+      const ex = g.dir[0] * 3;
+      const ey = g.dir[1] * 3;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(cx + ex - 4, cy + ey - 2, 3, 3);
+      ctx.fillRect(cx + ex + 1, cy + ey - 2, 3, 3);
+    }
+  }
+}
+
+const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [phase, setPhase] = useState<'idle' | 'playing' | 'over'>('idle');
   const [score, setScore] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
-  const dirRef = useRef<[number, number]>([1, 0]);
+  const gameRef = useRef<SnakeGameState>({
+    snake: [[7, 7], [6, 7], [5, 7]],
+    food: [10, 7],
+    dir: [1, 0],
+    nextDir: [1, 0],
+    score: 0,
+    awarded: false,
+  });
 
-  const start = () => {
-    setSnake([[5, 5]]);
-    setFood([10, 10]);
-    setDirection([1, 0]);
+  const changeDirection = useCallback((dir: [number, number]) => {
+    const cur = gameRef.current.dir;
+    if (dir[0] !== 0 && cur[0] === 0) gameRef.current.nextDir = dir;
+    if (dir[1] !== 0 && cur[1] === 0) gameRef.current.nextDir = dir;
+  }, []);
+
+  const start = useCallback(() => {
+    const initial: [number, number][] = [[7, 7], [6, 7], [5, 7]];
+    gameRef.current = {
+      snake: initial,
+      food: randomFood(initial),
+      dir: [1, 0],
+      nextDir: [1, 0],
+      score: 0,
+      awarded: false,
+    };
     setScore(0);
-    setGameOver(false);
-    setActive(true);
-    dirRef.current = [1, 0];
-  };
-
-  const changeDirection = (dir: [number, number]) => {
-    if (dir[0] !== 0 && dirRef.current[0] === 0) dirRef.current = dir;
-    if (dir[1] !== 0 && dirRef.current[1] === 0) dirRef.current = dir;
-  };
+    setPhase('playing');
+  }, []);
 
   useEffect(() => {
-    if (!active || gameOver) return;
+    if (phase !== 'playing') return;
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp' && dirRef.current[1] === 0) { dirRef.current = [0, -1]; e.preventDefault(); }
-      if (e.key === 'ArrowDown' && dirRef.current[1] === 0) { dirRef.current = [0, 1]; e.preventDefault(); }
-      if (e.key === 'ArrowLeft' && dirRef.current[0] === 0) { dirRef.current = [-1, 0]; e.preventDefault(); }
-      if (e.key === 'ArrowRight' && dirRef.current[0] === 0) { dirRef.current = [1, 0]; e.preventDefault(); }
+      if (e.key === 'ArrowUp')    changeDirection([0, -1]);
+      if (e.key === 'ArrowDown')  changeDirection([0, 1]);
+      if (e.key === 'ArrowLeft')  changeDirection([-1, 0]);
+      if (e.key === 'ArrowRight') changeDirection([1, 0]);
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
     };
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [active, gameOver]);
+  }, [phase, changeDirection]);
 
   useEffect(() => {
-    if (!active || gameOver) return;
-    const interval = setInterval(() => {
-      setSnake(prev => {
-        const head: [number, number] = [prev[0][0] + dirRef.current[0], prev[0][1] + dirRef.current[1]];
-        if (head[0] < 0 || head[0] >= 15 || head[1] < 0 || head[1] >= 15 || prev.some(s => s[0] === head[0] && s[1] === head[1])) {
-          setGameOver(true);
-          setActive(false);
-          return prev;
-        }
-        let newSnake = [head, ...prev];
-        if (head[0] === food[0] && head[1] === food[1]) {
-          setFood([Math.floor(Math.random() * 15), Math.floor(Math.random() * 15)]);
-          setScore(s => s + 1);
-        } else {
-          newSnake = newSnake.slice(0, -1);
-        }
-        return newSnake;
-      });
-    }, 200);
-    return () => clearInterval(interval);
-  }, [active, gameOver, food]);
+    if (phase !== 'playing') return;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!ctx) return;
+
+    drawSnakeBoard(ctx, gameRef.current);
+
+    const id = window.setInterval(() => {
+      const g = gameRef.current;
+      g.dir = g.nextDir;
+      const dir = g.dir;
+      const head: [number, number] = [g.snake[0][0] + dir[0], g.snake[0][1] + dir[1]];
+
+      if (head[0] < 0 || head[0] >= SNAKE_GRID || head[1] < 0 || head[1] >= SNAKE_GRID) {
+        window.clearInterval(id);
+        setPhase('over');
+        return;
+      }
+      if (g.snake.some(s => s[0] === head[0] && s[1] === head[1])) {
+        window.clearInterval(id);
+        setPhase('over');
+        return;
+      }
+
+      let next = [head, ...g.snake] as [number, number][];
+      if (head[0] === g.food[0] && head[1] === g.food[1]) {
+        g.food = randomFood(next);
+        g.score += 1;
+        setScore(g.score);
+      } else {
+        next = next.slice(0, -1);
+      }
+      g.snake = next;
+      drawSnakeBoard(ctx, g);
+    }, SNAKE_TICK_MS);
+
+    return () => window.clearInterval(id);
+  }, [phase]);
 
   useEffect(() => {
-    if (gameOver) onWin(score * 15);
-  }, [gameOver, score, onWin]);
+    if (phase === 'over' && !gameRef.current.awarded) {
+      gameRef.current.awarded = true;
+      onWin();
+    }
+  }, [phase, onWin]);
+
+  const boardSize = SNAKE_BOARD;
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {!active && !gameOver && (
+      {phase === 'idle' && (
         <div className="text-center space-y-3">
           <div className="text-5xl animate-float">🐍</div>
-          <p style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Yön tuşları veya butonlarla hareket et</p>
+          <p style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Elmayı ye, büyü, duvara çarpma!</p>
           <button onClick={start} className="btn-primary px-8">Oyunu Başlat</button>
         </div>
       )}
-      {gameOver && (
+      {phase === 'over' && (
         <div className="text-center space-y-3">
           <div className="text-5xl">💀</div>
           <p style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)' }}>Skor: {score}</p>
@@ -730,76 +826,29 @@ const SnakeGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
           <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>
         </div>
       )}
-      {active && (
+      {phase === 'playing' && (
         <div className="w-full max-w-xs space-y-4">
           <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 900, color: 'var(--text-dark)' }}>Skor: {score}</div>
-          <div style={{
-            display: 'grid', gap: 2, padding: 8, borderRadius: 18, border: '3px solid var(--dark-border)',
-            boxShadow: '4px 4px 0 var(--dark-border)', background: '#0c1220', margin: '0 auto',
-            gridTemplateColumns: 'repeat(15, 1fr)', maxWidth: '240px',
-          }}>
-            {Array.from({ length: 15 * 15 }).map((_, i) => {
-              const x = i % 15;
-              const y = Math.floor(i / 15);
-              const isSnake = snake.some(s => s[0] === x && s[1] === y);
-              const isFood = food[0] === x && food[1] === y;
-              const isHead = snake[0][0] === x && snake[0][1] === y;
-              return (
-                <div
-                  key={i}
-                  style={{
-                    width: 12, height: 12, borderRadius: 2,
-                    background: isHead ? '#4ade80' : isSnake ? '#22c55e' : isFood ? '#ef4444' : '#1e2a3a',
-                    transition: 'background 0.08s',
-                  }}
-                />
-              );
-            })}
-          </div>
+          <canvas
+            ref={canvasRef}
+            width={boardSize}
+            height={boardSize}
+            style={{
+              display: 'block',
+              margin: '0 auto',
+              borderRadius: 18,
+              border: '3px solid var(--dark-border)',
+              boxShadow: '4px 4px 0 var(--dark-border)',
+            }}
+          />
 
-          {/* Touch Controls for Mobile */}
+          {/* Touch controls */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <button
-              onClick={() => changeDirection([0, -1])}
-              style={{
-                width: 52, height: 52, borderRadius: 14,
-                background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)',
-                boxShadow: '0 4px 0 var(--dark-border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 22, fontWeight: 900, cursor: 'pointer',
-              }}
-            >▲</button>
+            <button type="button" onClick={() => changeDirection([0, -1])} style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', fontSize: 22, fontWeight: 900, cursor: 'pointer' }}>▲</button>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                onClick={() => changeDirection([-1, 0])}
-                style={{
-                  width: 52, height: 52, borderRadius: 14,
-                  background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)',
-                  boxShadow: '0 4px 0 var(--dark-border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 22, fontWeight: 900, cursor: 'pointer',
-                }}
-              >◀</button>
-              <button
-                onClick={() => changeDirection([0, 1])}
-                style={{
-                  width: 52, height: 52, borderRadius: 14,
-                  background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)',
-                  boxShadow: '0 4px 0 var(--dark-border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 22, fontWeight: 900, cursor: 'pointer',
-                }}
-              >▼</button>
-              <button
-                onClick={() => changeDirection([1, 0])}
-                style={{
-                  width: 52, height: 52, borderRadius: 14,
-                  background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)',
-                  boxShadow: '0 4px 0 var(--dark-border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 22, fontWeight: 900, cursor: 'pointer',
-                }}
-              >▶</button>
+              <button type="button" onClick={() => changeDirection([-1, 0])} style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', fontSize: 22, fontWeight: 900, cursor: 'pointer' }}>◀</button>
+              <button type="button" onClick={() => changeDirection([0, 1])} style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', fontSize: 22, fontWeight: 900, cursor: 'pointer' }}>▼</button>
+              <button type="button" onClick={() => changeDirection([1, 0])} style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', fontSize: 22, fontWeight: 900, cursor: 'pointer' }}>▶</button>
             </div>
           </div>
         </div>
@@ -808,280 +857,26 @@ const SnakeGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
   );
 };
 
-// --- Tap Rhythm Game ---
-const TapRhythmGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
-  const [active, setActive] = useState(false);
-  const [hits, setHits] = useState(0);
-  const [misses, setMisses] = useState(0);
-  const [finished, setFinished] = useState(false);
-  const [targetY, setTargetY] = useState(250);
-  const [timeLeft, setTimeLeft] = useState(15);
-
-  const start = () => {
-    setHits(0);
-    setMisses(0);
-    setFinished(false);
-    setTimeLeft(15);
-    setActive(true);
-  };
-
-  useEffect(() => {
-    if (!active) return;
-    const targetInterval = setInterval(() => {
-      setTargetY(prev => prev - 15);
-    }, 50);
-
-    const checkInterval = setInterval(() => {
-      setTargetY(prev => {
-        if (prev < 0) {
-          setMisses(m => m + 1);
-          return 250;
-        }
-        return prev;
-      });
-    }, 100);
-
-    const timerInterval = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) {
-          setActive(false);
-          setFinished(true);
-          clearInterval(targetInterval);
-          clearInterval(checkInterval);
-          clearInterval(timerInterval);
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-
-    return () => {
-      clearInterval(targetInterval);
-      clearInterval(checkInterval);
-      clearInterval(timerInterval);
-    };
-  }, [active]);
-
-  useEffect(() => {
-    if (finished) onWin(Math.max(0, (hits - misses) * 8));
-  }, [finished, hits, misses, onWin]);
-
-  const tap = () => {
-    if (targetY > 120 && targetY < 160) {
-      setHits(h => h + 1);
-      setTargetY(250);
-    } else {
-      setMisses(m => m + 1);
-    }
-  };
-
-  return (
-    <div className="flex flex-col items-center gap-4">
-      {!active && !finished && (
-        <div className="text-center space-y-3">
-          <div className="text-5xl animate-float">🎵</div>
-          <p className="font-bold text-gray-700 dark:text-gray-300">Tap when the circle hits the line!</p>
-          <button onClick={start} className="btn-primary px-8">Start Game</button>
-        </div>
-      )}
-      {finished && (
-        <div className="text-center space-y-3">
-          <div className="text-5xl">🎶</div>
-          <p className="font-black text-2xl text-gray-900 dark:text-white">{hits} Hits!</p>
-          <p className="text-gray-500">Earned <span className="font-black text-amber-500">{Math.max(0, (hits - misses) * 8)} points</span></p>
-          <button onClick={start} className="btn-primary px-8">Play Again</button>
-        </div>
-      )}
-      {active && (
-        <div className="w-full max-w-xs">
-          <div className="flex justify-between mb-2 text-sm font-bold">
-            <span>Hits: {hits}</span>
-            <span className={timeLeft <= 5 ? 'text-red-500 animate-pulse' : ''}>{timeLeft}s</span>
-          </div>
-          <button
-            onClick={tap}
-            className="relative w-full bg-gradient-to-b from-purple-200 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 rounded-3xl border-2 border-black dark:border-gray-600 overflow-hidden"
-            style={{ height: '280px' }}
-          >
-            {/* Target circle */}
-            <div
-              className="absolute left-1/2 w-12 h-12 -translate-x-1/2 bg-blue-500 rounded-full transition-all"
-              style={{ top: `${targetY}px` }}
-            />
-            {/* Hit line */}
-            <div className="absolute left-0 right-0 h-1 bg-green-400 border-t-2 border-b-2 border-green-600" style={{ top: '140px' }} />
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// --- Color Match Game ---
-const ColorMatchGame: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
-  const [active, setActive] = useState(false);
-  const [score, setScore] = useState(0);
-  const [level, setLevel] = useState(1);
-  const [correctColor, setCorrectColor] = useState('');
-  const [colors, setColors] = useState<string[]>([]);
-  const [finished, setFinished] = useState(false);
-
-  const colorNames = ['🔴', '🟢', '🔵', '🟡', '🟣', '🟠'];
-  const colorValues = ['#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7', '#f97316'];
-
-  const generateRound = (lvl: number) => {
-    const count = Math.min(3 + Math.floor(lvl / 2), 6);
-    const shuffled = [...colorValues].sort(() => Math.random() - 0.5).slice(0, count);
-    const correct = shuffled[Math.floor(Math.random() * shuffled.length)];
-    setCorrectColor(correct);
-    setColors(shuffled.sort(() => Math.random() - 0.5));
-  };
-
-  const start = () => {
-    setScore(0);
-    setLevel(1);
-    setFinished(false);
-    setActive(true);
-    generateRound(1);
-  };
-
-  useEffect(() => {
-    if (level > 10) {
-      setActive(false);
-      setFinished(true);
-    }
-  }, [level]);
-
-  useEffect(() => {
-    if (finished) onWin(score * 12);
-  }, [finished, score, onWin]);
-
-  const selectColor = (color: string) => {
-    if (color === correctColor) {
-      setScore(s => s + 1);
-      if (level < 10) {
-        setLevel(l => l + 1);
-        generateRound(level + 1);
-      }
-    } else {
-      setFinished(true);
-      setActive(false);
-    }
-  };
-
-  return (
-    <div className="flex flex-col items-center gap-4">
-      {!active && !finished && (
-        <div className="text-center space-y-3">
-          <div className="text-5xl animate-float">🎨</div>
-          <p className="font-bold text-gray-700 dark:text-gray-300">Match the color!</p>
-          <button onClick={start} className="btn-primary px-8">Start Game</button>
-        </div>
-      )}
-      {finished && (
-        <div className="text-center space-y-3">
-          <div className="text-5xl">✨</div>
-          <p className="font-black text-2xl text-gray-900 dark:text-white">Score: {score}</p>
-          <p className="text-gray-500">Earned <span className="font-black text-amber-500">{score * 12} points</span></p>
-          <button onClick={start} className="btn-primary px-8">Play Again</button>
-        </div>
-      )}
-      {active && (
-        <div className="w-full max-w-xs space-y-4">
-          <div className="flex justify-between text-sm font-bold">
-            <span>Level: {level}</span>
-            <span>Score: {score}</span>
-          </div>
-          <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full">
-            <div className="h-full bg-[#7B6EF6] dark:bg-[#4F8EF7] rounded-full" style={{ width: `${(level / 10) * 100}%` }} />
-          </div>
-          <div className="p-4 rounded-2xl border-2 border-black dark:border-gray-600 text-center">
-            <p className="font-bold text-gray-600 dark:text-gray-400 mb-3">Match this color:</p>
-            <div className="w-20 h-20 mx-auto rounded-2xl border-4 border-black" style={{ backgroundColor: correctColor }} />
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {colors.map((color, i) => (
-              <button
-                key={i}
-                onClick={() => selectColor(color)}
-                className="aspect-square rounded-2xl border-2 border-black dark:border-gray-600 hover:scale-110 transition-transform active:scale-95 shadow-md"
-                style={{ backgroundColor: color }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// --- Daily Challenge ---
-const DailyChallenge: React.FC<{ onWin: (pts: number) => void }> = ({ onWin }) => {
-  const [answer, setAnswer] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [correct, setCorrect] = useState(false);
-  const challenge = { q: 'How many days make up a "Week Warrior" streak?', a: '7' };
-
-  const submit = () => {
-    setSubmitted(true);
-    const ok = answer.trim() === challenge.a;
-    setCorrect(ok);
-    if (ok) onWin(150);
-  };
-
-  return (
-    <div className="space-y-4 max-w-sm mx-auto">
-      <div className="card p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
-        <div className="flex items-center gap-2 mb-3">
-          <Zap size={16} className="text-amber-500" />
-          <span className="font-bold text-amber-700 dark:text-amber-400">Daily Challenge</span>
-        </div>
-        <p className="font-bold text-gray-900 dark:text-white">{challenge.q}</p>
-      </div>
-      <input
-        type="text"
-        placeholder="Your answer..."
-        value={answer}
-        onChange={e => setAnswer(e.target.value)}
-        disabled={submitted}
-        className="input-field"
-      />
-      {!submitted ? (
-        <button onClick={submit} disabled={!answer} className="btn-primary w-full disabled:opacity-50">Submit Answer</button>
-      ) : (
-        <div className={`p-4 rounded-2xl border-2 text-center ${correct ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'}`}>
-          {correct ? (
-            <p className="font-black text-green-600 dark:text-green-400">Correct! +150 Points!</p>
-          ) : (
-            <p className="font-black text-red-600 dark:text-red-400">Wrong! Answer: {challenge.a}</p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const gamesList = [
-  { id: 'spin',   label: 'Spin Wheel',       emoji: '🎰', desc: 'Spin to win up to 200 pts',     points: '5-200',  img: 'https://picsum.photos/seed/spinw77/120/120',   color: '#7B6EF6' },
-  { id: 'memory', label: 'Memory Game',       emoji: '🧩', desc: 'Match pairs to win',             points: '50-200', img: 'https://picsum.photos/seed/memgm77/120/120',   color: '#22c55e' },
-  { id: 'quiz',   label: 'Quiz',              emoji: '🧠', desc: 'Answer 5 questions',             points: '0-125',  img: 'https://picsum.photos/seed/quizz77/120/120',   color: '#f59e0b' },
-  { id: 'catch',  label: 'Catch Game',        emoji: '🎁', desc: 'Catch gifts, avoid bombs',       points: '0-100',  img: 'https://picsum.photos/seed/catchg77/120/120',  color: '#ef4444' },
-  { id: 'flappy', label: 'Flappy Bird',       emoji: '🐦', desc: 'Tap to fly through pipes',       points: '0-100',  img: 'https://picsum.photos/seed/flppy77/120/120',   color: '#06b6d4' },
-  { id: 'snake',  label: 'Snake',             emoji: '🐍', desc: 'Arrow keys to move',             points: '0-150',  img: 'https://picsum.photos/seed/snakk77/120/120',   color: '#22c55e' },
-  { id: 'rhythm', label: 'Tap Rhythm',        emoji: '🎵', desc: 'Tap when circle hits line',      points: '0-120',  img: 'https://picsum.photos/seed/rhyth77/120/120',   color: '#ec4899' },
-  { id: 'color',  label: 'Color Match',       emoji: '🎨', desc: '10 levels of color matching',    points: '0-120',  img: 'https://picsum.photos/seed/colorr77/120/120',  color: '#8b5cf6' },
-  { id: 'daily',  label: 'Daily Challenge',   emoji: '⚡', desc: 'One question, big reward',       points: '150',    img: 'https://picsum.photos/seed/daylch77/120/120',  color: '#f59e0b' },
+  { id: 'spin',   label: 'Spin Wheel',  emoji: '🎰', desc: 'Spin to win up to 200 pts',   points: '5-200', color: '#7B6EF6' },
+  { id: 'memory', label: 'Memory Game', emoji: '🧩', desc: 'Match pairs to win',          points: '50-200', color: '#22c55e' },
+  { id: 'catch',  label: 'Catch Game',  emoji: '🎁', desc: 'Catch gifts, avoid bombs',    points: '0-100', color: '#ef4444' },
+  { id: 'flappy', label: 'Flappy Bird', emoji: '🐦', desc: 'Tap to fly through pipes',    points: '0-100', color: '#06b6d4' },
+  { id: 'snake',  label: 'Snake',       emoji: '🐍', desc: 'Eat apples and grow longer',  points: '0-150', color: '#22c55e' },
 ];
 
 const MiniGames: React.FC = () => {
-  const { addPoints, showRewardPopup } = useApp();
+  const { earnReward, showRewardPopup } = useApp();
+  const { authUser } = useAuth();
   const [activeGame, setActiveGame] = useState<string | null>(null);
 
-  const handleWin = (pts: number) => {
-    if (pts > 0) {
-      addPoints(pts);
-      showRewardPopup({ type: 'reward', title: 'Points Earned!', subtitle: 'Great job playing the game!', points: pts });
-    }
+  const handleWin = (gameId: string) => {
+    if (!authUser?.id) return;
+    void earnReward('game_win', { referenceId: gameId }).then(result => {
+      if (result && result.points > 0) {
+        showRewardPopup({ type: 'reward', title: 'Points Earned!', subtitle: 'Great job playing the game!', points: result.points });
+      }
+    });
   };
 
   const cardStyle = {
@@ -1112,15 +907,11 @@ const MiniGames: React.FC = () => {
             </div>
           </div>
           <div style={{ ...cardStyle, padding: 24 }}>
-            {activeGame === 'spin' && <SpinWheel onWin={handleWin} />}
-            {activeGame === 'memory' && <MemoryGame onWin={handleWin} />}
-            {activeGame === 'quiz' && <QuizGame onWin={handleWin} />}
-            {activeGame === 'catch' && <CatchGame onWin={handleWin} />}
-            {activeGame === 'flappy' && <FlappyGame onWin={handleWin} />}
-            {activeGame === 'snake' && <SnakeGame onWin={handleWin} />}
-            {activeGame === 'rhythm' && <TapRhythmGame onWin={handleWin} />}
-            {activeGame === 'color' && <ColorMatchGame onWin={handleWin} />}
-            {activeGame === 'daily' && <DailyChallenge onWin={handleWin} />}
+            {activeGame === 'spin' && <SpinWheel onWin={() => handleWin('spin')} />}
+            {activeGame === 'memory' && <MemoryGame onWin={() => handleWin('memory')} />}
+            {activeGame === 'catch' && <CatchGame onWin={() => handleWin('catch')} />}
+            {activeGame === 'flappy' && <FlappyGame onWin={() => handleWin('flappy')} />}
+            {activeGame === 'snake' && <SnakeGame onWin={() => handleWin('snake')} />}
           </div>
         </div>
       </div>
@@ -1144,24 +935,15 @@ const MiniGames: React.FC = () => {
           </div>
         </div>
 
-        {/* Hero illustration banner */}
-        <div style={{ ...cardStyle, overflow: 'hidden', position: 'relative', height: 140 }}>
-          <img
-            src="https://picsum.photos/seed/gamehero55/900/280"
-            alt="Mini Games"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.5) saturate(1.2)' }}
-          />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(34,197,94,0.88) 0%, rgba(22,163,74,0.2) 70%)' }} />
-          <div style={{ position: 'absolute', top: '50%', left: 18, transform: 'translateY(-50%)' }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 7,
-              background: '#FFE500', color: '#000', borderRadius: 999, padding: '2px 9px', fontSize: 9, fontWeight: 900, letterSpacing: '0.1em',
-            }}>🎮 MİNİ OYUNLAR</div>
-            <h2 style={{ fontWeight: 900, fontSize: 'clamp(16px,3vw,22px)', margin: '0 0 4px', color: 'white', letterSpacing: '-0.03em', lineHeight: 1.1 }}>Oyna & Kazan</h2>
-            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, margin: 0, fontWeight: 600 }}>Her oyun gerçek puan kazandırır!</p>
-          </div>
-          <div style={{ position: 'absolute', right: 18, top: '50%', transform: 'translateY(-50%)', fontSize: 'clamp(48px,9vw,68px)', opacity: 0.9, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>🕹️</div>
-        </div>
+        {/* Hero banner (sticker) */}
+        <StickerHero
+          page="games"
+          bg="linear-gradient(135deg,#22c55e,#16a34a)"
+          badge="🎮 MİNİ OYUNLAR"
+          title="Oyna & Kazan"
+          highlight="Her oyun puan kazandırır!"
+          accentSeed="games-hero-accent"
+        />
 
         {/* Game list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1173,20 +955,22 @@ const MiniGames: React.FC = () => {
                 ...cardStyle, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14,
                 cursor: 'pointer', textAlign: 'left', transition: 'transform 0.1s, box-shadow 0.1s',
                 animation: `gameSlideIn 0.3s ease-out ${index * 0.04}s both`,
+                position: 'relative', overflow: 'visible',
               }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 0 var(--dark-border)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}
               onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 var(--dark-border)'; }}
               onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}
             >
+              <StickerAccent seed={`game-card-${game.id}`} size={24} rotate={-10 + index * 5} style={{ position: 'absolute', top: -6, right: 10 }} />
               <div style={{
                 width: 60, height: 60, borderRadius: 16, flexShrink: 0,
                 overflow: 'hidden', position: 'relative',
                 border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
+                background: game.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 28,
               }}>
-                <img src={game.img} alt={game.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.65) saturate(1.2)' }} />
-                <div style={{ position: 'absolute', inset: 0, background: `${game.color}55` }} />
-                <div style={{ position: 'absolute', bottom: 1, right: 2, fontSize: 20, lineHeight: 1, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.5))' }}>{game.emoji}</div>
+                {game.emoji}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 3px' }}>{game.label}</p>

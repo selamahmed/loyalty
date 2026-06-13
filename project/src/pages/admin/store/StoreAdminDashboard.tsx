@@ -48,7 +48,11 @@ const StoreAdminDashboard: React.FC = () => {
         { label: 'Aktif Ödül', value: activeRewards.toString(), icon: ShoppingBag, color: '#22c55e' },
         { label: 'İşlem (bugün)', value: (txRes.data ?? []).length.toString(), icon: TrendingUp, color: '#3b82f6' },
       ]);
-      setRecentTx((txRes.data ?? []) as TxRow[]);
+      setRecentTx((txRes.data ?? []).map(row => {
+        const r = row as { id: string; created_at: string; amount: number; description: string | null; profiles: { username: string } | { username: string }[] | null };
+        const profiles = Array.isArray(r.profiles) ? r.profiles[0] ?? null : r.profiles;
+        return { ...r, profiles };
+      }));
       setRewards((rewardsRes.data ?? []) as RewardRow[]);
     } catch (e) { console.error('[StoreAdminDashboard]', e); }
     finally { setLoading(false); }

@@ -13,7 +13,11 @@ import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { WinningParticles } from '../components/WinningParticles';
 import { DailyRewardModal, useDailyReward } from '../components/DailyRewardModal';
-import { HeroMascot, PointsBolt, GameDoodle, GiftDoodle, TargetDoodle } from '../components/neo/NeoBrutalIllustrations';
+import LevelBadge from '../components/LevelBadge';
+import NeoAvatar from '../components/NeoAvatar';
+import { useXpProgress } from '../hooks/useXpProgress';
+import StickerAccent from '../components/StickerAccent';
+import { pageGroup } from '../lib/pageStickers';
 
 /* ── Design tokens ── */
 const card = {
@@ -23,7 +27,9 @@ const card = {
   borderRadius: 20,
 };
 
-const quickActionIllus = [PointsBolt, GameDoodle, GiftDoodle, TargetDoodle];
+const STAT_STICKERS = ['home-stat-rank', 'home-stat-badge', 'home-stat-streak'] as const;
+const REWARD_STICKERS = ['home-reward-a', 'home-reward-b', 'home-reward-c'] as const;
+const QUICK_ACTION_SHAPES = ['home-qa-qr', 'home-qa-games', 'home-qa-shop', 'home-qa-missions'] as const;
 
 const quickActions = [
   { icon: QrCode,   label: tr.home.scanQr,   path: '/qr',       bg: '#9122FF', emoji: '📱' },
@@ -65,7 +71,7 @@ const Home: React.FC = () => {
   const { authUser } = useAuth();
   const [showParticles, setShowParticles] = useState(false);
   const { show: showDailyReward, setShow: setShowDailyReward } = useDailyReward();
-  const xpPercent = Math.round((user.xpToNext > 0 ? (user.xp / user.xpToNext) * 100 : 0));
+  const xpProgress = useXpProgress(user.xp, user.level);
 
   const [dailyMissions, setDailyMissions] = useState<MissionWithStatus[]>([]);
   const [featuredRewards, setFeaturedRewards] = useState<Reward[]>([]);
@@ -128,13 +134,22 @@ const Home: React.FC = () => {
                   <span style={{ fontSize: 12, fontWeight: 700 }}>{user.streak} {tr.home.streak}</span>
                 </div>
               </div>
-              <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: '3px solid rgba(255,255,255,0.5)', boxShadow: '0 4px 0 rgba(0,0,0,0.2)' }}>
-                  <img src={user.avatar} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-                <div style={{ marginTop: 8, padding: '3px 10px', background: 'rgba(255,255,255,0.25)', borderRadius: 999, fontSize: 11, fontWeight: 900, border: '1.5px solid rgba(255,255,255,0.35)' }}>
-                  Lv.{user.level}
-                </div>
+              <div style={{ position: 'relative', flexShrink: 0, textAlign: 'center' }}>
+                <NeoAvatar
+                  src={user.avatar}
+                  name={user.username}
+                  email={user.email}
+                  size={64}
+                  shape="circle"
+                  border={false}
+                  style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.2)', border: '3px solid rgba(255,255,255,0.5)' }}
+                />
+                <LevelBadge
+                  level={user.level}
+                  width={34}
+                  className="level-badge-overlay"
+                  style={{ bottom: -6, right: -10 }}
+                />
               </div>
             </div>
 
@@ -152,6 +167,7 @@ const Home: React.FC = () => {
               <button
                 onClick={() => navigate('/shop')}
                 style={{
+                  position: 'relative',
                   padding: '9px 18px', background: 'white', color: '#6d28d9',
                   borderRadius: 12, fontWeight: 900, fontSize: 13,
                   border: '2px solid rgba(255,255,255,0.7)',
@@ -159,19 +175,24 @@ const Home: React.FC = () => {
                   cursor: 'pointer', flexShrink: 0,
                   transition: 'transform 0.1s',
                 }}
-              >{tr.home.redeem}</button>
+              >
+                {tr.home.redeem}
+                <StickerAccent seed="home-redeem-btn" size={22} rotate={10} style={{ position: 'absolute', top: -8, right: -6 }} />
+              </button>
             </div>
 
             {/* XP bar */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.65)', marginBottom: 6, fontWeight: 700 }}>
-                <span>Lv.{user.level} → {user.level + 1}</span>
-                <span>{user.xp.toLocaleString()} / {user.xpToNext.toLocaleString()} XP</span>
+                <span>Lv.{user.level}{xpProgress.nextTitle ? ` → ${user.level + 1}` : ''}</span>
+                <span>{xpProgress.inLevel.toLocaleString()} / {xpProgress.isMaxLevel ? 'MAX' : xpProgress.needed.toLocaleString()} XP</span>
               </div>
               <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.25)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${xpPercent}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
+                <div style={{ height: '100%', width: `${xpProgress.pct}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
               </div>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 5, fontWeight: 600 }}>{user.xpToNext - user.xp} XP sonraki seviye için</p>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 5, fontWeight: 600 }}>
+                {xpProgress.isMaxLevel ? 'Maksimum seviye!' : `${xpProgress.remaining.toLocaleString()} XP sonraki seviye için`}
+              </p>
             </div>
           </div>
         </div>
@@ -179,11 +200,12 @@ const Home: React.FC = () => {
         {/* ── Stats row ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
           {[
-            { emoji: '🏆', value: `#${user.rank}`, label: tr.home.rank,         color: '#f59e0b' },
+            { emoji: '🏆', value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b' },
             { emoji: '⭐', value: user.achievements, label: tr.home.achievements, color: '#7B6EF6' },
-            { emoji: '🔥', value: user.streak,       label: tr.home.dayStreak,    color: '#ef4444' },
-          ].map(s => (
-            <div key={s.label} style={{ ...card, padding: '16px 10px', textAlign: 'center' }}>
+            { emoji: '🔥', value: user.streak, label: tr.home.dayStreak, color: '#ef4444' },
+          ].map((s, i) => (
+            <div key={s.label} style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'visible' }}>
+              <StickerAccent seed={STAT_STICKERS[i]} variant="shape" size={26} rotate={-8 + i * 6} style={{ position: 'absolute', top: -6, right: -4 }} />
               <div style={{ fontSize: 24, marginBottom: 6 }}>{s.emoji}</div>
               <p style={{ fontWeight: 900, fontSize: 22, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
               <p style={{ color: 'var(--text-muted)', fontSize: 9, fontWeight: 900, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</p>
@@ -191,10 +213,13 @@ const Home: React.FC = () => {
           ))}
         </div>
 
-        {/* ── Illustration banner ── */}
+        {/* ── Promo banner ── */}
         <div style={{ ...card, overflow: 'hidden', position: 'relative', minHeight: 140, background: '#9122FF' }}>
-          <div style={{ position: 'absolute', right: -10, top: '50%', transform: 'translateY(-50%)', opacity: 0.9 }}>
-            <HeroMascot size={160} />
+          <div style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 0, opacity: 0.95 }}>
+            <StickerAccent group={pageGroup('home')} variant="colorful" size={150} rotate={-4} />
+          </div>
+          <div style={{ position: 'absolute', bottom: 8, left: 12, zIndex: 0, opacity: 0.8 }}>
+            <StickerAccent group="Group 76.svg" variant="colorful" size={48} rotate={8} />
           </div>
           <div style={{ position: 'relative', zIndex: 1, padding: '24px 20px' }}>
             <div style={{
@@ -213,9 +238,7 @@ const Home: React.FC = () => {
         <div>
           <SectionHeader micro="HIZLI ERİŞİM" title={tr.home.quickActions} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-            {quickActions.map((action, idx) => {
-              const Illus = quickActionIllus[idx];
-              return (
+            {quickActions.map((action, idx) => (
                 <button
                   key={action.path}
                   onClick={() => { playSound('click'); navigate(action.path); }}
@@ -230,7 +253,7 @@ const Home: React.FC = () => {
                     position: 'relative', height: 90, overflow: 'hidden',
                     background: action.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Illus size={72} />
+                    <StickerAccent seed={QUICK_ACTION_SHAPES[idx]} variant="shape" size={56} rotate={-6 + idx * 4} />
                     <div style={{
                       position: 'absolute', top: 10, left: 12,
                       width: 38, height: 38, borderRadius: 12,
@@ -239,14 +262,14 @@ const Home: React.FC = () => {
                     }}>
                       <action.icon size={18} color={action.bg} />
                     </div>
+                    <StickerAccent seed={`home-action-${idx}`} variant="shape" size={28} rotate={8 - idx * 3} style={{ position: 'absolute', bottom: 6, right: 6 }} />
                   </div>
                   <div style={{ padding: '10px 12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span className="font-display" style={{ color: 'var(--text-dark)', fontSize: 12, fontWeight: 900, textTransform: 'uppercase' }}>{action.label}</span>
                     <span style={{ fontSize: 18 }}>{action.emoji}</span>
                   </div>
                 </button>
-              );
-            })}
+            ))}
           </div>
         </div>
 
@@ -257,7 +280,8 @@ const Home: React.FC = () => {
             title={tr.home.dailyMissions}
             action={{ label: tr.home.seeAll, onClick: () => navigate('/missions') }}
           />
-          <div style={{ ...card, padding: '20px 20px' }}>
+          <div style={{ ...card, padding: '20px 20px', position: 'relative', overflow: 'visible' }}>
+            <StickerAccent seed="home-missions" size={30} rotate={-10} style={{ position: 'absolute', top: -8, right: 12 }} />
             {/* Progress header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-dark)' }}>
@@ -320,13 +344,15 @@ const Home: React.FC = () => {
             action={{ label: tr.home.shopAll, onClick: () => navigate('/shop') }}
           />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(155px,1fr))', gap: 12 }}>
-            {featuredRewards.map(reward => (
+            {featuredRewards.map((reward, idx) => (
               <div
                 key={reward.id}
                 onClick={() => navigate('/shop')}
                 className="press-card"
-                style={{ ...card, overflow: 'hidden', cursor: 'pointer' }}
+                style={{ ...card, overflow: 'hidden', cursor: 'pointer', position: 'relative' }}
               >
+                <StickerAccent seed={REWARD_STICKERS[idx % REWARD_STICKERS.length]} size={24} rotate={12 - idx * 4}
+                  style={{ position: 'absolute', top: 6, right: 6, zIndex: 2 }} />
                 <div style={{ height: 110, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)', position: 'relative' }}>
                   <img src={reward.image ?? undefined} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   {reward.limited && (

@@ -1,257 +1,463 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+
 import { useAuth } from './AuthContext';
-import { getProfile, updateProfile } from '../services/profile';
+
+import { updateProfile } from '../services/profile';
+
+import { performAction, type EarnResult, type EarnAction, type PerformOptions } from '../services/earn';
+
+import { updateUserSettings } from '../services/userSettings';
+
+import { canonicalToAppUser } from '../hooks/useCanonicalProfile';
+
+import { captureError } from '../lib/monitoring';
+
+
 
 export type AppUser = {
+
   id: string;
+
   username: string;
+
   email: string;
+
   avatar: string;
+
   level: number;
+
   xp: number;
+
   xpToNext: number;
+
   totalPoints: number;
+
   currentPoints: number;
+
   rank: number;
+
   joinDate: string;
+
   streak: number;
+
   achievements: number;
+
   totalAchievements: number;
+
   phone?: string;
+
   bio?: string;
+
 };
+
+
 
 export type PrivacySettings = {
+
   publicProfile: boolean;
+
   showOnLeaderboard: boolean;
+
   shareActivity: boolean;
+
   twoFactor: boolean;
+
   loginAlerts: boolean;
+
 };
+
+
 
 const defaultPrivacySettings: PrivacySettings = {
+
   publicProfile: true,
+
   showOnLeaderboard: true,
+
   shareActivity: false,
+
   twoFactor: false,
+
   loginAlerts: true,
+
 };
+
+
 
 const defaultUser: AppUser = {
-  id: '',
-  username: '',
-  email: '',
-  avatar: '',
-  level: 1,
-  xp: 0,
-  xpToNext: 200,
-  totalPoints: 0,
-  currentPoints: 0,
-  rank: 0,
-  joinDate: '',
-  streak: 0,
-  achievements: 0,
-  totalAchievements: 0,
+
+  id: '', username: '', email: '', avatar: '',
+
+  level: 1, xp: 0, xpToNext: 200, totalPoints: 0, currentPoints: 0,
+
+  rank: 0, joinDate: '', streak: 0, achievements: 0, totalAchievements: 0,
+
 };
 
+
+
 export interface RewardPopupData {
+
   type: 'levelup' | 'reward' | 'achievement' | 'redeem';
+
   title: string;
+
   subtitle: string;
+
   points?: number;
+
   icon?: string;
+
 }
 
+
+
 interface AppContextType {
+
   theme: 'light' | 'dark';
+
   toggleTheme: () => void;
+
   user: AppUser;
+
   updateUser: (data: Partial<AppUser>) => Promise<void>;
+
   privacySettings: PrivacySettings;
-  updatePrivacySettings: (data: Partial<PrivacySettings>) => void;
+
+  updatePrivacySettings: (data: Partial<PrivacySettings>) => Promise<void>;
+
   points: number;
-  addPoints: (amount: number) => void;
+
+  earnReward: (action: EarnAction | string, options?: PerformOptions) => Promise<EarnResult | null>;
+
   spendPoints: (amount: number) => boolean;
+
   isLoggedIn: boolean;
-  setIsLoggedIn: (val: boolean) => void;
+
   showRewardPopup: (data: RewardPopupData) => void;
+
   rewardPopup: RewardPopupData | null;
+
   dismissRewardPopup: () => void;
+
   soundEnabled: boolean;
+
   setSoundEnabled: (val: boolean) => void;
+
   notificationsEnabled: boolean;
+
   setNotificationsEnabled: (val: boolean) => void;
+
   isDarkMode: boolean;
+
   isProfileLoading: boolean;
+
   reloadProfile: () => Promise<void>;
+
   bgStyle: string;
+
   setBgStyle: (val: string) => void;
+
 }
+
+
 
 const AppContext = createContext<AppContextType | null>(null);
 
+
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { authUser, isAuthenticated } = useAuth();
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
-  });
+
+  const { profile, isAuthenticated, profileLoading, refreshProfile, authUser } = useAuth();
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+
+    (localStorage.getItem('theme') as 'light' | 'dark') || 'dark',
+
+  );
+
   const [user, setUser] = useState<AppUser>(defaultUser);
-  const [isProfileLoading, setIsProfileLoading] = useState(false);
+
   const [bgStyle, setBgStyle] = useState(() => localStorage.getItem('bgStyle') || 'none');
-  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(() => {
-    try {
-      const saved = localStorage.getItem('privacySettings');
-      return saved ? { ...defaultPrivacySettings, ...JSON.parse(saved) } : defaultPrivacySettings;
-    } catch {
-      return defaultPrivacySettings;
-    }
-  });
+
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(defaultPrivacySettings);
+
   const [points, setPoints] = useState(0);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   const [rewardPopup, setRewardPopup] = useState<RewardPopupData | null>(null);
+
   const [soundEnabled, setSoundEnabled] = useState(true);
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
   const isDarkMode = theme === 'dark';
 
-  const reloadProfile = useCallback(async () => {
-    if (!authUser?.id) return;
-    setIsProfileLoading(true);
-    try {
-      const profile = await getProfile(authUser.id);
-      if (profile) {
-        const appUser: AppUser = {
-          id: profile.id,
-          username: profile.username ?? authUser.name,
-          email: profile.email,
-          avatar: profile.avatar_url ?? '',
-          level: profile.level,
-          xp: profile.xp,
-          xpToNext: profile.xp_to_next,
-          totalPoints: profile.total_points,
-          currentPoints: profile.current_points,
-          rank: 0,
-          joinDate: profile.created_at.split('T')[0],
-          streak: profile.streak,
-          achievements: 0,
-          totalAchievements: 0,
-          phone: profile.phone ?? undefined,
-          bio: profile.bio ?? undefined,
-        };
-        setUser(appUser);
-        setPoints(profile.current_points);
-        setIsLoggedIn(true);
-      } else {
-        setUser({
-          ...defaultUser,
-          id: authUser.id,
-          username: authUser.name,
-          email: authUser.email,
-          avatar: authUser.avatar ?? '',
-        });
-      }
-    } catch (err) {
-      console.error('Failed to load profile:', err);
-    } finally {
-      setIsProfileLoading(false);
-    }
-  }, [authUser]);
+
 
   useEffect(() => {
-    if (isAuthenticated && authUser?.id) {
-      reloadProfile();
-    } else {
+
+    if (profile && isAuthenticated) {
+
+      const appUser = canonicalToAppUser(profile);
+
+      setUser(appUser);
+
+      setPoints(appUser.currentPoints);
+
+      setPrivacySettings({
+
+        publicProfile: profile.settings.public_profile,
+
+        showOnLeaderboard: profile.settings.show_on_leaderboard,
+
+        shareActivity: profile.settings.share_activity,
+
+        twoFactor: profile.settings.two_factor_enabled,
+
+        loginAlerts: profile.settings.login_alerts,
+
+      });
+
+    } else if (!isAuthenticated) {
+
       setUser(defaultUser);
+
       setPoints(0);
-      setIsLoggedIn(false);
+
+      setPrivacySettings(defaultPrivacySettings);
+
     }
-  }, [isAuthenticated, authUser?.id, reloadProfile]);
+
+  }, [profile, isAuthenticated]);
+
+
 
   useEffect(() => {
+
     const html = document.documentElement;
-    if (isDarkMode) {
-      html.setAttribute('data-theme', 'dark');
-    } else {
-      html.removeAttribute('data-theme');
-    }
+
+    if (isDarkMode) html.setAttribute('data-theme', 'dark');
+
+    else html.removeAttribute('data-theme');
+
     localStorage.setItem('theme', theme);
+
   }, [theme, isDarkMode]);
 
-  const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light');
 
-  const addPoints = (amount: number) => {
-    setPoints(p => p + amount);
-    setUser(u => ({ ...u, currentPoints: u.currentPoints + amount, totalPoints: u.totalPoints + amount }));
-  };
+
+  const toggleTheme = () => setTheme(t => (t === 'light' ? 'dark' : 'light'));
+
+
+
+  const earnReward = useCallback(async (
+
+    action: EarnAction | string,
+
+    options: PerformOptions = {},
+
+  ): Promise<EarnResult | null> => {
+
+    if (!authUser?.id) return null;
+
+    try {
+
+      const result = await performAction(action as EarnAction, options);
+
+      await refreshProfile();
+
+      if (result.leveledUp) {
+
+        setRewardPopup({
+
+          type: 'levelup',
+
+          title: `Seviye ${result.level}!`,
+
+          subtitle: result.bonusPoints > 0
+
+            ? `Tebrikler! +${result.bonusPoints} bonus puan kazandın.`
+
+            : 'Yeni seviyeye ulaştın!',
+
+          points: result.bonusPoints || undefined,
+
+          icon: '🏆',
+
+        });
+
+      }
+
+      return result;
+
+    } catch (err) {
+
+      captureError(err, { action, referenceId: options.referenceId });
+
+      return null;
+
+    }
+
+  }, [authUser?.id, refreshProfile]);
+
+
 
   const spendPoints = (amount: number): boolean => {
+
     if (points >= amount) {
+
       setPoints(p => p - amount);
+
       setUser(u => ({ ...u, currentPoints: Math.max(0, u.currentPoints - amount) }));
+
       return true;
+
     }
+
     return false;
+
   };
 
-  const showRewardPopup = (data: RewardPopupData) => setRewardPopup(data);
-  const dismissRewardPopup = () => setRewardPopup(null);
+
 
   const updateUser = async (data: Partial<AppUser>) => {
+
     setUser(prev => ({ ...prev, ...data }));
+
     if (authUser?.id) {
+
       try {
+
         await updateProfile(authUser.id, {
+
           username: data.username,
+
           avatar_url: data.avatar,
+
           phone: data.phone ?? null,
+
           bio: data.bio ?? null,
+
         });
+
+        await refreshProfile();
+
       } catch (err) {
-        console.error('Failed to update profile:', err);
+
+        captureError(err, { context: 'updateUser' });
+
       }
+
     }
+
   };
 
-  const updatePrivacySettings = (data: Partial<PrivacySettings>) => {
-    setPrivacySettings(prev => {
-      const next = { ...prev, ...data };
-      localStorage.setItem('privacySettings', JSON.stringify(next));
-      return next;
-    });
+
+
+  const updatePrivacySettings = async (data: Partial<PrivacySettings>) => {
+
+    if (!authUser?.id) return;
+
+    const next = { ...privacySettings, ...data };
+
+    setPrivacySettings(next);
+
+    try {
+
+      await updateUserSettings(authUser.id, {
+
+        public_profile: next.publicProfile,
+
+        show_on_leaderboard: next.showOnLeaderboard,
+
+        share_activity: next.shareActivity,
+
+        login_alerts: next.loginAlerts,
+
+        two_factor_enabled: next.twoFactor,
+
+      });
+
+      await refreshProfile();
+
+    } catch (err) {
+
+      captureError(err, { context: 'updatePrivacySettings' });
+
+    }
+
   };
+
+
 
   return (
+
     <AppContext.Provider value={{
+
       theme,
+
       toggleTheme,
+
       user,
+
       updateUser,
+
       privacySettings,
+
       updatePrivacySettings,
+
       points,
-      addPoints,
+
+      earnReward,
+
       spendPoints,
-      isLoggedIn,
-      setIsLoggedIn,
-      showRewardPopup,
+
+      isLoggedIn: isAuthenticated,
+
+      showRewardPopup: (data) => setRewardPopup(data),
+
       rewardPopup,
-      dismissRewardPopup,
+
+      dismissRewardPopup: () => setRewardPopup(null),
+
       soundEnabled,
+
       setSoundEnabled,
+
       notificationsEnabled,
+
       setNotificationsEnabled,
+
       isDarkMode,
-      isProfileLoading,
-      reloadProfile,
+
+      isProfileLoading: profileLoading,
+
+      reloadProfile: refreshProfile,
+
       bgStyle,
+
       setBgStyle: (val: string) => { setBgStyle(val); localStorage.setItem('bgStyle', val); },
+
     }}>
+
       {children}
+
     </AppContext.Provider>
+
   );
+
 };
 
+
+
 export const useApp = () => {
+
   const ctx = useContext(AppContext);
+
   if (!ctx) throw new Error('useApp must be used within AppProvider');
+
   return ctx;
+
 };
+
+

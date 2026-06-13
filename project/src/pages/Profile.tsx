@@ -7,7 +7,11 @@ import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
+import { useXpProgress } from '../hooks/useXpProgress';
 import NeoAvatar from '../components/NeoAvatar';
+import LevelBadge from '../components/LevelBadge';
+import StickerAccent from '../components/StickerAccent';
+import { getLevelBadge } from '../lib/levelBadges';
 
 const card = {
   background: 'var(--card-bg)',
@@ -41,7 +45,7 @@ const Profile: React.FC = () => {
   const { items: inventoryItems } = useInventory();
   const [showAllInventory, setShowAllInventory] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const xpPercent = Math.round((user.xpToNext > 0 ? (user.xp / user.xpToNext) * 100 : 0));
+  const xpProgress = useXpProgress(user.xp, user.level);
   const completedAchievements: { id: string; title: string; icon: string }[] = [];
 
   const typeConfig: Record<string, { color: string; bg: string; accent: string; icon: LucideIcon }> = {
@@ -64,7 +68,7 @@ const Profile: React.FC = () => {
 
   const stats = [
     { label: tr.profile.totalPoints,  value: user.totalPoints.toLocaleString(), color: '#f59e0b', emoji: '⭐' },
-    { label: tr.profile.currentLevel, value: `Lv.${user.level}`,                color: '#22c55e', emoji: '📈' },
+    { label: tr.profile.currentLevel, value: getLevelBadge(user.level).label, color: '#22c55e', emoji: '📈' },
     { label: tr.profile.achievements, value: `${user.achievements}/${user.totalAchievements}`, color: '#7B6EF6', emoji: '🏆' },
     { label: tr.profile.dayStreak,    value: `${user.streak}g`,                 color: '#f97316', emoji: '🔥' },
   ];
@@ -82,7 +86,8 @@ const Profile: React.FC = () => {
       >
 
         {/* ── Profile hero ── */}
-        <div style={{ ...card, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ ...card, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', position: 'relative', overflow: 'visible' }}>
+          <StickerAccent seed="profile-hero-accent" variant="shape" size={42} rotate={-8} style={{ position: 'absolute', top: -10, right: 12, zIndex: 2 }} />
           <div style={{ position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
           <div style={{ padding: 'clamp(16px,5vw,28px)', position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
@@ -96,9 +101,12 @@ const Profile: React.FC = () => {
                   shape="circle"
                   style={{ border: '4px solid rgba(255,255,255,0.55)', boxShadow: '0 4px 0 rgba(0,0,0,0.18)' }}
                 />
-                <div style={{ position: 'absolute', bottom: -4, right: -4, width: 28, height: 28, borderRadius: '50%', background: '#f59e0b', border: '2.5px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: 'black', fontWeight: 900, fontSize: 11 }}>{user.level}</span>
-                </div>
+                <LevelBadge
+                  level={user.level}
+                  width={38}
+                  className="level-badge-overlay"
+                  style={{ bottom: -4, right: -12 }}
+                />
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -116,8 +124,9 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                  <span style={{ padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 900, color: 'white' }}>
-                    Seviye {user.level} • {tr.profile.champion}
+                  <span className="level-badge-pill">
+                    <LevelBadge level={user.level} width={22} />
+                    {getLevelBadge(user.level).label}
                   </span>
                   <span style={{ padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 900, color: 'white' }}>
                     🔥 {user.streak}g serisi
@@ -127,12 +136,11 @@ const Profile: React.FC = () => {
                 {/* XP bar */}
                 <div style={{ marginTop: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.65)', marginBottom: 6, fontWeight: 700 }}>
-                    <span>Lv.{user.level}</span>
-                    <span>{user.xp.toLocaleString()} / {user.xpToNext.toLocaleString()} XP</span>
-                    <span>Lv.{user.level + 1}</span>
+                    <span>Lv.{user.level}{xpProgress.nextTitle ? ` → ${user.level + 1}` : ''}</span>
+                    <span>{xpProgress.inLevel.toLocaleString()} / {xpProgress.isMaxLevel ? 'MAX' : xpProgress.needed.toLocaleString()} XP</span>
                   </div>
                   <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.25)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${xpPercent}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
+                    <div style={{ height: '100%', width: `${xpProgress.pct}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
                   </div>
                 </div>
               </div>
@@ -149,19 +157,23 @@ const Profile: React.FC = () => {
         </div>
 
         {/* ── Stats grid ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-          {stats.map(stat => (
-            <div key={stat.label} style={{ ...card, padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-                background: `${stat.color}15`,
-                border: `2.5px solid ${stat.color}`,
-                boxShadow: `0 3px 0 ${stat.color}40`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
-              }}>{stat.emoji}</div>
-              <div>
-                <p style={{ fontWeight: 900, fontSize: 20, color: 'var(--text-dark)', margin: '0 0 2px', lineHeight: 1 }}>{stat.value}</p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, fontWeight: 600 }}>{stat.label}</p>
+        <div className="profile-stats-grid">
+          {stats.map((stat, i) => (
+            <div key={stat.label} className="profile-stat-card" style={{ ...card, position: 'relative', overflow: 'visible' }}>
+              {i === 0 && <StickerAccent seed="profile-stat-accent" size={20} rotate={8} style={{ position: 'absolute', top: -6, right: 6, zIndex: 2 }} />}
+              <div
+                className="profile-stat-card__icon"
+                style={{
+                  background: `${stat.color}15`,
+                  border: `2.5px solid ${stat.color}`,
+                  boxShadow: `0 3px 0 ${stat.color}40`,
+                }}
+              >
+                {stat.emoji}
+              </div>
+              <div className="profile-stat-card__body">
+                <p className="profile-stat-card__value">{stat.value}</p>
+                <p className="profile-stat-card__label">{stat.label}</p>
               </div>
             </div>
           ))}
@@ -173,7 +185,9 @@ const Profile: React.FC = () => {
           background: 'linear-gradient(135deg,rgba(123,110,246,0.14) 0%,rgba(167,139,250,0.07) 100%)',
           border: '3px solid #7B6EF6', boxShadow: '0 6px 0 var(--dark-border)',
           padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16,
+          position: 'relative', overflow: 'visible',
         }}>
+          <StickerAccent seed="profile-points" variant="shape" size={28} rotate={-10} style={{ position: 'absolute', top: -8, right: 10, zIndex: 2 }} />
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 10, fontWeight: 900, color: '#a78bfa', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{tr.profile.availablePoints}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

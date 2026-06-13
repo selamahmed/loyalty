@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Star, Check, Clock, Trophy, ArrowRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { getMissionsWithStatus, completeMission } from '../services/missions';
+import { getMissionsWithStatus } from '../services/missions';
 import type { MissionWithStatus } from '../services/missions';
-import { addPoints as addPointsService } from '../services/points';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
 import { WinningParticles } from '../components/WinningParticles';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 import { activityLogService } from '../lib/activityLogger';
 
 const card = {
@@ -17,13 +18,8 @@ const card = {
   borderRadius: 20,
 };
 
-const categoryImages = {
-  daily: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400',
-  weekly: 'https://images.pexels.com/photos/3771074/pexels-photo-3771074.jpeg?auto=compress&cs=tinysrgb&w=400',
-};
-
 const Missions: React.FC = () => {
-  const { addPoints, showRewardPopup } = useApp();
+  const { earnReward, showRewardPopup } = useApp();
   const { authUser } = useAuth();
   const [missionState, setMissionState] = useState<MissionWithStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,11 +50,14 @@ const Missions: React.FC = () => {
       if (allCompleted) { setShowParticles(true); playSound('success'); setTimeout(() => setShowParticles(false), 2000); }
       return next;
     });
-    addPoints(mission.points);
     playSound('level-up');
-    showRewardPopup({ type: 'reward', title: 'Mission Complete!', subtitle: mission.title, points: mission.points });
-    completeMission(authUser.id, id).catch(() => {});
-    addPointsService(authUser.id, mission.points, `Görev: ${mission.title}`, 'mission', id).catch(() => {});
+    void earnReward('mission_complete', { referenceId: id }).then(result => {
+      if (result && result.points > 0) {
+        showRewardPopup({ type: 'reward', title: 'Mission Complete!', subtitle: mission.title, points: result.points });
+      } else if (result?.capped) {
+        showRewardPopup({ type: 'reward', title: 'Günlük limit', subtitle: 'Bugünkü puan limitine ulaştın.', points: 0 });
+      }
+    });
     void activityLogService.logActivity({
       userId:     authUser.id,
       username:   authUser.username ?? authUser.name ?? authUser.email,
@@ -101,25 +100,15 @@ const Missions: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Banner illustration ── */}
-        <div style={{ ...card, overflow: 'hidden', position: 'relative', height: 140 }}>
-          <img src={categoryImages[tab]} alt="missions" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)' }} />
-          <div style={{ position: 'absolute', inset: 0, padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 6,
-              background: 'rgba(255,255,255,0.2)', borderRadius: 999, padding: '3px 12px',
-              border: '1.5px solid rgba(255,255,255,0.3)', width: 'fit-content',
-            }}>
-              <span style={{ fontSize: 10, fontWeight: 900, color: 'white', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                {tab === 'daily' ? '📅 Günlük' : '📆 Haftalık'} Görevler
-              </span>
-            </div>
-            <p style={{ color: 'white', fontWeight: 900, fontSize: 22, margin: 0 }}>
-              {completed}/{filtered.length} Tamamlandı
-            </p>
-          </div>
-        </div>
+        {/* ── Banner (sticker) ── */}
+        <StickerHero
+          page="missions"
+          bg={tab === 'daily' ? 'linear-gradient(135deg,#dc2626 0%,#f87171 100%)' : 'linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%)'}
+          badge={tab === 'daily' ? '📅 GÜNLÜK' : '📆 HAFTALIK'}
+          title={`${completed}/${filtered.length} Tamamlandı`}
+          highlight="Görevleri bitir!"
+          accentSeed="missions-hero-accent"
+        />
 
         {/* ── Tabs ── */}
         <div style={{ display: 'flex', gap: 8 }}>
@@ -129,7 +118,7 @@ const Missions: React.FC = () => {
               onClick={() => { playSound('click'); setTab(t); }}
               style={{
                 flex: 1, padding: '12px', borderRadius: 14, fontWeight: 900, fontSize: 13,
-                cursor: 'pointer', transition: 'all 0.15s',
+                cursor: 'pointer', transition: 'all 0.15s', position: 'relative',
                 background: tab === t ? 'linear-gradient(180deg, var(--gradient-start), var(--gradient-end))' : 'var(--card-bg)',
                 color: tab === t ? 'white' : 'var(--text-dark)',
                 border: '3px solid var(--dark-border)',
@@ -137,12 +126,14 @@ const Missions: React.FC = () => {
               }}
             >
               {t === 'daily' ? `📅 ${tr.missions.daily}` : `📆 ${tr.missions.weekly}`}
+              {tab === t && <StickerAccent seed={`missions-tab-${t}`} size={18} rotate={-8} style={{ position: 'absolute', top: -6, right: 6 }} />}
             </button>
           ))}
         </div>
 
         {/* ── Progress summary ── */}
-        <div style={{ ...card, padding: '18px 20px' }}>
+        <div style={{ ...card, padding: '18px 20px', position: 'relative', overflow: 'visible' }}>
+          <StickerAccent seed="missions-progress" variant="shape" size={30} rotate={10} style={{ position: 'absolute', top: -8, right: 10, zIndex: 2 }} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
             <div>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>{tr.missions.progress}</p>

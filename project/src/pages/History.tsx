@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { getPointsHistory } from '../services/points';
 import type { PointsTransaction } from '../services/points';
 import { tr } from '../lib/tr';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 
 const card = {
   background: 'var(--card-bg)',
@@ -76,9 +78,19 @@ const History: React.FC = () => {
           </div>
         </div>
 
+        <StickerHero
+          page="history"
+          bg="linear-gradient(135deg,#60a5fa 0%,#2563eb 100%)"
+          badge="📋 GEÇMİŞ"
+          title="Tüm aktivitelerin"
+          highlight="tek yerde!"
+          accentSeed="history-hero-accent"
+        />
+
         {/* ── Summary ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div style={{ ...card, border: '3px solid #22c55e', boxShadow: '0 6px 0 #16a34a', padding: '16px 18px', background: 'rgba(34,197,94,0.06)' }}>
+          <div style={{ ...card, border: '3px solid #22c55e', boxShadow: '0 6px 0 #16a34a', padding: '16px 18px', background: 'rgba(34,197,94,0.06)', position: 'relative', overflow: 'visible' }}>
+            <StickerAccent seed="history-earned" size={22} rotate={-8} style={{ position: 'absolute', top: -6, right: 6 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
               <TrendingUp size={16} color="#22c55e" />
               <span style={{ fontSize: 11, fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Kazanılan</span>
@@ -88,7 +100,8 @@ const History: React.FC = () => {
               <span style={{ fontWeight: 900, fontSize: 22, color: '#16a34a' }}>+{totalEarned.toLocaleString()}</span>
             </div>
           </div>
-          <div style={{ ...card, border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626', padding: '16px 18px', background: 'rgba(239,68,68,0.06)' }}>
+          <div style={{ ...card, border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626', padding: '16px 18px', background: 'rgba(239,68,68,0.06)', position: 'relative', overflow: 'visible' }}>
+            <StickerAccent seed="history-spent" size={22} rotate={10} style={{ position: 'absolute', top: -6, right: 6 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
               <TrendingDown size={16} color="#ef4444" />
               <span style={{ fontSize: 11, fontWeight: 900, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Harcanan</span>
@@ -107,12 +120,15 @@ const History: React.FC = () => {
             return (
               <button key={f} onClick={() => setFilter(f)} style={{
                 flex: 1, padding: '11px', borderRadius: 12, fontWeight: 900, fontSize: 12,
-                cursor: 'pointer', transition: 'all 0.1s',
+                cursor: 'pointer', transition: 'all 0.1s', position: 'relative',
                 background: filter === f ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
                 color: filter === f ? 'white' : 'var(--text-dark)',
                 border: '3px solid var(--dark-border)',
                 boxShadow: filter === f ? '0 5px 0 var(--dark-border)' : '0 4px 0 var(--dark-border)',
-              }}>{labels[f]}</button>
+              }}>
+                {labels[f]}
+                {filter === f && <StickerAccent seed={`history-filter-${f}`} size={16} rotate={8} style={{ position: 'absolute', top: -5, right: 4 }} />}
+              </button>
             );
           })}
         </div>

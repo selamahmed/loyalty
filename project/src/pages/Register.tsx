@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { activityLogService } from '../lib/activityLogger';
+import AuthPageShell from '../components/AuthPageShell';
+import StickerAccent from '../components/StickerAccent';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
@@ -76,9 +78,9 @@ const Register: React.FC = () => {
   const strengthColors = ['', '#ef4444', '#f59e0b', '#eab308', '#84cc16', '#22c55e'];
 
   return (
-    <div className="min-h-screen page-container flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="card p-8 space-y-6">
+    <AuthPageShell>
+        <div className="card p-8 space-y-6" style={{ position: 'relative', overflow: 'visible' }}>
+          <StickerAccent seed="register-card-accent" variant="shape" size={36} rotate={10} style={{ position: 'absolute', top: -10, right: -6, zIndex: 2 }} />
 
           {/* Logo */}
           <div className="flex flex-col items-center gap-3">
@@ -261,8 +263,7 @@ const Register: React.FC = () => {
             <button onClick={() => navigate('/login')} style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">Giriş Yap</button>
           </p>
         </div>
-      </div>
-    </div>
+    </AuthPageShell>
   );
 };
 

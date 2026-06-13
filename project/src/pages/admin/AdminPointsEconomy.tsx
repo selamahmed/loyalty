@@ -21,6 +21,12 @@ import {
   type BonusCampaign,
   type PointsEconomyStats,
 } from '../../services/pointsEconomy';
+import {
+  getLevelConfig,
+  upsertLevelConfig,
+  deleteLevelConfig,
+  type LevelConfig,
+} from '../../services/xp';
 
 const typeLabels: Record<string, string> = {
   earned:   'Kazanıldı',
@@ -44,6 +50,7 @@ const ruleTypeLabels: Record<string, string> = {
   mission_complete: 'Görev Tamamlama',
   achievement:      'Başarı',
   referral:         'Referans',
+  game_win:         'Mini Oyun',
   custom:           'Özel',
 };
 
@@ -72,6 +79,38 @@ const EmptyState: React.FC<{ emoji: string; title: string; sub?: string }> = ({ 
   </div>
 );
 
+const LevelEditRow: React.FC<{
+  row: LevelConfig;
+  working: boolean;
+  onSave: (row: LevelConfig) => void;
+  onDelete: () => void;
+}> = ({ row, working, onSave, onDelete }) => {
+  const [draft, setDraft] = useState(row);
+  useEffect(() => { setDraft(row); }, [row]);
+
+  return (
+    <tr style={{ borderBottom: '2px solid var(--dark-border)' }}>
+      <td style={{ padding: '10px 14px', fontWeight: 900 }}>{draft.level}</td>
+      <td style={{ padding: '10px 14px' }}>
+        <input value={draft.title} onChange={e => setDraft(d => ({ ...d, title: e.target.value }))} className="input-field" style={{ padding: '6px 10px', fontSize: 12 }} />
+      </td>
+      <td style={{ padding: '10px 14px' }}>
+        <input type="number" value={draft.xp_required} onChange={e => setDraft(d => ({ ...d, xp_required: parseInt(e.target.value, 10) || 0 }))} className="input-field" style={{ padding: '6px 10px', fontSize: 12, width: 90 }} />
+      </td>
+      <td style={{ padding: '10px 14px' }}>
+        <input type="number" value={draft.bonus_points} onChange={e => setDraft(d => ({ ...d, bonus_points: parseInt(e.target.value, 10) || 0 }))} className="input-field" style={{ padding: '6px 10px', fontSize: 12, width: 80 }} />
+      </td>
+      <td style={{ padding: '10px 14px' }}>
+        <input value={draft.reward_label ?? ''} onChange={e => setDraft(d => ({ ...d, reward_label: e.target.value }))} className="input-field" style={{ padding: '6px 10px', fontSize: 12 }} />
+      </td>
+      <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+        <button type="button" onClick={() => onSave(draft)} disabled={working} style={{ marginRight: 6, padding: '6px 10px', borderRadius: 8, fontWeight: 900, fontSize: 11, background: '#22c55e', color: '#fff', border: '2px solid #000', cursor: 'pointer' }}>Kaydet</button>
+        <button type="button" onClick={onDelete} disabled={working} style={{ padding: '6px 10px', borderRadius: 8, fontWeight: 900, fontSize: 11, background: '#ef4444', color: '#fff', border: '2px solid #000', cursor: 'pointer' }}>Sil</button>
+      </td>
+    </tr>
+  );
+};
+
 const AdminPointsEconomy: React.FC = () => {
   const [transactions, setTransactions] = useState<PointsTransactionRow[]>([]);
   const [rules, setRules]               = useState<PointRule[]>([]);
@@ -79,7 +118,7 @@ const AdminPointsEconomy: React.FC = () => {
   const [stats, setStats]               = useState<PointsEconomyStats>({ totalEarned: 0, totalSpent: 0, activeRules: 0 });
   const [loading, setLoading]           = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
-  const [activeTab, setActiveTab]       = useState<'transactions' | 'rules' | 'campaigns'>('transactions');
+  const [activeTab, setActiveTab]       = useState<'transactions' | 'rules' | 'campaigns' | 'levels'>('transactions');
 
   const [showAddRule, setShowAddRule]         = useState(false);
   const [showAddCampaign, setShowAddCampaign] = useState(false);
@@ -91,6 +130,11 @@ const AdminPointsEconomy: React.FC = () => {
   const [ruleName, setRuleName]   = useState('');
   const [ruleType, setRuleType]   = useState('daily_login');
   const [ruleValue, setRuleValue] = useState(0);
+  const [ruleXpValue, setRuleXpValue] = useState(0);
+  const [ruleMaxDay, setRuleMaxDay]   = useState<number | ''>('');
+
+  const [levels, setLevels] = useState<LevelConfig[]>([]);
+  const [levelForm, setLevelForm] = useState({ level: 1, title: '', xp_required: 0, reward_label: '', bonus_points: 0 });
 
   const [campaignName, setCampaignName]             = useState('');
   const [campaignDesc, setCampaignDesc]             = useState('');
@@ -107,16 +151,18 @@ const AdminPointsEconomy: React.FC = () => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
-      const [txRes, rulesRes, campaignsRes, statsRes] = await Promise.all([
+      const [txRes, rulesRes, campaignsRes, statsRes, levelsRes] = await Promise.all([
         getPointsEconomyTransactions(100),
         getPointRules(),
         getBonusCampaigns(),
         getPointsEconomyStats(),
+        getLevelConfig(),
       ]);
       setTransactions(txRes);
       setRules(rulesRes);
       setCampaigns(campaignsRes);
       setStats(statsRes);
+      setLevels(levelsRes);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Veriler yüklenemedi';
       showToast(msg, false);
@@ -132,17 +178,63 @@ const AdminPointsEconomy: React.FC = () => {
   useRealtimeTable('point_rules', () => loadAll(true));
   useRealtimeTable('events', () => loadAll(true));
 
+  useRealtimeTable('level_config', () => loadAll(true));
+
   const createRule = async () => {
     if (!ruleName.trim()) { showToast('Kural adı boş olamaz.', false); return; }
-    if (ruleValue <= 0)   { showToast('Puan değeri 0\'dan büyük olmalı.', false); return; }
+    if (ruleValue < 0)    { showToast('Puan değeri negatif olamaz.', false); return; }
     setSavingForm(true);
     try {
-      await createPointRule({ name: ruleName.trim(), rule_type: ruleType, value: ruleValue });
+      await createPointRule({
+        name: ruleName.trim(),
+        rule_type: ruleType,
+        value: ruleValue,
+        xp_value: ruleXpValue,
+        max_per_day: ruleMaxDay === '' ? null : Number(ruleMaxDay),
+      });
       showToast('Kural başarıyla oluşturuldu.');
-      setRuleName(''); setRuleValue(0); setShowAddRule(false);
+      setRuleName(''); setRuleValue(0); setRuleXpValue(0); setRuleMaxDay(''); setShowAddRule(false);
       await loadAll(true);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Kural kaydedilemedi.', false);
+    } finally {
+      setSavingForm(false);
+    }
+  };
+
+  const saveLevelRow = async (row: LevelConfig) => {
+    setWorkingId(`lv-${row.level}`);
+    try {
+      await upsertLevelConfig(row);
+      showToast(`Seviye ${row.level} kaydedildi.`);
+      await loadAll(true);
+    } catch {
+      showToast('Seviye kaydedilemedi.', false);
+    } finally {
+      setWorkingId(null);
+    }
+  };
+
+  const addLevel = async () => {
+    if (!levelForm.title.trim()) { showToast('Seviye adı gerekli.', false); return; }
+    setSavingForm(true);
+    try {
+      await upsertLevelConfig({
+        level: levelForm.level,
+        title: levelForm.title.trim(),
+        xp_required: levelForm.xp_required,
+        reward_label: levelForm.reward_label || null,
+        bonus_points: levelForm.bonus_points,
+        tier: null,
+        color: null,
+        sort_order: levelForm.level,
+        active: true,
+      });
+      showToast('Seviye eklendi.');
+      setLevelForm({ level: levelForm.level + 1, title: '', xp_required: 0, reward_label: '', bonus_points: 0 });
+      await loadAll(true);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Seviye eklenemedi.', false);
     } finally {
       setSavingForm(false);
     }
@@ -235,6 +327,7 @@ const AdminPointsEconomy: React.FC = () => {
   const tabs = [
     { id: 'transactions' as const, label: `İşlemler (${transactions.length})` },
     { id: 'rules'        as const, label: `Kurallar (${rules.length})`        },
+    { id: 'levels'       as const, label: `Seviyeler (${levels.length})`      },
     { id: 'campaigns'    as const, label: `Kampanyalar (${campaigns.length})`  },
   ];
 
@@ -283,7 +376,7 @@ const AdminPointsEconomy: React.FC = () => {
             <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>⚡</div>
             <div>
               <h1 style={{ fontWeight: 900, fontSize: 'clamp(20px,4vw,28px)', color: 'var(--text-dark)', margin: 0, lineHeight: 1 }}>Puan Ekonomisi</h1>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '3px 0 0', fontWeight: 600 }}>Tüm puan işlemlerini ve kazanç kurallarını yönet</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '3px 0 0', fontWeight: 600 }}>Puan, XP kuralları ve seviye yolunu yönet</p>
             </div>
           </div>
           <button
@@ -398,7 +491,9 @@ const AdminPointsEconomy: React.FC = () => {
                     <option key={val} value={val}>{label}</option>
                   ))}
                 </select>
-                <input type="number" placeholder="Puan değeri" value={ruleValue || ''} onChange={e => setRuleValue(parseInt(e.target.value, 10) || 0)} min={1} className="input-field" />
+                <input type="number" placeholder="Puan değeri" value={ruleValue || ''} onChange={e => setRuleValue(parseInt(e.target.value, 10) || 0)} min={0} className="input-field" />
+                <input type="number" placeholder="XP değeri (0 = puan × oran)" value={ruleXpValue || ''} onChange={e => setRuleXpValue(parseInt(e.target.value, 10) || 0)} min={0} className="input-field" />
+                <input type="number" placeholder="Günlük max (boş = global limit)" value={ruleMaxDay} onChange={e => setRuleMaxDay(e.target.value === '' ? '' : parseInt(e.target.value, 10) || 0)} min={0} className="input-field" />
                 <button type="button" onClick={createRule} disabled={savingForm} style={{ padding: '11px', borderRadius: 13, fontWeight: 900, fontSize: 14, background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', color: 'white', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: savingForm ? 0.7 : 1 }}>
                   {savingForm ? <Loader size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> : null}
                   Kuralı Kaydet
@@ -418,7 +513,10 @@ const AdminPointsEconomy: React.FC = () => {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rule.name}</p>
                       <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-                        {ruleTypeLabels[rule.rule_type] || rule.rule_type} • <strong style={{ color: 'var(--text-dark)' }}>{rule.value} puan</strong> • {rule.active ? <span style={{ color: '#16a34a', fontWeight: 900 }}>Aktif</span> : <span style={{ color: '#ef4444', fontWeight: 900 }}>Pasif</span>}
+                        {ruleTypeLabels[rule.rule_type] || rule.rule_type} • <strong style={{ color: 'var(--text-dark)' }}>{rule.value} puan</strong>
+                        {' • '}<strong style={{ color: '#7B6EF6' }}>{rule.xp_value ?? 0} XP</strong>
+                        {rule.max_per_day != null && ` • max/gün ${rule.max_per_day}`}
+                        {' • '}{rule.active ? <span style={{ color: '#16a34a', fontWeight: 900 }}>Aktif</span> : <span style={{ color: '#ef4444', fontWeight: 900 }}>Pasif</span>}
                       </p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -431,6 +529,65 @@ const AdminPointsEconomy: React.FC = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── LEVELS (XP progression path) ── */}
+        {activeTab === 'levels' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <h3 style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: 0 }}>Yeni Seviye Ekle</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
+                <input type="number" placeholder="Lv." value={levelForm.level} onChange={e => setLevelForm(f => ({ ...f, level: parseInt(e.target.value, 10) || 1 }))} className="input-field" />
+                <input type="text" placeholder="Başlık" value={levelForm.title} onChange={e => setLevelForm(f => ({ ...f, title: e.target.value }))} className="input-field" />
+                <input type="number" placeholder="XP eşiği" value={levelForm.xp_required} onChange={e => setLevelForm(f => ({ ...f, xp_required: parseInt(e.target.value, 10) || 0 }))} className="input-field" />
+                <input type="number" placeholder="Bonus puan" value={levelForm.bonus_points} onChange={e => setLevelForm(f => ({ ...f, bonus_points: parseInt(e.target.value, 10) || 0 }))} className="input-field" />
+              </div>
+              <input type="text" placeholder="Ödül açıklaması" value={levelForm.reward_label} onChange={e => setLevelForm(f => ({ ...f, reward_label: e.target.value }))} className="input-field" />
+              <button type="button" onClick={addLevel} disabled={savingForm} style={{ padding: '11px', borderRadius: 13, fontWeight: 900, fontSize: 14, background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', color: 'white', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer' }}>
+                Seviye Kaydet
+              </button>
+            </div>
+
+            {levels.length === 0 ? (
+              <EmptyState emoji="🏆" title="Seviye bulunamadı" sub="patch_xp_system.sql dosyasını Supabase'de çalıştırın." />
+            ) : (
+              <div style={{ ...card, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', minWidth: 520, borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '3px solid var(--dark-border)' }}>
+                        {['Lv', 'Başlık', 'XP Eşiği', 'Bonus Puan', 'Ödül', ''].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '12px 14px', fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {levels.map(lv => (
+                        <LevelEditRow
+                          key={lv.level}
+                          row={lv}
+                          working={workingId === `lv-${lv.level}`}
+                          onSave={saveLevelRow}
+                          onDelete={async () => {
+                            setWorkingId(`lv-${lv.level}`);
+                            try {
+                              await deleteLevelConfig(lv.level);
+                              showToast(`Seviye ${lv.level} silindi.`);
+                              await loadAll(true);
+                            } catch {
+                              showToast('Silinemedi.', false);
+                            } finally {
+                              setWorkingId(null);
+                            }
+                          }}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

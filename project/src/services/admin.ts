@@ -20,27 +20,76 @@ export async function getAllUsers(page = 0, pageSize = 20, search?: string): Pro
 }
 
 export async function suspendUser(userId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabase.rpc('admin_set_user_status', {
+    p_user_id: userId,
+    p_status: 'suspended',
+  });
+  if (!error) return;
+
+  const { error: fb, data } = await supabase
     .from('profiles')
     .update({ status: 'suspended', updated_at: new Date().toISOString() })
-    .eq('id', userId);
-  if (error) throw error;
+    .eq('id', userId)
+    .select('id');
+
+  if (fb || !data?.length) {
+    throw new Error(error.message || fb?.message || 'Askıya alma başarısız — patch_account_status.sql çalıştırın');
+  }
 }
 
 export async function activateUser(userId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabase.rpc('admin_set_user_status', {
+    p_user_id: userId,
+    p_status: 'active',
+  });
+  if (!error) return;
+
+  const { error: fb, data } = await supabase
     .from('profiles')
     .update({ status: 'active', updated_at: new Date().toISOString() })
-    .eq('id', userId);
-  if (error) throw error;
+    .eq('id', userId)
+    .select('id');
+
+  if (fb || !data?.length) {
+    throw new Error(error.message || fb?.message || 'Aktifleştirme başarısız — patch_account_status.sql çalıştırın');
+  }
 }
 
 export async function deleteUser(userId: string): Promise<void> {
-  const { error } = await supabase
+  const { error: fnErr } = await supabase.functions.invoke('ban-user', {
+    body: { userId, status: 'deleted' },
+  });
+  if (!fnErr) return;
+
+  const { error } = await supabase.rpc('admin_set_user_status', {
+    p_user_id: userId,
+    p_status: 'deleted',
+  });
+  if (!error) return;
+
+  const { error: fb, data } = await supabase
     .from('profiles')
     .update({ status: 'deleted', updated_at: new Date().toISOString() })
-    .eq('id', userId);
-  if (error) throw error;
+    .eq('id', userId)
+    .select('id');
+
+  if (fb || !data?.length) {
+    throw new Error(error.message || fb?.message || 'Yasaklama başarısız — migration çalıştırın');
+  }
+}
+
+export async function suspendUserViaEdge(userId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('ban-user', {
+    body: { userId, status: 'suspended' },
+  });
+  if (error) await suspendUser(userId);
+}
+
+export async function activateUserViaEdge(userId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('ban-user', {
+    body: { userId, status: 'active' },
+  });
+  if (error) await activateUser(userId);
 }
 
 export async function saveAdminNote(userId: string, note: string): Promise<void> {
@@ -470,10 +519,12 @@ export async function getAnalyticsData(days: number) {
 
   // Top redeemed rewards
   const rewardCountMap: Record<string, { name: string; redeemed: number; points: number }> = {};
-  (redemptionsData ?? []).forEach((r: {reward_id: string; rewards: {title: string; points_cost: number} | null}) => {
-    if (!r.rewards) return;
+  (redemptionsData ?? []).forEach((row) => {
+    const r = row as { reward_id: string; rewards: { title: string; points_cost: number } | { title: string; points_cost: number }[] | null };
+    const rewards = Array.isArray(r.rewards) ? r.rewards[0] : r.rewards;
+    if (!rewards) return;
     const id = r.reward_id;
-    if (!rewardCountMap[id]) rewardCountMap[id] = { name: r.rewards.title, redeemed: 0, points: r.rewards.points_cost ?? 0 };
+    if (!rewardCountMap[id]) rewardCountMap[id] = { name: rewards.title, redeemed: 0, points: rewards.points_cost ?? 0 };
     rewardCountMap[id].redeemed += 1;
   });
   const topProducts = Object.values(rewardCountMap).sort((a, b) => b.redeemed - a.redeemed).slice(0, 5);
@@ -655,18 +706,20 @@ export async function getAdvancedAnalytics() {
   // ── Funnel ──
   const qrUids  = new Set((qrUsers??[]).map(r=>r.user_id));
   const redUids = new Set((redemUsers??[]).map(r=>r.user_id));
-  const funnelData = [
-    { stage:'Kayıt', count: totalUsers??0, fill:'#7B6EF6' },
-    { stage:'QR Tarama', count: qrUids.size,  fill:'#4F8EF7' },
-    { stage:'Ödül Kullandı', count: redUids.size, fill:'#22c55e' },
-    { stage:'30g Aktif', count: active30??0, fill:'#f59e0b' },
+  const funnelData: { stage: string; count: number; fill: string }[] = [
+    { stage: 'Kayıt', count: totalUsers ?? 0, fill: '#7B6EF6' },
+    { stage: 'QR Tarama', count: qrUids.size, fill: '#4F8EF7' },
+    { stage: 'Ödül Kullandı', count: redUids.size, fill: '#22c55e' },
+    { stage: '30g Aktif', count: typeof active30 === 'number' ? active30 : 0, fill: '#f59e0b' },
   ];
 
   // ── Reward performance (by name) ──
   const rwMap: Record<string,{name:string;count:number}> = {};
-  (redemptions??[]).forEach((r:{reward_id:string;rewards:{title:string;category:string}|null}) => {
-    const name = r.rewards?.title ?? 'Bilinmeyen';
-    rwMap[name] = rwMap[name] ?? { name, count:0 };
+  (redemptions ?? []).forEach((row) => {
+    const r = row as { reward_id: string; rewards: { title: string; category: string } | { title: string; category: string }[] | null };
+    const rewards = Array.isArray(r.rewards) ? r.rewards[0] : r.rewards;
+    const name = rewards?.title ?? 'Bilinmeyen';
+    rwMap[name] = rwMap[name] ?? { name, count: 0 };
     rwMap[name].count++;
   });
   const rewardPerformance = Object.values(rwMap).sort((a,b)=>b.count-a.count).slice(0,5);
@@ -720,33 +773,17 @@ export async function lookupStoreQR(code: string) {
   return data;
 }
 
-/** Record a customer scanning a store QR and award points atomically. */
+/** @deprecated Use claimQrScan from earn.ts — server validates QR */
 export async function recordQRScan(
-  userId: string,
+  _userId: string,
   qrCodeId: string,
-  pointsEarned: number,
-  description: string
+  _pointsEarned: number,
+  _description: string,
 ): Promise<void> {
-  // Insert scan record
-  const { error: scanErr } = await supabase
-    .from('qr_scans')
-    .insert({ user_id: userId, qr_code_id: qrCodeId, points_earned: pointsEarned });
-  if (scanErr) throw scanErr;
-
-  // Increment uses_count on qr_codes
-  const { error: updateErr } = await supabase.rpc('increment_qr_uses', { qr_id: qrCodeId });
-  // Non-fatal if RPC not yet deployed — uses_count is cosmetic
-  if (updateErr) console.warn('[recordQRScan] increment_qr_uses:', updateErr.message);
-
-  // Award points to user
-  const { error: ptsErr } = await supabase.rpc('add_points', {
-    p_user_id: userId,
-    p_amount: pointsEarned,
-    p_description: description,
-    p_category: 'qr_scan',
-    p_reference_id: qrCodeId,
-  });
-  if (ptsErr) throw ptsErr;
+  const { data: qr } = await supabase.from('qr_codes').select('code').eq('id', qrCodeId).maybeSingle();
+  if (!qr?.code) throw new Error('QR not found');
+  const { error } = await supabase.rpc('claim_qr_scan', { p_code: qr.code });
+  if (error) throw error;
 }
 
 /** Create a temporary cashier-purchase QR in the database. */

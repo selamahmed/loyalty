@@ -256,6 +256,61 @@ export type Database = {
         Insert: Omit<Database['public']['Tables']['qr_scans']['Row'], 'created_at'>;
         Update: Partial<Database['public']['Tables']['qr_scans']['Insert']>;
       };
+      user_streaks: {
+        Row: {
+          user_id: string;
+          current_streak: number;
+          longest_streak: number;
+          last_claim_date: string | null;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['user_streaks']['Row'], 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['user_streaks']['Insert']>;
+      };
+      user_settings: {
+        Row: {
+          user_id: string;
+          public_profile: boolean;
+          show_on_leaderboard: boolean;
+          share_activity: boolean;
+          login_alerts: boolean;
+          two_factor_enabled: boolean;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['user_settings']['Row'], 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['user_settings']['Insert']>;
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth_key: string;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['push_subscriptions']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['push_subscriptions']['Insert']>;
+      };
+    };
+    Functions: {
+      perform_action: {
+        Args: { p_action: string; p_reference_id?: string | null; p_metadata?: Record<string, unknown> };
+        Returns: Record<string, unknown>;
+      };
+      claim_qr_scan: {
+        Args: { p_code: string };
+        Returns: Record<string, unknown>;
+      };
+      claim_daily_streak: {
+        Args: Record<string, never>;
+        Returns: Record<string, unknown>;
+      };
+      get_my_account_status: {
+        Args: Record<string, never>;
+        Returns: 'active' | 'suspended' | 'deleted';
+      };
     };
   };
 };

@@ -7,6 +7,8 @@ import type { AchievementWithProgress } from '../services/achievements';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { WinningParticles } from '../components/WinningParticles';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 import { activityLogService } from '../lib/activityLogger';
 
 const card = {
@@ -101,31 +103,23 @@ const Achievements: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Illustration banner ── */}
-        <div style={{ ...card, overflow: 'hidden', position: 'relative', height: 130 }}>
-          <img
-            src="https://picsum.photos/seed/achbanner55/900/260"
-            alt="Achievements"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.48) saturate(1.3)' }}
-          />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(217,119,6,0.88) 0%, rgba(245,158,11,0.12) 70%)' }} />
-          <div style={{ position: 'absolute', top: '50%', left: 18, transform: 'translateY(-50%)' }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 7,
-              background: '#000', color: '#FFE500', borderRadius: 999, padding: '2px 9px', fontSize: 9, fontWeight: 900, letterSpacing: '0.1em',
-            }}>⭐ ROZETLER</div>
-            <h2 style={{ fontWeight: 900, fontSize: 'clamp(15px,3vw,20px)', margin: '0 0 3px', color: 'white', letterSpacing: '-0.03em', lineHeight: 1.1 }}>Rozetleri topla,</h2>
-            <h2 style={{ fontWeight: 900, fontSize: 'clamp(15px,3vw,20px)', margin: 0, color: '#FFE500', letterSpacing: '-0.03em', lineHeight: 1.1 }}>efsane ol!</h2>
-          </div>
-          <div style={{ position: 'absolute', right: 18, top: '50%', transform: 'translateY(-50%)', fontSize: 'clamp(46px,8vw,64px)', opacity: 0.9, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.5))' }}>🏆</div>
-        </div>
+        {/* ── Hero banner (sticker) ── */}
+        <StickerHero
+          page="achievements"
+          bg="linear-gradient(135deg,#d97706 0%,#f59e0b 100%)"
+          badge="⭐ ROZETLER"
+          title="Rozetleri topla,"
+          highlight="efsane ol!"
+          accentSeed="ach-hero-accent"
+        />
 
         {/* ── Summary hero ── */}
         <div style={{
           ...card,
           background: 'linear-gradient(135deg,#f59e0b 0%,#d97706 100%)',
-          padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'hidden',
+          padding: 'clamp(16px,4vw,24px)', position: 'relative', overflow: 'visible',
         }}>
+          <StickerAccent seed="ach-summary" variant="shape" size={34} rotate={-8} style={{ position: 'absolute', top: -8, right: 10, zIndex: 2 }} />
           <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{
@@ -160,13 +154,18 @@ const Achievements: React.FC = () => {
               onClick={() => { playSound('click'); setFilter(f); }}
               style={{
                 flex: 1, padding: '10px 6px', borderRadius: 12, fontWeight: 900, fontSize: 12,
-                cursor: 'pointer', transition: 'all 0.1s',
+                cursor: 'pointer', transition: 'all 0.1s', position: 'relative',
                 background: filter === f ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
                 color: filter === f ? 'white' : 'var(--text-dark)',
                 border: '3px solid var(--dark-border)',
                 boxShadow: filter === f ? '0 5px 0 var(--dark-border)' : '0 4px 0 var(--dark-border)',
               }}
-            >{filterLabels[f]}</button>
+            >
+              {filterLabels[f]}
+              {filter === f && (
+                <StickerAccent seed={`ach-filter-${f}`} size={18} rotate={10} style={{ position: 'absolute', top: -6, right: -4 }} />
+              )}
+            </button>
           ))}
         </div>
 
@@ -179,9 +178,12 @@ const Achievements: React.FC = () => {
               style={{
                 padding: '6px 14px', borderRadius: 999, fontWeight: 900, fontSize: 11,
                 cursor: 'pointer', flexShrink: 0, transition: 'all 0.1s', textTransform: 'capitalize',
-                background: category === cat ? 'var(--dark-border)' : 'var(--tab-bg)',
-                color: category === cat ? 'var(--card-bg)' : 'var(--text-muted)',
-                border: '2px solid var(--dark-border)',
+                background: category === cat
+                  ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))'
+                  : 'var(--card-bg)',
+                color: category === cat ? '#fff' : 'var(--text-dark)',
+                border: '2.5px solid var(--dark-border)',
+                boxShadow: category === cat ? '0 4px 0 var(--dark-border)' : '0 3px 0 var(--dark-border)',
               }}
             >{cat}</button>
           ))}
@@ -210,6 +212,8 @@ const Achievements: React.FC = () => {
                     cursor: 'pointer',
                     animation: `achSlideIn 0.3s ease-out ${index * 0.04}s both`,
                     transition: 'transform 0.1s',
+                    position: 'relative',
+                    overflow: 'visible',
                   }}
                   onClick={() => {
                     if (ach.completed) { playSound('success'); setShowParticles(true); setTimeout(() => setShowParticles(false), 2000); }
@@ -217,6 +221,9 @@ const Achievements: React.FC = () => {
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
                 >
+                  {ach.completed && (
+                    <StickerAccent seed={`ach-card-${ach.id}`} size={20} rotate={8} style={{ position: 'absolute', top: -8, right: 8, zIndex: 2 }} />
+                  )}
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                     {/* Icon */}
                     <div style={{

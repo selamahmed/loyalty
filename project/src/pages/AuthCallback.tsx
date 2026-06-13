@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getDashboardPath } from '../context/AuthContext';
+import { fetchMyAccountStatus, isRestrictedStatus } from '../services/accountStatus';
 
 /**
  * Landing page for the Supabase OAuth callback (PKCE flow).
@@ -16,7 +17,7 @@ import { getDashboardPath } from '../context/AuthContext';
  *   https://<your-production-domain>
  */
 const AuthCallback: React.FC = () => {
-  const { authUser, isLoading } = useAuth();
+  const { authUser, isLoading, logout } = useAuth();
   const navigate = useNavigate();
   const [timedOut, setTimedOut] = useState(false);
 
@@ -30,11 +31,23 @@ const AuthCallback: React.FC = () => {
       navigate('/login', { replace: true });
       return;
     }
-    // authUser.role is already populated from the profiles table by refreshProfile
     if (!isLoading && authUser) {
-      navigate(getDashboardPath(authUser.role), { replace: true });
+      void (async () => {
+        const status = await fetchMyAccountStatus(authUser.id);
+        if (status === 'deleted') {
+          sessionStorage.setItem('oauth_error', 'Hesabınız yasaklandı.');
+          await logout();
+          navigate('/login', { replace: true });
+          return;
+        }
+        if (isRestrictedStatus(status) && authUser.role === 'customer') {
+          navigate('/home', { replace: true });
+          return;
+        }
+        navigate(getDashboardPath(authUser.role), { replace: true });
+      })();
     }
-  }, [authUser, isLoading, timedOut, navigate]);
+  }, [authUser, isLoading, timedOut, navigate, logout]);
 
   return (
     <div

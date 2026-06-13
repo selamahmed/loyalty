@@ -8,6 +8,7 @@ import {
   QrCode, Search, CheckCircle, AlertCircle, RefreshCw,
   User, Star, Clock, XCircle, ChevronRight, Banknote, Zap, Loader2
 } from 'lucide-react';
+import NeoAvatar from '../../../components/NeoAvatar';
 
 const ACCENT        = '#f59e0b';
 const POINTS_PER_TL = 10;
@@ -443,12 +444,7 @@ const ManualSearchTab: React.FC = () => {
               className="w-full flex items-center gap-3 px-5 py-3 transition-all text-left hover:opacity-80"
               style={{ borderBottom: i < customers.length - 1 ? '1px solid var(--dark-border)' : 'none' }}
             >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm text-white flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg,#7B6EF6,#4F8EF7)' }}>
-                {c.avatar_url
-                  ? <img src={c.avatar_url} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
-                  : (c.username?.substring(0, 2).toUpperCase() || <User size={16} color="white" />)}
-              </div>
+              <NeoAvatar src={c.avatar_url} name={c.username} email={c.email} size={40} shape="circle" />
               <div className="flex-1 min-w-0">
                 <p className="font-black text-sm" style={{ color: 'var(--text-dark)' }}>{c.username}</p>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{c.email}</p>
@@ -470,12 +466,7 @@ const ManualSearchTab: React.FC = () => {
       {selected && (
         <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--card-bg)', border: '2.5px solid #7B6EF6', boxShadow: '0px 5px 0px var(--dark-border)' }}>
           <div className="flex items-center gap-3 p-4" style={{ borderBottom: '2px solid var(--dark-border)', background: 'rgba(123,110,246,0.05)' }}>
-            <div className="w-12 h-12 rounded-full flex items-center justify-center font-black text-white"
-              style={{ background: 'linear-gradient(135deg,#7B6EF6,#4F8EF7)', flexShrink: 0 }}>
-              {selected.avatar_url
-                ? <img src={selected.avatar_url} alt="" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
-                : selected.username?.substring(0, 2).toUpperCase()}
-            </div>
+            <NeoAvatar src={selected.avatar_url} name={selected.username} email={selected.email} size={48} shape="circle" />
             <div className="flex-1 min-w-0">
               <p className="font-black" style={{ color: 'var(--text-dark)' }}>{selected.username}</p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{selected.email} · Seviye {selected.level ?? 1}</p>

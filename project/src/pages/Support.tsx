@@ -5,6 +5,8 @@ import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 
 const card = {
   background: 'var(--card-bg)',
@@ -102,19 +104,29 @@ const Support: React.FC = () => {
           </div>
         </div>
 
+        <StickerHero
+          page="support"
+          bg="linear-gradient(135deg,#22c55e 0%,#16a34a 100%)"
+          badge="💬 DESTEK"
+          title="Yardım al,"
+          highlight="hemen yanıt!"
+          accentSeed="support-hero-accent"
+        />
+
         {/* ── Contact options ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-          {contactOptions.map(c => (
+          {contactOptions.map((c, i) => (
             <button
               key={c.label}
               onClick={() => { playSound('click'); navigate(c.path); }}
               style={{
               ...card, padding: '16px 10px', textAlign: 'center', cursor: 'pointer',
-              transition: 'transform 0.1s, box-shadow 0.1s',
+              transition: 'transform 0.1s, box-shadow 0.1s', position: 'relative', overflow: 'visible',
             }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
             >
+              <StickerAccent seed={`support-contact-${i}`} size={20} rotate={-6 + i * 8} style={{ position: 'absolute', top: -6, right: 4 }} />
               <div style={{
                 width: 48, height: 48, borderRadius: 14, background: c.bg,
                 border: `2.5px solid ${c.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',

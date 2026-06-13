@@ -3,8 +3,7 @@ import { Squiggle, StarBurst } from './NeoBrutalIllustrations';
 
 /* Scattered background doodles like Teen Talk stories */
 export const DoodleField: React.FC<{ opacity?: number }> = ({ opacity = 1 }) => (
-  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', opacity }}>
-    <Squiggle color="#FF3E9D" style={{ position: 'absolute', top: '8%', left: '5%', transform: 'rotate(-12deg)' }} />
+  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', opacity, zIndex: 0 }}>    <Squiggle color="#FF3E9D" style={{ position: 'absolute', top: '8%', left: '5%', transform: 'rotate(-12deg)' }} />
     <Squiggle color="#C8FF00" style={{ position: 'absolute', top: '15%', right: '8%', transform: 'rotate(8deg) scale(1.2)' }} />
     <StarBurst color="#FFE500" size={36} style={{ position: 'absolute', top: '25%', left: '12%' }} />
     <StarBurst color="#56C8FF" size={28} style={{ position: 'absolute', top: '60%', right: '6%', transform: 'rotate(20deg)' }} />

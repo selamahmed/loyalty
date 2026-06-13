@@ -6,6 +6,8 @@ import type { Notification } from '../services/notifications';
 import { supabase } from '../lib/supabase';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 
 /* ── Type config ── */
 const TYPE: Record<string, { gradient: string; icon: string; border: string; accent: string; shadow: string }> = {
@@ -132,6 +134,16 @@ const Notifications: React.FC = () => {
           )}
         </div>
 
+        <StickerHero
+          page="notifications"
+          bg="linear-gradient(135deg,#a78bfa 0%,#6d28d9 100%)"
+          badge="🔔 BİLDİRİM"
+          title={unreadCount > 0 ? `${unreadCount} yeni bildirim` : 'Hepsi okundu'}
+          highlight="Güncel kal!"
+          accentSeed="notif-hero-accent"
+          height={120}
+        />
+
         {/* ── Filter pills ── */}
         <div className="np-filter-bar">
           {Object.keys(FILTER_LABELS).map(f => (
@@ -139,8 +151,10 @@ const Notifications: React.FC = () => {
               key={f}
               onClick={() => { playSound('click'); setFilter(f); }}
               className={`np-pill ${filter === f ? 'np-pill-active' : ''}`}
+              style={{ position: 'relative' }}
             >
               {FILTER_LABELS[f]}
+              {filter === f && <StickerAccent seed={`notif-filter-${f}`} size={14} rotate={10} style={{ position: 'absolute', top: -4, right: -2 }} />}
               {f === 'unread' && unreadCount > 0 && (
                 <span className="np-pill-count">{unreadCount}</span>
               )}

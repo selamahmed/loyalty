@@ -3,6 +3,8 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { TrendingUp, Star, Gamepad2, QrCode, Target, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../lib/tr';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 
 const statsData = {
   pointsOverTime: [] as { month: string; points: number }[],
@@ -55,10 +57,20 @@ const UserStats: React.FC = () => {
           </div>
         </div>
 
+        <StickerHero
+          page="stats"
+          bg="linear-gradient(135deg,#818cf8 0%,#4f46e5 100%)"
+          badge="📊 İSTATİSTİK"
+          title="Performansını"
+          highlight="analiz et!"
+          accentSeed="stats-hero-accent"
+        />
+
         {/* ── Stat cards ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-          {statCards.map(s => (
-            <div key={s.label} style={{ ...card, padding: '16px 14px' }}>
+          {statCards.map((s, i) => (
+            <div key={s.label} style={{ ...card, padding: '16px 14px', position: 'relative', overflow: 'visible' }}>
+              {i < 2 && <StickerAccent seed={`stats-card-${i}`} size={18} rotate={-8 + i * 12} style={{ position: 'absolute', top: -5, right: 6, zIndex: 2 }} />}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, background: s.bg,

@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { adminAddPoints } from '../../../services/admin';
 import { useRealtimeTable } from '../../../hooks/useRealtime';
 import { Search, User, Star, TrendingUp, Loader2, X, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import NeoAvatar from '../../../components/NeoAvatar';
 
 interface Customer {
   id: string;
@@ -165,11 +166,7 @@ const StoreAdminCustomers: React.FC = () => {
             </div>
           ) : customers.map((c, i) => (
             <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: i < customers.length - 1 ? '1.5px solid var(--dark-border)' : 'none' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#7B6EF6,#4F8EF7)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid var(--dark-border)', overflow: 'hidden' }}>
-                {c.avatar_url
-                  ? <img src={c.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <span style={{ fontWeight: 900, fontSize: 14, color: 'white' }}>{c.username?.substring(0, 2).toUpperCase()}</span>}
-              </div>
+              <NeoAvatar src={c.avatar_url} name={c.username} email={c.email} size={44} shape="circle" />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.username}</p>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email}</p>

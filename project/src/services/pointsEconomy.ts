@@ -10,6 +10,8 @@ export type PointRule = {
   name: string;
   rule_type: string;
   value: number;
+  xp_value: number;
+  max_per_day: number | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -132,14 +134,18 @@ export async function createPointRule(input: {
   name: string;
   rule_type: string;
   value: number;
+  xp_value?: number;
+  max_per_day?: number | null;
 }): Promise<PointRule> {
   const { data, error } = await supabase
     .from('point_rules')
     .insert({
-      name:      input.name.trim(),
-      rule_type: input.rule_type,
-      value:     input.value,
-      active:    true,
+      name:        input.name.trim(),
+      rule_type:   input.rule_type,
+      value:       input.value,
+      xp_value:    input.xp_value ?? 0,
+      max_per_day: input.max_per_day ?? null,
+      active:      true,
     })
     .select()
     .single();
@@ -149,7 +155,7 @@ export async function createPointRule(input: {
 
 export async function updatePointRule(
   id: string,
-  updates: Partial<Pick<PointRule, 'name' | 'rule_type' | 'value' | 'active'>>,
+  updates: Partial<Pick<PointRule, 'name' | 'rule_type' | 'value' | 'xp_value' | 'max_per_day' | 'active'>>,
 ): Promise<PointRule> {
   const { data, error } = await supabase
     .from('point_rules')

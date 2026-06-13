@@ -1,12 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Star, Sun, Moon, Menu, X, Zap, Gift, Gamepad2, Target, Trophy, Users, Check, ChevronRight } from 'lucide-react';
-import {
-  HeroMascot, SpeechBubble,
-  GiftDoodle, PointsBolt, GameDoodle, SocialDoodle,
-  featureIllustrations,
-} from '../components/neo/NeoBrutalIllustrations';
 import { DoodleField, SectionBadge } from '../components/neo/NeoBrutalDecor';
+import HeroGroupComposition from '../components/HeroGroupComposition';
+import StickerAccent from '../components/StickerAccent';
+import { PageStickerBackdrop, SectionStickerDecor, StickerSectionDivider } from '../components/StickerDecor';
+import {
+  LANDING_BANNER_STICKERS,
+  LANDING_LIFESTYLE_STICKERS,
+  LANDING_CTA_STICKERS,
+  LANDING_HERO_HEADLINE_SHAPES,
+} from '../lib/pageStickers';
 import { useApp } from '../context/AppContext';
 
 /* ─── Ticker strip ─────────────────────────────────────────── */
@@ -68,14 +72,13 @@ const NStar4 = ({ color, size = 96, opacity = 0.18, rotate = 0 }: ShapeProps) =>
 );
 
 /* ─── Data ──────────────────────────────────────────────────── */
-type FeatureIllus = keyof typeof featureIllustrations;
-const features: { icon: React.ElementType; title: string; desc: string; color: string; illus: FeatureIllus; Shape: React.FC<ShapeProps>; sRotate: number }[] = [
-  { icon: Zap,      title: 'Anında Ödüller',    desc: 'Her etkileşimde anında puan kazan.',             color: '#9122FF', illus: 'bolt',   Shape: NBolt,    sRotate: 15  },
-  { icon: Gamepad2, title: 'Eğlenceli Oyunlar', desc: 'Oyunlar oyna, görevleri tamamla, bonus kazan.',  color: '#FF3E9D', illus: 'game',   Shape: NStar5,   sRotate: -10 },
-  { icon: Gift,     title: 'Özel Ödüller',      desc: 'Puanlarını harika ödüllerle değiştir.',          color: '#FF6B35', illus: 'gift',   Shape: NHeart,   sRotate: 8   },
-  { icon: Target,   title: 'Günlük Görevler',   desc: 'Günlük zorlukları tamamla, serini koru.',        color: '#56C8FF', illus: 'target', Shape: NBurst,   sRotate: -12 },
-  { icon: Trophy,   title: 'Liderlik Tablosu',  desc: 'Diğerleriyle yarış ve sıralamada yüksel.',       color: '#FFE500', illus: 'trophy', Shape: NStar4,   sRotate: 20  },
-  { icon: Users,    title: 'Sosyal Ödüller',    desc: 'Arkadaşlarınla paylaş, ekstra puan kazan.',      color: '#C8FF00', illus: 'social', Shape: NDiamond, sRotate: -8  },
+const features: { icon: React.ElementType; title: string; desc: string; color: string; stickerSeed: string; Shape: React.FC<ShapeProps>; sRotate: number }[] = [
+  { icon: Zap,      title: 'Anında Ödüller',    desc: 'Her etkileşimde anında puan kazan.',             color: '#9122FF', stickerSeed: 'feat-bolt',   Shape: NBolt,    sRotate: 15  },
+  { icon: Gamepad2, title: 'Eğlenceli Oyunlar', desc: 'Oyunlar oyna, görevleri tamamla, bonus kazan.',  color: '#FF3E9D', stickerSeed: 'feat-game',   Shape: NStar5,   sRotate: -10 },
+  { icon: Gift,     title: 'Özel Ödüller',      desc: 'Puanlarını harika ödüllerle değiştir.',          color: '#FF6B35', stickerSeed: 'feat-gift',   Shape: NHeart,   sRotate: 8   },
+  { icon: Target,   title: 'Günlük Görevler',   desc: 'Günlük zorlukları tamamla, serini koru.',        color: '#56C8FF', stickerSeed: 'feat-target', Shape: NBurst,   sRotate: -12 },
+  { icon: Trophy,   title: 'Liderlik Tablosu',  desc: 'Diğerleriyle yarış ve sıralamada yüksel.',       color: '#FFE500', stickerSeed: 'feat-trophy', Shape: NStar4,   sRotate: 20  },
+  { icon: Users,    title: 'Sosyal Ödüller',    desc: 'Arkadaşlarınla paylaş, ekstra puan kazan.',      color: '#C8FF00', stickerSeed: 'feat-social', Shape: NDiamond, sRotate: -8  },
 ];
 
 const tickerHero: TickerItem[] = [
@@ -90,10 +93,10 @@ const tickerHero: TickerItem[] = [
 ];
 
 const banners = [
-  { bg: '#FFE500', textColor: '#000', tag: '👥 TOPLULUK', headline: '50K+',  sub: 'Mutlu Kullanıcı',      body: 'Türkiye\'nin en hızlı büyüyen sadakat topluluğuna katılın. Her gün yeni üyeler NexReward\'la tanışıyor.' },
-  { bg: '#C8FF00', textColor: '#000', tag: '⚡ HIZ',       headline: 'ANINDA', sub: 'Ödül Sistemi',         body: 'Alışveriş yaptığınız anda puanlar hesabınıza geçer. Bekleme yok, gecikme yok — sadece anlık kazanç.' },
-  { bg: '#FF6B35', textColor: '#fff', tag: '💰 KAZANÇ',   headline: '2M+',    sub: 'Kazanılan Puan',       body: 'Kullanıcılarımız 2 milyondan fazla puan kazandı. Her alışverişiniz bir kazanç fırsatıdır.' },
-  { bg: '#FF3E9D', textColor: '#fff', tag: '🏆 BAŞARI',   headline: '#1',     sub: 'Türkiye\'nin Platformu', body: 'En iyi sadakat deneyimini yaşayın. Ödüller, mini oyunlar, liderlik tabloları — hepsi ücretsiz.' },
+  { bg: '#FFE500', textColor: '#000', tag: '👥 TOPLULUK', headline: '50K+',  sub: 'Mutlu Kullanıcı',      body: 'Türkiye\'nin en hızlı büyüyen sadakat topluluğuna katılın. Her gün yeni üyeler NexReward\'la tanışıyor.', sticker: LANDING_BANNER_STICKERS[0], stickerSize: 92, stickerRotate: 12 },
+  { bg: '#C8FF00', textColor: '#000', tag: '⚡ HIZ',       headline: 'ANINDA', sub: 'Ödül Sistemi',         body: 'Alışveriş yaptığınız anda puanlar hesabınıza geçer. Bekleme yok, gecikme yok — sadece anlık kazanç.', sticker: LANDING_BANNER_STICKERS[1], stickerSize: 84, stickerRotate: -10 },
+  { bg: '#FF6B35', textColor: '#fff', tag: '💰 KAZANÇ',   headline: '2M+',    sub: 'Kazanılan Puan',       body: 'Kullanıcılarımız 2 milyondan fazla puan kazandı. Her alışverişiniz bir kazanç fırsatıdır.', sticker: LANDING_BANNER_STICKERS[2], stickerSize: 88, stickerRotate: 8 },
+  { bg: '#FF3E9D', textColor: '#fff', tag: '🏆 BAŞARI',   headline: '#1',     sub: 'Türkiye\'nin Platformu', body: 'En iyi sadakat deneyimini yaşayın. Ödüller, mini oyunlar, liderlik tabloları — hepsi ücretsiz.', sticker: LANDING_BANNER_STICKERS[3], stickerSize: 96, stickerRotate: -8 },
 ];
 
 const testimonials = [
@@ -162,7 +165,8 @@ const LandingPage: React.FC = () => {
   const card = { background: t.cardBg, border: '3px solid #000', boxShadow: '0 6px 0 #000', borderRadius: 20 };
 
   return (
-    <div style={{ background: t.pageBg, color: t.textPrimary, minHeight: '100vh', overflowX: 'hidden', transition: 'background 0.3s', ...t.cssVars }}>
+    <div style={{ background: t.pageBg, color: t.textPrimary, minHeight: '100vh', overflowX: 'hidden', transition: 'background 0.3s', position: 'relative', ...t.cssVars }}>
+      <PageStickerBackdrop preset="landing-hero" />
       <div style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ══ NAV ══ */}
@@ -255,9 +259,18 @@ const LandingPage: React.FC = () => {
                 🎉 WE ARE LIVE!
               </div>
               <h1 className="hero-headline font-display">
-                <span style={{ display: 'block' }}>ALIŞVERİŞ</span>
-                <span style={{ display: 'block', color: '#9122FF', WebkitTextStroke: isDark ? '2px #C8FF00' : 'none' }}>YAPARKEN</span>
-                <span style={{ display: 'block' }}>PUAN KAZAN</span>
+                <span className="hero-headline-line">
+                  ALIŞVERİŞ
+                  <StickerAccent seed={LANDING_HERO_HEADLINE_SHAPES[0]} variant="shape" size={30} rotate={-10} className="hero-headline-sticker" />
+                </span>
+                <span className="hero-headline-line hero-headline-line--accent" style={{ color: '#9122FF', WebkitTextStroke: isDark ? '2px #C8FF00' : 'none' }}>
+                  <StickerAccent seed={LANDING_HERO_HEADLINE_SHAPES[1]} variant="shape" size={28} rotate={12} className="hero-headline-sticker" />
+                  YAPARKEN
+                </span>
+                <span className="hero-headline-line">
+                  PUAN KAZAN
+                  <StickerAccent seed={LANDING_HERO_HEADLINE_SHAPES[2]} variant="shape" size={32} rotate={-8} className="hero-headline-sticker" />
+                </span>
               </h1>
               <p style={{ marginTop: 20, color: t.textSecondary, fontWeight: 600, fontSize: 'clamp(14px,1.6vw,18px)', maxWidth: 480, lineHeight: 1.65 }}>
                 Binlerce kullanıcıyla birlikte puan kazan, özel ödüller aç ve her gün eğlen. Tamamen ücretsiz.
@@ -276,14 +289,9 @@ const LandingPage: React.FC = () => {
                 ))}
               </div>
             </div>
-            {/* Art */}
-            <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <div style={{ position: 'absolute', inset: '-8%', background: isDark ? 'rgba(145,34,255,0.15)' : '#F0E8FF', borderRadius: '50%', border: '3px solid #000', boxShadow: '8px 8px 0 #000' }} />
-              <HeroMascot size={320} style={{ position: 'relative', zIndex: 1, maxWidth: '100%', height: 'auto' }} />
-              <SpeechBubble bg="#9122FF" color="#C8FF00" tail="right"
-                style={{ position: 'absolute', bottom: '12%', right: '0%', transform: 'rotate(3deg)', zIndex: 2, fontSize: 13 }}>
-                +500 PUAN! ⚡
-              </SpeechBubble>
+            {/* Art — Group sticker cluster (star centerpiece) */}
+            <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,24px)' }}>
+              <HeroGroupComposition />
             </div>
           </div>
         </section>
@@ -291,7 +299,10 @@ const LandingPage: React.FC = () => {
         {/* ══ TICKER 1 ══ */}
         <TickerStrip items={tickerHero} direction="left" bg="#9122FF" textColor="#C8FF00" borderTop="3px solid #000" borderBottom="3px solid #000" speed={32} />
 
+        <StickerSectionDivider />
+
         {/* ══ AVANTAJLAR (stacking banners — NO rotation on mobile) ══ */}
+        <SectionStickerDecor preset="landing-banners">
         <section id="banners" style={{ padding: '72px clamp(16px,4vw,64px)', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ textAlign: 'center', marginBottom: 8 }}>
             <SectionBadge label="AVANTAJLAR" bg="#FFE500" />
@@ -312,6 +323,20 @@ const LandingPage: React.FC = () => {
             }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '6px 12px 0 #000'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '6px 6px 0 #000'; }}>
+              <StickerAccent
+                group={b.sticker}
+                variant="colorful"
+                size={b.stickerSize}
+                rotate={b.stickerRotate}
+                style={{ position: 'absolute', bottom: '10%', right: 'clamp(12px, 4vw, 28px)', zIndex: 2, opacity: 0.95 }}
+              />
+              <StickerAccent
+                seed={`banner-accent-${i}`}
+                variant="shape"
+                size={Math.round(b.stickerSize * 0.45)}
+                rotate={-14 + i * 6}
+                style={{ position: 'absolute', top: '12%', left: 'clamp(10px, 3vw, 24px)', zIndex: 2, opacity: 0.8 }}
+              />
               {/* Tag */}
               <div style={{ position: 'absolute', top: 14, right: 18, background: 'rgba(0,0,0,0.13)', color: b.textColor, borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 900, letterSpacing: '0.07em' }}>{b.tag}</div>
               {/* Big number */}
@@ -325,18 +350,24 @@ const LandingPage: React.FC = () => {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: 700, color: b.textColor, fontSize: 'clamp(13px,1.7vw,18px)', lineHeight: 1.55, margin: '0 0 14px', opacity: 0.88 }}>{b.body}</p>
                 <button onClick={() => navigate('/register')} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  display: 'inline-flex', alignItems: 'center', gap: 7, position: 'relative',
                   background: b.textColor === '#000' ? '#000' : '#fff', color: b.textColor === '#000' ? b.bg : '#000',
                   border: `2.5px solid ${b.textColor === '#000' ? '#000' : '#fff'}`,
                   borderRadius: 13, padding: '9px 20px', fontWeight: 900, fontSize: 13,
                   cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 0 rgba(0,0,0,0.25)',
-                }}>Katıl <ArrowRight size={13} /></button>
+                }}>
+                  Katıl <ArrowRight size={13} />
+                  <StickerAccent seed={`banner-btn-${i}`} size={22} rotate={12}
+                    style={{ position: 'absolute', top: -10, right: -8 }} />
+                </button>
               </div>
             </div>
           ))}
         </section>
+        </SectionStickerDecor>
 
         {/* ══ FEATURES ══ */}
+        <SectionStickerDecor preset="landing-features">
         <section id="features" style={{ padding: '72px clamp(16px,4vw,64px)', maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <SectionBadge label="ÖZELLİKLER" bg="#56C8FF" />
@@ -346,7 +377,6 @@ const LandingPage: React.FC = () => {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 20 }}>
             {features.map((f, i) => {
-              const Illus = featureIllustrations[f.illus];
               const Icon = f.icon;
               return (
                 <div key={i}
@@ -359,7 +389,12 @@ const LandingPage: React.FC = () => {
                     transition: 'all 0.15s ease', cursor: 'pointer',
                   }}>
                   <div style={{ position: 'relative', height: 160, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.22)' }}>
-                    <Illus size={124} style={{ transition: 'transform 0.3s', transform: hovered === i ? 'scale(1.1) rotate(5deg)' : 'scale(1)' }} />
+                    <StickerAccent
+                      seed={f.stickerSeed}
+                      variant="shape"
+                      size={118}
+                      rotate={-4}
+                    />
                     <div style={{ position: 'absolute', top: 12, right: 12, width: 40, height: 40, borderRadius: 12, background: '#fff', border: '2.5px solid #000', boxShadow: '3px 3px 0 #000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Icon size={17} color={f.color} />
                     </div>
@@ -376,6 +411,9 @@ const LandingPage: React.FC = () => {
             })}
           </div>
         </section>
+        </SectionStickerDecor>
+
+        <StickerSectionDivider />
 
         {/* ══ TICKER 2 ══ */}
         <TickerStrip
@@ -501,17 +539,29 @@ const LandingPage: React.FC = () => {
           </div>
           <div className="lifestyle-grid">
             {([
-              { bg: '#9122FF', badge: '⭐ ALIŞVERİŞ', badgeBg: '#FFE500', text: 'Her alışverişte puan kazan, ödüllerle zenginleş.', Illus: GiftDoodle, tall: true },
-              { bg: '#C8FF00', badge: '⚡ ANINDA',    badgeBg: '#000',    text: 'Ödülünü saniyeler içinde al.', Illus: PointsBolt, tall: false, textColor: '#000' },
-              { bg: '#FF3E9D', badge: '🎮 OYUN',      badgeBg: '#fff',    text: 'Eğlenerek kazan.', Illus: GameDoodle, tall: false },
-              { bg: '#56C8FF', badge: '👥 TOPLULUK',  badgeBg: '#FF6B35', text: '50.000+ mutlu kullanıcıyla birlikte büyüyoruz.', Illus: SocialDoodle, tall: false },
+              { bg: '#9122FF', badge: '⭐ ALIŞVERİŞ', badgeBg: '#FFE500', text: 'Her alışverişte puan kazan, ödüllerle zenginleş.', sticker: LANDING_LIFESTYLE_STICKERS[0], stickerSize: 150, tall: true },
+              { bg: '#C8FF00', badge: '⚡ ANINDA',    badgeBg: '#000',    text: 'Ödülünü saniyeler içinde al.', sticker: LANDING_LIFESTYLE_STICKERS[1], stickerSize: 90, tall: false, textColor: '#000' },
+              { bg: '#FF3E9D', badge: '🎮 OYUN',      badgeBg: '#fff',    text: 'Eğlenerek kazan.', sticker: LANDING_LIFESTYLE_STICKERS[2], stickerSize: 90, tall: false },
+              { bg: '#56C8FF', badge: '👥 TOPLULUK',  badgeBg: '#FF6B35', text: '50.000+ mutlu kullanıcıyla birlikte büyüyoruz.', sticker: LANDING_LIFESTYLE_STICKERS[3], stickerSize: 90, tall: false },
             ] as const).map((lcard, i) => (
               <div key={i} className={`lifestyle-card${lcard.tall ? ' lifestyle-card-tall' : ''}`}
-                style={{ background: lcard.bg, border: '3px solid #000', borderRadius: 20, boxShadow: '6px 6px 0 #000', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', transition: 'transform 0.15s, box-shadow 0.15s' }}
+                style={{ background: lcard.bg, border: '3px solid #000', borderRadius: 20, boxShadow: '6px 6px 0 #000', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', transition: 'transform 0.15s, box-shadow 0.15s', position: 'relative' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '10px 10px 0 #000'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '6px 6px 0 #000'; }}>
+                <StickerAccent
+                  seed={`lifestyle-accent-${i}`}
+                  variant="shape"
+                  size={lcard.tall ? 44 : 32}
+                  rotate={10 - i * 4}
+                  style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}
+                />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '20px 0 8px' }}>
-                  <lcard.Illus size={lcard.tall ? 150 : 90} />
+                  <StickerAccent
+                    group={lcard.sticker}
+                    variant="colorful"
+                    size={lcard.stickerSize}
+                    rotate={-6 + i * 3}
+                  />
                 </div>
                 <div style={{ padding: '14px 18px 20px', background: 'rgba(0,0,0,0.07)' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: lcard.badgeBg, color: lcard.badgeBg === '#fff' ? '#000' : (lcard.badgeBg === '#000' ? '#C8FF00' : '#000'), borderRadius: 999, padding: '4px 12px', fontSize: 10, fontWeight: 900, border: '2px solid #000', marginBottom: 8, boxShadow: '2px 2px 0 #000' }}>{lcard.badge}</div>
@@ -524,21 +574,24 @@ const LandingPage: React.FC = () => {
 
         {/* ══ FINAL CTA ══ */}
         <section style={{ padding: '0 clamp(16px,4vw,64px) 88px' }}>
+          <SectionStickerDecor preset="landing-cta">
           <div style={{
             position: 'relative', maxWidth: 960, margin: '0 auto', textAlign: 'center',
             padding: 'clamp(52px,8vw,80px) clamp(24px,6vw,80px)',
             borderRadius: 26, overflow: 'hidden',
-            background: 'linear-gradient(135deg,#9122FF 0%,#FF3E9D 100%)',
+            background: '#9122FF',
             border: '3px solid #000', boxShadow: '0 10px 0 #000',
           }}>
+            <StickerAccent group={LANDING_CTA_STICKERS.large[0]} variant="colorful" size={80} rotate={-14}
+              style={{ position: 'absolute', top: '6%', left: '4%', zIndex: 2 }} />
+            <StickerAccent group={LANDING_CTA_STICKERS.large[1]} variant="colorful" size={72} rotate={10}
+              style={{ position: 'absolute', bottom: '8%', right: '5%', zIndex: 2 }} />
+            <StickerAccent seed="cta-accent-tl" variant="shape" size={52} rotate={8}
+              style={{ position: 'absolute', top: '14%', right: '6%', zIndex: 2, opacity: 0.85 }} />
+            <StickerAccent seed="cta-accent-bl" variant="shape" size={48} rotate={-6}
+              style={{ position: 'absolute', bottom: '12%', left: '6%', zIndex: 2, opacity: 0.85 }} />
             <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 'clamp(80px,18vw,220px)', fontWeight: 900, color: 'rgba(255,255,255,0.05)', whiteSpace: 'nowrap', letterSpacing: '-0.04em', userSelect: 'none' }}>KAZAN</span>
-            </div>
-            <div style={{ position: 'absolute', top: -18, left: -12 }}>
-              <span className="cta-corner-sticker" style={{ background: '#FFE500' }}>⭐</span>
-            </div>
-            <div style={{ position: 'absolute', bottom: -18, right: -12 }}>
-              <span className="cta-corner-sticker" style={{ background: '#F472B6' }}>💖</span>
+              <span style={{ fontSize: 'clamp(80px,18vw,220px)', fontWeight: 900, color: 'rgba(0,0,0,0.06)', whiteSpace: 'nowrap', letterSpacing: '-0.04em', userSelect: 'none' }}>KAZAN</span>
             </div>
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.18)', color: 'white', border: '2px solid rgba(255,255,255,0.35)', borderRadius: 999, padding: '6px 18px', fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 20 }}>✦ HEMEN BAŞLA</div>
@@ -549,19 +602,20 @@ const LandingPage: React.FC = () => {
                 Sadakat programımıza katılın ve bugün ödül toplamaya başlayın. Tamamen ücretsiz!
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center' }}>
-                <button onClick={() => navigate('/register')} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', color: '#9122FF', border: '2.5px solid #fff', borderRadius: 16, padding: 'clamp(12px,2vw,16px) clamp(24px,4vw,36px)', fontWeight: 900, fontSize: 'clamp(14px,2vw,17px)', boxShadow: '0 5px 0 rgba(0,0,0,0.3)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button onClick={() => navigate('/register')} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, position: 'relative', background: '#C8FF00', color: '#000', border: '2.5px solid #000', borderRadius: 16, padding: 'clamp(12px,2vw,16px) clamp(24px,4vw,36px)', fontWeight: 900, fontSize: 'clamp(14px,2vw,17px)', boxShadow: '0 5px 0 #000', cursor: 'pointer', fontFamily: 'inherit' }}>
                   Ücretsiz Kayıt Ol <ArrowRight size={16} />
+                  <StickerAccent seed="cta-btn-register" size={28} rotate={12} style={{ position: 'absolute', top: -12, right: -10 }} />
                 </button>
-                <button onClick={() => navigate('/home')} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.15)', color: '#fff', border: '2.5px solid rgba(255,255,255,0.6)', borderRadius: 16, padding: 'clamp(12px,2vw,16px) clamp(24px,4vw,36px)', fontWeight: 900, fontSize: 'clamp(14px,2vw,17px)', boxShadow: '0 5px 0 rgba(0,0,0,0.2)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button onClick={() => navigate('/home')} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, position: 'relative', background: '#fff', color: '#9122FF', border: '2.5px solid #000', borderRadius: 16, padding: 'clamp(12px,2vw,16px) clamp(24px,4vw,36px)', fontWeight: 900, fontSize: 'clamp(14px,2vw,17px)', boxShadow: '0 5px 0 #000', cursor: 'pointer', fontFamily: 'inherit' }}>
                   Panele Gir
+                  <StickerAccent seed="cta-btn-panel" size={24} rotate={-8} style={{ position: 'absolute', bottom: -10, left: -8 }} />
                 </button>
               </div>
               <p style={{ marginTop: 20, color: 'rgba(255,255,255,0.38)', fontSize: 12, fontWeight: 500 }}>Kredi kartı gerekmez &bull; İstediğin zaman iptal et</p>
             </div>
           </div>
+          </SectionStickerDecor>
         </section>
-
-        {/* ══ FOOTER ══ */}
         <footer style={{ background: t.footerBg, borderTop: '3px solid #000', padding: 'clamp(36px,5vw,56px) clamp(20px,4vw,64px)', color: t.footerText }}>
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 36, marginBottom: 36 }}>
@@ -626,6 +680,14 @@ const LandingPage: React.FC = () => {
           font-weight:900; font-size:clamp(42px,9vw,120px);
           line-height:0.97; letter-spacing:-0.04em;
           color:${t.heroText}; text-transform:uppercase; margin:0;
+        }
+        .hero-headline-line {
+          display:flex; align-items:center; justify-content:center;
+          gap:clamp(6px,1.5vw,14px);
+        }
+        .hero-headline-sticker { flex-shrink:0; }
+        @media (min-width:900px) {
+          .hero-headline-line { justify-content:flex-start; }
         }
 
         /* ── Nav buttons ── */

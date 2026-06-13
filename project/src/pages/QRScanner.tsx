@@ -9,8 +9,11 @@ import {
   isQRExpired, msRemaining,
   type CashierQRPayload,
 } from '../lib/qrUtils';
-import { lookupStoreQR, recordQRScan, markCashierQRUsedDB } from '../services/admin';
+import { claimQrScan } from '../services/earn';
+import { lookupStoreQR } from '../services/admin';
 import { activityLogService } from '../lib/activityLogger';
+import StickerAccent from '../components/StickerAccent';
+import StickerHero from '../components/StickerHero';
 
 const card = {
   background: 'var(--card-bg)',
@@ -205,7 +208,7 @@ const InventoryQRModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
    MAIN SCANNER
 ═══════════════════════════════════════════════════ */
 const QRScanner: React.FC = () => {
-  const { addPoints, showRewardPopup } = useApp();
+  const { showRewardPopup } = useApp();
   const { getByCode } = useInventory();
   const { authUser, profile } = useAuth();
 
@@ -279,7 +282,7 @@ const QRScanner: React.FC = () => {
             merchant_id: dbQR.store_id ?? '',
             issued_at: dbQR.created_at ?? new Date().toISOString(),
             expires_at: dbQR.expires_at,
-            status: isUsed ? 'used' : 'unused',
+            status: isUsed ? 'used' : 'pending',
           });
           return;
         }
@@ -432,63 +435,70 @@ const QRScanner: React.FC = () => {
 
   /* ── Claim store QR reward ── */
   const claimReward = async () => {
-    if (!result || result.points === 0) return;
+    if (!result || !authUser?.id) return;
     try {
-      if (result.dbQrId && authUser?.id) {
-        await recordQRScan(authUser.id, result.dbQrId, result.points, result.title);
-      } else {
-        addPoints(result.points);
-      }
-      showRewardPopup({ type: 'reward', title: result.title, subtitle: `${result.location} adresinde QR kod taradın`, points: result.points });
-      setScanHistory(prev => [{ code: result.code, points: result.points, time: 'Az önce', location: result.location, type: 'store' }, ...prev.slice(0, 9)]);
-      // Audit log
-      void activityLogService.logActivity({
-        userId: authUser?.id,
-        username: profile?.username ?? authUser?.email ?? 'User',
-        email: authUser?.email ?? '',
-        role: profile?.role ?? 'customer',
-        action: `QR kod tarandı: ${result.title} → ${result.points} puan`,
-        actionType: 'qr_scan',
-        details: { code: result.code, title: result.title, location: result.location, qrId: result.dbQrId },
-        amount: result.points,
+      const earnResult = await claimQrScan(result.code);
+      showRewardPopup({
+        type: 'reward',
+        title: result.title,
+        subtitle: `${result.location} adresinde QR kod taradın`,
+        points: earnResult.points,
       });
-    } catch { addPoints(result.points); } // Fallback to local if DB fails
-    setResult(null); setScanProgress(0);
+      setScanHistory(prev => [{
+        code: result.code,
+        points: earnResult.points,
+        time: 'Az önce',
+        location: result.location,
+        type: 'store',
+      }, ...prev.slice(0, 9)]);
+      void activityLogService.logActivity({
+        userId: authUser.id,
+        username: profile?.username ?? authUser.email ?? 'User',
+        email: authUser.email ?? '',
+        role: profile?.role ?? 'customer',
+        action: `QR kod tarandı: ${result.title} → ${earnResult.points} puan`,
+        actionType: 'qr_scan',
+        details: { code: result.code, title: result.title, location: result.location },
+        amount: earnResult.points,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'QR tarama başarısız');
+    }
+    setResult(null);
+    setScanProgress(0);
   };
 
-  /* ── Claim cashier purchase QR ── */
   const claimCashierQR = async () => {
-    if (!cashierQRResult) return;
+    if (!cashierQRResult || !authUser?.id) return;
     if (cashierQRResult.status === 'used' || isQRExpired(cashierQRResult.expires_at)) return;
     try {
-      if (authUser?.id) {
-        // Try to find and mark QR as used in DB first
-        try {
-          const dbQR = await lookupStoreQR(cashierQRResult.qr_id);
-          if (dbQR) {
-            await markCashierQRUsedDB(dbQR.id);
-            await recordQRScan(authUser.id, dbQR.id, cashierQRResult.points, `${cashierQRResult.amount}₺ alışveriş`);
-          } else {
-            addPoints(cashierQRResult.points);
-          }
-        } catch { addPoints(cashierQRResult.points); }
-      } else {
-        addPoints(cashierQRResult.points);
-      }
-      showRewardPopup({ type: 'reward', title: 'Alışveriş Puanı!', subtitle: `${cashierQRResult.amount}₺ alışverişten ${cashierQRResult.points} puan kazandın`, points: cashierQRResult.points });
-      setScanHistory(prev => [{ code: cashierQRResult.qr_id, points: cashierQRResult.points, time: 'Az önce', location: `${cashierQRResult.amount}₺ Alışveriş`, type: 'store' }, ...prev.slice(0, 9)]);
-      // Audit log
-      void activityLogService.logActivity({
-        userId: authUser?.id,
-        username: profile?.username ?? authUser?.email ?? 'User',
-        email: authUser?.email ?? '',
-        role: profile?.role ?? 'customer',
-        action: `Kasiyer QR kullanıldı: ${cashierQRResult.amount}₺ alışveriş → ${cashierQRResult.points} puan`,
-        actionType: 'qr_scan',
-        details: { qrId: cashierQRResult.qr_id, amount: cashierQRResult.amount, points: cashierQRResult.points },
-        amount: cashierQRResult.points,
+      const earnResult = await claimQrScan(cashierQRResult.qr_id);
+      showRewardPopup({
+        type: 'reward',
+        title: 'Alışveriş Puanı!',
+        subtitle: `${cashierQRResult.amount}₺ alışverişten ${earnResult.points} puan kazandın`,
+        points: earnResult.points,
       });
-    } catch (e) { console.error('[claimCashierQR]', e); }
+      setScanHistory(prev => [{
+        code: cashierQRResult.qr_id,
+        points: earnResult.points,
+        time: 'Az önce',
+        location: `${cashierQRResult.amount}₺ Alışveriş`,
+        type: 'store',
+      }, ...prev.slice(0, 9)]);
+      void activityLogService.logActivity({
+        userId: authUser.id,
+        username: profile?.username ?? authUser.email ?? 'User',
+        email: authUser.email ?? '',
+        role: profile?.role ?? 'customer',
+        action: `Kasiyer QR kullanıldı: ${cashierQRResult.amount}₺ → ${earnResult.points} puan`,
+        actionType: 'qr_scan',
+        details: { qrId: cashierQRResult.qr_id, amount: cashierQRResult.amount },
+        amount: earnResult.points,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'QR kullanımı başarısız');
+    }
     setCashierQRResult(null);
   };
 
@@ -529,6 +539,15 @@ const QRScanner: React.FC = () => {
             <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Kod tara, anında puan kazan</p>
           </div>
         </div>
+
+        <StickerHero
+          page="qr"
+          bg="linear-gradient(135deg,#a78bfa 0%,#6d28d9 100%)"
+          badge="📱 QR TARA"
+          title="Kod tara,"
+          highlight="puan kazan!"
+          accentSeed="qr-hero-accent"
+        />
 
         {/* ── Camera viewport ── */}
         <div style={{ ...card, padding: 16 }}>
@@ -704,11 +723,12 @@ const QRScanner: React.FC = () => {
                 background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
                 border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                transition: 'transform 0.1s, box-shadow 0.1s',
+                transition: 'transform 0.1s, box-shadow 0.1s', position: 'relative',
               }}
                 onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 var(--dark-border)'; }}
                 onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}>
                 <Camera size={20} /> Kamerayı Aç & Tara
+                <StickerAccent seed="qr-scan-btn" size={22} rotate={-8} style={{ position: 'absolute', top: -8, right: 10 }} />
               </button>
               <button onClick={startFakeScan} style={{ width: '100%', padding: 11, borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <QrCode size={16} /> Demo Tarama
