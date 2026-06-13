@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Cookie, X, Shield, ExternalLink } from 'lucide-react';
 
 const LS_KEY = 'nexreward_cookie_consent';
 
 const CookieConsent: React.FC = () => {
+  const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const [hiding, setHiding]   = useState(false);
 
@@ -83,7 +85,15 @@ const CookieConsent: React.FC = () => {
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
                   Deneyiminizi kişiselleştirmek, oturum bilgilerinizi saklamak ve uygulama performansını iyileştirmek için <strong style={{ color: 'var(--text-dark)' }}>çerezler</strong> ve <strong style={{ color: 'var(--text-dark)' }}>yerel depolama</strong> kullanıyoruz.
-                  Devam ederek <span style={{ color: '#7B6EF6', fontWeight: 700, cursor: 'pointer' }}>Gizlilik Politikamızı</span> ve <span style={{ color: '#7B6EF6', fontWeight: 700, cursor: 'pointer' }}>Kullanım Koşullarımızı</span> kabul etmiş olursunuz.
+                  Devam ederek{' '}
+                  <button type="button" onClick={() => navigate('/privacy')} style={{ color: '#7B6EF6', fontWeight: 700, cursor: 'pointer', background: 'none', border: 'none', padding: 0, font: 'inherit', textDecoration: 'underline' }}>
+                    Gizlilik Politikamızı
+                  </button>{' '}
+                  ve{' '}
+                  <button type="button" onClick={() => navigate('/terms')} style={{ color: '#7B6EF6', fontWeight: 700, cursor: 'pointer', background: 'none', border: 'none', padding: 0, font: 'inherit', textDecoration: 'underline' }}>
+                    Kullanım Koşullarımızı
+                  </button>{' '}
+                  kabul etmiş olursunuz.
                 </p>
               </div>
 

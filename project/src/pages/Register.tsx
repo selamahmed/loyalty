@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Check } from 'lucide-react';
+import { Eye, EyeOff, Check, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { activityLogService } from '../lib/activityLogger';
+import { SIGNUP_KEY_POINTS } from '../lib/legalContent';
 import AuthPageShell from '../components/AuthPageShell';
 import StickerAccent from '../components/StickerAccent';
 
@@ -55,10 +56,18 @@ const Register: React.FC = () => {
   };
 
   const handleGoogle = async () => {
+    if (!form.terms) {
+      setErrors({ terms: 'Kayıt olmak için şartları kabul etmelisiniz' });
+      return;
+    }
     setGoogleLoading(true);
     await loginWithGoogle();
     setGoogleLoading(false);
     navigate('/app', { replace: true });
+  };
+
+  const openLegal = (path: '/terms' | '/privacy') => {
+    navigate(path);
   };
 
   const passwordStrength = () => {
@@ -131,6 +140,72 @@ const Register: React.FC = () => {
               Kayıt Ol
             </button>
           </div>
+
+          {/* Important points summary */}
+          <div
+            style={{
+              padding: '14px 14px',
+              borderRadius: 16,
+              border: '2.5px solid var(--dark-border)',
+              background: 'var(--tab-bg)',
+              boxShadow: '0 3px 0 var(--dark-border)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <AlertTriangle size={16} color="#f59e0b" />
+              <p style={{ margin: 0, fontWeight: 900, fontSize: 12, color: 'var(--text-dark)' }}>
+                Kayıt olmadan önce önemli bilgiler
+              </p>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {SIGNUP_KEY_POINTS.map(point => (
+                <li key={point} style={{ fontSize: 11, lineHeight: 1.55, color: 'var(--text-muted)' }}>{point}</li>
+              ))}
+            </ul>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={() => openLegal('/terms')}
+                style={{ color: 'var(--primary-blue)', fontWeight: 900, fontSize: 11, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+              >
+                Kullanım Şartları & Kurallar
+              </button>
+              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>·</span>
+              <button
+                type="button"
+                onClick={() => openLegal('/privacy')}
+                style={{ color: 'var(--primary-blue)', fontWeight: 900, fontSize: 11, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+              >
+                Gizlilik Politikası (KVKK)
+              </button>
+            </div>
+          </div>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, terms: !form.terms })}
+              className="w-5 h-5 mt-0.5 rounded-button border-2.5 flex items-center justify-center flex-shrink-0 transition-all"
+              style={{
+                borderColor: 'var(--dark-border)',
+                background: form.terms ? 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)' : 'var(--input-bg)',
+                boxShadow: '0px 2px 0px var(--dark-border)',
+              }}
+            >
+              {form.terms && <Check size={12} className="text-white" strokeWidth={3} />}
+            </button>
+            <span style={{ color: 'var(--text-dark)' }} className="text-sm">
+              <button type="button" onClick={() => openLegal('/terms')} style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">
+                Kullanım Şartları
+              </button>
+              {' '}ve{' '}
+              <button type="button" onClick={() => openLegal('/privacy')} style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">
+                Gizlilik Politikası
+              </button>
+              {' '}nı okudum ve kabul ediyorum
+            </span>
+          </label>
+          {errors.terms && <p className="text-red-500 text-xs">{errors.terms}</p>}
 
           {/* Google */}
           <button
@@ -218,27 +293,6 @@ const Register: React.FC = () => {
               {errors.confirm && <p className="text-red-500 text-xs mt-1">{errors.confirm}</p>}
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer">
-              <button
-                type="button"
-                onClick={() => setForm({...form, terms: !form.terms})}
-                className="w-5 h-5 mt-0.5 rounded-button border-2.5 flex items-center justify-center flex-shrink-0 transition-all"
-                style={{
-                  borderColor: 'var(--dark-border)',
-                  background: form.terms ? 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)' : 'var(--input-bg)',
-                  boxShadow: '0px 2px 0px var(--dark-border)',
-                }}
-              >
-                {form.terms && <Check size={12} className="text-white" strokeWidth={3} />}
-              </button>
-              <span style={{ color: 'var(--text-dark)' }} className="text-sm">
-                <button type="button" style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">Kullanım Şartları</button>
-                {' '}ve{' '}
-                <button type="button" style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">Gizlilik Politikası</button>
-                {' '}kabul ediyorum
-              </span>
-            </label>
-            {errors.terms && <p className="text-red-500 text-xs">{errors.terms}</p>}
             {errors.submit && <p className="text-red-500 text-xs p-2 rounded" style={{ background: '#ef444422', border: '1px solid #ef4444' }}>{errors.submit}</p>}
 
             {successMsg ? (

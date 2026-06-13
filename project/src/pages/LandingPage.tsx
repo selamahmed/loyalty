@@ -648,10 +648,22 @@ const LandingPage: React.FC = () => {
                       onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}>{label}</button>
                   ))}
                 </div>
+                <div>
+                  <p style={{ fontWeight: 900, fontSize: 11, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 14, textTransform: 'uppercase' }}>Yasal</p>
+                  {[['Kullanım Şartları','/terms'],['Gizlilik Politikası','/privacy']].map(([label,path]) => (
+                    <button key={path} onClick={() => navigate(path)} style={{ display: 'block', background: 'none', border: 'none', color: 'rgba(255,255,255,0.65)', fontWeight: 600, fontSize: 13, cursor: 'pointer', padding: 0, fontFamily: 'inherit', marginBottom: 9, textAlign: 'left', transition: 'color 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#C8FF00')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}>{label}</button>
+                  ))}
+                </div>
               </div>
             </div>
             <div style={{ borderTop: '1.5px solid rgba(255,255,255,0.1)', paddingTop: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
               <p style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.35)', margin: 0 }}>© 2026 NexReward. Tüm hakları saklıdır.</p>
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => navigate('/terms')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>Şartlar</button>
+                <button type="button" onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>Gizlilik</button>
+              </div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#9122FF', color: '#C8FF00', border: '2px solid rgba(255,255,255,0.2)', borderRadius: 999, padding: '4px 14px', fontSize: 11, fontWeight: 900, boxShadow: '2px 2px 0 rgba(0,0,0,0.4)' }}>⭐ NEXREWARD</div>
             </div>
           </div>

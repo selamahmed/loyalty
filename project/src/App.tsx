@@ -21,6 +21,8 @@ import AdminLogin       from './pages/AdminLogin';
 import ForgotPassword   from './pages/ForgotPassword';
 import ResetPassword    from './pages/ResetPassword';
 import Register         from './pages/Register';
+import TermsOfService   from './pages/TermsOfService';
+import PrivacyPolicy    from './pages/PrivacyPolicy';
 import Unauthorized     from './pages/Unauthorized';
 import AuthCallback     from './pages/AuthCallback';
 import AdminSupport     from './pages/admin/AdminSupport';
@@ -178,6 +180,8 @@ function App() {
             <Route path="/forgot-password"  element={<ForgotPassword />} />
             <Route path="/reset-password"   element={<ResetPassword />} />
             <Route path="/register"         element={<Register />} />
+            <Route path="/terms"           element={<TermsOfService />} />
+            <Route path="/privacy"          element={<PrivacyPolicy />} />
             <Route path="/unauthorized"     element={<Unauthorized />} />
             {/* OAuth callback — Supabase redirects here after Google sign-in */}
             <Route path="/auth/callback"    element={<AuthCallback />} />
