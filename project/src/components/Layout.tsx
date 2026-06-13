@@ -152,8 +152,8 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{
-          background: 'var(--surface)',
-          borderRight: '2px solid var(--border)',
+          background: 'var(--card-bg)',
+          borderRight: '3px solid var(--dark-border)',
           boxShadow: sidebarOpen ? '8px 0 24px rgba(0,0,0,0.15)' : 'none',
         }}
       >
@@ -347,68 +347,80 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col min-w-0">
 
-        {/* ── Header ── */}
+        {/* Header */}
         <header
-          className="sticky top-0 z-30 flex items-center gap-2"
+          className="sticky top-0 z-30 flex items-center gap-3"
           style={{
-            padding: '8px 14px',
-            background: 'var(--surface)',
-            borderBottom: '2px solid var(--border)',
+            padding: '10px 16px',
+            background: 'var(--card-bg)',
+            borderBottom: '3px solid var(--dark-border)',
           }}
         >
-          {/* Hamburger */}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden header-icon-btn"
-            aria-label="Menüyü aç"
+            className="lg:hidden"
+            style={{
+              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+              background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)',
+              boxShadow: '0px 3px 0px var(--dark-border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: 'var(--text-dark)',
+            }}
           >
-            <Menu size={17} />
+            <Menu size={18} />
           </button>
 
-          {/* Welcome text (desktop) */}
-          <div className="hidden lg:flex items-center gap-1.5 flex-1 min-w-0">
-            <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>Hoş geldin,</span>
-            <span style={{ color: 'var(--text)', fontWeight: 800, fontSize: 13 }}>{user.username}</span>
+          <div className="hidden lg:flex items-center gap-2 flex-1 min-w-0">
+            <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>Hoşgeldiniz,</span>
+            <span style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 14 }}>{user.username}</span>
           </div>
           <div className="flex-1 min-w-0 lg:hidden" />
 
-          {/* Points badge — clean, no gradient */}
+          {/* Points badge */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 5, padding: '6px 11px',
-            background: 'var(--surface-raised)',
-            border: '1.5px solid var(--border)', borderRadius: 'var(--r-sm)',
-            flexShrink: 0,
+            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
+            background: 'linear-gradient(135deg,rgba(245,158,11,0.12),rgba(251,191,36,0.06))',
+            border: '2.5px solid #f59e0b', boxShadow: '0px 3px 0px var(--dark-border)',
+            borderRadius: 12, flexShrink: 0,
           }}>
-            <Star size={12} fill="var(--amber)" color="var(--amber)" />
-            <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)' }}>{points.toLocaleString()}</span>
+            <Star size={13} fill="#f59e0b" color="#f59e0b" />
+            <span style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)' }}>{points.toLocaleString()}</span>
           </div>
 
-          {/* Theme toggle */}
-          <button onClick={toggleTheme} className="header-icon-btn" aria-label="Tema değiştir">
+          {/* Theme */}
+          <button
+            onClick={toggleTheme}
+            style={{
+              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+              background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)',
+              boxShadow: '0px 3px 0px var(--dark-border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: 'var(--text-muted)',
+              transition: 'all 0.12s',
+            }}
+          >
             {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
           </button>
 
           {/* Notifications */}
-          <button onClick={() => navigate('/notifications')} className="header-icon-btn" style={{ position: 'relative' }} aria-label="Bildirimler">
+          <button
+            onClick={() => navigate('/notifications')}
+            style={{
+              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+              background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)',
+              boxShadow: '0px 3px 0px var(--dark-border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: 'var(--text-muted)',
+              position: 'relative', transition: 'all 0.12s',
+            }}
+          >
             <Bell size={16} />
             <span style={{
-              position: 'absolute', top: 5, right: 5,
-              width: 7, height: 7, borderRadius: '50%',
-              background: 'var(--red)', border: '1.5px solid var(--surface)',
+              position: 'absolute', top: 6, right: 6,
+              width: 8, height: 8, borderRadius: '50%',
+              background: '#ef4444', border: '1.5px solid var(--card-bg)',
             }} />
           </button>
-
-          <style>{`
-            .header-icon-btn {
-              width: 36px; height: 36px; border-radius: var(--r-sm);
-              background: var(--surface-raised); border: 1.5px solid var(--border);
-              display: flex; align-items: center; justify-content: center;
-              cursor: pointer; color: var(--text-secondary);
-              transition: background 0.12s, color 0.12s;
-              flex-shrink: 0;
-            }
-            .header-icon-btn:hover { background: var(--surface-raised); color: var(--text); }
-          `}</style>
         </header>
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto" style={{ paddingBottom: 88 }}>
@@ -420,8 +432,8 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
           <nav
             className="fixed bottom-0 left-0 right-0 lg:hidden z-30 safe-bottom"
             style={{
-              background: 'var(--surface)',
-              borderTop: '2px solid var(--border)',
+              background: 'var(--card-bg)',
+              borderTop: '3px solid var(--dark-border)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '6px 8px 8px' }}>

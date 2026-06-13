@@ -275,6 +275,92 @@ export async function getDashboardStatsEnhanced(): Promise<{
   };
 }
 
+/* ── Dashboard: weekly activity chart data ─────────────────────── */
+export async function getWeeklyActivity(): Promise<{ day: string; points: number; scans: number }[]> {
+  const days: { day: string; points: number; scans: number }[] = [];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const now = new Date();
+
+  // Build 7-day buckets
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    d.setHours(0, 0, 0, 0);
+    days.push({ day: dayNames[d.getDay()], points: 0, scans: 0 });
+  }
+
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 6);
+  weekAgo.setHours(0, 0, 0, 0);
+
+  const [{ data: pts }, { data: scans }] = await Promise.all([
+    supabase.from('points_transactions').select('amount,created_at').gte('created_at', weekAgo.toISOString()).eq('type', 'earned'),
+    supabase.from('qr_scans').select('created_at').gte('created_at', weekAgo.toISOString()),
+  ]);
+
+  (pts ?? []).forEach(t => {
+    const d = new Date(t.created_at);
+    const idx = Math.round((d.getTime() - weekAgo.getTime()) / 86400000);
+    if (idx >= 0 && idx < 7) days[idx].points += t.amount ?? 0;
+  });
+
+  (scans ?? []).forEach(s => {
+    const d = new Date(s.created_at);
+    const idx = Math.round((d.getTime() - weekAgo.getTime()) / 86400000);
+    if (idx >= 0 && idx < 7) days[idx].scans += 1;
+  });
+
+  return days;
+}
+
+/* ── Dashboard: recent users ─────────────────────────────────────── */
+export async function getRecentUsers(limit = 6) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id,username,email,avatar_url,role,status,total_points,created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+/* ── Dashboard: recent activity feed ─────────────────────────────── */
+export async function getRecentActivity(limit = 8) {
+  const { data, error } = await supabase
+    .from('activity_logs')
+    .select('id,username,email,action,action_type,amount,risk_level,created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+/* ── Dashboard: top stats (rewards, missions counts) ──────────────── */
+export async function getDashboardExtras(): Promise<{
+  activeRewards: number;
+  activeMissions: number;
+  activeEvents: number;
+  totalQRCodes: number;
+}> {
+  const [
+    { count: activeRewards },
+    { count: activeMissions },
+    { count: activeEvents },
+    { count: totalQRCodes },
+  ] = await Promise.all([
+    supabase.from('rewards').select('id', { count: 'exact', head: true }).eq('active', true),
+    supabase.from('missions').select('id', { count: 'exact', head: true }).eq('active', true),
+    supabase.from('events').select('id', { count: 'exact', head: true }).eq('active', true),
+    supabase.from('qr_codes').select('id', { count: 'exact', head: true }).eq('active', true),
+  ]);
+  return {
+    activeRewards:  activeRewards  ?? 0,
+    activeMissions: activeMissions ?? 0,
+    activeEvents:   activeEvents   ?? 0,
+    totalQRCodes:   totalQRCodes   ?? 0,
+  };
+}
+
 export async function getRecentPointsTransactions(limit = 100) {
   const { data, error } = await supabase
     .from('points_transactions')

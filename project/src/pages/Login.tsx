@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowRight, Shield } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { activityLogService } from '../lib/activityLogger';
 
 const GoogleIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+  <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -16,13 +16,14 @@ const GoogleIcon = () => (
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login, loginWithGoogle, dashboardPath, isAuthenticated, isLoading } = useAuth();
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading]   = useState(false);
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [showPass, setShowPass]   = useState(false);
+  const [loading, setLoading]     = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]         = useState('');
 
+  // Pick up OAuth error message stored by OAuthErrorInterceptor
   useEffect(() => {
     const oauthErr = sessionStorage.getItem('oauth_error');
     if (oauthErr) {
@@ -31,8 +32,11 @@ const Login: React.FC = () => {
     }
   }, []);
 
+  // If already authenticated (e.g. page refresh), redirect immediately
   useEffect(() => {
-    if (!isLoading && isAuthenticated) navigate(dashboardPath, { replace: true });
+    if (!isLoading && isAuthenticated) {
+      navigate(dashboardPath, { replace: true });
+    }
   }, [isAuthenticated, isLoading, dashboardPath, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,303 +67,150 @@ const Login: React.FC = () => {
     setError('');
     setGoogleLoading(true);
     const result = await loginWithGoogle();
+    // If error, show it. On success the browser navigates away to Google.
     if (!result.success) {
       setGoogleLoading(false);
       setError('Google ile giriş başarısız. Tekrar deneyin.');
     }
+    // Don't reset loading — the page will be replaced by Google's OAuth screen.
   };
 
   return (
     <div className="min-h-screen page-container flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm space-y-4">
+        <div className="card p-8 space-y-6">
 
-        {/* ── Brand mark ── */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="brand-mark">
+          {/* Logo */}
+          <div className="flex flex-col items-center gap-3">
             <img
               src="/assets/icons/logo.png"
               alt="NexReward"
-              className="w-10 h-10 object-contain"
-              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+              className="w-16 h-16 object-contain rounded-2xl"
+              style={{ border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)' }}
+              onError={e => {
+                e.currentTarget.style.display = 'none';
+                (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute('style');
+              }}
             />
-            <span className="brand-fallback font-display">N</span>
-          </div>
-          <h1 className="mt-4 font-display text-2xl" style={{ color: 'var(--text)' }}>NexReward</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-            Sadakat & Ödül Platformu
-          </p>
-        </div>
-
-        {/* ── Auth card ── */}
-        <div className="auth-card">
-
-          {/* Tab switcher */}
-          <div className="tab-row">
-            <div className="tab-pill">
-              <div className="tab-active-bg tab-indicator" />
-              <button className="tab-btn tab-btn--active">Giriş Yap</button>
-              <button className="tab-btn" onClick={() => navigate('/register')}>Kayıt Ol</button>
+            <div
+              className="w-16 h-16 rounded-2xl items-center justify-center font-black text-2xl"
+              style={{ display: 'none', background: 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)', color: 'white', border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)' }}
+            >
+              N
+            </div>
+            <div className="text-center">
+              <h1 className="font-black text-xl" style={{ color: 'var(--text-dark)' }}>NexReward</h1>
+              <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Sadakat Platformu</p>
             </div>
           </div>
 
-          {/* Google button */}
+          {/* Tab toggle */}
+          <div className="relative flex rounded-button p-1" style={{ background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)' }}>
+            <div
+              className="absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-xl tab-indicator"
+              style={{ left: '4px', background: 'var(--card-bg)', border: '2px solid var(--dark-border)', boxShadow: '0px 2px 0px var(--dark-border)' }}
+            />
+            <button onClick={() => {}} className="relative z-10 flex-1 py-2.5 rounded-button font-black text-sm" style={{ color: 'var(--text-dark)' }}>
+              Giriş Yap
+            </button>
+            <button onClick={() => navigate('/register')} className="relative z-10 flex-1 py-2.5 rounded-button font-black text-sm" style={{ color: 'var(--text-muted)' }}>
+              Kayıt Ol
+            </button>
+          </div>
+
+          {/* Google */}
           <button
             type="button"
             onClick={handleGoogle}
             disabled={googleLoading || loading}
-            className="google-btn"
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-2xl font-black text-sm transition-all active:scale-[0.98] disabled:opacity-60"
+            style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)', color: 'var(--text-dark)' }}
           >
-            {googleLoading
-              ? <div className="spinner" />
-              : <GoogleIcon />
-            }
+            {googleLoading ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <GoogleIcon />
+            )}
             Google ile Giriş Yap
           </button>
 
-          {/* Divider */}
-          <div className="auth-divider">
-            <span className="auth-divider-line" />
-            <span className="auth-divider-text">veya</span>
-            <span className="auth-divider-line" />
+          <div className="flex items-center gap-4">
+            <div className="flex-1 divider-dashed" />
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>veya</span>
+            <div className="flex-1 divider-dashed" />
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="auth-form">
-            <div className="field-group">
-              <label className="field-label">E-posta</label>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="input-field"
-                autoComplete="email"
-              />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">E-posta Adresi</label>
+              <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="input-field" />
             </div>
 
-            <div className="field-group">
-              <div className="field-label-row">
-                <label className="field-label">Şifre</label>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label style={{ color: 'var(--text-dark)' }} className="font-black text-sm">Şifre</label>
                 <button
                   type="button"
-                  className="forgot-link"
                   onClick={() => navigate('/forgot-password')}
+                  className="text-xs font-black hover:underline"
+                  style={{ color: 'var(--primary-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
                 >
                   Şifremi Unuttum?
                 </button>
               </div>
-              <div style={{ position: 'relative' }}>
+              <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="input-field"
-                  style={{ paddingRight: 44 }}
-                  autoComplete="current-password"
+                  className="input-field pr-12"
                 />
-                <button
-                  type="button"
-                  className="eye-btn"
-                  onClick={() => setShowPass(!showPass)}
-                  aria-label={showPass ? 'Şifreyi gizle' : 'Şifreyi göster'}
-                >
-                  {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
+                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
+                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
             {error && (
-              <div className="error-box" role="alert">
-                <span>⚠</span> {error}
+              <div className="p-3 rounded-button text-sm font-600" style={{ background: 'var(--tab-bg)', border: '2px solid #ef4444', color: '#ef4444' }}>
+                {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full"
-              style={{ marginTop: 4 }}
-            >
-              {loading
-                ? <div className="spinner spinner--white" />
-                : <><span>Giriş Yap</span> <ArrowRight size={16} /></>
-              }
+            <button type="submit" disabled={loading} className="btn-primary w-full text-center flex items-center justify-center gap-2 disabled:opacity-60">
+              {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Giriş Yap →'}
             </button>
           </form>
         </div>
 
-        {/* ── Admin link ── */}
-        <button
-          onClick={() => navigate('/admin-login')}
-          className="admin-link-btn"
-        >
-          <Shield size={13} />
-          Yönetici / Kasiyer Girişi
-        </button>
+        {/* Admin login link */}
+        <div className="card p-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="font-black text-sm" style={{ color: 'var(--text-dark)', margin: 0 }}>Yönetici veya Kasiyer misiniz?</p>
+            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)', margin: '2px 0 0' }}>Ayrı bir giriş sayfası mevcuttur.</p>
+          </div>
+          <button
+            onClick={() => navigate('/admin-login')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+              padding: '8px 16px', borderRadius: 12, cursor: 'pointer',
+              background: '#9122FF18', color: '#9122FF',
+              border: '2.5px solid #9122FF', fontWeight: 900, fontSize: 12,
+              boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit', whiteSpace: 'nowrap',
+              transition: 'transform 0.1s, box-shadow 0.1s',
+            }}
+            onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 #6b19c0'; }}
+            onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #6b19c0'; }}
+          >
+            🔐 Admin Giriş
+          </button>
+        </div>
 
       </div>
-
-      {/* ════ Scoped styles ════ */}
-      <style>{`
-        /* Brand mark */
-        .brand-mark {
-          width: 64px; height: 64px;
-          border-radius: var(--r-lg);
-          background: linear-gradient(145deg, var(--brand-light), var(--brand));
-          border: 2px solid var(--border);
-          box-shadow: var(--shadow-md);
-          display: flex; align-items: center; justify-content: center;
-          overflow: hidden; position: relative;
-        }
-        .brand-fallback {
-          display: none; color: white; font-size: 28px; font-weight: 900;
-        }
-        img[style*="display: none"] + .brand-fallback { display: block; }
-
-        /* Auth card */
-        .auth-card {
-          background: var(--surface);
-          border: 2px solid var(--border);
-          border-radius: var(--r-xl);
-          box-shadow: var(--shadow-lg);
-          padding: 28px 24px;
-          display: flex; flex-direction: column; gap: 18px;
-        }
-
-        /* Tab row */
-        .tab-row { display: flex; justify-content: center; }
-        .tab-pill {
-          position: relative;
-          display: flex;
-          background: var(--surface-raised);
-          border: 2px solid var(--border);
-          border-radius: var(--r-md);
-          padding: 4px;
-          gap: 0;
-          width: 100%;
-        }
-        .tab-active-bg {
-          position: absolute; top: 4px; bottom: 4px;
-          width: calc(50% - 4px); left: 4px;
-          background: var(--surface);
-          border: 1.5px solid var(--border);
-          box-shadow: var(--shadow-xs);
-          border-radius: calc(var(--r-md) - 4px);
-        }
-        .tab-btn {
-          position: relative; z-index: 1;
-          flex: 1; padding: 9px 0;
-          background: none; border: none; cursor: pointer;
-          font-weight: 700; font-size: 13px;
-          color: var(--text-secondary);
-          border-radius: calc(var(--r-md) - 4px);
-          transition: color 0.15s;
-          font-family: inherit;
-        }
-        .tab-btn--active { color: var(--text); font-weight: 900; }
-
-        /* Google button */
-        .google-btn {
-          width: 100%;
-          display: flex; align-items: center; justify-content: center; gap: 10px;
-          padding: 11px 16px;
-          background: var(--surface);
-          border: 2px solid var(--border);
-          border-radius: var(--r-md);
-          box-shadow: var(--shadow-sm);
-          font-weight: 700; font-size: 14px;
-          color: var(--text);
-          cursor: pointer;
-          transition: background-color 0.15s, transform 0.1s, box-shadow 0.1s;
-          font-family: inherit;
-        }
-        .google-btn:hover:not(:disabled)  { background: var(--surface-raised); }
-        .google-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: var(--shadow-xs); }
-        .google-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
-        /* Divider */
-        .auth-divider {
-          display: flex; align-items: center; gap: 10px;
-        }
-        .auth-divider-line {
-          flex: 1; height: 1.5px; background: var(--border-subtle);
-        }
-        .auth-divider-text {
-          font-size: 12px; font-weight: 600; color: var(--text-secondary);
-        }
-
-        /* Form */
-        .auth-form { display: flex; flex-direction: column; gap: 14px; }
-        .field-group { display: flex; flex-direction: column; gap: 6px; }
-        .field-label {
-          font-size: 13px; font-weight: 700; color: var(--text);
-        }
-        .field-label-row {
-          display: flex; align-items: center; justify-content: space-between;
-        }
-        .forgot-link {
-          font-size: 12px; font-weight: 700; color: var(--brand);
-          background: none; border: none; cursor: pointer; padding: 0;
-          font-family: inherit;
-        }
-        .forgot-link:hover { text-decoration: underline; }
-
-        /* Eye toggle */
-        .eye-btn {
-          position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-          background: none; border: none; cursor: pointer;
-          color: var(--text-secondary); display: flex; align-items: center;
-          padding: 4px;
-        }
-
-        /* Error */
-        .error-box {
-          padding: 10px 14px;
-          background: rgba(220,38,38,0.06);
-          border: 1.5px solid var(--red);
-          border-radius: var(--r-sm);
-          color: var(--red);
-          font-size: 13px; font-weight: 600;
-          display: flex; align-items: flex-start; gap: 8px;
-          line-height: 1.4;
-        }
-
-        /* Spinner */
-        .spinner {
-          width: 18px; height: 18px; border-radius: 50%;
-          border: 2.5px solid var(--border-subtle);
-          border-top-color: var(--brand);
-          animation: spin-slow 0.7s linear infinite;
-          flex-shrink: 0;
-        }
-        .spinner--white {
-          border-color: rgba(255,255,255,0.3);
-          border-top-color: white;
-        }
-
-        /* Admin link */
-        .admin-link-btn {
-          width: 100%; margin-top: 12px;
-          display: flex; align-items: center; justify-content: center; gap: 6px;
-          padding: 10px 16px;
-          background: none;
-          border: 1.5px dashed var(--border-subtle);
-          border-radius: var(--r-md);
-          font-size: 12px; font-weight: 700;
-          color: var(--text-secondary);
-          cursor: pointer;
-          transition: color 0.15s, border-color 0.15s, background 0.15s;
-          font-family: inherit;
-        }
-        .admin-link-btn:hover {
-          color: var(--brand);
-          border-color: var(--brand);
-          background: rgba(123,63,245,0.05);
-        }
-      `}</style>
     </div>
   );
 };
 
 export default Login;
+
