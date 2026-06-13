@@ -184,8 +184,6 @@ const MaintenancePanel: React.FC = () => {
     }
   };
 
-  const isOn = mStatus?.enabled ?? false;
-
   return (
     <div style={{
       borderRadius: 20, overflow: 'hidden',
