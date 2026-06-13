@@ -5,6 +5,18 @@ import { useAuth } from '../context/AuthContext';
 import { tr } from '../lib/tr';
 import StickerAccent from '../components/StickerAccent';
 import StickerHero from '../components/StickerHero';
+import { GAME_LOSE_STICKER, GAME_WIN_STICKER } from '../lib/pageStickers';
+
+const GameOutcomeSticker: React.FC<{ won: boolean; size?: number }> = ({ won, size = 88 }) => (
+  <div style={{ display: 'flex', justifyContent: 'center' }}>
+    <StickerAccent
+      group={won ? GAME_WIN_STICKER : GAME_LOSE_STICKER}
+      variant="colorful"
+      size={size}
+      rotate={won ? 10 : -8}
+    />
+  </div>
+);
 
 // --- Spin Wheel Game ---
 const wheelSegments = [
@@ -79,7 +91,8 @@ const SpinWheel: React.FC<{ onWin: () => void }> = ({ onWin }) => {
       </div>
 
       {result !== null && (
-        <div className={`text-center p-4 rounded-2xl border-2 ${result > 0 ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600'}`}>
+        <div className={`text-center p-4 rounded-2xl border-2 flex flex-col items-center gap-3 ${result > 0 ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600'}`}>
+          <GameOutcomeSticker won={result > 0} size={72} />
           {result > 0 ? (
             <p className="font-black text-xl text-green-600 dark:text-green-400">+{result} Points!</p>
           ) : (
@@ -160,9 +173,12 @@ const MemoryGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
           <RotateCcw size={14} /> Reset
         </button>
       </div>
-      {won && <div className="p-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-center w-full max-w-xs">
-        <p className="font-black text-green-600 dark:text-green-400">You Won! ({moves} moves)</p>
-      </div>}
+      {won && (
+        <div className="p-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-center w-full max-w-xs flex flex-col items-center gap-2">
+          <GameOutcomeSticker won size={72} />
+          <p className="font-black text-green-600 dark:text-green-400">You Won! ({moves} moves)</p>
+        </div>
+      )}
       <div className="grid grid-cols-4 gap-2 max-w-xs w-full">
         {cards.map(card => (
           <button
@@ -312,8 +328,8 @@ const CatchGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
       )}
 
       {gameState === 'done' && (
-        <div className="text-center space-y-3">
-          <div className="text-5xl">🏆</div>
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <GameOutcomeSticker won={displayScore > 0} size={88} />
           <p className="font-black text-2xl text-gray-900 dark:text-white">Skor: {displayScore}</p>
           <p className="text-gray-500 dark:text-gray-400">Kazandın: <span className="font-black text-amber-500">{Math.max(0, displayScore) * 5} puan</span></p>
           <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>
@@ -548,8 +564,8 @@ const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
         </div>
       )}
       {phase === 'over' && (
-        <div className="text-center space-y-3">
-          <div className="text-5xl">💥</div>
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <GameOutcomeSticker won={false} size={88} />
           <p style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)' }}>Skor: {displayScore}</p>
           <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Kazanıldı: <span style={{ fontWeight: 900, color: '#f59e0b' }}>{displayScore * 10} puan</span></p>
           <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>
@@ -819,8 +835,8 @@ const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
         </div>
       )}
       {phase === 'over' && (
-        <div className="text-center space-y-3">
-          <div className="text-5xl">💀</div>
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <GameOutcomeSticker won={false} size={88} />
           <p style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)' }}>Skor: {score}</p>
           <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Kazanıldı: <span style={{ fontWeight: 900, color: '#f59e0b' }}>{score * 15} puan</span></p>
           <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>

@@ -1,7 +1,7 @@
-import satellite0 from '../assets/stickers/colorful/Group 73.svg?url';
-import satellite1 from '../assets/stickers/colorful/Group 74.svg?url';
-import satellite2 from '../assets/stickers/colorful/Group 75.svg?url';
-import satellite3 from '../assets/stickers/colorful/Group 76.svg?url';
+import satellite0 from '../assets/stickers/colorful/hotskull.svg?url';
+import satellite1 from '../assets/stickers/colorful/sleeping.svg?url';
+import satellite2 from '../assets/stickers/colorful/wow.svg?url';
+import satellite3 from '../assets/stickers/colorful/yeeeaaahh.svg?url';
 import headlineShape0 from '../assets/stickers/neobrutalism shapes/Stickers V5.svg?url';
 import headlineShape1 from '../assets/stickers/neobrutalism shapes/Stickers V11.svg?url';
 import headlineShape2 from '../assets/stickers/neobrutalism shapes/Stickers V19.svg?url';

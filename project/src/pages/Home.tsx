@@ -219,7 +219,7 @@ const Home: React.FC = () => {
             <StickerAccent group={pageGroup('home')} variant="colorful" size={150} rotate={-4} />
           </div>
           <div style={{ position: 'absolute', bottom: 8, left: 12, zIndex: 0, opacity: 0.8 }}>
-            <StickerAccent group="Group 76.svg" variant="colorful" size={48} rotate={8} />
+            <StickerAccent group="yeeeaaahh.svg" variant="colorful" size={48} rotate={8} />
           </div>
           <div style={{ position: 'relative', zIndex: 1, padding: '24px 20px' }}>
             <div style={{

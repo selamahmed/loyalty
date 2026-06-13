@@ -14,9 +14,9 @@ const all = Object.entries(modules)
   .map(([path, url]) => ({ id: basename(path), url, path }))
   .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 
-/** Large colorful Group stickers — heroes & page backgrounds. */
+/** Colorful stickers — heroes, backgrounds, game outcomes. */
 export const COLORFUL_STICKERS: StickerAsset[] = all.filter(
-  s => s.path.includes('/colorful/') && s.id.startsWith('Group '),
+  s => s.path.includes('/colorful/'),
 );
 
 /** Neo-brutal shape stickers (V icons) — buttons & cards. */
@@ -40,7 +40,9 @@ export const FIGURE_STICKERS = SHAPE_FIGURE_STICKERS;
 /** @deprecated Use SHAPE_V_STICKERS */
 export const V_STICKERS = SHAPE_V_STICKERS;
 
-const colorfulById = new Map(COLORFUL_STICKERS.map(g => [g.id, g]));
+const colorfulById = new Map(
+  all.filter(s => s.path.includes('/colorful/')).map(g => [g.id, g]),
+);
 
 function hashSeed(seed: string): number {
   let hash = 0;
@@ -56,7 +58,7 @@ function pickFromPool(pool: StickerAsset[], seed: string, offset = 0): StickerAs
   return pool[idx];
 }
 
-/** Lookup a colorful Group sticker by filename, e.g. `Group 72.svg` */
+/** Lookup a colorful sticker by filename, e.g. `dead.svg` or `Group 62.svg` */
 export function colorfulSticker(filename: string): StickerAsset | undefined {
   return colorfulById.get(filename);
 }

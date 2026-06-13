@@ -8,7 +8,7 @@ const outDir = path.join(root, 'public/assets/hero');
 
 await mkdir(outDir, { recursive: true });
 await copyFile(
-  path.join(root, 'src/assets/stickers/colorful/Group 72.svg'),
+  path.join(root, 'src/assets/stickers/colorful/omg.svg'),
   path.join(outDir, 'group-72.svg'),
 );
 console.log('LCP hero SVG copied to public/assets/hero/group-72.svg');

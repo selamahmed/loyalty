@@ -284,9 +284,9 @@ const ProgressPath: React.FC = () => {
         {/* Group sticker accents */}
         <div style={{ position:'absolute', inset:0, pointerEvents:'none', overflow:'hidden', zIndex:0 }} aria-hidden>
           {[
-            { group: 'Group 73.svg', top: 72, right: -8, size: 56, rotate: 12 },
-            { group: 'Group 74.svg', top: 280, left: -10, size: 48, rotate: -8 },
-            { group: 'Group 75.svg', bottom: 120, right: 4, size: 52, rotate: 6 },
+            { group: 'hotskull.svg', top: 72, right: -8, size: 56, rotate: 12 },
+            { group: 'sleeping.svg', top: 280, left: -10, size: 48, rotate: -8 },
+            { group: 'wow.svg', bottom: 120, right: 4, size: 52, rotate: 6 },
           ].map(s => (
             <StickerAccent
               key={s.group}
@@ -318,7 +318,7 @@ const ProgressPath: React.FC = () => {
         <div style={{ border:'3px solid #000', boxShadow:'6px 6px 0 #000', borderRadius:22, background:'var(--card-bg)', overflow:'hidden', position:'relative', zIndex:1 }}>
 
           {/* Decorations */}
-          <StickerAccent group="Group 61.svg" variant="colorful" size={40} rotate={8} style={{ position:'absolute', top:8, right:10, zIndex:0, opacity:0.9 }} />
+          <StickerAccent group="HMMM.svg" variant="colorful" size={40} rotate={8} style={{ position:'absolute', top:8, right:10, zIndex:0, opacity:0.9 }} />
           <StickerAccent seed="progress-hero-accent" variant="shape" size={32} rotate={-12} style={{ position:'absolute', bottom:36, right:6, zIndex:0, opacity:0.75 }} />
 
           {/* Tier stripe */}
@@ -423,7 +423,7 @@ const ProgressPath: React.FC = () => {
 
         {/* ═══ MAX LEVEL CARD ═══ */}
         <div style={{ display:'flex', alignItems:'center', gap:16, border:'3.5px solid #000', boxShadow:'6px 6px 0 #000', borderRadius:20, padding:'14px 18px', background:'#E91E63', position:'relative', overflow:'visible' }}>
-          <StickerAccent group="Group 77.svg" variant="colorful" size={44} rotate={6} style={{ position:'absolute', top:-10, right:10, zIndex:2 }} />
+          <StickerAccent group="highalert.svg" variant="colorful" size={44} rotate={6} style={{ position:'absolute', top:-10, right:10, zIndex:2 }} />
           <div style={{ width:52, height:52, borderRadius:14, flexShrink:0, background:'#000', border:'3px solid #000', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
             <StickerAccent seed="progress-max-tier" variant="shape" figure size={40} rotate={0} />
           </div>
