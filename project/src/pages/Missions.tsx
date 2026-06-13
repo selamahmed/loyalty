@@ -8,6 +8,7 @@ import { addPoints as addPointsService } from '../services/points';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
 import { WinningParticles } from '../components/WinningParticles';
+import { activityLogService } from '../lib/activityLogger';
 
 const card = {
   background: 'var(--card-bg)',
@@ -58,6 +59,17 @@ const Missions: React.FC = () => {
     showRewardPopup({ type: 'reward', title: 'Mission Complete!', subtitle: mission.title, points: mission.points });
     completeMission(authUser.id, id).catch(() => {});
     addPointsService(authUser.id, mission.points, `Görev: ${mission.title}`, 'mission', id).catch(() => {});
+    void activityLogService.logActivity({
+      userId:     authUser.id,
+      username:   authUser.username ?? authUser.name ?? authUser.email,
+      email:      authUser.email,
+      role:       authUser.role,
+      action:     `Görev tamamlandı: ${mission.title}`,
+      actionType: 'mission',
+      amount:     mission.points,
+      riskLevel:  'low',
+      details:    { missionId: id, category: mission.category },
+    });
   };
 
   return (

@@ -4,6 +4,7 @@ import {
   Gamepad2, ArrowUp, ArrowDown, Trophy, Zap, Calendar,
   ChevronRight, RefreshCw, Loader,
 } from 'lucide-react';
+import NeoAvatar from '../../components/NeoAvatar';
 import { useNavigate } from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -266,11 +267,7 @@ const AdminDashboard: React.FC = () => {
               <div className="space-y-2">
                 {recentUsers.map(u => (
                   <div key={u.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer" onClick={() => navigate('/admin/users')}>
-                    <div style={{ background: deterministic(u.username ?? '') }} className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0">
-                      {u.avatar_url ? (
-                        <img src={u.avatar_url} alt={u.username} className="w-8 h-8 rounded-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                      ) : userInitial(u.username ?? '')}
-                    </div>
+                    <NeoAvatar src={u.avatar_url} name={u.username} email={u.email} size={34} shape="rounded" />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{u.username}</p>
                       <p className="text-xs text-gray-400 truncate">{u.email}</p>

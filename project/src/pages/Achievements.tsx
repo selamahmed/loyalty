@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, Lock, Star } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,7 @@ import type { AchievementWithProgress } from '../services/achievements';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { WinningParticles } from '../components/WinningParticles';
+import { activityLogService } from '../lib/activityLogger';
 
 const card = {
   background: 'var(--card-bg)',
@@ -30,12 +31,31 @@ const Achievements: React.FC = () => {
   const [showParticles, setShowParticles] = useState(false);
   const [achievements, setAchievements] = useState<AchievementWithProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Track which achievement IDs were already logged this session to avoid duplicates
+  const loggedIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!authUser?.id) return;
     setIsLoading(true);
     getAchievementsWithProgress(authUser.id)
-      .then(setAchievements)
+      .then(data => {
+        setAchievements(data);
+        // Log newly-detected completed achievements (not previously logged this session)
+        data.filter(a => a.completed && !loggedIds.current.has(a.id)).forEach(a => {
+          loggedIds.current.add(a.id);
+          void activityLogService.logActivity({
+            userId:     authUser.id,
+            username:   authUser.username ?? authUser.name ?? authUser.email,
+            email:      authUser.email,
+            role:       authUser.role,
+            action:     `Başarı kazanıldı: ${a.title}`,
+            actionType: 'achievement',
+            amount:     a.points,
+            riskLevel:  'low',
+            details:    { achievementId: a.id, rarity: a.rarity, category: a.category },
+          });
+        });
+      })
       .catch(() => setAchievements([]))
       .finally(() => setIsLoading(false));
   }, [authUser?.id]);

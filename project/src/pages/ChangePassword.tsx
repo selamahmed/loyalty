@@ -3,6 +3,9 @@ import { Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
 import AccountPageShell, { Section, SaveButton, inputStyle } from '../components/AccountPageShell';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { activityLogService } from '../lib/activityLogger';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 11, fontWeight: 900, color: 'var(--text-muted)',
@@ -45,6 +48,7 @@ const PasswordField: React.FC<{
 };
 
 const ChangePassword: React.FC = () => {
+  const { authUser } = useAuth();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -74,14 +78,44 @@ const ChangePassword: React.FC = () => {
       return;
     }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 900));
-    playSound('success');
-    setCurrent('');
-    setNext('');
-    setConfirm('');
-    setSaved(true);
-    setLoading(false);
-    setTimeout(() => setSaved(false), 2500);
+    try {
+      // Re-authenticate with current password first
+      const email = authUser?.email ?? '';
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password: current });
+      if (signInErr) {
+        setError('Mevcut şifre yanlış.');
+        setLoading(false);
+        return;
+      }
+      // Update to new password
+      const { error: updateErr } = await supabase.auth.updateUser({ password: next });
+      if (updateErr) {
+        setError(updateErr.message);
+        setLoading(false);
+        return;
+      }
+      playSound('success');
+      setCurrent('');
+      setNext('');
+      setConfirm('');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      if (authUser) {
+        void activityLogService.logActivity({
+          userId:     authUser.id,
+          username:   authUser.username ?? authUser.name ?? authUser.email,
+          email:      authUser.email,
+          role:       authUser.role,
+          action:     'Şifre değiştirildi',
+          actionType: 'password_change',
+          riskLevel:  'medium',
+        });
+      }
+    } catch (err) {
+      setError('Şifre güncellenirken bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

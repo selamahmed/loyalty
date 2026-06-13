@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getLeaderboard, type LeaderboardEntry } from '../services/points';
 import { getActiveEvents, type AppEvent, type RewardPrize } from '../services/events';
 import { supabase } from '../lib/supabase';
+import NeoAvatar from '../components/NeoAvatar';
 
 const card = {
   background: 'var(--card-bg)',
@@ -12,27 +13,10 @@ const card = {
   borderRadius: 20,
 };
 
-/* ── Avatar with initials fallback ── */
-const AVATAR_COLORS = ['#7B6EF6','#FF5722','#4CAF50','#2196F3','#FF9800','#E91E63','#00BCD4','#9C27B0','#F44336','#43A047'];
-const avatarColor = (name: string) => AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length];
-
-const Avatar: React.FC<{ url: string | null; name: string; size?: number; border?: string }> = ({ url, name, size = 40, border }) => {
-  const [err, setErr] = useState(false);
-  const showFallback = !url || err;
-  const initial = (name || '?')[0].toUpperCase();
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: showFallback ? avatarColor(name || 'U') : 'var(--tab-bg)',
-      border: border ?? '2.5px solid var(--dark-border)',
-    }}>
-      {showFallback
-        ? <span style={{ fontWeight: 900, fontSize: size * 0.38, color: '#fff', lineHeight: 1, userSelect: 'none' }}>{initial}</span>
-        : <img src={url!} alt={name} onError={() => setErr(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-    </div>
-  );
-};
+/* ── Thin wrapper so the rest of the file uses the same API ── */
+const Avatar: React.FC<{ url: string | null; name: string; size?: number }> = ({ url, name, size = 40 }) => (
+  <NeoAvatar src={url} name={name} size={size} shape="circle" border />
+);
 
 const TAB_LABELS: Record<string, string> = { weekly: 'Bu Hafta', monthly: 'Bu Ay', alltime: 'Tüm Zamanlar' };
 const PERIOD_LABEL: Record<string, string> = { weekly: 'bu hafta', monthly: 'bu ay', alltime: 'toplam' };

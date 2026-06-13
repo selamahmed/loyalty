@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Camera, Check } from 'lucide-react';
 import AccountPageShell, { Section, SaveButton, inputStyle } from '../components/AccountPageShell';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
+import { activityLogService } from '../lib/activityLogger';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 11, fontWeight: 900, color: 'var(--text-muted)',
@@ -12,6 +14,7 @@ const labelStyle: React.CSSProperties = {
 
 const EditProfile: React.FC = () => {
   const { user, updateUser } = useApp();
+  const { authUser } = useAuth();
   const [form, setForm] = useState({
     username: user.username,
     email: user.email,
@@ -24,8 +27,7 @@ const EditProfile: React.FC = () => {
 
   const handleSave = async () => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    updateUser({
+    await updateUser({
       username: form.username.trim() || user.username,
       email: form.email.trim() || user.email,
       phone: form.phone.trim(),
@@ -36,6 +38,18 @@ const EditProfile: React.FC = () => {
     setSaved(true);
     setLoading(false);
     setTimeout(() => setSaved(false), 2500);
+    if (authUser) {
+      void activityLogService.logActivity({
+        userId:     authUser.id,
+        username:   form.username.trim() || authUser.username ?? authUser.name ?? authUser.email,
+        email:      authUser.email,
+        role:       authUser.role,
+        action:     'Profil güncellendi',
+        actionType: 'profile_update',
+        riskLevel:  'low',
+        details:    { updatedFields: Object.keys(form).filter(k => form[k as keyof typeof form] !== '') },
+      });
+    }
   };
 
   return (

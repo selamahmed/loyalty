@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { activityLogService } from '../lib/activityLogger';
 
 export type UserRole = 'customer' | 'super_admin' | 'store_admin' | 'cashier';
 
@@ -179,6 +180,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   /* ── Logout — robust version ── */
   const logout = async (): Promise<void> => {
+    // Log before clearing state so we still have user info
+    const snap = authUser;
+    if (snap) {
+      void activityLogService.logActivity({
+        userId:     snap.id,
+        username:   snap.username ?? snap.name ?? snap.email,
+        email:      snap.email,
+        role:       snap.role,
+        action:     'Çıkış yapıldı',
+        actionType: 'logout',
+        riskLevel:  'low',
+      });
+    }
+
     // 1. Clear React state immediately so UI feels instant
     setAuthUser(null);
     setProfile(null);

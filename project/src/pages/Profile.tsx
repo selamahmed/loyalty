@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
+import NeoAvatar from '../components/NeoAvatar';
 
 const card = {
   background: 'var(--card-bg)',
@@ -87,9 +88,14 @@ const Profile: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
               {/* Avatar */}
               <div style={{ position: 'relative', flexShrink: 0 }}>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', border: '4px solid rgba(255,255,255,0.55)', boxShadow: '0 4px 0 rgba(0,0,0,0.18)' }}>
-                  <img src={user.avatar} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
+                <NeoAvatar
+                  src={user.avatar}
+                  name={user.username}
+                  email={user.email}
+                  size={80}
+                  shape="circle"
+                  style={{ border: '4px solid rgba(255,255,255,0.55)', boxShadow: '0 4px 0 rgba(0,0,0,0.18)' }}
+                />
                 <div style={{ position: 'absolute', bottom: -4, right: -4, width: 28, height: 28, borderRadius: '50%', background: '#f59e0b', border: '2.5px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ color: 'black', fontWeight: 900, fontSize: 11 }}>{user.level}</span>
                 </div>
