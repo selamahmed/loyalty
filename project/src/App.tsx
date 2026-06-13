@@ -1,5 +1,5 @@
-import React, { Suspense } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import React, { Suspense, useEffect } from 'react';
+import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider } from './context/AuthContext';
 import { RewardEventsProvider } from './context/RewardEventsContext';
@@ -114,6 +114,45 @@ const CA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <CashierRoute>{children}</CashierRoute>
 );
 
+/* ──────────────────────────────────────────────────────────────────────────
+   OAuthErrorInterceptor
+   Runs once on mount. Detects Supabase OAuth error redirects like:
+     http://localhost:5173/?error=server_error&error_description=...#error=...&sb=
+   Supabase redirects errors to the Site URL (not the redirectTo), which means
+   HashRouter sees a hash that doesn't start with "/" — no route matches.
+   This component catches that case, stores the message, and redirects to /login.
+────────────────────────────────────────────────────────────────────────── */
+const OAuthErrorInterceptor: React.FC = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const search = window.location.search;   // ?error=...
+    const hash   = window.location.hash;     // #error=... or #/auth/callback
+
+    const hasQueryError = search.includes('error=') && search.includes('error_code=');
+    const hasHashError  = hash.includes('error=') && !hash.startsWith('#/');
+
+    if (hasQueryError || hasHashError) {
+      // Parse from query params first, then hash
+      const raw    = hasQueryError ? search.slice(1) : hash.slice(1);
+      const params = new URLSearchParams(raw);
+      const desc   = decodeURIComponent(
+        params.get('error_description') ?? 'Google ile giriş başarısız oldu'
+      );
+
+      // Clean URL so refreshing doesn't re-trigger
+      window.history.replaceState({}, '', window.location.origin + '/#/login');
+
+      // Pass error to Login page via sessionStorage
+      sessionStorage.setItem('oauth_error', desc);
+      navigate('/login', { replace: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null;
+};
+
 // ── App ────────────────────────────────────────────────────────────────────
 function App() {
   return (
@@ -122,6 +161,7 @@ function App() {
     <AppProvider>
     <InventoryProvider>
       <HashRouter>
+        <OAuthErrorInterceptor />
         <CookieConsent />
         <Suspense fallback={<Spinner />}>
           <Routes>
@@ -202,7 +242,8 @@ function App() {
             {/* Error pages */}
             <Route path="/no-connection" element={<NoConnection />} />
             <Route path="/maintenance"   element={<Maintenance />} />
-            <Route path="*"              element={<NotFound />} />
+            {/* Catch-all: unknown routes → login */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
 
           </Routes>
         </Suspense>

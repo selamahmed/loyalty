@@ -23,6 +23,15 @@ const Login: React.FC = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError]         = useState('');
 
+  // Pick up OAuth error message stored by OAuthErrorInterceptor
+  useEffect(() => {
+    const oauthErr = sessionStorage.getItem('oauth_error');
+    if (oauthErr) {
+      sessionStorage.removeItem('oauth_error');
+      setError(`Google girişi başarısız: ${oauthErr}`);
+    }
+  }, []);
+
   // If already authenticated (e.g. page refresh), redirect immediately
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
