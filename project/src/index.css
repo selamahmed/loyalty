@@ -444,6 +444,54 @@ body::before {
   z-index: 0;
 }
 
+.page-sticker-backdrop--ambient .sticker-decor__item {
+  will-change: opacity;
+}
+
+.page-sticker-backdrop--ambient .sticker-decor__img {
+  filter: blur(var(--stk-blur, 0px));
+}
+
+[data-theme="light"] .page-sticker-backdrop--ambient .sticker-decor__img {
+  filter: blur(var(--stk-blur, 0px)) drop-shadow(0 10px 28px rgba(0, 0, 0, 0.07));
+}
+
+[data-theme="dark"] .page-sticker-backdrop--ambient .sticker-decor__img {
+  filter: blur(var(--stk-blur, 0px)) drop-shadow(0 0 48px rgba(167, 139, 250, 0.12)) brightness(1.08);
+}
+
+.sticker-decor__item--centerpiece {
+  top: 44%;
+  left: 50%;
+  width: var(--stk-size-d);
+  transform: translate(-50%, -50%) rotate(var(--stk-rotate, 0deg));
+  z-index: 0;
+}
+
+@media (max-width: 1024px) {
+  .sticker-decor__item--centerpiece {
+    width: var(--stk-size-t, var(--stk-size-d));
+    top: 46%;
+  }
+}
+
+@media (max-width: 640px) {
+  .sticker-decor__item--centerpiece {
+    width: var(--stk-size-m, var(--stk-size-t, var(--stk-size-d)));
+    top: 48%;
+    opacity: 0.05 !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .page-sticker-backdrop--ambient .sticker-decor__item {
+    opacity: 0.04 !important;
+  }
+  .page-sticker-backdrop--ambient .sticker-decor__img {
+    filter: none !important;
+  }
+}
+
 .section-sticker-decor {
   position: relative;
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { colorfulBySeed, shapeBySeed } from '../lib/stickerCatalog';
 import type { StickerPresetKey, StickerSlotConfig } from '../lib/stickerLayouts';
 import { STICKER_PRESETS } from '../lib/stickerLayouts';
@@ -16,32 +16,56 @@ function slotAsset(slot: StickerSlotConfig, index: number) {
 }
 
 const StickerSlot: React.FC<{ slot: StickerSlotConfig; index: number }> = ({ slot, index }) => {
+  const [mounted, setMounted] = useState(!slot.defer);
+
+  useEffect(() => {
+    if (!slot.defer) return;
+    const mount = () => setMounted(true);
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(mount, { timeout: 2200 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const t = window.setTimeout(mount, 500);
+    return () => window.clearTimeout(t);
+  }, [slot.defer]);
+
+  if (!mounted) return null;
+
   const asset = slotAsset(slot, index);
   if (!asset.url) return null;
 
   const classes = [
     'sticker-decor__item',
+    slot.centerpiece ? 'sticker-decor__item--centerpiece' : '',
     slot.hideTablet ? 'sticker-decor__item--hide-tablet' : '',
     slot.hideMobile ? 'sticker-decor__item--hide-mobile' : '',
   ].filter(Boolean).join(' ');
+
+  const rotate = slot.rotate ?? 0;
 
   return (
     <div
       className={classes}
       style={{
         position: 'absolute',
-        top: slot.top,
-        right: slot.right,
-        bottom: slot.bottom,
-        left: slot.left,
+        ...(slot.centerpiece
+          ? {}
+          : {
+              top: slot.top,
+              right: slot.right,
+              bottom: slot.bottom,
+              left: slot.left,
+            }),
         ['--stk-size-d' as string]: `${slot.sizeDesktop}px`,
         ['--stk-size-t' as string]: `${slot.sizeTablet ?? slot.sizeDesktop}px`,
         ['--stk-size-m' as string]: `${slot.sizeMobile ?? slot.sizeTablet ?? slot.sizeDesktop}px`,
-        transform: slot.rotate ? `rotate(${slot.rotate}deg)` : undefined,
-        opacity: slot.opacity ?? 0.85,
+        ['--stk-rotate' as string]: `${rotate}deg`,
+        ['--stk-blur' as string]: `${slot.blur ?? 0}px`,
+        transform: slot.centerpiece ? undefined : `rotate(${rotate}deg)`,
+        opacity: slot.opacity ?? 0.1,
       }}
     >
-      <StickerDecorImg src={asset.url} />
+      <StickerDecorImg src={asset.url} loading={slot.defer ? 'lazy' : 'eager'} />
     </div>
   );
 };
@@ -49,7 +73,7 @@ const StickerSlot: React.FC<{ slot: StickerSlotConfig; index: number }> = ({ slo
 /** Fixed viewport backdrop — sits behind all page content (z-index 0). */
 export const PageStickerBackdrop: React.FC<StickerDecorProps> = ({ preset, className, style }) => (
   <div
-    className={['page-sticker-backdrop', className].filter(Boolean).join(' ')}
+    className={['page-sticker-backdrop', 'page-sticker-backdrop--ambient', className].filter(Boolean).join(' ')}
     style={style}
     aria-hidden
   >
