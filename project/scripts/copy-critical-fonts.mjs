@@ -12,6 +12,8 @@ const files = [
   ['node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-400-normal.woff2', 'space-grotesk-latin-400.woff2'],
   ['node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2', 'space-grotesk-latin-700.woff2'],
   ['node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-ext-400-normal.woff2', 'space-grotesk-latin-ext-400.woff2'],
+  ['node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2', 'space-grotesk-latin-500.woff2'],
+  ['node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-600-normal.woff2', 'space-grotesk-latin-600.woff2'],
 ];
 
 await mkdir(outDir, { recursive: true });

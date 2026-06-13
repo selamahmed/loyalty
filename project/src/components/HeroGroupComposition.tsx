@@ -1,6 +1,5 @@
 import React from 'react';
 import { LANDING_HERO_CENTER_URL, LANDING_HERO_SATELLITE_URLS } from '../lib/landingHeroAssets';
-import { Sticker } from './Sticker';
 import StickerDecorImg from './StickerDecorImg';
 
 const HERO_SATELLITES: {
@@ -22,7 +21,7 @@ const HERO_SATELLITES: {
     : { bottom: '6%', right: '6%' }),
 }));
 
-/** Hero art — colorful sticker cluster; uses static imports (no full sticker catalog). */
+/** Hero art — colorful sticker cluster; LCP star uses stable public URL + high priority. */
 const HeroGroupComposition: React.FC = () => (
   <div className="hero-group-composition" aria-hidden>
     {HERO_SATELLITES.map(s => (
@@ -45,12 +44,27 @@ const HeroGroupComposition: React.FC = () => (
         <StickerDecorImg src={s.url} />
       </div>
     ))}
-    <Sticker
+    <img
       src={LANDING_HERO_CENTER_URL}
-      size={300}
-      rotate={-4}
-      opacity={1}
+      alt=""
+      aria-hidden
+      width={300}
+      height={300}
+      loading="eager"
+      fetchPriority="high"
+      decoding="sync"
+      draggable={false}
       className="hero-group-composition__star"
+      style={{
+        width: 300,
+        height: 300,
+        objectFit: 'contain',
+        display: 'block',
+        transform: 'rotate(-4deg)',
+        opacity: 1,
+        pointerEvents: 'none',
+        userSelect: 'none',
+      }}
     />
   </div>
 );

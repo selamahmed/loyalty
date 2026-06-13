@@ -1,4 +1,3 @@
-import center from '../assets/stickers/colorful/Group 72.svg?url';
 import satellite0 from '../assets/stickers/colorful/Group 73.svg?url';
 import satellite1 from '../assets/stickers/colorful/Group 74.svg?url';
 import satellite2 from '../assets/stickers/colorful/Group 75.svg?url';
@@ -7,7 +6,8 @@ import headlineShape0 from '../assets/stickers/neobrutalism shapes/Stickers V5.s
 import headlineShape1 from '../assets/stickers/neobrutalism shapes/Stickers V11.svg?url';
 import headlineShape2 from '../assets/stickers/neobrutalism shapes/Stickers V19.svg?url';
 
-export const LANDING_HERO_CENTER_URL = center;
+/** Stable public URL — matches index.html preload (not content-hashed). */
+export const LANDING_HERO_CENTER_URL = '/assets/hero/group-72.svg';
 
 export const LANDING_HERO_SATELLITE_URLS = [
   satellite0,

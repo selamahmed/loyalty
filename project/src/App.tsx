@@ -1,10 +1,9 @@
 import React, { Suspense, useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
-import { AuthProvider } from './context/AuthContext';
-import { RewardEventsProvider } from './context/RewardEventsContext';
-import { InventoryProvider } from './context/InventoryContext';
+import { HashRouter, Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
+
+const AppProviders = React.lazy(() => import('./components/AppProviders'));
 
 // Route Guards (small — always loaded)
 import CustomerRoute     from './components/guards/CustomerRoute';
@@ -121,6 +120,14 @@ const CA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <CashierRoute>{children}</CashierRoute>
 );
 
+const AuthenticatedShell: React.FC = () => (
+  <Suspense fallback={null}>
+    <AppProviders>
+      <Outlet />
+    </AppProviders>
+  </Suspense>
+);
+
 /* ──────────────────────────────────────────────────────────────────────────
    OAuthErrorInterceptor
    Runs once on mount. Detects Supabase OAuth error redirects like:
@@ -163,11 +170,8 @@ const OAuthErrorInterceptor: React.FC = () => {
 // ── App ────────────────────────────────────────────────────────────────────
 function App() {
   return (
-    <RewardEventsProvider>
-    <AuthProvider>
-    <AppProvider>
-    <InventoryProvider>
-      <HashRouter>
+    <ThemeProvider>
+    <HashRouter>
         <OAuthErrorInterceptor />
         <Suspense fallback={null}>
           <CookieConsent />
@@ -175,9 +179,12 @@ function App() {
         <Suspense fallback={<Spinner />}>
           <Routes>
 
-            {/* Public */}
+            {/* Public landing — no Supabase/auth providers on critical path */}
             <Route path="/"                 element={<LandingPage />} />
             <Route path="/landing"          element={<LandingPage />} />
+
+            <Route element={<AuthenticatedShell />}>
+
             <Route path="/login"            element={<Login />} />
             <Route path="/admin-login"      element={<AdminLogin />} />
             <Route path="/forgot-password"  element={<ForgotPassword />} />
@@ -255,13 +262,12 @@ function App() {
             {/* Catch-all: unknown routes → login */}
             <Route path="*" element={<Navigate to="/login" replace />} />
 
+            </Route>
+
           </Routes>
         </Suspense>
-      </HashRouter>
-    </InventoryProvider>
-    </AppProvider>
-    </AuthProvider>
-    </RewardEventsProvider>
+    </HashRouter>
+    </ThemeProvider>
   );
 }
 

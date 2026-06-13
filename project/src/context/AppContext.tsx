@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 import { useAuth } from './AuthContext';
+import { useTheme } from './ThemeContext';
 
 import { updateProfile } from '../services/profile';
 
@@ -170,11 +171,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const { profile, isAuthenticated, profileLoading, refreshProfile, authUser } = useAuth();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-
-    (localStorage.getItem('theme') as 'light' | 'dark') || 'dark',
-
-  );
+  const { theme, isDarkMode, toggleTheme } = useTheme();
 
   const [user, setUser] = useState<AppUser>(defaultUser);
 
@@ -189,8 +186,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-
-  const isDarkMode = theme === 'dark';
 
 
 
@@ -229,24 +224,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
   }, [profile, isAuthenticated]);
-
-
-
-  useEffect(() => {
-
-    const html = document.documentElement;
-
-    if (isDarkMode) html.setAttribute('data-theme', 'dark');
-
-    else html.removeAttribute('data-theme');
-
-    localStorage.setItem('theme', theme);
-
-  }, [theme, isDarkMode]);
-
-
-
-  const toggleTheme = () => setTheme(t => (t === 'light' ? 'dark' : 'light'));
 
 
 

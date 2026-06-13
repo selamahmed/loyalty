@@ -5,7 +5,7 @@ import { DoodleField } from '../components/neo/NeoBrutalDecor';
 import AppLogo from '../components/AppLogo';
 import HeroGroupComposition from '../components/HeroGroupComposition';
 import { LANDING_HERO_HEADLINE_SHAPE_URLS } from '../lib/landingHeroAssets';
-import { useApp } from '../context/AppContext';
+import { useTheme } from '../context/ThemeContext';
 
 const LandingBelowFold = React.lazy(() => import('./LandingBelowFold'));
 
@@ -19,7 +19,7 @@ const HEADLINE_STICKER_SIZES = [30, 28, 32] as const;
 /* ─── Main component ────────────────────────────────────────── */
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isDarkMode: isDark, toggleTheme } = useApp();
+  const { isDarkMode: isDark, toggleTheme } = useTheme();
   const [hovered, setHovered] = React.useState<number | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [showHeroBackdrop, setShowHeroBackdrop] = React.useState(false);
