@@ -505,6 +505,197 @@ export async function getAnalyticsData(days: number) {
   };
 }
 
+/* ── AdminAnalytics: advanced analytics data ──────────────────── */
+export async function getAdvancedAnalytics() {
+  const now = new Date();
+
+  const todayStart  = new Date(now); todayStart.setHours(0,0,0,0);
+  const monthStart  = new Date(now); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+  const day30Ago    = new Date(now); day30Ago.setDate(day30Ago.getDate()-30);
+  const day7Ago     = new Date(now); day7Ago.setDate(day7Ago.getDate()-7);
+  const day90Ago    = new Date(now); day90Ago.setDate(day90Ago.getDate()-90);
+
+  const [
+    { count: totalUsers },
+    { count: activeToday },
+    { count: redemptionsMonth },
+    { count: achievementsMonth },
+    { count: qrToday },
+    { count: highRiskLogs },
+    { count: totalLogs },
+    { data: pointsTx },
+    { data: allLogs },
+    { data: profiles6mo },
+    { data: redemptions },
+    { data: qrUsers },
+    { data: redemUsers },
+    { data: active30 },
+  ] = await Promise.all([
+    supabase.from('profiles').select('id',{count:'exact',head:true}).eq('status','active'),
+    supabase.from('activity_logs').select('user_id',{count:'exact',head:true}).gte('created_at',todayStart.toISOString()),
+    supabase.from('redemptions').select('id',{count:'exact',head:true}).gte('created_at',monthStart.toISOString()),
+    supabase.from('user_achievements').select('id',{count:'exact',head:true}).gte('created_at',monthStart.toISOString()),
+    supabase.from('qr_scans').select('id',{count:'exact',head:true}).gte('created_at',todayStart.toISOString()),
+    supabase.from('activity_logs').select('id',{count:'exact',head:true}).eq('risk_level','high'),
+    supabase.from('activity_logs').select('id',{count:'exact',head:true}),
+    // Points transactions (last 90 days — for all charts)
+    supabase.from('points_transactions').select('amount,type,created_at').gte('created_at',day90Ago.toISOString()),
+    // All activity logs (last 90 days) — for hourly, weekly, device, geo
+    supabase.from('activity_logs').select('created_at,user_id,device_type,country,action_type').gte('created_at',day90Ago.toISOString()),
+    // Profiles for last 6 months growth chart
+    supabase.from('profiles').select('created_at').gte('created_at',new Date(now.getFullYear(), now.getMonth()-5, 1).toISOString()),
+    // Redemptions with reward info
+    supabase.from('redemptions').select('created_at,reward_id,rewards(title,category)').gte('created_at',monthStart.toISOString()),
+    // Distinct users with QR scan
+    supabase.from('qr_scans').select('user_id').limit(5000),
+    // Distinct users with redemption
+    supabase.from('redemptions').select('user_id').limit(5000),
+    // Active users last 30d
+    supabase.from('activity_logs').select('user_id',{count:'exact',head:true}).gte('created_at',day30Ago.toISOString()),
+  ]);
+
+  // ── KPI values ──
+  const pointsToday   = (pointsTx??[]).filter(t=>t.created_at>=todayStart.toISOString()&&t.type==='earned').reduce((s,t)=>s+(t.amount??0),0);
+  const pointsMonth   = (pointsTx??[]).filter(t=>t.created_at>=monthStart.toISOString()&&t.type==='earned').reduce((s,t)=>s+(t.amount??0),0);
+  const pointsSpentMo = (pointsTx??[]).filter(t=>t.created_at>=monthStart.toISOString()&&t.type==='spent').reduce((s,t)=>s+(t.amount??0),0);
+  const secScore      = totalLogs && totalLogs > 0 ? Math.min(100, Math.round((1-(highRiskLogs??0)/(totalLogs??1))*100*0.98+2)) : 100;
+
+  // ── Monthly growth chart (last 6 months) ──
+  const monthlyMap: Record<string,{month:string;new:number;active:number;pointsEarned:number}> = {};
+  for (let i=5; i>=0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = d.toLocaleDateString('en-US',{month:'short'});
+    monthlyMap[key] = { month: label, new: 0, active: 0, pointsEarned: 0 };
+  }
+  (profiles6mo??[]).forEach(p => {
+    const k = p.created_at.slice(0,7);
+    if (monthlyMap[k]) monthlyMap[k].new++;
+  });
+  (allLogs??[]).forEach(l => {
+    const k = l.created_at.slice(0,7);
+    if (monthlyMap[k]) monthlyMap[k].active++;
+  });
+  (pointsTx??[]).filter(t=>t.type==='earned').forEach(t => {
+    const k = t.created_at.slice(0,7);
+    if (monthlyMap[k]) monthlyMap[k].pointsEarned += t.amount??0;
+  });
+  const monthlyActive = Object.values(monthlyMap);
+
+  // ── Weekly engagement by day (last 7 days) ──
+  const dayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const weekMap: Record<number,{day:string;qr:number;missions:number;sessions:number;points:number}> = {};
+  for (let i=0;i<7;i++) weekMap[i] = { day:dayLabels[i], qr:0, missions:0, sessions:0, points:0 };
+  (allLogs??[]).filter(l=>l.created_at>=day7Ago.toISOString()).forEach(l => {
+    const dow = new Date(l.created_at).getDay();
+    weekMap[dow].sessions++;
+    if (l.action_type==='qr_scan')  weekMap[dow].qr++;
+    if (l.action_type==='mission')  weekMap[dow].missions++;
+  });
+  (pointsTx??[]).filter(t=>t.type==='earned'&&t.created_at>=day7Ago.toISOString()).forEach(t => {
+    const dow = new Date(t.created_at).getDay();
+    weekMap[dow].points += t.amount??0;
+  });
+  // Order starting from the oldest day of the week relative to today
+  const todayDow = now.getDay();
+  const weekEngagement = Array.from({length:7},(_,i)=>weekMap[(todayDow-6+i+7)%7]);
+
+  // ── Hourly activity (last 30 days avg) ──
+  const hourMap: Record<number,{count:number;days:Set<string>}> = {};
+  for (let h=0;h<24;h++) hourMap[h] = {count:0,days:new Set()};
+  (allLogs??[]).filter(l=>l.created_at>=day30Ago.toISOString()).forEach(l => {
+    const h = new Date(l.created_at).getHours();
+    hourMap[h].count++;
+    hourMap[h].days.add(l.created_at.slice(0,10));
+  });
+  const hourlyActivity = Array.from({length:12},(_,i)=>{
+    const h = i*2;
+    const days = Math.max(hourMap[h].days.size,1);
+    return { hour: String(h).padStart(2,'0'), users: Math.round(hourMap[h].count/days) };
+  });
+  const peakHour = hourlyActivity.reduce((a,b)=>a.users>b.users?a:b,hourlyActivity[0]);
+  const lowHour  = hourlyActivity.reduce((a,b)=>a.users<b.users?a:b,hourlyActivity[0]);
+
+  // ── Retention (approximate from activity_logs) ──
+  const allUserIds  = new Set((allLogs??[]).map(l=>l.user_id).filter(Boolean));
+  const d7Users     = new Set((allLogs??[]).filter(l=>l.created_at>=day7Ago.toISOString()).map(l=>l.user_id).filter(Boolean));
+  const d30Users    = new Set((allLogs??[]).filter(l=>l.created_at>=day30Ago.toISOString()).map(l=>l.user_id).filter(Boolean));
+  const d90Users    = allUserIds;
+  const pct = (a:Set<string|null>,b:number) => b>0 ? Math.round(a.size/b*100) : 0;
+  const total = totalUsers??1;
+  const retentionData = [
+    { day:'D1',  rate: Math.min(100,pct(new Set((allLogs??[]).filter(l=>l.created_at>=todayStart.toISOString()).map(l=>l.user_id)),total)) },
+    { day:'D7',  rate: Math.min(100,pct(d7Users,total))  },
+    { day:'D14', rate: Math.min(100,Math.round(d7Users.size/Math.max(total,1)*80)) },
+    { day:'D30', rate: Math.min(100,pct(d30Users,total)) },
+    { day:'D60', rate: Math.min(100,Math.round(d30Users.size/Math.max(total,1)*80)) },
+    { day:'D90', rate: Math.min(100,pct(d90Users,total)) },
+  ];
+  const d90Rate = retentionData[5].rate;
+
+  // ── Device distribution ──
+  const devMap: Record<string,number> = {};
+  (allLogs??[]).filter(l=>l.created_at>=day30Ago.toISOString()).forEach(l => {
+    const d = (l.device_type??'desktop').charAt(0).toUpperCase()+(l.device_type??'desktop').slice(1);
+    devMap[d] = (devMap[d]??0)+1;
+  });
+  const devTotal = Object.values(devMap).reduce((s,v)=>s+v,1);
+  const DEVICE_COLORS: Record<string,string> = { Desktop:'#7B6EF6', Mobile:'#4F8EF7', Tablet:'#22c55e' };
+  const deviceDistribution = Object.entries(devMap).map(([name,v])=>({
+    name, value: Math.round(v/devTotal*100), devices: v, color: DEVICE_COLORS[name]??'#f59e0b',
+  })).sort((a,b)=>b.value-a.value);
+
+  // ── Geo distribution ──
+  const geoMap: Record<string,number> = {};
+  (allLogs??[]).filter(l=>l.created_at>=day30Ago.toISOString()&&l.country&&l.country!=='Unknown').forEach(l => {
+    geoMap[l.country!] = (geoMap[l.country!]??0)+1;
+  });
+  const geoData = Object.entries(geoMap).map(([country,users])=>({country,users,flag:'🌍',growth:0})).sort((a,b)=>b.users-a.users).slice(0,8);
+
+  // ── Funnel ──
+  const qrUids  = new Set((qrUsers??[]).map(r=>r.user_id));
+  const redUids = new Set((redemUsers??[]).map(r=>r.user_id));
+  const funnelData = [
+    { stage:'Kayıt', count: totalUsers??0, fill:'#7B6EF6' },
+    { stage:'QR Tarama', count: qrUids.size,  fill:'#4F8EF7' },
+    { stage:'Ödül Kullandı', count: redUids.size, fill:'#22c55e' },
+    { stage:'30g Aktif', count: active30??0, fill:'#f59e0b' },
+  ];
+
+  // ── Reward performance (by name) ──
+  const rwMap: Record<string,{name:string;count:number}> = {};
+  (redemptions??[]).forEach((r:{reward_id:string;rewards:{title:string;category:string}|null}) => {
+    const name = r.rewards?.title ?? 'Bilinmeyen';
+    rwMap[name] = rwMap[name] ?? { name, count:0 };
+    rwMap[name].count++;
+  });
+  const rewardPerformance = Object.values(rwMap).sort((a,b)=>b.count-a.count).slice(0,5);
+  const rpTotal = rewardPerformance.reduce((s,r)=>s+r.count,1);
+  const rewardPopularity = rewardPerformance.map(r=>({ name:r.name, value:Math.round(r.count/rpTotal*100), count:r.count }));
+
+  return {
+    kpis: {
+      activeUsers:   activeToday ?? 0,
+      pointsPerDay:  pointsToday,
+      securityScore: secScore,
+      redemptionsMonth: redemptionsMonth ?? 0,
+      achievementsMonth: achievementsMonth ?? 0,
+      qrToday: qrToday ?? 0,
+      pointsMonth,
+      pointsSpentMonth: pointsSpentMo,
+    },
+    monthlyActive,
+    weekEngagement,
+    hourlyActivity,
+    peakHour, lowHour,
+    retentionData, d90Rate,
+    deviceDistribution: deviceDistribution.length>0 ? deviceDistribution : [{name:'Desktop',value:100,devices:0,color:'#7B6EF6'}],
+    geoData,
+    funnelData,
+    rewardPopularity: rewardPopularity.length>0 ? rewardPopularity : [],
+  };
+}
+
 export async function getRecentPointsTransactions(limit = 100) {
   const { data, error } = await supabase
     .from('points_transactions')
