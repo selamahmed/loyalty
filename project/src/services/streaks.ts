@@ -10,6 +10,8 @@ export type UserStreak = {
 export type StreakLike = Pick<UserStreak, 'current_streak' | 'longest_streak' | 'last_claim_date'> | null;
 
 export async function getUserStreak(userId: string): Promise<UserStreak | null> {
+  if (!userId) return null;
+
   const { data, error } = await supabase
     .from('user_streaks')
     .select('*')

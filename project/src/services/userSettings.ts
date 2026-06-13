@@ -18,6 +18,8 @@ export const DEFAULT_USER_SETTINGS: Omit<UserSettings, 'user_id'> = {
 };
 
 export async function getUserSettings(userId: string): Promise<UserSettings> {
+  if (!userId) return { user_id: '', ...DEFAULT_USER_SETTINGS };
+
   const { data, error } = await supabase
     .from('user_settings')
     .select('*')

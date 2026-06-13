@@ -4,13 +4,35 @@ import { fetchCanonicalProfile, type CanonicalProfile } from '../services/canoni
 
 export const PROFILE_QUERY_KEY = 'canonical-profile';
 
+export function profileQueryOptions(userId: string) {
+  return {
+    queryKey: [PROFILE_QUERY_KEY, userId] as const,
+    queryFn: () => fetchCanonicalProfile(userId),
+    staleTime: 30_000,
+  };
+}
+
 export function useCanonicalProfile(userId: string | undefined) {
   return useQuery({
     queryKey: [PROFILE_QUERY_KEY, userId],
-    queryFn: () => fetchCanonicalProfile(userId!),
+    queryFn: () => {
+      if (!userId) return Promise.resolve(null);
+      return fetchCanonicalProfile(userId);
+    },
     enabled: Boolean(userId),
     staleTime: 30_000,
   });
+}
+
+export function useFetchCanonicalProfile() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (userId: string | undefined) => {
+      if (!userId) return Promise.resolve(null);
+      return queryClient.fetchQuery(profileQueryOptions(userId));
+    },
+    [queryClient],
+  );
 }
 
 export function useInvalidateProfile() {

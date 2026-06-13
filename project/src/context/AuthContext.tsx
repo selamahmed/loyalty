@@ -3,7 +3,8 @@ import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { activityLogService } from '../lib/activityLogger';
 import { fetchMyAccountStatus, isRestrictedStatus, type AccountStatus } from '../services/accountStatus';
-import { useCanonicalProfile, useInvalidateProfile } from '../hooks/useCanonicalProfile';
+import { authCallbackUrl } from '../lib/appUrl';
+import { useCanonicalProfile, useFetchCanonicalProfile, useInvalidateProfile } from '../hooks/useCanonicalProfile';
 import type { CanonicalProfile } from '../services/canonicalProfile';
 
 export type UserRole = 'customer' | 'super_admin' | 'store_admin' | 'cashier';
@@ -66,11 +67,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [authBootLoading, setAuthBootLoading] = useState(true);
   const invalidateProfile = useInvalidateProfile();
+  const fetchProfile = useFetchCanonicalProfile();
   const profileFetchId = useRef(0);
   const syncedUserIdRef = useRef<string | null>(null);
   const syncAuthUserRef = useRef<(user: User, knownStatus?: AccountStatus | null) => Promise<void>>(async () => {});
 
-  const { data: canonicalProfile, isLoading: profileQueryLoading, refetch } = useCanonicalProfile(
+  const { data: canonicalProfile, isLoading: profileQueryLoading } = useCanonicalProfile(
     sessionUser?.id,
   );
 
@@ -105,8 +107,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (alreadySynced && knownStatus === undefined) return;
 
     invalidateProfile(user.id);
-    await refetch();
-  }, [signOutBannedUser, invalidateProfile, refetch]);
+    await fetchProfile(user.id);
+  }, [signOutBannedUser, invalidateProfile, fetchProfile]);
 
   syncAuthUserRef.current = syncAuthUser;
 
@@ -140,11 +142,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!next.status) return;
           if (next.status === 'deleted') { void signOutBannedUser(); return; }
           invalidateProfile(sessionUser.id);
-          void refetch();
+          void fetchProfile(sessionUser.id);
         })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [sessionUser?.id, signOutBannedUser, invalidateProfile, refetch]);
+  }, [sessionUser?.id, signOutBannedUser, invalidateProfile, fetchProfile]);
 
   const authUser = useMemo((): AuthUser | null => {
     if (!sessionUser) return null;
@@ -166,9 +168,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshProfile = useCallback(async () => {
     if (sessionUser?.id) {
       invalidateProfile(sessionUser.id);
-      await refetch();
+      await fetchProfile(sessionUser.id);
     }
-  }, [sessionUser?.id, invalidateProfile, refetch]);
+  }, [sessionUser?.id, invalidateProfile, fetchProfile]);
 
   const register = async (email: string, password: string, username: string) => {
     const { error } = await supabase.auth.signUp({
@@ -196,7 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/#/auth/callback` },
+      options: { redirectTo: authCallbackUrl() },
     });
     return error ? { success: false, error: error.message } : { success: true };
   };

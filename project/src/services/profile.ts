@@ -5,6 +5,8 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 export async function getProfile(userId: string): Promise<Profile | null> {
+  if (!userId) return null;
+
   const { data, error } = await supabase
     .from('profiles')
     .select('*')

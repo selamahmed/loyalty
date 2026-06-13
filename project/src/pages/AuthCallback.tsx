@@ -14,7 +14,8 @@ import { fetchMyAccountStatus, isRestrictedStatus } from '../services/accountSta
  *
  * Also registered in Supabase → Authentication → Redirect URLs:
  *   http://localhost:5173
- *   https://<your-production-domain>
+ *   https://loyalty-bmfq.vercel.app
+ *   https://loyalty-bmfq.vercel.app/#/auth/callback
  */
 const AuthCallback: React.FC = () => {
   const { authUser, isLoading, logout } = useAuth();

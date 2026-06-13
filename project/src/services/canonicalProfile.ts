@@ -31,6 +31,8 @@ export type CanonicalProfile = {
 };
 
 export async function fetchCanonicalProfile(userId: string): Promise<CanonicalProfile | null> {
+  if (!userId) return null;
+
   const [profile, streak, settings] = await Promise.all([
     getProfile(userId),
     getUserStreak(userId),
