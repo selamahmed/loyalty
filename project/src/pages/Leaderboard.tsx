@@ -13,6 +13,8 @@ import {
 import { supabase } from '../lib/supabase';
 import NeoAvatar from '../components/NeoAvatar';
 import StickerHero from '../components/StickerHero';
+import StickerDecorImg from '../components/StickerDecorImg';
+import { colorfulSticker } from '../lib/stickerCatalog';
 import { useRealtimeTable } from '../hooks/useRealtime';
 import { onLeaderboardRefresh } from '../lib/leaderboardRefresh';
 
@@ -271,17 +273,41 @@ const Avatar: React.FC<{ url: string | null; name: string; size?: number; border
 
 type LeaderboardTab = 'alltime' | 'events';
 
+type EventChipKind = 'live' | 'upcoming' | 'ended';
+
+const LB_CHIP_STICKERS = {
+  alltime: 'superstar.svg',
+  live: 'hotflame.svg',
+  upcoming: 'partytime.svg',
+  ended: 'chill.svg',
+} as const;
+
 const eventStatusMeta = (ev: AppEvent) => {
   const ended = new Date(ev.end_date) < new Date()
     || deriveEventStatus(ev) === 'ended'
     || deriveEventStatus(ev) === 'distributed';
   const upcoming = !ended && new Date(ev.start_date) > new Date();
+  const kind: EventChipKind = ended ? 'ended' : upcoming ? 'upcoming' : 'live';
   return {
     ended,
     upcoming,
+    kind,
     label: ended ? 'Bitti' : upcoming ? 'Yaklaşan' : 'Canlı',
-    color: ended ? '#94a3b8' : upcoming ? '#56c8ff' : '#ef4444',
   };
+};
+
+const ChipSticker: React.FC<{ kind: keyof typeof LB_CHIP_STICKERS }> = ({ kind }) => {
+  const asset = colorfulSticker(LB_CHIP_STICKERS[kind]);
+  if (!asset?.url) return null;
+  return (
+    <StickerDecorImg
+      src={asset.url}
+      width={72}
+      height={72}
+      loading="lazy"
+      className="lb-event-chip__sticker"
+    />
+  );
 };
 
 /* ── Countdown hook ── */
@@ -782,12 +808,17 @@ const Leaderboard: React.FC = () => {
                 className={`lb-event-chip lb-event-chip--alltime${tab === 'alltime' ? ' lb-event-chip--active' : ''}`}
                 onClick={() => setTab('alltime')}
               >
-                <span className="lb-event-chip__status lb-event-chip__status--alltime">Genel</span>
-                <p className="lb-event-chip__title">🏆 Tüm Zamanlar</p>
-                <p className="lb-event-chip__meta">Top {LEADERBOARD_TOP_LIMIT} · toplam puan sıralaması</p>
+                <div className="lb-event-chip__visual" aria-hidden>
+                  <ChipSticker kind="alltime" />
+                </div>
+                <div className="lb-event-chip__body">
+                  <span className="lb-event-chip__status lb-event-chip__status--alltime">Genel</span>
+                  <p className="lb-event-chip__title">Tüm Zamanlar</p>
+                  <p className="lb-event-chip__meta">Top {LEADERBOARD_TOP_LIMIT} · toplam puan sıralaması</p>
+                </div>
               </button>
               {activeEvents.map(ev => {
-                const { label, color } = eventStatusMeta(ev);
+                const { label, kind } = eventStatusMeta(ev);
                 const prizeCount = (ev.rewards_json as RewardPrize[] | null)?.length ?? 0;
                 const isSelected = tab === 'events' && selectedEventId === ev.id;
                 return (
@@ -795,16 +826,21 @@ const Leaderboard: React.FC = () => {
                     key={ev.id}
                     type="button"
                     onClick={() => openEvent(ev.id)}
-                    className={`lb-event-chip${isSelected ? ' lb-event-chip--active' : ''}`}
-                    style={{ background: ev.color ?? 'var(--card-bg)' }}
+                    className={`lb-event-chip lb-event-chip--${kind}${isSelected ? ' lb-event-chip--active' : ''}`}
+                    style={{ '--chip-accent': ev.color ?? 'var(--primary-blue)' } as React.CSSProperties}
                   >
-                    <span className="lb-event-chip__status" style={{ color }}>
-                      {label}
-                    </span>
-                    <p className="lb-event-chip__title">{ev.emoji ?? '🏆'} {ev.title}</p>
-                    <p className="lb-event-chip__meta">
-                      {prizeCount} ödül · Etkinlik puanına göre sıralama
-                    </p>
+                    <div className="lb-event-chip__visual" aria-hidden>
+                      <ChipSticker kind={kind} />
+                    </div>
+                    <div className="lb-event-chip__body">
+                      <span className={`lb-event-chip__status lb-event-chip__status--${kind}`}>
+                        {label}
+                      </span>
+                      <p className="lb-event-chip__title">{ev.title}</p>
+                      <p className="lb-event-chip__meta">
+                        {prizeCount} ödül · Etkinlik puanına göre sıralama
+                      </p>
+                    </div>
                   </button>
                 );
               })}
