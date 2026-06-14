@@ -322,21 +322,58 @@ const useCountdown = (endDate: string) => {
   return cd;
 };
 
-const RANK_THEME: Record<number, { medal: string; accent: string }> = {
-  1: { medal: '🥇', accent: '#f59e0b' },
-  2: { medal: '🥈', accent: '#94a3b8' },
-  3: { medal: '🥉', accent: '#f97316' },
+const PRIZE_RANK_THEME: Record<number, { medal: string; accent: string; bg: string; shadow: string }> = {
+  1: { medal: '🥇', accent: '#f59e0b', bg: '#fef9c3', shadow: '#d97706' },
+  2: { medal: '🥈', accent: '#94a3b8', bg: '#f1f5f9', shadow: '#64748b' },
+  3: { medal: '🥉', accent: '#f97316', bg: '#ffedd5', shadow: '#ea580c' },
 };
 
-/* ── Compact prize chip (horizontal scroll) ── */
-const EventPrizeChip: React.FC<{ prize: RewardPrize; leader?: EventLeaderboardEntry }> = ({ prize, leader }) => (
-  <div className={`event-lb__prize event-lb__prize--r${Math.min(prize.rank, 3)}`}>
-    <div className="event-lb__prize-rank">{RANK_THEME[prize.rank]?.medal ?? `#${prize.rank}`}</div>
-    <div className="event-lb__prize-icon">{prize.rewardImage}</div>
-    <p className="event-lb__prize-name">{prize.rewardName || '—'}</p>
-    {leader && <div className="event-lb__prize-leader">{leader.username}</div>}
-  </div>
-);
+type PrizeLeader = { username: string; avatar_url: string | null };
+
+const EventPrizeChip: React.FC<{ prize: RewardPrize; leader?: PrizeLeader; featured?: boolean }> = ({
+  prize,
+  leader,
+  featured = false,
+}) => {
+  const rank = Math.min(Math.max(prize.rank, 1), 3);
+  const theme = PRIZE_RANK_THEME[rank];
+  const imageIsUrl = /^https?:\/\//i.test(prize.rewardImage ?? '');
+
+  return (
+    <div
+      className={`event-lb__prize event-lb__prize--r${rank}${featured ? ' event-lb__prize--featured' : ''}`}
+      style={{ '--prize-accent': theme.accent, '--prize-bg': theme.bg, '--prize-shadow': theme.shadow } as React.CSSProperties}
+    >
+      <div className="event-lb__prize-head">
+        <span className="event-lb__prize-medal" aria-hidden>{theme.medal}</span>
+        <span className="event-lb__prize-rank-label">{prize.label || `${rank}. sıra`}</span>
+      </div>
+
+      <div className="event-lb__prize-reward">
+        <div className="event-lb__prize-visual">
+          {imageIsUrl ? (
+            <img src={prize.rewardImage} alt="" className="event-lb__prize-img" />
+          ) : (
+            <span className="event-lb__prize-icon" aria-hidden>{prize.rewardImage || '🎁'}</span>
+          )}
+        </div>
+        <p className="event-lb__prize-name">{prize.rewardName || '—'}</p>
+      </div>
+
+      <div className="event-lb__prize-foot">
+        <p className="event-lb__prize-foot-label">{leader ? 'Lider' : 'Henüz lider yok'}</p>
+        {leader ? (
+          <div className="event-lb__prize-leader">
+            <Avatar url={leader.avatar_url} name={leader.username} size={22} border="" />
+            <span className="event-lb__prize-leader-name">{leader.username}</span>
+          </div>
+        ) : (
+          <p className="event-lb__prize-leader-empty">—</p>
+        )}
+      </div>
+    </div>
+  );
+};
 
 /* ── Join / login prompts for event tab ── */
 const EventUserPositionCard: React.FC<{
@@ -452,6 +489,25 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
     return prize ? `${prize.rewardImage} ${prize.rewardName}` : undefined;
   };
 
+  const leaderForPrizeRank = (rank: number): PrizeLeader | undefined => {
+    if (ended) {
+      const winner = sortedWinners.find(w => w.final_rank === rank);
+      if (!winner) return undefined;
+      return {
+        username: winner.profiles?.username ?? '—',
+        avatar_url: winner.profiles?.avatar_url ?? null,
+      };
+    }
+    const player = topPlayers.find(p => p.rank === rank);
+    if (!player) return undefined;
+    return { username: player.username, avatar_url: player.avatar_url };
+  };
+
+  const sortedPrizes = [...prizes].sort((a, b) => a.rank - b.rank);
+  const prizePodiumOrder = sortedPrizes.length === 3
+    ? [2, 1, 3].map(rank => sortedPrizes.find(p => p.rank === rank)).filter((p): p is RewardPrize => Boolean(p))
+    : sortedPrizes;
+
   const inEventList = Boolean(authUser?.id && topPlayers.some(p => p.id === authUser.id));
   const eventTop3 = displayPlayers.slice(0, 3);
   const eventRest = displayPlayers.slice(3);
@@ -519,12 +575,13 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
             <h4><Gift size={14} color="#f59e0b" /> Ödül havuzu</h4>
             <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)' }}>{prizes.length} ödül</span>
           </div>
-          <div className="event-lb__prizes-scroll">
-            {prizes.map(prize => (
+          <div className="event-lb__prizes-grid">
+            {prizePodiumOrder.map(prize => (
               <EventPrizeChip
                 key={prize.rank}
                 prize={prize}
-                leader={topPlayers.find(p => p.rank === prize.rank)}
+                leader={leaderForPrizeRank(prize.rank)}
+                featured={prize.rank === 1}
               />
             ))}
           </div>
