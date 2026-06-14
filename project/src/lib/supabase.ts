@@ -51,6 +51,7 @@ export type Database = {
           username: string | null;
           email: string;
           avatar_url: string | null;
+          avatar_seed: string | null;
           role: 'customer' | 'super_admin' | 'store_admin' | 'cashier';
           level: number;
           xp: number;
