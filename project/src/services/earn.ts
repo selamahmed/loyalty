@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { notifyLeaderboardRefresh } from '../lib/leaderboardRefresh';
 
 export type EarnAction =
   | 'daily_login'
@@ -61,21 +62,33 @@ export async function performAction(
   });
 
   if (error) throw error;
-  return parseEarnResult(data);
+  const result = parseEarnResult(data);
+  if (result.points > 0 || result.bonusPoints > 0) {
+    notifyLeaderboardRefresh();
+  }
+  return result;
 }
 
 /** Claim QR scan — server validates code, usage, expiry, and points */
 export async function claimQrScan(code: string): Promise<EarnResult> {
   const { data, error } = await supabase.rpc('claim_qr_scan', { p_code: code });
   if (error) throw error;
-  return parseEarnResult(data);
+  const result = parseEarnResult(data);
+  if (result.points > 0 || result.bonusPoints > 0) {
+    notifyLeaderboardRefresh();
+  }
+  return result;
 }
 
 /** Claim daily streak reward */
 export async function claimDailyStreak(): Promise<EarnResult> {
   const { data, error } = await supabase.rpc('claim_daily_streak');
   if (error) throw error;
-  return parseEarnResult(data);
+  const result = parseEarnResult(data);
+  if (result.points > 0 || result.bonusPoints > 0) {
+    notifyLeaderboardRefresh();
+  }
+  return result;
 }
 
 /** @deprecated Use performAction — kept for gradual migration */

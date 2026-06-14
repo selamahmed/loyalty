@@ -13,6 +13,8 @@ import {
 import { supabase } from '../lib/supabase';
 import NeoAvatar from '../components/NeoAvatar';
 import StickerHero from '../components/StickerHero';
+import { useRealtimeTable } from '../hooks/useRealtime';
+import { onLeaderboardRefresh } from '../lib/leaderboardRefresh';
 
 const card = {
   background: 'var(--card-bg)',
@@ -269,32 +271,18 @@ const Avatar: React.FC<{ url: string | null; name: string; size?: number; border
 
 type LeaderboardTab = 'alltime' | 'events';
 
-const LeaderboardTabs: React.FC<{
-  tab: LeaderboardTab;
-  onChange: (tab: LeaderboardTab) => void;
-  eventCount?: number;
-}> = ({ tab, onChange, eventCount = 0 }) => (
-  <div className="lb-tabs" role="tablist" aria-label="Sıralama türü">
-    <button
-      type="button"
-      role="tab"
-      aria-selected={tab === 'alltime'}
-      className={`lb-tab${tab === 'alltime' ? ' lb-tab--active' : ''}`}
-      onClick={() => onChange('alltime')}
-    >
-      Tüm Zamanlar
-    </button>
-    <button
-      type="button"
-      role="tab"
-      aria-selected={tab === 'events'}
-      className={`lb-tab${tab === 'events' ? ' lb-tab--active lb-tab--events' : ''}`}
-      onClick={() => onChange('events')}
-    >
-      Etkinlikler{eventCount > 0 ? ` (${eventCount})` : ''}
-    </button>
-  </div>
-);
+const eventStatusMeta = (ev: AppEvent) => {
+  const ended = new Date(ev.end_date) < new Date()
+    || deriveEventStatus(ev) === 'ended'
+    || deriveEventStatus(ev) === 'distributed';
+  const upcoming = !ended && new Date(ev.start_date) > new Date();
+  return {
+    ended,
+    upcoming,
+    label: ended ? 'Bitti' : upcoming ? 'Yaklaşan' : 'Canlı',
+    color: ended ? '#94a3b8' : upcoming ? '#56c8ff' : '#ef4444',
+  };
+};
 
 /* ── Countdown hook ── */
 const useCountdown = (endDate: string) => {
@@ -402,6 +390,15 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
   };
 
   React.useEffect(() => { void loadEventBoard(); }, [loadEventBoard]);
+
+  const refreshEventBoard = React.useCallback(() => {
+    void loadEventBoard();
+  }, [loadEventBoard]);
+
+  useRealtimeTable('leaderboard_signals', refreshEventBoard, !ended);
+  useRealtimeTable('event_participants', refreshEventBoard, !ended);
+
+  React.useEffect(() => onLeaderboardRefresh(refreshEventBoard), [refreshEventBoard]);
 
   React.useEffect(() => {
     if (ended) return;
@@ -657,10 +654,26 @@ const Leaderboard: React.FC = () => {
     }
   }, [fetchMyRank]);
 
+  const refreshAlltime = React.useCallback(() => {
+    void loadLeaderboard(true);
+  }, [loadLeaderboard]);
+
   useEffect(() => {
     if (tab === 'events') return;
     loadLeaderboard();
   }, [tab, authUser, loadLeaderboard]);
+
+  useRealtimeTable('leaderboard_signals', refreshAlltime);
+  useRealtimeTable('profiles', refreshAlltime);
+  useRealtimeTable('points_transactions', refreshAlltime);
+
+  useEffect(() => onLeaderboardRefresh(refreshAlltime), [refreshAlltime]);
+
+  // Polling fallback when Realtime or leaderboard_signals migration is not deployed yet
+  useEffect(() => {
+    const interval = setInterval(refreshAlltime, 5000);
+    return () => clearInterval(interval);
+  }, [refreshAlltime]);
 
   const loadPrizeEvents = React.useCallback(async () => {
     try {
@@ -683,30 +696,6 @@ const Leaderboard: React.FC = () => {
     const interval = setInterval(() => { void syncEventStatuses().then(() => loadPrizeEvents()); }, 30000);
     return () => clearInterval(interval);
   }, [tab, loadPrizeEvents]);
-
-  // ── Real-time: refresh when profiles or points change ──
-  useEffect(() => {
-    const refresh = () => {
-      if (tabRef.current === 'events') return;
-      loadLeaderboard(true);
-    };
-
-    const channel = supabase
-      .channel('leaderboard_realtime')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'points_transactions' }, refresh)
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [loadLeaderboard]);
-
-  // ── Polling fallback — refreshes every 10 s in case Realtime isn't enabled ──
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (tabRef.current === 'events') return;
-      loadLeaderboard(true);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [loadLeaderboard]);
 
   useEffect(() => {
     void checkLeaderboardDb().then(({ ready, missing }) => {
@@ -754,26 +743,15 @@ const Leaderboard: React.FC = () => {
   return (
     <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden lb-page">
 
-        {tab === 'alltime' ? (
-          <StickerHero
-            page="leaderboard"
-            bg="linear-gradient(135deg,#FF3E9D 0%,#9122FF 100%)"
-            badge="👑 LİDERLİK"
-            title="Zirveye çık,"
-            highlight="efsane ol!"
-            titleColor="#ffffff"
-            highlightColor="#C8FF00"
-          />
-        ) : (
-          <header className="lb-header lb-header--compact">
-            <div className="lb-header__copy">
-              <p className="section-label">Etkinlik sıralaması</p>
-              <h1 className="section-title">{selectedEvent?.title ?? 'Ödül etkinlikleri'}</h1>
-            </div>
-          </header>
-        )}
-
-        <LeaderboardTabs tab={tab} onChange={setTab} eventCount={activeEvents.length} />
+        <StickerHero
+          page="leaderboard"
+          bg="linear-gradient(135deg,#FF3E9D 0%,#9122FF 100%)"
+          badge="👑 LİDERLİK"
+          title="Zirveye çık,"
+          highlight="efsane ol!"
+          titleColor="#ffffff"
+          highlightColor="#C8FF00"
+        />
 
         {!eventsDbReady && (tab === 'events' || activeEvents.length > 0) && (
           <div style={{
@@ -793,95 +771,58 @@ const Leaderboard: React.FC = () => {
           </div>
         )}
 
-        {/* ── Prize events strip ── */}
-        {activeEvents.length > 0 && tab !== 'events' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <p style={{ margin: 0, fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Trophy size={15} color="#f59e0b" /> Ödül Etkinlikleri
-              </p>
+        {activeEvents.length > 0 && (
+          <section className="lb-events-strip" aria-label="Sıralama seçimi">
+            <p className="lb-section-label lb-events-strip__label">
+              <Trophy size={13} color="#f59e0b" /> Sıralama türü
+            </p>
+            <div className="lb-events-strip__scroll">
               <button
                 type="button"
-                onClick={() => setTab('events')}
-                style={{
-                  padding: '6px 10px', borderRadius: 999, border: '2px solid var(--dark-border)',
-                  background: 'var(--card-bg)', fontSize: 10, fontWeight: 900, cursor: 'pointer',
-                  boxShadow: '0 2px 0 var(--dark-border)',
-                }}
+                className={`lb-event-chip lb-event-chip--alltime${tab === 'alltime' ? ' lb-event-chip--active' : ''}`}
+                onClick={() => setTab('alltime')}
               >
-                Tümünü gör
+                <span className="lb-event-chip__status lb-event-chip__status--alltime">Genel</span>
+                <p className="lb-event-chip__title">🏆 Tüm Zamanlar</p>
+                <p className="lb-event-chip__meta">Top {LEADERBOARD_TOP_LIMIT} · toplam puan sıralaması</p>
               </button>
-            </div>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
               {activeEvents.map(ev => {
-                const ended = new Date(ev.end_date) < new Date() || deriveEventStatus(ev) === 'ended' || deriveEventStatus(ev) === 'distributed';
-                const upcoming = !ended && new Date(ev.start_date) > new Date();
-                const statusLabel = ended ? 'Bitti' : upcoming ? 'Yaklaşan' : 'Canlı';
-                const statusColor = ended ? '#94a3b8' : upcoming ? '#3b82f6' : '#ef4444';
+                const { label, color } = eventStatusMeta(ev);
+                const prizeCount = (ev.rewards_json as RewardPrize[] | null)?.length ?? 0;
+                const isSelected = tab === 'events' && selectedEventId === ev.id;
                 return (
                   <button
                     key={ev.id}
                     type="button"
                     onClick={() => openEvent(ev.id)}
-                    style={{
-                      flexShrink: 0, minWidth: 220, maxWidth: 280, textAlign: 'left',
-                      padding: '12px 14px', borderRadius: 16, cursor: 'pointer',
-                      background: ev.color ?? 'var(--card-bg)',
-                      border: '3px solid var(--dark-border)',
-                      boxShadow: '0 4px 0 var(--dark-border)',
-                    }}
+                    className={`lb-event-chip${isSelected ? ' lb-event-chip--active' : ''}`}
+                    style={{ background: ev.color ?? 'var(--card-bg)' }}
                   >
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      padding: '2px 8px', borderRadius: 999, background: '#000',
-                      color: statusColor, fontSize: 9, fontWeight: 900, letterSpacing: '0.08em',
-                      marginBottom: 6,
-                    }}>
-                      {statusLabel}
+                    <span className="lb-event-chip__status" style={{ color }}>
+                      {label}
                     </span>
-                    <p style={{ margin: 0, fontWeight: 900, fontSize: 13, color: '#000', lineHeight: 1.25 }}>
-                      {ev.emoji ?? '🏆'} {ev.title}
-                    </p>
-                    <p style={{ margin: '4px 0 0', fontSize: 10, fontWeight: 700, color: 'rgba(0,0,0,0.65)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {(ev.rewards_json as RewardPrize[] | null)?.length ?? 0} ödül · Sıralamaya katıl
+                    <p className="lb-event-chip__title">{ev.emoji ?? '🏆'} {ev.title}</p>
+                    <p className="lb-event-chip__meta">
+                      {prizeCount} ödül · Etkinlik puanına göre sıralama
                     </p>
                   </button>
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* ── Event leaderboards tab ── */}
-        {tab === 'events' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {activeEvents.length === 0 ? (
-              <div style={{ ...card, padding: '32px 20px', textAlign: 'center' }}>
-                <div style={{ fontSize: 48, marginBottom: 10 }}>🏆</div>
-                <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 6px' }}>Aktif etkinlik yok</p>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
-                  Ödüllü etkinlikler başladığında burada görünür.
-                </p>
-              </div>
-            ) : (
-              <>
-                {activeEvents.length > 1 && (
-                  <div className="lb-tabs">
-                    {activeEvents.map(ev => (
-                      <button
-                        key={ev.id}
-                        type="button"
-                        className={`lb-tab${selectedEvent?.id === ev.id ? ' lb-tab--active lb-tab--events' : ''}`}
-                        onClick={() => setSelectedEventId(ev.id)}
-                      >
-                        {ev.emoji ?? '🏆'} {ev.title.length > 24 ? `${ev.title.slice(0, 24)}…` : ev.title}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {selectedEvent && <ActiveEventBanner event={selectedEvent} showUserCard />}
-              </>
-            )}
+        {tab === 'events' && selectedEvent && (
+          <ActiveEventBanner event={selectedEvent} showUserCard />
+        )}
+
+        {tab === 'events' && activeEvents.length === 0 && (
+          <div style={{ ...card, padding: '32px 20px', textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 10 }}>🏆</div>
+            <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 6px' }}>Aktif etkinlik yok</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
+              Ödüllü etkinlikler başladığında burada görünür.
+            </p>
           </div>
         )}
 

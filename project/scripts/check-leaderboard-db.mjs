@@ -46,6 +46,16 @@ const checks = [
     },
   },
   {
+    name: 'leaderboard_signals table (live refresh)',
+    run: async () => {
+      const { error } = await sb.from('leaderboard_signals').select('version').eq('id', 1).maybeSingle();
+      if (error?.code === '42P01') {
+        return { ok: false, detail: 'Table missing — run apply_leaderboard_signals.sql' };
+      }
+      return error ? { ok: false, detail: error.message } : { ok: true, detail: 'ok' };
+    },
+  },
+  {
     name: 'get_alltime_leaderboard RPC',
     run: async () => {
       const { error } = await sb.rpc('get_alltime_leaderboard', { p_limit: 5 });
@@ -106,6 +116,7 @@ for (const c of checks) {
 
 if (failed > 0) {
   console.log('\nFix: Supabase Dashboard → SQL Editor → run:');
+  console.log('  project/supabase/apply_leaderboard_signals.sql');
   console.log('  project/supabase/apply_alltime_leaderboard.sql');
   console.log('  project/supabase/apply_event_leaderboard.sql (if event checks fail)');
   console.log('\nOr: npm run db:apply-alltime && npm run db:apply-leaderboard');
