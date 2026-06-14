@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, Package, CreditCard as Edit3, Bell, HelpCircle, History, BarChart2, Gamepad2, Home, QrCode, ShoppingBag, Sun, Moon } from 'lucide-react';
+import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, Package, CreditCard as Edit3, Bell, HelpCircle, History, BarChart2, Gamepad2, Home, QrCode, ShoppingBag, Sun, Moon, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,7 @@ import NeoAvatar from '../components/NeoAvatar';
 import LevelBadge from '../components/LevelBadge';
 import PageMainSticker from '../components/PageMainSticker';
 import { getLevelBadge } from '../lib/levelBadges';
-import InventoryWalletCard, { inventoryTypeConfig, getDaysLeft } from '../components/InventoryWalletCard';
+import InventoryWalletCard from '../components/InventoryWalletCard';
 import InventoryDetailModal from '../components/InventoryDetailModal';
 
 const card = {
@@ -47,51 +47,76 @@ const SettingButton: React.FC<{
   color: string;
   bg: string;
   onClick: () => void;
-}> = ({ icon: Icon, label, color, bg, onClick }) => (
+  large?: boolean;
+}> = ({ icon: Icon, label, color, bg, onClick, large = false }) => (
   <button
     type="button"
     onClick={onClick}
     className="press-card"
     style={{
       ...card,
-      padding: '12px 8px',
+      padding: large ? '18px 10px' : '12px 8px',
+      minHeight: large ? 96 : undefined,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: 8,
+      gap: large ? 10 : 8,
       cursor: 'pointer',
       textAlign: 'center',
     }}
   >
-    <div style={{ width: 42, height: 42, borderRadius: 12, background: bg, border: `2px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Icon size={18} color={color} />
+    <div style={{
+      width: large ? 52 : 42,
+      height: large ? 52 : 42,
+      borderRadius: large ? 14 : 12,
+      background: bg,
+      border: `2px solid ${color}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      <Icon size={large ? 24 : 18} color={color} />
     </div>
-    <span style={{ fontWeight: 900, fontSize: 10, color: 'var(--text-dark)', lineHeight: 1.2 }}>{label}</span>
+    <span style={{ fontWeight: 900, fontSize: large ? 12 : 10, color: 'var(--text-dark)', lineHeight: 1.2 }}>{label}</span>
   </button>
 );
 
-/* ── Hub link row (reused across account sections) ── */
-const HubLink: React.FC<{
+type ProfileMenuItem = {
   icon: LucideIcon;
   label: string;
-  path: string;
   color: string;
   bg: string;
-  onNavigate: (path: string) => void;
-}> = ({ icon: Icon, label, path, color, bg, onNavigate }) => (
-  <button
-    type="button"
-    onClick={() => onNavigate(path)}
-    className="press-card"
-    style={{ ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left', width: '100%' }}
-  >
-    <div style={{ width: 42, height: 42, borderRadius: 12, background: bg, border: `2px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <Icon size={18} color={color} />
-    </div>
-    <span style={{ flex: 1, fontWeight: 900, fontSize: 14, color: 'var(--text-dark)' }}>{label}</span>
-    <ChevronRight size={16} color="var(--text-muted)" />
-  </button>
-);
+  path?: string;
+  onClick?: () => void;
+};
+
+const PROFILE_MENU_SECTIONS: { label: string; items: ProfileMenuItem[] }[] = [
+  {
+    label: 'HESAP',
+    items: [
+      { icon: Target, label: 'Günlük Görevler', path: '/missions', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
+      { icon: Trophy, label: 'Başarılar', path: '/achievements', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+      { icon: BarChart2, label: 'İstatistikler', path: '/stats', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+      { icon: History, label: 'Geçmiş', path: '/history', color: '#56C8FF', bg: 'rgba(86,200,255,0.14)' },
+      { icon: Bell, label: 'Bildirimler', path: '/notifications', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+      { icon: Settings, label: 'Ayarlar', path: '/settings', color: '#7B6EF6', bg: 'rgba(123,110,246,0.1)' },
+      { icon: HelpCircle, label: 'Destek', path: '/support', color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
+    ],
+  },
+  {
+    label: 'KEŞFET',
+    items: [
+      { icon: Home, label: 'Ana Sayfa', path: '/home', color: '#7B6EF6', bg: 'rgba(123,110,246,0.1)' },
+      { icon: QrCode, label: 'QR Tara', path: '/qr', color: '#a78bfa', bg: 'rgba(167,139,250,0.1)' },
+      { icon: Trophy, label: 'Lider Tablosu', path: '/leaderboard', color: '#FFE500', bg: 'rgba(255,229,0,0.14)' },
+      { icon: ShoppingBag, label: 'Ürün Mağazası', path: '/shop', color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
+      { icon: Package, label: 'Envanter', path: '/inventory', color: '#06b6d4', bg: 'rgba(6,182,212,0.1)' },
+      { icon: Gamepad2, label: 'Mini Oyunlar', path: '/games', color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
+      { icon: BarChart2, label: 'İlerleme Yolu', path: '/progress', color: '#7B6EF6', bg: 'rgba(123,110,246,0.1)' },
+      { icon: Zap, label: 'Etkinlikler', path: '/events', color: '#ec4899', bg: 'rgba(236,72,153,0.1)' },
+    ],
+  },
+];
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -100,6 +125,7 @@ const Profile: React.FC = () => {
   const { items: inventoryItems } = useInventory();
   const [showAllInventory, setShowAllInventory] = useState(false);
   const [selectedInventoryId, setSelectedInventoryId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const xpProgress = useXpProgress(user.xp, user.level);
 
   const handleNavigate = (path: string) => {
@@ -108,21 +134,18 @@ const Profile: React.FC = () => {
   };
 
   const activeInventory = inventoryItems.filter(i => !i.used && new Date(i.expires) >= new Date());
-  const urgentInventory = activeInventory.filter(i => getDaysLeft(i.expires) <= 3);
   const displayedInventory = showAllInventory ? activeInventory : activeInventory.slice(0, 3);
   const selectedInventoryItem = inventoryItems.find(i => i.id === selectedInventoryId);
 
-  const inventoryCounts = {
-    coupon: activeInventory.filter(i => i.type === 'coupon').length,
-    ticket: activeInventory.filter(i => i.type === 'ticket').length,
-    reward: activeInventory.filter(i => i.type === 'reward').length,
-  };
-
   const stats = [
-    { label: tr.profile.totalPoints,  value: user.totalPoints.toLocaleString(), color: '#f59e0b', emoji: '⭐' },
-    { label: tr.profile.currentLevel, value: getLevelBadge(user.level).label, color: '#22c55e', emoji: '📈' },
+    { label: tr.profile.totalPoints, value: user.totalPoints.toLocaleString(), color: '#f59e0b', emoji: '⭐' },
     { label: tr.profile.achievements, value: `${user.achievements}/${user.totalAchievements}`, color: '#7B6EF6', emoji: '🏆' },
-    { label: tr.profile.dayStreak,    value: `${user.streak}g`,                 color: '#f97316', emoji: '🔥' },
+  ];
+
+  const quickActions = [
+    { icon: QrCode, label: 'QR Tara', path: '/qr', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
+    { icon: ShoppingBag, label: 'Mağaza', path: '/shop', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
+    { icon: Gamepad2, label: 'Oyunlar', path: '/games', color: '#FF3E9D', bg: 'rgba(255,62,157,0.12)' },
   ];
 
   return (
@@ -134,7 +157,7 @@ const Profile: React.FC = () => {
 
       <div
         className="page-enter"
-        style={{ padding: 'clamp(12px,4vw,24px)', paddingBottom: 32, maxWidth: 640, margin: '0 auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}
+        style={{ padding: 'clamp(12px,4vw,24px)', paddingBottom: 32, maxWidth: 640, margin: '0 auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}
       >
 
         {/* ── Profile hero ── */}
@@ -275,45 +298,6 @@ const Profile: React.FC = () => {
               action={{ label: tr.profile.seeAll, onClick: () => handleNavigate('/inventory') }}
             />
 
-            <div style={{
-              ...card,
-              padding: '12px 14px',
-              marginBottom: 12,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              background: 'linear-gradient(135deg,rgba(59,130,246,0.08) 0%,rgba(6,182,212,0.06) 100%)',
-            }}>
-              <div>
-                <p style={{ fontSize: 10, fontWeight: 900, color: '#3b82f6', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  {activeInventory.length} aktif bilet
-                </p>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
-                  {urgentInventory.length > 0
-                    ? `⚡ ${urgentInventory.length} bilet yakında doluyor`
-                    : 'Koda tıkla, kasada göster'}
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                {(['coupon', 'ticket', 'reward'] as const)
-                  .filter(type => inventoryCounts[type] > 0)
-                  .map(type => (
-                    <span
-                      key={type}
-                      style={{
-                        fontSize: 9, fontWeight: 900, padding: '4px 8px', borderRadius: 999,
-                        background: inventoryTypeConfig[type].bg,
-                        color: inventoryTypeConfig[type].color,
-                        border: `1.5px solid ${inventoryTypeConfig[type].color}44`,
-                      }}
-                    >
-                      {inventoryTypeConfig[type].emoji} {inventoryCounts[type]}
-                    </span>
-                  ))}
-              </div>
-            </div>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {displayedInventory.map(item => (
                 <InventoryWalletCard
@@ -344,75 +328,106 @@ const Profile: React.FC = () => {
           </div>
         )}
 
-        {/* ── Account hub — secondary routes via progressive disclosure ── */}
+        {/* ── Quick actions ── */}
         <div>
-          <SectionHeader micro="HESAP" title="Ayarlar & Daha Fazla" />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Settings shortcuts */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-              <SettingButton icon={Target}    label="Günlük Görevler"              color="#ef4444" bg="rgba(239,68,68,0.1)"   onClick={() => handleNavigate('/missions')} />
-              <SettingButton icon={Trophy}    label="Başarılar"                    color="#f59e0b" bg="rgba(245,158,11,0.1)"  onClick={() => handleNavigate('/achievements')} />
-              <SettingButton icon={BarChart2} label="İstatistikler"                color="#3b82f6" bg="rgba(59,130,246,0.1)"  onClick={() => handleNavigate('/stats')} />
-              <SettingButton icon={History}   label="Geçmiş"                       color="#56C8FF" bg="rgba(86,200,255,0.14)" onClick={() => handleNavigate('/history')} />
-              <SettingButton icon={Bell}       label="Bildirimler"                  color="#f59e0b" bg="rgba(245,158,11,0.1)"  onClick={() => handleNavigate('/notifications')} />
-              <SettingButton icon={Settings}   label={tr.profile.accountSettings}   color="#7B6EF6" bg="rgba(123,110,246,0.1)" onClick={() => handleNavigate('/settings')} />
-              <SettingButton icon={HelpCircle} label="Destek"                       color="#22c55e" bg="rgba(34,197,94,0.1)"   onClick={() => handleNavigate('/support')} />
+          <SectionHeader micro="HIZLI" title="Hızlı Erişim" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {quickActions.map(action => (
               <SettingButton
-                icon={theme === 'light' ? Moon : Sun}
-                label={theme === 'light' ? 'Karanlık Mod' : 'Açık Mod'}
-                color="var(--text-dark)"
-                bg="var(--tab-bg)"
-                onClick={() => { playSound('click'); toggleTheme(); }}
+                key={action.path}
+                icon={action.icon}
+                label={action.label}
+                color={action.color}
+                bg={action.bg}
+                large
+                onClick={() => handleNavigate(action.path)}
               />
-            </div>
-
-            {/* Genel */}
-            <div>
-              <p className="section-label" style={{ marginBottom: 10 }}>GENEL</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <HubLink icon={Home}     label="Ana Sayfa"     path="/home"        color="#7B6EF6" bg="rgba(123,110,246,0.1)" onNavigate={handleNavigate} />
-                <HubLink icon={QrCode}   label="QR Tara"       path="/qr"          color="#a78bfa" bg="rgba(167,139,250,0.1)" onNavigate={handleNavigate} />
-                <HubLink icon={Trophy}   label="Lider Tablosu" path="/leaderboard" color="#FFE500" bg="rgba(255,229,0,0.14)"  onNavigate={handleNavigate} />
-              </div>
-            </div>
-
-            {/* Mağaza & Ödüller */}
-            <div>
-              <p className="section-label" style={{ marginBottom: 10 }}>MAĞAZA & ÖDÜLLER</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <HubLink icon={ShoppingBag} label="Ürün Mağazası"          path="/shop"      color="#22c55e" bg="rgba(34,197,94,0.1)"  onNavigate={handleNavigate} />
-                <HubLink icon={Package}     label={tr.profile.myInventory} path="/inventory" color="#06b6d4" bg="rgba(6,182,212,0.1)"  onNavigate={handleNavigate} />
-              </div>
-            </div>
-
-            {/* Aktiviteler */}
-            <div>
-              <p className="section-label" style={{ marginBottom: 10 }}>AKTİVİTELER</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <HubLink icon={Gamepad2} label="Mini Oyunlar"    path="/games"    color="#22c55e" bg="rgba(34,197,94,0.1)"   onNavigate={handleNavigate} />
-                <HubLink icon={BarChart2} label="İlerleme Yolu" path="/progress" color="#7B6EF6" bg="rgba(123,110,246,0.1)" onNavigate={handleNavigate} />
-                <HubLink icon={Zap}      label="Etkinlikler"     path="/events"   color="#ec4899" bg="rgba(236,72,153,0.1)" onNavigate={handleNavigate} />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => { playSound('click'); logout().then(() => navigate('/login', { replace: true })).catch(() => navigate('/login', { replace: true })); }}
-              style={{
-                ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
-                cursor: 'pointer', border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626',
-                background: 'rgba(239,68,68,0.05)', width: '100%', textAlign: 'left',
-              }}
-            >
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: '#ef4444', border: '2px solid #dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <LogOut size={18} color="white" />
-              </div>
-              <span style={{ flex: 1, fontWeight: 900, fontSize: 14, color: '#ef4444' }}>{tr.profile.logout}</span>
-              <ChevronRight size={16} color="#ef4444" />
-            </button>
+            ))}
           </div>
         </div>
+
+        {/* ── Collapsible full menu ── */}
+        <div>
+          <button
+            type="button"
+            onClick={() => { playSound('click'); setMenuOpen(open => !open); }}
+            className="press-card"
+            style={{
+              ...card,
+              width: '100%',
+              padding: '16px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{
+              width: 48, height: 48, borderRadius: 14,
+              background: 'rgba(123,110,246,0.12)', border: '2px solid #7B6EF6',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <LayoutGrid size={22} color="#7B6EF6" />
+            </div>
+            <span style={{ flex: 1, fontWeight: 900, fontSize: 15, color: 'var(--text-dark)' }}>
+              Menü & Ayarlar
+            </span>
+            <ChevronRight
+              size={18}
+              color="var(--text-muted)"
+              style={{ transform: menuOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+            />
+          </button>
+
+          {menuOpen && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {PROFILE_MENU_SECTIONS.map(section => (
+                <div key={section.label}>
+                  <p className="section-label" style={{ marginBottom: 10 }}>{section.label}</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                    {section.items.map(item => (
+                      <SettingButton
+                        key={item.label}
+                        icon={item.icon}
+                        label={item.label}
+                        color={item.color}
+                        bg={item.bg}
+                        onClick={() => item.path && handleNavigate(item.path)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                <SettingButton
+                  icon={theme === 'light' ? Moon : Sun}
+                  label={theme === 'light' ? 'Karanlık Mod' : 'Açık Mod'}
+                  color="var(--text-dark)"
+                  bg="var(--tab-bg)"
+                  onClick={() => { playSound('click'); toggleTheme(); }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => { playSound('click'); logout().then(() => navigate('/login', { replace: true })).catch(() => navigate('/login', { replace: true })); }}
+          style={{
+            ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
+            cursor: 'pointer', border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626',
+            background: 'rgba(239,68,68,0.05)', width: '100%', textAlign: 'left',
+          }}
+        >
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: '#ef4444', border: '2px solid #dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <LogOut size={18} color="white" />
+          </div>
+          <span style={{ flex: 1, fontWeight: 900, fontSize: 14, color: '#ef4444' }}>{tr.profile.logout}</span>
+          <ChevronRight size={16} color="#ef4444" />
+        </button>
 
       </div>
 
