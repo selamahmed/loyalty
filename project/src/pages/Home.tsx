@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Star, ArrowRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useInventory } from '../context/InventoryContext';
 import { getNotifications } from '../services/notifications';
 import type { Notification } from '../services/notifications';
 import { playSound } from '../lib/sounds';
@@ -19,8 +20,8 @@ import { colorfulSticker } from '../lib/stickerCatalog';
 const homePromoSticker = colorfulSticker('Group 62.svg');
 
 const HOME_STAT_STICKERS = {
-  rank: colorfulSticker('superstar.svg'),
-  achievements: colorfulSticker('awesome.svg'),
+  rank: colorfulSticker('TROPHY.svg'),
+  inventory: colorfulSticker('TICKETS.svg'),
 } as const;
 
 /** Home quick-action stickers — curated for action meaning, not page defaults */
@@ -78,6 +79,10 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const { user, points } = useApp();
   const { authUser } = useAuth();
+  const { items: inventoryItems } = useInventory();
+  const activeInventoryCount = inventoryItems.filter(
+    i => !i.used && new Date(i.expires) >= new Date(),
+  ).length;
   const [showParticles, setShowParticles] = useState(false);
   const { show: showDailyReward, setShow: setShowDailyReward } = useDailyReward();
   const xpProgress = useXpProgress(user.xp, user.level);
@@ -182,11 +187,11 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Stats row — rank & achievements only (streak lives in hero) ── */}
+        {/* ── Stats row — rank & active inventory (streak lives in hero) ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
           {[
             { sticker: HOME_STAT_STICKERS.rank, value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b', rotate: -8 },
-            { sticker: HOME_STAT_STICKERS.achievements, value: user.achievements, label: tr.home.achievements, color: '#7B6EF6', rotate: 6 },
+            { sticker: HOME_STAT_STICKERS.inventory, value: activeInventoryCount, label: tr.profile.myInventory, color: '#7B6EF6', rotate: 6 },
           ].map((s) => (
             <div key={s.label} style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'visible' }}>
               {s.sticker?.url && (
