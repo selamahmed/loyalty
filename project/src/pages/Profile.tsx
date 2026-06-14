@@ -176,6 +176,14 @@ const Profile: React.FC = () => {
                   className="profile-hero-user__avatar"
                   style={{ border: '4px solid rgba(255,255,255,0.55)', boxShadow: '0 4px 0 rgba(0,0,0,0.18)' }}
                 />
+                <button
+                  type="button"
+                  aria-label={tr.profile.editProfile}
+                  className="profile-hero-user__edit"
+                  onClick={() => { playSound('click'); navigate('/settings'); }}
+                >
+                  <Edit3 size={14} color="#6d28d9" strokeWidth={2.5} />
+                </button>
                 <LevelBadge
                   level={user.level}
                   width={34}
@@ -185,19 +193,9 @@ const Profile: React.FC = () => {
               </div>
 
               <div className="profile-hero-user__info">
-                <div className="profile-hero-user__head">
-                  <div className="profile-hero-user__identity">
-                    <h1 className="profile-hero-user__name">{user.username}</h1>
-                    <p className="profile-hero-user__email">{user.email}</p>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label={tr.profile.editProfile}
-                    className="profile-hero-user__edit"
-                    onClick={() => { playSound('click'); navigate('/settings'); }}
-                  >
-                    <Edit3 size={16} color="#6d28d9" strokeWidth={2.5} />
-                  </button>
+                <div className="profile-hero-user__identity">
+                  <h1 className="profile-hero-user__name">{user.username}</h1>
+                  <p className="profile-hero-user__email">{user.email}</p>
                 </div>
 
                 <div className="profile-hero-meta">
