@@ -827,7 +827,7 @@ const Leaderboard: React.FC = () => {
                     type="button"
                     onClick={() => openEvent(ev.id)}
                     className={`lb-event-chip lb-event-chip--${kind}${isSelected ? ' lb-event-chip--active' : ''}`}
-                    style={{ '--chip-accent': ev.color ?? 'var(--primary-blue)' } as React.CSSProperties}
+                    style={{ '--chip-accent': ev.color ?? undefined } as React.CSSProperties}
                   >
                     <div className="lb-event-chip__body">
                       <span className={`lb-event-chip__status lb-event-chip__status--${kind}`}>
