@@ -28,7 +28,7 @@ const HOME_QUICK_STICKERS = {
   qr: 'qrcode.svg',
   games: 'partytime.svg',
   shop: 'superstar.svg',
-  missions: 'hotflame.svg',
+  inventory: 'cardboardbox.svg',
 } as const;
 
 /* ── Design tokens ── */
@@ -44,7 +44,7 @@ const quickActions = [
   { label: tr.home.scanQr,    path: '/qr',       bg: '#9122FF', sticker: HOME_QUICK_STICKERS.qr },
   { label: tr.home.playGames,  path: '/games',    bg: '#FF3E9D', sticker: HOME_QUICK_STICKERS.games },
   { label: tr.home.rewards,    path: '/shop',     bg: '#FF6B35', sticker: HOME_QUICK_STICKERS.shop },
-  { label: tr.home.missions,   path: '/missions', bg: '#56C8FF', sticker: HOME_QUICK_STICKERS.missions },
+  { label: tr.profile.myInventory, path: '/inventory', bg: '#22c55e', sticker: HOME_QUICK_STICKERS.inventory },
 ];
 
 /* ── Section header ── */
