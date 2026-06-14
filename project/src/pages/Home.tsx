@@ -14,13 +14,13 @@ import NeoAvatar from '../components/NeoAvatar';
 import { useXpProgress } from '../hooks/useXpProgress';
 import PageMainSticker from '../components/PageMainSticker';
 import StickerDecorImg from '../components/StickerDecorImg';
-import { colorfulSticker, shapeSticker } from '../lib/stickerCatalog';
+import { colorfulSticker } from '../lib/stickerCatalog';
 
 const homePromoSticker = colorfulSticker('Group 62.svg');
 
-const HOME_STAT_SHAPES = {
-  rank: shapeSticker('Stickers V19.svg'),
-  achievements: shapeSticker('Figure 11.svg'),
+const HOME_STAT_STICKERS = {
+  rank: colorfulSticker('superstar.svg'),
+  achievements: colorfulSticker('awesome.svg'),
 } as const;
 
 /** Home quick-action stickers — curated for action meaning, not page defaults */
@@ -185,16 +185,16 @@ const Home: React.FC = () => {
         {/* ── Stats row — rank & achievements only (streak lives in hero) ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
           {[
-            { shape: HOME_STAT_SHAPES.rank, value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b', rotate: -10 },
-            { shape: HOME_STAT_SHAPES.achievements, value: user.achievements, label: tr.home.achievements, color: '#7B6EF6', rotate: 8 },
+            { sticker: HOME_STAT_STICKERS.rank, value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b', rotate: -8 },
+            { sticker: HOME_STAT_STICKERS.achievements, value: user.achievements, label: tr.home.achievements, color: '#7B6EF6', rotate: 6 },
           ].map((s) => (
             <div key={s.label} style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'visible' }}>
-              {s.shape && (
+              {s.sticker?.url && (
                 <div className="home-stat-shape" style={{ transform: `rotate(${s.rotate}deg)` }} aria-hidden>
                   <StickerDecorImg
-                    src={s.shape.url}
-                    width={64}
-                    height={64}
+                    src={s.sticker.url}
+                    width={88}
+                    height={88}
                     loading="lazy"
                     className="home-stat-shape__img"
                   />

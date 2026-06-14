@@ -2783,21 +2783,21 @@ body::before {
     drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
 }
 
-/* Home stat cards — shape stickers */
+/* Home stat cards — colorful stickers */
 .home-stat-shape {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 8px;
-  width: clamp(56px, 16vw, 72px);
-  height: clamp(56px, 16vw, 72px);
+  margin: 0 auto 10px;
+  width: clamp(72px, 22vw, 96px);
+  height: clamp(72px, 22vw, 96px);
 }
 
 .home-stat-shape__img {
   width: 100% !important;
   height: 100% !important;
   object-fit: contain;
-  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.22));
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.24));
 }
 
 /* Home quick action cards — colorful stickers */
