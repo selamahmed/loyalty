@@ -25,7 +25,7 @@ const HOME_STAT_SHAPES = {
 
 /** Home quick-action stickers — curated for action meaning, not page defaults */
 const HOME_QUICK_STICKERS = {
-  qr: 'fresh.svg',
+  qr: 'qrcode.svg',
   games: 'partytime.svg',
   shop: 'superstar.svg',
   missions: 'hotflame.svg',
