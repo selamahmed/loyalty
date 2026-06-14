@@ -14,9 +14,14 @@ import NeoAvatar from '../components/NeoAvatar';
 import { useXpProgress } from '../hooks/useXpProgress';
 import PageMainSticker from '../components/PageMainSticker';
 import StickerDecorImg from '../components/StickerDecorImg';
-import { colorfulSticker } from '../lib/stickerCatalog';
+import { colorfulSticker, shapeSticker } from '../lib/stickerCatalog';
 
 const homePromoSticker = colorfulSticker('Group 62.svg');
+
+const HOME_STAT_SHAPES = {
+  rank: shapeSticker('Stickers V19.svg'),
+  achievements: shapeSticker('Figure 11.svg'),
+} as const;
 
 /** Home quick-action stickers — curated for action meaning, not page defaults */
 const HOME_QUICK_STICKERS = {
@@ -180,11 +185,21 @@ const Home: React.FC = () => {
         {/* ── Stats row — rank & achievements only (streak lives in hero) ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
           {[
-            { emoji: '🏆', value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b' },
-            { emoji: '⭐', value: user.achievements, label: tr.home.achievements, color: '#7B6EF6' },
+            { shape: HOME_STAT_SHAPES.rank, value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b', rotate: -10 },
+            { shape: HOME_STAT_SHAPES.achievements, value: user.achievements, label: tr.home.achievements, color: '#7B6EF6', rotate: 8 },
           ].map((s) => (
             <div key={s.label} style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'visible' }}>
-              <div style={{ fontSize: 24, marginBottom: 6 }}>{s.emoji}</div>
+              {s.shape && (
+                <div className="home-stat-shape" style={{ transform: `rotate(${s.rotate}deg)` }} aria-hidden>
+                  <StickerDecorImg
+                    src={s.shape.url}
+                    width={64}
+                    height={64}
+                    loading="lazy"
+                    className="home-stat-shape__img"
+                  />
+                </div>
+              )}
               <p style={{ fontWeight: 900, fontSize: 22, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
               <p style={{ color: 'var(--text-muted)', fontSize: 9, fontWeight: 900, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</p>
             </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Star, Crown, TrendingUp, Gift, Timer, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getLeaderboard, type LeaderboardEntry } from '../services/points';
+import { getLeaderboard, LEADERBOARD_TOP_LIMIT, type LeaderboardEntry } from '../services/points';
 import { getActiveEvents, type AppEvent, type RewardPrize, deriveEventStatus } from '../services/events';
 import {
   getLeaderboardPrizeEvents,
@@ -52,8 +52,42 @@ const toEventRankPlayer = (entry: EventLeaderboardEntry): RankDisplayPlayer => (
 });
 
 /* ── Shared weekly-style podium + rows ── */
-const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[] }> = ({ topThree }) => {
+const PODIUM_SLOT_RANKS = [2, 1, 3] as const;
+
+const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[]; loading?: boolean }> = ({ topThree, loading }) => {
   const podiumOrder: (RankDisplayPlayer | undefined)[] = [topThree[1], topThree[0], topThree[2]];
+
+  if (loading) {
+    return (
+      <div style={{
+        ...card,
+        background: 'linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
+        border: '3px solid #f59e0b',
+        boxShadow: '0 6px 0 #d97706',
+        padding: 'clamp(16px,4vw,28px)',
+      }}>
+        <div style={{ textAlign: 'center', padding: '28px 12px', color: 'var(--text-muted)', fontWeight: 700, fontSize: 13 }}>
+          Sıralama yükleniyor…
+        </div>
+      </div>
+    );
+  }
+
+  if (topThree.length === 0) {
+    return (
+      <div style={{
+        ...card,
+        background: 'linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
+        border: '3px solid #f59e0b',
+        boxShadow: '0 6px 0 #d97706',
+        padding: 'clamp(16px,4vw,28px)',
+        textAlign: 'center',
+      }}>
+        <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 6px' }}>Henüz sıralama yok</p>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>Puan kazanarak zirveye çık.</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -73,21 +107,24 @@ const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[] }> = ({ topTh
       </h2>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 12 }}>
         {podiumOrder.map((player, i) => {
+          const slotRank = PODIUM_SLOT_RANKS[i];
           const isFirst = player?.rank === 1;
-          const badge = player?.rank === 1 ? '👑' : player?.rank === 2 ? '🥈' : '🥉';
+          const badge = player?.rank === 1 ? '👑' : player?.rank === 2 ? '🥈' : player?.rank === 3 ? '🥉' : null;
           const sz = isFirst ? 72 : 58;
           return (
-            <div key={player?.rank ?? i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div key={player?.id ?? `slot-${slotRank}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               <div style={{ position: 'relative' }}>
                 {player
                   ? <Avatar url={player.avatar_url} name={player.username} size={sz} border={`${isFirst ? 4 : 3}px solid ${PODIUM_COLORS[i]}`} />
                   : <div style={{
                     width: sz, height: sz, borderRadius: '50%', background: 'var(--tab-bg)',
-                    border: `3px solid ${PODIUM_COLORS[i]}`, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: 22, color: 'var(--text-muted)',
+                    border: `3px dashed ${PODIUM_COLORS[i]}`, display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontSize: 14, color: 'var(--text-muted)', opacity: 0.55,
                   }}>—</div>
                 }
-                <div style={{ position: 'absolute', top: -8, right: -6, fontSize: isFirst ? 22 : 18 }}>{badge}</div>
+                {badge && (
+                  <div style={{ position: 'absolute', top: -8, right: -6, fontSize: isFirst ? 22 : 18 }}>{badge}</div>
+                )}
               </div>
               <p style={{
                 fontWeight: 900, fontSize: isFirst ? 14 : 12, color: 'var(--text-dark)',
@@ -109,7 +146,7 @@ const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[] }> = ({ topTh
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <span style={{ fontSize: isFirst ? 24 : 20, fontWeight: 900, color: 'white' }}>
-                  #{player?.rank ?? i + 1}
+                  #{player?.rank ?? slotRank}
                 </span>
               </div>
             </div>
@@ -202,7 +239,7 @@ const MyRankingCard: React.FC<{
         {title}
         {outsideTop50 && (
           <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-muted)', fontWeight: 700 }}>
-            (İlk 50 dışında)
+            (İlk 20 dışında)
           </span>
         )}
       </p>
@@ -520,7 +557,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
 
 /* ── Main Leaderboard ── */
 const Leaderboard: React.FC = () => {
-  const [tab, setTab] = useState<LeaderboardTab>('weekly');
+  const [tab, setTab] = useState<LeaderboardTab>('alltime');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const { authUser, profile } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -529,7 +566,6 @@ const Leaderboard: React.FC = () => {
   const [eventsDbReady, setEventsDbReady] = useState(true);
   const [eventsDbMissing, setEventsDbMissing] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const tabRef = React.useRef(tab);
   const authUserRef = React.useRef(authUser);
   tabRef.current = tab;
@@ -550,7 +586,29 @@ const Leaderboard: React.FC = () => {
           .eq('status', 'active')
           .gt('total_points', data.total_points);
         setMyRankEntry({ ...data, rank: (count ?? 0) + 1 });
+        return;
       }
+
+      const view = period === 'weekly' ? 'leaderboard_weekly' : 'leaderboard_monthly';
+      const { data, error } = await supabase
+        .from(view)
+        .select('id, username, avatar_url, level, period_points, rank')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error || !data || (data.period_points ?? 0) <= 0) {
+        setMyRankEntry(null);
+        return;
+      }
+
+      setMyRankEntry({
+        id: data.id,
+        username: data.username,
+        avatar_url: data.avatar_url,
+        level: data.level,
+        total_points: data.period_points,
+        rank: data.rank,
+      });
     } catch { /**/ }
   }, []);
 
@@ -572,17 +630,16 @@ const Leaderboard: React.FC = () => {
   const loadLeaderboard = React.useCallback(async (period: 'weekly' | 'monthly' | 'alltime', silent = false) => {
     if (!silent) setIsLoading(true);
     try {
-      const data = await getLeaderboard(50, period);
+      const data = await getLeaderboard(LEADERBOARD_TOP_LIMIT, period);
       setLeaderboard(data);
-      setLastUpdate(new Date());
       const uid = authUserRef.current?.id;
       if (uid && !data.find(p => p.id === uid)) {
         fetchMyRank(uid, period);
       } else {
         setMyRankEntry(null);
       }
-    } catch {
-      /* keep stale data */
+    } catch (err) {
+      console.warn('[Leaderboard] load failed:', err);
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -600,36 +657,27 @@ const Leaderboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [tab, loadPrizeEvents]);
 
-  // ── Real-time: refresh when any profile total_points changes ──
+  // ── Real-time: refresh when profiles or points change ──
   useEffect(() => {
+    const refresh = () => {
+      if (tabRef.current === 'events') return;
+      loadLeaderboard(tabRef.current, true);
+    };
+
     const channel = supabase
       .channel('leaderboard_realtime')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'profiles' },
-        () => {
-          if (tabRef.current === 'events') return;
-          loadLeaderboard(tabRef.current, true);
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'points_transactions' },
-        () => {
-          if (tabRef.current === 'events') return;
-          loadLeaderboard(tabRef.current, true);
-        },
-      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'points_transactions' }, refresh)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [loadLeaderboard]);
 
-  // ── Polling fallback — refreshes every 15 s in case Realtime isn't enabled ──
+  // ── Polling fallback — refreshes every 10 s in case Realtime isn't enabled ──
   useEffect(() => {
     const interval = setInterval(() => {
       if (tabRef.current === 'events') return;
       loadLeaderboard(tabRef.current, true);
-    }, 15000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [loadLeaderboard]);
 
@@ -664,12 +712,6 @@ const Leaderboard: React.FC = () => {
 
   const selectedEvent = activeEvents.find(e => e.id === selectedEventId) ?? activeEvents[0] ?? null;
 
-  const liveEventCount = activeEvents.filter(e => {
-    const ended = new Date(e.end_date) < new Date() || deriveEventStatus(e) === 'ended' || deriveEventStatus(e) === 'distributed';
-    const upcoming = !ended && new Date(e.start_date) > new Date();
-    return !ended && !upcoming;
-  }).length;
-
   const openEvent = (eventId: string) => {
     setSelectedEventId(eventId);
     setTab('events');
@@ -690,37 +732,6 @@ const Leaderboard: React.FC = () => {
       </div>
 
       <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
-
-        {/* ── Page header ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-            background: 'linear-gradient(180deg,#fbbf24,#d97706)',
-            border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
-          }}>👑</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>Leaderboard</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Zirveye çık, efsane ol</p>
-            {lastUpdate && (
-              <p style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 600, margin: '4px 0 0', opacity: 0.85 }}>
-                Son güncelleme {lastUpdate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </p>
-            )}
-          </div>
-          {/* Live indicator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.1)', border: '1.5px solid rgba(34,197,94,0.3)', flexShrink: 0 }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e', animation: 'live-pulse 1.5s ease-in-out infinite' }} />
-            <span style={{ fontSize: 10, fontWeight: 900, color: '#22c55e', letterSpacing: '0.05em' }}>CANLI</span>
-          </div>
-        </div>
-
-        <style>{`
-          @keyframes live-pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 6px #22c55e; }
-            50% { opacity: 0.5; box-shadow: 0 0 12px #22c55e; }
-          }
-        `}</style>
 
         <StickerHero
           page="leaderboard"
@@ -750,36 +761,7 @@ const Leaderboard: React.FC = () => {
           </div>
         )}
 
-        {/* ── Tabs ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
-          {(['weekly', 'monthly', 'alltime', 'events'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
-              padding: '10px 4px', borderRadius: 12, fontWeight: 900, fontSize: 10,
-              cursor: 'pointer', transition: 'all 0.1s', position: 'relative',
-              background: tab === t ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
-              color: tab === t ? 'white' : 'var(--text-dark)',
-              border: '3px solid var(--dark-border)',
-              boxShadow: tab === t ? '0 5px 0 var(--dark-border)' : '0 4px 0 var(--dark-border)',
-              lineHeight: 1.2,
-            }}>
-              {TAB_LABELS[t]}
-              {t === 'events' && activeEvents.length > 0 && (
-                <span style={{
-                  position: 'absolute', top: -6, right: -4,
-                  minWidth: 16, height: 16, padding: '0 4px',
-                  borderRadius: 999, background: liveEventCount > 0 ? '#ef4444' : '#7B6EF6',
-                  color: '#fff', fontSize: 9, fontWeight: 900,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: '2px solid var(--dark-border)',
-                }}>
-                  {liveEventCount > 0 ? liveEventCount : activeEvents.length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Prize events strip (all tabs) ── */}
+        {/* ── Prize events strip ── */}
         {activeEvents.length > 0 && tab !== 'events' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -880,7 +862,7 @@ const Leaderboard: React.FC = () => {
 
         {tab !== 'events' && (
         <>
-        <ChampionPodiumCard topThree={top3.map(toRankPlayer)} />
+        <ChampionPodiumCard topThree={top3.map(toRankPlayer)} loading={isLoading} />
 
         {/* ── Rest of rankings (positions 4+) ── */}
         {isLoading ? (
@@ -902,6 +884,12 @@ const Leaderboard: React.FC = () => {
             </p>
           </div>
         ) : (
+          <>
+          {rest.length > 0 && (
+            <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              Sıra 4–{Math.min(LEADERBOARD_TOP_LIMIT, leaderboard.length)}
+            </p>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {rest.map(player => (
               <LeaderboardRankRow
@@ -912,6 +900,7 @@ const Leaderboard: React.FC = () => {
               />
             ))}
           </div>
+          </>
         )}
 
         {/* ── Your ranking ── */}
@@ -927,7 +916,7 @@ const Leaderboard: React.FC = () => {
               username={profile?.username ?? authUser.email ?? 'Sen'}
               avatarUrl={profile?.avatar_url ?? null}
               pointsLabel={tab !== 'alltime' ? PERIOD_LABEL[tab] : undefined}
-              outsideTop50={!inList}
+              outsideTop50={!inList && myRank.rank > LEADERBOARD_TOP_LIMIT}
             />
           );
         })()}

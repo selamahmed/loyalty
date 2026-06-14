@@ -44,6 +44,10 @@ const colorfulById = new Map(
   all.filter(s => s.path.includes('/colorful/')).map(g => [g.id, g]),
 );
 
+const shapeById = new Map(
+  all.filter(s => s.path.includes('neobrutalism')).map(g => [g.id, g]),
+);
+
 function hashSeed(seed: string): number {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) {
@@ -61,6 +65,11 @@ function pickFromPool(pool: StickerAsset[], seed: string, offset = 0): StickerAs
 /** Lookup a colorful sticker by filename, e.g. `dead.svg` or `Group 62.svg` */
 export function colorfulSticker(filename: string): StickerAsset | undefined {
   return colorfulById.get(filename);
+}
+
+/** Lookup a neo-brutal shape sticker by filename, e.g. `Stickers V19.svg` */
+export function shapeSticker(filename: string): StickerAsset | undefined {
+  return shapeById.get(filename);
 }
 
 /** @deprecated Alias for colorfulSticker */

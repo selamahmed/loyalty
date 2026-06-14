@@ -48,17 +48,30 @@ export async function spendPoints(
 
 export type LeaderboardEntry = { rank: number; username: string; total_points: number; level: number; avatar_url: string | null; id: string };
 
-export async function getLeaderboard(limit = 50, period: 'alltime' | 'weekly' | 'monthly' = 'alltime'): Promise<LeaderboardEntry[]> {
-  // All-time: directly from profiles.total_points (always up to date via add_points RPC)
+export const LEADERBOARD_TOP_LIMIT = 20;
+
+export async function getLeaderboard(
+  limit = LEADERBOARD_TOP_LIMIT,
+  period: 'alltime' | 'weekly' | 'monthly' = 'alltime',
+): Promise<LeaderboardEntry[]> {
+  // All-time: top players by profiles.total_points
   if (period === 'alltime') {
     const { data, error } = await supabase
       .from('profiles')
       .select('id, username, total_points, level, avatar_url')
       .eq('status', 'active')
       .order('total_points', { ascending: false })
+      .order('username', { ascending: true })
       .limit(limit);
     if (error) throw error;
-    return (data ?? []).map((u, i) => ({ rank: i + 1, ...u }));
+    return (data ?? []).map((u, i) => ({
+      rank: i + 1,
+      id: u.id,
+      username: u.username ?? 'Oyuncu',
+      total_points: u.total_points ?? 0,
+      level: u.level ?? 1,
+      avatar_url: u.avatar_url,
+    }));
   }
 
   // Weekly / Monthly — try the pre-built view first (requires patch_new_tables.sql to be run)
@@ -72,14 +85,16 @@ export async function getLeaderboard(limit = 50, period: 'alltime' | 'weekly' | 
 
   if (!error && data) {
     // View exists and returned data — use it (even if empty for this period)
-    return data.map((u, i) => ({
+    return data.map(u => ({
       id: u.id,
       username: u.username,
       avatar_url: u.avatar_url,
       level: u.level,
       total_points: u.period_points,
-      rank: i + 1,
-    }));
+      rank: u.rank ?? 0,
+    })).filter(u => u.total_points > 0)
+      .sort((a, b) => a.rank - b.rank)
+      .slice(0, limit);
   }
 
   // View not created yet — compute inline from points_transactions

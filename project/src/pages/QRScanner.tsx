@@ -1,9 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { QrCode, Camera, Check, Zap, RotateCcw, MapPin, X, FlipHorizontal, Keyboard, ShoppingCart, AlertCircle, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { QrCode, Camera, Check, Zap, RotateCcw, MapPin, X, FlipHorizontal, Keyboard, ShoppingCart, AlertCircle, Clock, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import InventoryDetailModal from '../components/InventoryDetailModal';
+import StickerDecorImg from '../components/StickerDecorImg';
+import { colorfulSticker } from '../lib/stickerCatalog';
+import { pageGroup } from '../lib/pageStickers';
+import { playSound } from '../lib/sounds';
 import {
   parseQRPayload, isCashierQR, isInventoryQR,
   isQRExpired, msRemaining,
@@ -13,7 +18,9 @@ import { claimQrScan } from '../services/earn';
 import { lookupStoreQR } from '../services/admin';
 import { activityLogService } from '../lib/activityLogger';
 import StickerAccent from '../components/StickerAccent';
-import StickerHero from '../components/StickerHero';
+
+const inventoryLinkSticker = colorfulSticker('cardboardbox.svg');
+const qrIdleSticker = colorfulSticker(pageGroup('qr'));
 
 const card = {
   background: 'var(--card-bg)',
@@ -109,120 +116,24 @@ const CashierQRResult: React.FC<{
   );
 };
 
-/* ── Inventory item QR popup ── */
-const InventoryQRModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const [selected, setSelected] = useState<string | null>(null);
-  const { items } = useInventory();
-  const activeItems = items.filter(i => !i.used);
-  const typeColors: Record<string, string> = { coupon: '#3b82f6', ticket: '#f59e0b', reward: '#22c55e' };
-
-  const selectedItem = selected ? activeItems.find(i => i.code === selected) : null;
-
-  /* Fixed timestamp captured once when item is selected — prevents QR URL from
-     changing on every render (which caused the regeneration loop bug). */
-  const issuedAt = React.useMemo(() => new Date().toISOString(), [selected]);
-
-  const getQRData = React.useCallback((item: typeof activeItems[0]) => {
-    return JSON.stringify({
-      type: 'item_redemption',
-      item_id: item.id,
-      item_code: item.code,
-      item_title: item.title,
-      item_type: item.type,
-      expires: item.expires,
-      issued_at: issuedAt,
-    });
-  }, [issuedAt]);
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', padding: 0 }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ ...card, width: '100%', maxWidth: 480, maxHeight: '88vh', overflowY: 'auto', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: 'none', animation: 'slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}>
-        <div style={{ padding: '20px 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h2 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 18, margin: 0 }}>Envanter QR Kodları</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '3px 0 0' }}>Bir ürün seç, QR kodunu kasada göster</p>
-          </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--tab-bg)', border: '2px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <X size={16} color="var(--text-muted)" />
-          </button>
-        </div>
-
-        <div style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Item list */}
-          {!selected && activeItems.map(item => (
-            <button key={item.id} onClick={() => setSelected(item.code)}
-              style={{ ...card, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'transform 0.1s' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}>
-              <img src={item.image} alt={item.title} style={{ width: 46, height: 46, borderRadius: 12, objectFit: 'cover', flexShrink: 0, border: '2px solid var(--dark-border)' }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</p>
-                <span style={{ fontFamily: 'monospace', fontSize: 11, color: typeColors[item.type] || '#7B6EF6', fontWeight: 700 }}>{item.code}</span>
-              </div>
-              <QrCode size={16} color="var(--text-muted)" />
-            </button>
-          ))}
-
-          {/* QR display */}
-          {selected && selectedItem && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-              <div style={{ background: 'white', padding: 14, borderRadius: 20, border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)' }}>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(getQRData(selectedItem))}&size=240x240&margin=10`}
-                  alt={`QR: ${selected}`}
-                  style={{ width: 230, height: 230, display: 'block', borderRadius: 10 }}
-                />
-              </div>
-              <div style={{ textAlign: 'center', width: '100%' }}>
-                <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 4px' }}>{selectedItem.title}</p>
-                <p style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 900, color: 'var(--primary-blue)', margin: '0 0 6px', letterSpacing: '0.1em' }}>{selected}</p>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 10px' }}>Kasada bu QR kodu tarat</p>
-                {/* Expiry info */}
-                {selectedItem.expires && (
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, fontWeight: 600 }}>
-                    Son kullanım: {new Date(selectedItem.expires).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </p>
-                )}
-              </div>
-              <button onClick={() => setSelected(null)} style={{ padding: '10px 24px', borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-dark)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <RotateCcw size={13} /> Geri Dön
-              </button>
-            </div>
-          )}
-
-          {!selected && activeItems.length === 0 && (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-              <QrCode size={36} style={{ margin: '0 auto 12px', display: 'block', opacity: 0.4 }} />
-              <p style={{ fontWeight: 700, margin: 0 }}>Aktif envanter öğesi yok</p>
-            </div>
-          )}
-        </div>
-      </div>
-      <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity:0; } to { transform: translateY(0); opacity:1; } }`}</style>
-    </div>
-  );
-};
-
 /* ═══════════════════════════════════════════════════
    MAIN SCANNER
 ═══════════════════════════════════════════════════ */
 const QRScanner: React.FC = () => {
+  const navigate = useNavigate();
   const { showRewardPopup } = useApp();
-  const { getByCode } = useInventory();
+  const { getByCode, items } = useInventory();
   const { authUser, profile } = useAuth();
 
-  const [mode, setMode]         = useState<'idle' | 'camera' | 'fake' | 'manual'>('idle');
+  const [mode, setMode]         = useState<'idle' | 'camera' | 'manual'>('idle');
   const [cameraReady, setCameraReady] = useState(false);   // true once video is actually playing
   const [result, setResult]     = useState<QRResult | null>(null);
   const [cashierQRResult, setCashierQRResult] = useState<CashierQRPayload | null>(null);
   const [inventoryMatch, setInventoryMatch] = useState<ReturnType<typeof getByCode>>(undefined);
-  const [scanProgress, setScanProgress] = useState(0);
   const [manualCode, setManualCode]     = useState('');
   const [error, setError]       = useState('');
   const [camError, setCamError] = useState('');
   const [facingMode, setFacingMode]     = useState<'environment' | 'user'>('environment');
-  const [showInventoryQR, setShowInventoryQR] = useState(false);
   const [scanHistory, setScanHistory]   = useState<{ code: string; points: number; time: string; location: string; type: 'store' }[]>([]);
 
   const videoRef    = useRef<HTMLVideoElement>(null);
@@ -414,25 +325,6 @@ const QRScanner: React.FC = () => {
     });
   };
 
-  /* ── Demo scan (shows UI flow without a real QR) ── */
-  const startFakeScan = () => {
-    setMode('fake'); setResult(null); setCashierQRResult(null); setError(''); setScanProgress(0);
-    let prog = 0;
-    const interval = setInterval(() => {
-      prog += Math.random() * 15 + 5;
-      setScanProgress(Math.min(prog, 95));
-      if (prog >= 95) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setScanProgress(100);
-          // Demo result — no DB record, points = 0 so claim button won't show
-          setResult({ code: 'DEMO-QR', title: 'Demo Tarama', points: 0, location: 'Demo Modu' });
-          setMode('idle');
-        }, 500);
-      }
-    }, 150);
-  };
-
   /* ── Claim store QR reward ── */
   const claimReward = async () => {
     if (!result || !authUser?.id) return;
@@ -465,7 +357,6 @@ const QRScanner: React.FC = () => {
       setError(e instanceof Error ? e.message : 'QR tarama başarısız');
     }
     setResult(null);
-    setScanProgress(0);
   };
 
   const claimCashierQR = async () => {
@@ -513,16 +404,18 @@ const QRScanner: React.FC = () => {
   };
 
   const reset = () => {
-    setResult(null); setCashierQRResult(null); setScanProgress(0);
+    setResult(null); setCashierQRResult(null);
     setError(''); setMode('idle'); setInventoryMatch(undefined);
   };
 
   const hasResult = !!result || !!cashierQRResult;
+  const activeInventoryCount = items.filter(
+    i => !i.used && new Date(i.expires) >= new Date(),
+  ).length;
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
       {inventoryMatch && <InventoryDetailModal item={inventoryMatch} onClose={() => setInventoryMatch(undefined)} />}
-      {showInventoryQR && <InventoryQRModal onClose={() => setShowInventoryQR(false)} />}
 
       {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
@@ -539,14 +432,6 @@ const QRScanner: React.FC = () => {
             <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Kod tara, anında puan kazan</p>
           </div>
         </div>
-
-        <StickerHero
-          page="qr"
-          bg="linear-gradient(135deg,#a78bfa 0%,#6d28d9 100%)"
-          badge="📱 QR TARA"
-          title="Kod tara,"
-          highlight="puan kazan!"
-        />
 
         {/* ── Camera viewport ── */}
         <div style={{ ...card, padding: 16 }}>
@@ -587,17 +472,6 @@ const QRScanner: React.FC = () => {
               </button>
             )}
 
-            {mode === 'fake' && (
-              <>
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent,rgba(123,110,246,0.18),transparent)', animation: 'qrPulse 1.5s ease-in-out infinite' }} />
-                {[{ top: 24, left: 24 }, { top: 24, right: 24 }, { bottom: 24, left: 24 }, { bottom: 24, right: 24 }].map((pos, i) => (
-                  <div key={i} style={{ position: 'absolute', width: 28, height: 28, borderTop: i < 2 ? '4px solid #a78bfa' : 'none', borderBottom: i >= 2 ? '4px solid #a78bfa' : 'none', borderLeft: i % 2 === 0 ? '4px solid #a78bfa' : 'none', borderRight: i % 2 !== 0 ? '4px solid #a78bfa' : 'none', ...pos }} />
-                ))}
-                <div style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,#a78bfa,transparent)', boxShadow: '0 0 10px #a78bfa', top: `${scanProgress}%`, transition: 'top 0.15s linear' }} />
-                <p style={{ position: 'absolute', bottom: 14, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 700 }}>Demo tarama...</p>
-              </>
-            )}
-
             {/* Result found overlay */}
             {hasResult && mode === 'idle' && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, padding: 20 }}>
@@ -612,9 +486,17 @@ const QRScanner: React.FC = () => {
 
             {/* Idle placeholder */}
             {mode === 'idle' && !hasResult && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, color: 'rgba(255,255,255,0.35)' }}>
-                <QrCode size={52} />
-                <p style={{ fontSize: 13, fontWeight: 700, textAlign: 'center', margin: 0, padding: '0 20px' }}>Kamerayı başlatmak için aşağıdaki butona bas</p>
+              <div className="qr-scanner-idle">
+                {qrIdleSticker && (
+                  <StickerDecorImg
+                    src={qrIdleSticker.url}
+                    width={168}
+                    height={168}
+                    loading="eager"
+                    className="qr-scanner-idle__sticker"
+                  />
+                )}
+                <p className="qr-scanner-idle__hint">Kamerayı başlatmak için aşağıdaki butona bas</p>
               </div>
             )}
           </div>
@@ -660,16 +542,6 @@ const QRScanner: React.FC = () => {
               </div>
             );
           })()}
-
-          {/* Progress bar */}
-          {mode === 'fake' && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ height: 10, background: 'var(--tab-bg)', borderRadius: 999, border: '2px solid var(--dark-border)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${scanProgress}%`, background: 'linear-gradient(90deg,var(--gradient-start),var(--gradient-end))', borderRadius: 999, transition: 'width 0.15s linear' }} />
-              </div>
-              <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 6, fontWeight: 700 }}>QR kod analiz ediliyor...</p>
-            </div>
-          )}
 
           {/* Cashier QR result */}
           {cashierQRResult && (
@@ -729,56 +601,90 @@ const QRScanner: React.FC = () => {
                 <Camera size={20} /> Kamerayı Aç & Tara
                 <StickerAccent seed="qr-scan-btn" size={22} rotate={-8} style={{ position: 'absolute', top: -8, right: 10 }} />
               </button>
-              <button onClick={startFakeScan} style={{ width: '100%', padding: 11, borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <QrCode size={16} /> Demo Tarama
-              </button>
             </div>
           )}
         </div>
 
-        {/* ── Inventory QR Button ── */}
-        <button onClick={() => setShowInventoryQR(true)} style={{
-          ...card, width: '100%', padding: '16px 20px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 14, transition: 'transform 0.1s',
-          background: 'linear-gradient(135deg,rgba(123,110,246,0.08),rgba(79,142,247,0.08))',
-        }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}>
-          <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(180deg,#7B6EF6,#4F8EF7)', border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
-            🎁
+        {/* ── Inventory link ── */}
+        <button
+          type="button"
+          onClick={() => { playSound('click'); navigate('/inventory'); }}
+          className="press-card qr-inventory-link"
+          aria-label={
+            activeInventoryCount > 0
+              ? `Envantere git, ${activeInventoryCount} aktif bilet`
+              : 'Envantere git, biletlerini gör'
+          }
+        >
+          <div className="qr-inventory-link__content">
+            <div className="qr-inventory-link__heading">
+              <p className="qr-inventory-link__title font-display">Envanter</p>
+              {activeInventoryCount > 0 && (
+                <span className="qr-inventory-link__badge">{activeInventoryCount}</span>
+              )}
+            </div>
+            <div className="qr-inventory-link__footer">
+              <p className="qr-inventory-link__subtitle">
+                {activeInventoryCount > 0
+                  ? 'Kasada göstermek için aç'
+                  : 'Biletlerini gör, kasada göster'}
+              </p>
+              <span className="qr-inventory-link__cta" aria-hidden>
+                Görüntüle
+                <ChevronRight size={14} strokeWidth={2.75} />
+              </span>
+            </div>
           </div>
-          <div style={{ flex: 1, textAlign: 'left' }}>
-            <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 2px' }}>Envanter QR Kodları</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Ürün kodunu QR'a çevir, kasada göster</p>
+          <div className="qr-inventory-link__visual" aria-hidden>
+            {inventoryLinkSticker && (
+              <StickerDecorImg
+                src={inventoryLinkSticker.url}
+                width={172}
+                height={172}
+                loading="lazy"
+                className="qr-inventory-link__sticker"
+              />
+            )}
           </div>
-          <QrCode size={20} color="var(--text-muted)" />
         </button>
 
         {/* ── Manual code entry ── */}
-        <div style={{ ...card, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Keyboard size={16} color="var(--text-muted)" />
-            <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: 0 }}>Manuel Kod Girişi</p>
+        <div className="qr-manual-entry">
+          <div className="qr-manual-entry__header">
+            <div className="qr-manual-entry__icon" aria-hidden>
+              <Keyboard size={18} strokeWidth={2.5} />
+            </div>
+            <div className="qr-manual-entry__intro">
+              <p className="qr-manual-entry__title">Manuel Kod Girişi</p>
+              <p className="qr-manual-entry__subtitle">QR metni veya bilet kodunu yapıştır</p>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="qr-manual-entry__row">
             <input
+              className="qr-manual-entry__input"
               value={manualCode}
               onChange={e => setManualCode(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleManualSubmit()}
-              placeholder="Kod veya JSON yapıştır..."
-              style={{
-                flex: 1, padding: '11px 14px', borderRadius: 12, fontFamily: 'monospace',
-                fontSize: 13, fontWeight: 700, letterSpacing: '0.04em',
-                background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)',
-                color: 'var(--text-dark)', outline: 'none',
-              }}
+              placeholder="Kod gir"
+              aria-label="Manuel kod girişi"
+              spellCheck={false}
+              autoComplete="off"
             />
-            <button onClick={handleManualSubmit} style={{ padding: '11px 16px', borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer' }}>
+            <button
+              type="button"
+              className="press-card qr-manual-entry__submit"
+              onClick={() => { playSound('click'); void handleManualSubmit(); }}
+              disabled={!manualCode.trim()}
+            >
               Gir
             </button>
           </div>
+          <p className="qr-manual-entry__hint">Enter tuşu ile de gönderebilirsin</p>
           {error && (
-            <p style={{ marginTop: 8, fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{error}</p>
+            <p className="qr-manual-entry__error" role="alert">
+              <AlertCircle size={14} strokeWidth={2.5} aria-hidden />
+              {error}
+            </p>
           )}
         </div>
 
