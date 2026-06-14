@@ -19,9 +19,8 @@ const TYPE: Record<string, { gradient: string; icon: string; border: string; acc
 };
 
 const FILTER_LABELS: Record<string, string> = {
-  all: 'Tümü', unread: 'Okunmamış', reward: '🎁 Ödüller',
-  achievement: '🏆 Başarılar', points: '⭐ Puanlar',
-  event: '🎉 Etkinlikler', system: '⚙️ Sistem',
+  all: 'Tümü',
+  unread: 'Okunmamış',
 };
 
 /* ── Date grouping ── */
@@ -75,9 +74,9 @@ const Notifications: React.FC = () => {
   }, [authUser?.id, load]);
 
   /* ── Filtering ── */
-  const filtered = filter === 'all'    ? notifs
-    : filter === 'unread' ? notifs.filter(n => !n.read)
-    : notifs.filter(n => n.type === filter);
+  const filtered = filter === 'unread'
+    ? notifs.filter(n => !n.read)
+    : notifs;
 
   const unreadCount = notifs.filter(n => !n.read).length;
 
@@ -316,14 +315,12 @@ const Notifications: React.FC = () => {
 
         /* Filter pills */
         .np-filter-bar {
-          display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
-          -webkit-overflow-scrolling: touch; scrollbar-width: none;
+          display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
         }
-        .np-filter-bar::-webkit-scrollbar { display: none; }
         .np-pill {
-          display: flex; align-items: center; gap: 5px;
+          display: flex; align-items: center; justify-content: center; gap: 5px;
           padding: 8px 14px; border-radius: 999px;
-          font-weight: 900; font-size: 12px; cursor: pointer; flex-shrink: 0;
+          font-weight: 900; font-size: 12px; cursor: pointer;
           background: var(--card-bg); color: var(--text-dark);
           border: 2.5px solid var(--dark-border); box-shadow: 0 3px 0 var(--dark-border);
           transition: all 0.1s;
