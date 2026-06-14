@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, Package, CreditCard as Edit3, Bell, HelpCircle, History, BarChart2, Gamepad2, Home, QrCode, ShoppingBag, Sun, Moon, LayoutGrid } from 'lucide-react';
+import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, Package, CreditCard as Edit3, Bell, HelpCircle, History, BarChart2, Gamepad2, Home, QrCode, ShoppingBag, Sun, Moon, LayoutGrid, Palette } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -9,11 +9,14 @@ import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { useXpProgress } from '../hooks/useXpProgress';
 import NeoAvatar from '../components/NeoAvatar';
+import AvatarEditor from '../components/AvatarEditor';
 import LevelBadge from '../components/LevelBadge';
 import PageMainSticker from '../components/PageMainSticker';
 import { getLevelBadge } from '../lib/levelBadges';
 import InventoryWalletCard from '../components/InventoryWalletCard';
 import InventoryDetailModal from '../components/InventoryDetailModal';
+import { updateAvatar } from '../services/avatar';
+import { toast } from 'sonner';
 
 const card = {
   background: 'var(--card-bg)',
@@ -33,7 +36,7 @@ const SectionHeader: React.FC<{
       <h2 className="section-title">{title}</h2>
     </div>
     {action && (
-      <button onClick={action.onClick} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 900, color: 'var(--primary-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}>
+      <button onClick={action.onClick} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 900, color: 'var(--primary-blue)', background: 'none', border: 'none', cursor: 'pointer' }}>
         {action.label} <ChevronRight size={13} />
       </button>
     )}
@@ -121,16 +124,38 @@ const PROFILE_MENU_SECTIONS: { label: string; items: ProfileMenuItem[] }[] = [
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { user, points, theme, toggleTheme } = useApp();
-  const { logout } = useAuth();
+  const { logout, authUser, refreshProfile } = useAuth();
   const { items: inventoryItems } = useInventory();
   const [showAllInventory, setShowAllInventory] = useState(false);
   const [selectedInventoryId, setSelectedInventoryId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const xpProgress = useXpProgress(user.xp, user.level);
 
   const handleNavigate = (path: string) => {
     playSound('click');
     navigate(path);
+  };
+
+  const handleAvatarSave = async (seed: string, avatarUrl: string) => {
+    if (!authUser?.id) {
+      toast.error('Kullanıcı kimliği bulunamadı');
+      return;
+    }
+    try {
+      setAvatarLoading(true);
+      await updateAvatar(authUser.id, seed);
+      await refreshProfile();
+      toast.success('Avatar başarıyla güncellendi! 🎉');
+      setShowAvatarEditor(false);
+    } catch (err) {
+      console.error('[Profile] Avatar save error:', err);
+      toast.error('Avatar güncellemesi başarısız oldu');
+      throw err;
+    } finally {
+      setAvatarLoading(false);
+    }
   };
 
   const activeInventory = inventoryItems.filter(i => !i.used && new Date(i.expires) >= new Date());
@@ -152,7 +177,7 @@ const Profile: React.FC = () => {
     <div style={{ position: 'relative', minHeight: '100vh' }}>
       {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
-        <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>PROFİL</div>
+        <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.03 }}>👻</div>
       </div>
 
       <div
@@ -178,11 +203,12 @@ const Profile: React.FC = () => {
                 />
                 <button
                   type="button"
-                  aria-label={tr.profile.editProfile}
+                  aria-label="Avatar özelleştir"
                   className="profile-hero-user__edit"
-                  onClick={() => { playSound('click'); navigate('/settings'); }}
+                  onClick={() => { playSound('click'); setShowAvatarEditor(!showAvatarEditor); }}
+                  title="Avatar Özelleştir"
                 >
-                  <Edit3 size={14} color="#6d28d9" strokeWidth={2.5} />
+                  <Palette size={14} color="#6d28d9" strokeWidth={2.5} />
                 </button>
                 <LevelBadge
                   level={user.level}
@@ -222,6 +248,26 @@ const Profile: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* ── Avatar Editor (collapsible) ── */}
+        {showAvatarEditor && (
+          <div style={{ ...card, padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: 0 }}>Avatar Özelleştir</h3>
+              <button
+                onClick={() => setShowAvatarEditor(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text-muted)' }}
+              >
+                ✕
+              </button>
+            </div>
+            <AvatarEditor
+              currentSeed={user.avatar_seed}
+              onSave={handleAvatarSave}
+              loading={avatarLoading}
+            />
+          </div>
+        )}
 
         {/* ── Stats grid ── */}
         <div className="profile-stats-grid">
