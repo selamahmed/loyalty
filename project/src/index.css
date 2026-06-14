@@ -1918,24 +1918,34 @@ body::before {
   align-items: center;
   align-self: flex-start;
   gap: 4px;
-  padding: 3px 9px;
+  padding: 3px 10px;
   border-radius: 999px;
-  border: 2px solid var(--dark-border);
+  border: 2px solid #000;
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 8px;
+  box-shadow: 0 2px 0 #000;
 }
 
 .lb-event-chip__status--alltime {
-  background: var(--primary-blue);
-  color: var(--neo-lime);
+  background: var(--neo-lime);
+  color: #000;
 }
 
 .lb-event-chip__status--live {
   background: #000;
-  color: #ef4444;
+  color: var(--neo-lime);
+}
+
+.lb-event-chip__status--live::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.35);
 }
 
 .lb-event-chip__status--upcoming {
@@ -1944,8 +1954,9 @@ body::before {
 }
 
 .lb-event-chip__status--ended {
-  background: #000;
-  color: #94a3b8;
+  background: #fff;
+  color: #64748b;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
 }
 
 .lb-event-chip__title {
