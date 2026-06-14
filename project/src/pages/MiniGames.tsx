@@ -692,7 +692,7 @@ const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
 // --- Snake Game (canvas + cached background) ---
 const SNAKE_GRID = 15;
 const SNAKE_CELL = 18;
-const SNAKE_TICK_MS = 160;
+const SNAKE_TICK_MS = 95;
 const SNAKE_BOARD = SNAKE_GRID * SNAKE_CELL;
 
 let snakeBgCanvas: HTMLCanvasElement | null = null;
@@ -723,11 +723,14 @@ function getSnakeBgCanvas(): HTMLCanvasElement {
 }
 
 function randomFood(snake: [number, number][]): [number, number] {
-  let pos: [number, number];
-  do {
-    pos = [Math.floor(Math.random() * SNAKE_GRID), Math.floor(Math.random() * SNAKE_GRID)];
-  } while (snake.some(s => s[0] === pos[0] && s[1] === pos[1]));
-  return pos;
+  const occupied = new Set(snake.map(s => s[0] * SNAKE_GRID + s[1]));
+  const free: [number, number][] = [];
+  for (let y = 0; y < SNAKE_GRID; y += 1) {
+    for (let x = 0; x < SNAKE_GRID; x += 1) {
+      if (!occupied.has(x * SNAKE_GRID + y)) free.push([x, y]);
+    }
+  }
+  return free[Math.floor(Math.random() * free.length)] ?? [0, 0];
 }
 
 type SnakeGameState = {
@@ -740,7 +743,8 @@ type SnakeGameState = {
 };
 
 function drawSnakeBoard(ctx: CanvasRenderingContext2D, g: SnakeGameState) {
-  ctx.drawImage(getSnakeBgCanvas(), 0, 0);
+  const bg = getSnakeBgCanvas();
+  ctx.drawImage(bg, 0, 0);
 
   const fx = g.food[0] * SNAKE_CELL + SNAKE_CELL / 2;
   const fy = g.food[1] * SNAKE_CELL + SNAKE_CELL / 2;
@@ -754,30 +758,61 @@ function drawSnakeBoard(ctx: CanvasRenderingContext2D, g: SnakeGameState) {
   ctx.fill();
 
   for (let i = g.snake.length - 1; i >= 0; i -= 1) {
-    const seg = g.snake[i];
-    const isHead = i === 0;
-    const pad = isHead ? 1 : 2;
-    const size = SNAKE_CELL - pad * 2;
-    const x = seg[0] * SNAKE_CELL + pad;
-    const y = seg[1] * SNAKE_CELL + pad;
-
-    ctx.fillStyle = isHead ? '#22c55e' : i % 2 ? '#15803d' : '#16a34a';
-    ctx.fillRect(x, y, size, size);
-
-    if (isHead) {
-      const cx = x + size / 2;
-      const cy = y + size / 2;
-      const ex = g.dir[0] * 3;
-      const ey = g.dir[1] * 3;
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(cx + ex - 4, cy + ey - 2, 3, 3);
-      ctx.fillRect(cx + ex + 1, cy + ey - 2, 3, 3);
-    }
+    drawSnakeSegment(ctx, g.snake[i], i, g.dir);
   }
+}
+
+function drawSnakeSegment(
+  ctx: CanvasRenderingContext2D,
+  seg: [number, number],
+  index: number,
+  dir: [number, number],
+) {
+  const isHead = index === 0;
+  const pad = isHead ? 1 : 2;
+  const size = SNAKE_CELL - pad * 2;
+  const x = seg[0] * SNAKE_CELL + pad;
+  const y = seg[1] * SNAKE_CELL + pad;
+
+  ctx.fillStyle = isHead ? '#22c55e' : index % 2 ? '#15803d' : '#16a34a';
+  ctx.fillRect(x, y, size, size);
+
+  if (isHead) {
+    const cx = x + size / 2;
+    const cy = y + size / 2;
+    const ex = dir[0] * 3;
+    const ey = dir[1] * 3;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(cx + ex - 4, cy + ey - 2, 3, 3);
+    ctx.fillRect(cx + ex + 1, cy + ey - 2, 3, 3);
+  }
+}
+
+function stepSnake(g: SnakeGameState): 'ok' | 'over' {
+  g.dir = g.nextDir;
+  const dir = g.dir;
+  const head: [number, number] = [g.snake[0][0] + dir[0], g.snake[0][1] + dir[1]];
+
+  if (head[0] < 0 || head[0] >= SNAKE_GRID || head[1] < 0 || head[1] >= SNAKE_GRID) {
+    return 'over';
+  }
+  for (let i = 0; i < g.snake.length; i += 1) {
+    if (g.snake[i][0] === head[0] && g.snake[i][1] === head[1]) return 'over';
+  }
+
+  g.snake.unshift(head);
+  if (head[0] === g.food[0] && head[1] === g.food[1]) {
+    g.food = randomFood(g.snake);
+    g.score += 1;
+  } else {
+    g.snake.pop();
+  }
+  return 'ok';
 }
 
 const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scoreLabelRef = useRef<HTMLSpanElement>(null);
   const [phase, setPhase] = useState<'idle' | 'playing' | 'over'>('idle');
   const [score, setScore] = useState(0);
   const gameRef = useRef<SnakeGameState>({
@@ -788,6 +823,10 @@ const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
     score: 0,
     awarded: false,
   });
+
+  const syncScoreLabel = useCallback((value: number) => {
+    if (scoreLabelRef.current) scoreLabelRef.current.textContent = String(value);
+  }, []);
 
   const changeDirection = useCallback((dir: [number, number]) => {
     const cur = gameRef.current.dir;
@@ -806,8 +845,9 @@ const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
       awarded: false,
     };
     setScore(0);
+    syncScoreLabel(0);
     setPhase('playing');
-  }, []);
+  }, [syncScoreLabel]);
 
   useEffect(() => {
     if (phase !== 'playing') return;
@@ -825,42 +865,47 @@ const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
   useEffect(() => {
     if (phase !== 'playing') return;
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas?.getContext('2d', { alpha: false });
     if (!ctx) return;
+    ctx.imageSmoothingEnabled = false;
+
+    let rafId = 0;
+    let lastTime = 0;
+    let acc = 0;
+    let running = true;
+
+    const frame = (now: number) => {
+      if (!running) return;
+      if (!lastTime) lastTime = now;
+      acc += now - lastTime;
+      lastTime = now;
+
+      let moved = false;
+      while (acc >= SNAKE_TICK_MS) {
+        acc -= SNAKE_TICK_MS;
+        const result = stepSnake(gameRef.current);
+        if (result === 'over') {
+          running = false;
+          setScore(gameRef.current.score);
+          setPhase('over');
+          return;
+        }
+        syncScoreLabel(gameRef.current.score);
+        moved = true;
+      }
+
+      if (moved) drawSnakeBoard(ctx, gameRef.current);
+      rafId = requestAnimationFrame(frame);
+    };
 
     drawSnakeBoard(ctx, gameRef.current);
+    rafId = requestAnimationFrame(frame);
 
-    const id = window.setInterval(() => {
-      const g = gameRef.current;
-      g.dir = g.nextDir;
-      const dir = g.dir;
-      const head: [number, number] = [g.snake[0][0] + dir[0], g.snake[0][1] + dir[1]];
-
-      if (head[0] < 0 || head[0] >= SNAKE_GRID || head[1] < 0 || head[1] >= SNAKE_GRID) {
-        window.clearInterval(id);
-        setPhase('over');
-        return;
-      }
-      if (g.snake.some(s => s[0] === head[0] && s[1] === head[1])) {
-        window.clearInterval(id);
-        setPhase('over');
-        return;
-      }
-
-      let next = [head, ...g.snake] as [number, number][];
-      if (head[0] === g.food[0] && head[1] === g.food[1]) {
-        g.food = randomFood(next);
-        g.score += 1;
-        setScore(g.score);
-      } else {
-        next = next.slice(0, -1);
-      }
-      g.snake = next;
-      drawSnakeBoard(ctx, g);
-    }, SNAKE_TICK_MS);
-
-    return () => window.clearInterval(id);
-  }, [phase]);
+    return () => {
+      running = false;
+      cancelAnimationFrame(rafId);
+    };
+  }, [phase, syncScoreLabel]);
 
   useEffect(() => {
     if (phase === 'over' && !gameRef.current.awarded) {
@@ -890,7 +935,9 @@ const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
       )}
       {phase === 'playing' && (
         <div className="w-full max-w-xs space-y-4">
-          <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 900, color: 'var(--text-dark)' }}>Skor: {score}</div>
+          <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 900, color: 'var(--text-dark)' }}>
+            Skor: <span ref={scoreLabelRef}>0</span>
+          </div>
           <canvas
             ref={canvasRef}
             width={boardSize}
