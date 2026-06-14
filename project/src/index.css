@@ -608,11 +608,6 @@ body::before {
     padding-right: clamp(72px, 24vw, 120px);
   }
 
-  .home-hero-balance__cta {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-
   .home-hero-balance__unit {
     font-size: 12px;
   }
@@ -2358,20 +2353,11 @@ body::before {
   flex-shrink: 0;
 }
 
-.home-hero-balance__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-
 .home-hero-balance__amount {
   display: flex;
   align-items: baseline;
   gap: 8px;
   min-width: 0;
-  flex: 1;
 }
 
 .home-hero-balance__unit {
@@ -2379,26 +2365,6 @@ body::before {
   font-weight: 700;
   color: rgba(255, 255, 255, 0.5);
   flex-shrink: 0;
-}
-
-.home-hero-balance__cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: #ffffff;
-  color: #6d28d9;
-  border-radius: 999px;
-  font-weight: 900;
-  font-size: 13px;
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-.home-hero-balance__cta:active {
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15) !important;
 }
 
 .hero-card-brand .home-hero-points__value {

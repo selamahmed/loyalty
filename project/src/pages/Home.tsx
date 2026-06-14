@@ -143,7 +143,7 @@ const Home: React.FC = () => {
               </div>
             </div>
 
-            {/* Balance — focal metric + shop CTA */}
+            {/* Balance */}
             <div className="home-hero-balance">
               <div className="home-hero-balance__label">
                 <span className="home-hero-balance__label-icon" aria-hidden>
@@ -151,23 +151,13 @@ const Home: React.FC = () => {
                 </span>
                 <span>{tr.home.currentBalance}</span>
               </div>
-              <div className="home-hero-balance__row">
-                <div className="home-hero-balance__amount">
-                  <p className="home-hero-points__value">
-                    <span className="home-hero-points__value-text">
-                      {points.toLocaleString('tr-TR')}
-                    </span>
-                  </p>
-                  <span className="home-hero-balance__unit">puan</span>
-                </div>
-                <button
-                  type="button"
-                  className="home-hero-balance__cta press-card"
-                  onClick={() => { playSound('click'); navigate('/shop'); }}
-                >
-                  {tr.home.redeem}
-                  <ArrowRight size={16} strokeWidth={2.5} aria-hidden />
-                </button>
+              <div className="home-hero-balance__amount">
+                <p className="home-hero-points__value">
+                  <span className="home-hero-points__value-text">
+                    {points.toLocaleString('tr-TR')}
+                  </span>
+                </p>
+                <span className="home-hero-balance__unit">puan</span>
               </div>
             </div>
 
