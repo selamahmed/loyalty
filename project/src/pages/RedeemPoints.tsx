@@ -139,7 +139,6 @@ const RedeemPoints: React.FC = () => {
         badge="⭐ PUAN"
         title="Puanlarını"
         highlight="dönüştür!"
-        accentSeed="redeem-hero-accent"
       />
 
       <div className="flex items-center justify-between">

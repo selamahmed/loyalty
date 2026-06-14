@@ -954,11 +954,12 @@ const MiniGames: React.FC = () => {
         {/* Hero banner (sticker) */}
         <StickerHero
           page="games"
-          bg="linear-gradient(135deg,#22c55e,#16a34a)"
+          bg="linear-gradient(135deg,#FF3E9D 0%,#9122FF 100%)"
           badge="🎮 MİNİ OYUNLAR"
           title="Oyna & Kazan"
           highlight="Her oyun puan kazandırır!"
-          accentSeed="games-hero-accent"
+          titleColor="#ffffff"
+          highlightColor="#C8FF00"
         />
 
         {/* Game list */}

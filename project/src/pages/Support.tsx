@@ -110,7 +110,6 @@ const Support: React.FC = () => {
           badge="💬 DESTEK"
           title="Yardım al,"
           highlight="hemen yanıt!"
-          accentSeed="support-hero-accent"
         />
 
         {/* ── Contact options ── */}

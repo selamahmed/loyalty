@@ -11,14 +11,12 @@ import RewardPopup from './RewardPopup';
 import { playSound } from '../lib/sounds';
 import { prefetchRoute } from '../lib/routePrefetch';
 import NeoAvatar from './NeoAvatar';
-import { PageStickerBackdrop } from './StickerDecor';
-import { stickerPresetForPath } from '../lib/stickerLayouts';
 
 const navItems = [
-  { path: '/home',     icon: Home,        label: 'Sayfa'    },
-  { path: '/shop',     icon: ShoppingBag, label: 'Mağaza'   },
-  { path: '/progress', icon: BarChart2,   label: 'İlerleme' },
-  { path: '/profile',  icon: User,        label: 'Profil'   },
+  { path: '/home',         icon: Home,        label: 'Sayfa'     },
+  { path: '/shop',         icon: ShoppingBag, label: 'Mağaza'    },
+  { path: '/leaderboard',  icon: Trophy,      label: 'Liderlik'  },
+  { path: '/profile',      icon: User,        label: 'Profil'    },
 ];
 
 type NavItem = { path: string; icon: LucideIcon; label: string; iconColor: string; iconBg: string };
@@ -158,7 +156,6 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
 
   return (
     <div className="page-container flex overflow-x-hidden" style={{ position: 'relative' }}>
-      <PageStickerBackdrop preset={stickerPresetForPath(location.pathname)} />
       {rewardPopup && <RewardPopup data={rewardPopup} onDismiss={dismissRewardPopup} />}
 
       {sidebarOpen && (

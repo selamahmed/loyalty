@@ -12,7 +12,6 @@ import { supabase } from '../lib/supabase';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
 import NeoAvatar from '../components/NeoAvatar';
-import StickerAccent from '../components/StickerAccent';
 import StickerHero from '../components/StickerHero';
 
 const card = {
@@ -200,11 +199,9 @@ const SeasonalEvents: React.FC = () => {
           badge="🌟 ETKİNLİK"
           title="Sınırlı süre"
           highlight="ödüller kazan!"
-          accentSeed="events-hero-accent"
         />
 
         <div style={{ ...card, padding: '16px 18px', position: 'relative', overflow: 'visible' }}>
-          <StickerAccent seed="events-howto" variant="shape" size={28} rotate={-8} style={{ position: 'absolute', top: -8, right: 10, zIndex: 2 }} />
           <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>
             Nasıl çalışır?
           </p>
@@ -258,7 +255,7 @@ const SeasonalEvents: React.FC = () => {
                         borderRadius: 16, overflow: 'visible', position: 'relative',
                       }}
                     >
-                      {selected && <StickerAccent seed={`event-chip-${event.id}`} size={20} rotate={-8} style={{ position: 'absolute', top: -6, right: 6, zIndex: 3 }} />}
+
                       <div style={{
                         height: 56, background: color, position: 'relative',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',

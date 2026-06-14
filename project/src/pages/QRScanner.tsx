@@ -546,7 +546,6 @@ const QRScanner: React.FC = () => {
           badge="📱 QR TARA"
           title="Kod tara,"
           highlight="puan kazan!"
-          accentSeed="qr-hero-accent"
         />
 
         {/* ── Camera viewport ── */}

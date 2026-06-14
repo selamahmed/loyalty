@@ -107,7 +107,6 @@ const Missions: React.FC = () => {
           badge={tab === 'daily' ? '📅 GÜNLÜK' : '📆 HAFTALIK'}
           title={`${completed}/${filtered.length} Tamamlandı`}
           highlight="Görevleri bitir!"
-          accentSeed="missions-hero-accent"
         />
 
         {/* ── Tabs ── */}

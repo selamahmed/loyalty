@@ -17,7 +17,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:check-leaderboard": "node scripts/check-leaderboard-db.mjs",
+    "db:apply-leaderboard": "node scripts/apply-event-leaderboard.mjs"
   },
   "dependencies": {
     "@fontsource/archivo-black": "^5.2.8",
@@ -55,6 +57,7 @@
     "gh-pages": "^6.1.1",
     "globals": "^15.9.0",
     "jsdom": "^26.1.0",
+    "pg": "^8.21.0",
     "postcss": "^8.4.35",
     "sharp": "^0.35.1",
     "tailwindcss": "^3.4.1",

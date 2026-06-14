@@ -184,7 +184,6 @@ const Inventory: React.FC = () => {
           badge="🎫 ENVANTER"
           title="Biletlerin"
           highlight="burada!"
-          accentSeed="inv-hero-accent"
         />
 
         {/* Stats */}

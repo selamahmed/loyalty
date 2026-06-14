@@ -10,7 +10,7 @@ import { tr } from '../lib/tr';
 import { useXpProgress } from '../hooks/useXpProgress';
 import NeoAvatar from '../components/NeoAvatar';
 import LevelBadge from '../components/LevelBadge';
-import StickerAccent from '../components/StickerAccent';
+import PageMainSticker from '../components/PageMainSticker';
 import { getLevelBadge } from '../lib/levelBadges';
 
 const card = {
@@ -86,10 +86,10 @@ const Profile: React.FC = () => {
       >
 
         {/* ── Profile hero ── */}
-        <div style={{ ...card, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', position: 'relative', overflow: 'visible' }}>
-          <StickerAccent seed="profile-hero-accent" variant="shape" size={42} rotate={-8} style={{ position: 'absolute', top: -10, right: 12, zIndex: 2 }} />
+        <div className="hero-card-brand" style={{ ...card, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', position: 'relative' }}>
           <div style={{ position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
-          <div style={{ padding: 'clamp(16px,5vw,28px)', position: 'relative' }}>
+          <PageMainSticker page="profile" variant="hero-card" />
+          <div className="hero-card-brand__body" style={{ padding: 'clamp(16px,5vw,28px)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
               {/* Avatar */}
               <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -158,9 +158,8 @@ const Profile: React.FC = () => {
 
         {/* ── Stats grid ── */}
         <div className="profile-stats-grid">
-          {stats.map((stat, i) => (
+          {stats.map((stat) => (
             <div key={stat.label} className="profile-stat-card" style={{ ...card, position: 'relative', overflow: 'visible' }}>
-              {i === 0 && <StickerAccent seed="profile-stat-accent" size={20} rotate={8} style={{ position: 'absolute', top: -6, right: 6, zIndex: 2 }} />}
               <div
                 className="profile-stat-card__icon"
                 style={{
@@ -187,7 +186,6 @@ const Profile: React.FC = () => {
           padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16,
           position: 'relative', overflow: 'visible',
         }}>
-          <StickerAccent seed="profile-points" variant="shape" size={28} rotate={-10} style={{ position: 'absolute', top: -8, right: 10, zIndex: 2 }} />
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 10, fontWeight: 900, color: '#a78bfa', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{tr.profile.availablePoints}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

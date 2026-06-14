@@ -20,6 +20,11 @@ export type EventParticipation = {
   gap_to_next_rank?: number | null;
 };
 
+export type LeaderboardDbStatus = {
+  ready: boolean;
+  missing: string[];
+};
+
 /** Client fallback when RPC omits gap_to_next_rank. */
 export function gapToNextRank(
   board: EventLeaderboardEntry[],
@@ -49,9 +54,47 @@ export type EventWinner = {
 };
 
 const EVENT_LIST_COLUMNS =
-  'id, title, description, start_date, end_date, active, color, emoji, win_count, rewards_json, published, multiplier';
+  'id, title, description, start_date, end_date, active, color, emoji, win_count, rewards_json, published, multiplier, status';
 
 const RECENT_EVENT_MS = 14 * 24 * 60 * 60 * 1000;
+
+const RPC_MISSING = 'PGRST202';
+const TABLE_MISSING = '42P01';
+
+function isMissingRpc(error: { code?: string; message?: string }): boolean {
+  return error.code === RPC_MISSING
+    || Boolean(error.message?.includes('Could not find the function'));
+}
+
+function isMissingTable(error: { code?: string; message?: string }): boolean {
+  return error.code === TABLE_MISSING
+    || Boolean(error.message?.includes('event_participants'));
+}
+
+function parseEventBoard(data: unknown): EventLeaderboardEntry[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data as EventLeaderboardEntry[];
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data) as unknown;
+      return Array.isArray(parsed) ? parsed as EventLeaderboardEntry[] : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function parseParticipation(data: unknown): EventParticipation {
+  if (!data || typeof data !== 'object') return { joined: false };
+  const row = data as Record<string, unknown>;
+  return {
+    joined: Boolean(row.joined),
+    points: row.points != null ? Number(row.points) : undefined,
+    rank: row.rank != null ? Number(row.rank) : null,
+    gap_to_next_rank: row.gap_to_next_rank != null ? Number(row.gap_to_next_rank) : null,
+  };
+}
 
 /** True when the event has a configured prize pool (leaderboard reward event). */
 export function hasPrizePool(ev: { rewards_json?: unknown }): boolean {
@@ -76,6 +119,25 @@ async function queryActiveEvents(withPublished: boolean, recentCutoff?: string) 
   if (recentCutoff) q = q.gte('end_date', recentCutoff);
   if (withPublished) q = q.eq('published', true);
   return q;
+}
+
+/** Verify event leaderboard tables/RPCs exist on Supabase. */
+export async function checkLeaderboardDb(): Promise<LeaderboardDbStatus> {
+  const missing: string[] = [];
+
+  const rpc = await supabase.rpc('get_event_leaderboard', {
+    p_event_id: '00000000-0000-0000-0000-000000000000',
+    p_limit: 1,
+  });
+  if (isMissingRpc(rpc.error ?? {})) missing.push('get_event_leaderboard');
+
+  const sync = await supabase.rpc('sync_event_status', { p_event_id: null });
+  if (isMissingRpc(sync.error ?? {})) missing.push('sync_event_status');
+
+  const table = await supabase.from('event_participants').select('id', { head: true, count: 'exact' });
+  if (isMissingTable(table.error ?? {})) missing.push('event_participants');
+
+  return { ready: missing.length === 0, missing };
 }
 
 /**
@@ -110,6 +172,46 @@ export async function getPublishedPrizeEvents(): Promise<AppEvent[]> {
     .map(row => row as unknown as AppEvent);
 }
 
+async function getEventLeaderboardFallback(
+  eventId: string,
+  limit: number,
+): Promise<EventLeaderboardEntry[]> {
+  const { data, error } = await supabase
+    .from('event_participants')
+    .select(`
+      points, rank, updated_at, created_at,
+      profiles!inner ( id, username, avatar_url, level, status )
+    `)
+    .eq('event_id', eventId)
+    .order('points', { ascending: false })
+    .order('updated_at', { ascending: true })
+    .limit(limit);
+
+  if (error) throw error;
+
+  return (data ?? [])
+    .filter(row => {
+      const raw = row.profiles;
+      const p = (Array.isArray(raw) ? raw[0] : raw) as { status?: string } | null | undefined;
+      return p?.status !== 'suspended';
+    })
+    .map((row, i) => {
+      const raw = row.profiles;
+      const p = (Array.isArray(raw) ? raw[0] : raw) as {
+        id: string; username: string; avatar_url: string | null; level: number;
+      };
+      return {
+        id: p.id,
+        username: p.username,
+        avatar_url: p.avatar_url,
+        level: p.level,
+        points: row.points,
+        rank: row.rank ?? i + 1,
+        updated_at: row.updated_at,
+      };
+    });
+}
+
 /**
  * Ranking tie-break (matches DB):
  * 1. Higher event points rank higher
@@ -124,21 +226,59 @@ export async function getEventLeaderboard(
     p_event_id: eventId,
     p_limit: limit,
   });
+
+  if (!error) return parseEventBoard(data);
+
+  if (isMissingRpc(error)) {
+    return getEventLeaderboardFallback(eventId, limit);
+  }
+
+  throw error;
+}
+
+async function getMyEventParticipationFallback(eventId: string): Promise<EventParticipation> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { joined: false };
+
+  const { data, error } = await supabase
+    .from('event_participants')
+    .select('points, rank')
+    .eq('event_id', eventId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
   if (error) throw error;
-  return (data ?? []) as EventLeaderboardEntry[];
+  if (!data) return { joined: false };
+
+  return {
+    joined: true,
+    points: data.points,
+    rank: data.rank,
+  };
 }
 
 export async function getMyEventParticipation(eventId: string): Promise<EventParticipation> {
   const { data, error } = await supabase.rpc('get_my_event_participation', {
     p_event_id: eventId,
   });
-  if (error) throw error;
-  return (data ?? { joined: false }) as EventParticipation;
+
+  if (!error) return parseParticipation(data);
+
+  if (isMissingRpc(error)) {
+    return getMyEventParticipationFallback(eventId);
+  }
+
+  throw error;
 }
 
 export async function joinEvent(eventId: string): Promise<EventParticipation> {
   const { data, error } = await supabase.rpc('join_event', { p_event_id: eventId });
-  if (error) throw error;
+  if (error) {
+    if (isMissingRpc(error)) {
+      throw new Error('Etkinlik sistemi kurulmamış. Yönetici: supabase/apply_event_leaderboard.sql dosyasını çalıştırın.');
+    }
+    throw error;
+  }
   return {
     joined: true,
     points: (data as { points?: number })?.points ?? 0,
@@ -157,7 +297,10 @@ export async function getEventWinners(eventId: string): Promise<EventWinner[]> {
     `)
     .eq('event_id', eventId)
     .order('final_rank', { ascending: true });
-  if (error) throw error;
+  if (error) {
+    if (isMissingTable(error)) return [];
+    throw error;
+  }
   return (data ?? []) as unknown as EventWinner[];
 }
 
@@ -175,5 +318,5 @@ export async function finalizeEvent(eventId: string): Promise<void> {
 
 export async function syncEventStatuses(): Promise<void> {
   const { error } = await supabase.rpc('sync_event_status', { p_event_id: null });
-  if (error) throw error;
+  if (error && !isMissingRpc(error)) throw error;
 }

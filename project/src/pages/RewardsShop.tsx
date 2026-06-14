@@ -10,7 +10,6 @@ import type { Reward } from '../services/rewards';
 import { playSound } from '../lib/sounds';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { WinningParticles } from '../components/WinningParticles';
-import StickerAccent from '../components/StickerAccent';
 import StickerHero from '../components/StickerHero';
 import { activityLogService } from '../lib/activityLogger';
 
@@ -235,7 +234,6 @@ const RewardsShop: React.FC = () => {
           badge="🛍️ MAĞAZA"
           title="Puanlarınla"
           highlight="ödül al!"
-          accentSeed="shop-hero-accent"
         />
 
         {/* ── Balance banner ── */}
@@ -244,7 +242,6 @@ const RewardsShop: React.FC = () => {
           background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)',
           padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'visible',
         }}>
-          <StickerAccent seed="shop-balance" size={36} rotate={-10} style={{ position: 'absolute', top: -8, right: 12, zIndex: 2 }} />
           <div style={{ position: 'absolute', top: -25, right: -25, width: 110, height: 110, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
           <Star size={32} fill="white" color="white" />
           <div style={{ flex: 1 }}>
@@ -304,7 +301,6 @@ const RewardsShop: React.FC = () => {
               }}
             >
               <span>{cat.emoji}</span> {cat.label}
-              {category === cat.id && <StickerAccent seed={`shop-cat-${cat.id}`} size={16} rotate={8} style={{ position: 'absolute', top: -5, right: 4 }} />}
             </button>
           ))}
         </div>

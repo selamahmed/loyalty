@@ -84,7 +84,6 @@ const History: React.FC = () => {
           badge="📋 GEÇMİŞ"
           title="Tüm aktivitelerin"
           highlight="tek yerde!"
-          accentSeed="history-hero-accent"
         />
 
         {/* ── Summary ── */}

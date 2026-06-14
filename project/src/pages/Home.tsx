@@ -16,8 +16,7 @@ import { DailyRewardModal, useDailyReward } from '../components/DailyRewardModal
 import LevelBadge from '../components/LevelBadge';
 import NeoAvatar from '../components/NeoAvatar';
 import { useXpProgress } from '../hooks/useXpProgress';
-import StickerAccent from '../components/StickerAccent';
-import { pageGroup } from '../lib/pageStickers';
+import PageMainSticker from '../components/PageMainSticker';
 
 /* ── Design tokens ── */
 const card = {
@@ -27,9 +26,6 @@ const card = {
   borderRadius: 20,
 };
 
-const STAT_STICKERS = ['home-stat-rank', 'home-stat-badge', 'home-stat-streak'] as const;
-const REWARD_STICKERS = ['home-reward-a', 'home-reward-b', 'home-reward-c'] as const;
-const QUICK_ACTION_SHAPES = ['home-qa-qr', 'home-qa-games', 'home-qa-shop', 'home-qa-missions'] as const;
 
 const quickActions = [
   { icon: QrCode,   label: tr.home.scanQr,   path: '/qr',       bg: '#9122FF', emoji: '📱' },
@@ -111,15 +107,16 @@ const Home: React.FC = () => {
       >
 
         {/* ── Hero card ── */}
-        <div style={{
+        <div className="hero-card-brand" style={{
           ...card,
           background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)',
-          color: 'white', position: 'relative', overflow: 'hidden',
+          color: 'white', position: 'relative',
         }}>
           <div style={{ position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
           <div style={{ position: 'absolute', bottom: -30, left: -20, width: 110, height: 110, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+          <PageMainSticker page="home" variant="hero-card" />
 
-          <div style={{ padding: 'clamp(16px,5vw,28px)', position: 'relative' }}>
+          <div className="hero-card-brand__body" style={{ padding: 'clamp(16px,5vw,28px)' }}>
             {/* Top row */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -177,7 +174,6 @@ const Home: React.FC = () => {
                 }}
               >
                 {tr.home.redeem}
-                <StickerAccent seed="home-redeem-btn" size={22} rotate={10} style={{ position: 'absolute', top: -8, right: -6 }} />
               </button>
             </div>
 
@@ -203,9 +199,8 @@ const Home: React.FC = () => {
             { emoji: '🏆', value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b' },
             { emoji: '⭐', value: user.achievements, label: tr.home.achievements, color: '#7B6EF6' },
             { emoji: '🔥', value: user.streak, label: tr.home.dayStreak, color: '#ef4444' },
-          ].map((s, i) => (
+          ].map((s) => (
             <div key={s.label} style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'visible' }}>
-              <StickerAccent seed={STAT_STICKERS[i]} variant="shape" size={26} rotate={-8 + i * 6} style={{ position: 'absolute', top: -6, right: -4 }} />
               <div style={{ fontSize: 24, marginBottom: 6 }}>{s.emoji}</div>
               <p style={{ fontWeight: 900, fontSize: 22, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
               <p style={{ color: 'var(--text-muted)', fontSize: 9, fontWeight: 900, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</p>
@@ -215,12 +210,6 @@ const Home: React.FC = () => {
 
         {/* ── Promo banner ── */}
         <div style={{ ...card, overflow: 'hidden', position: 'relative', minHeight: 140, background: '#9122FF' }}>
-          <div style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 0, opacity: 0.95 }}>
-            <StickerAccent group={pageGroup('home')} variant="colorful" size={150} rotate={-4} />
-          </div>
-          <div style={{ position: 'absolute', bottom: 8, left: 12, zIndex: 0, opacity: 0.8 }}>
-            <StickerAccent group="yeeeaaahh.svg" variant="colorful" size={48} rotate={8} />
-          </div>
           <div style={{ position: 'relative', zIndex: 1, padding: '24px 20px' }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 10,
@@ -253,7 +242,6 @@ const Home: React.FC = () => {
                     position: 'relative', height: 90, overflow: 'hidden',
                     background: action.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <StickerAccent seed={QUICK_ACTION_SHAPES[idx]} variant="shape" size={56} rotate={-6 + idx * 4} />
                     <div style={{
                       position: 'absolute', top: 10, left: 12,
                       width: 38, height: 38, borderRadius: 12,
@@ -262,7 +250,6 @@ const Home: React.FC = () => {
                     }}>
                       <action.icon size={18} color={action.bg} />
                     </div>
-                    <StickerAccent seed={`home-action-${idx}`} variant="shape" size={28} rotate={8 - idx * 3} style={{ position: 'absolute', bottom: 6, right: 6 }} />
                   </div>
                   <div style={{ padding: '10px 12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span className="font-display" style={{ color: 'var(--text-dark)', fontSize: 12, fontWeight: 900, textTransform: 'uppercase' }}>{action.label}</span>
@@ -281,7 +268,6 @@ const Home: React.FC = () => {
             action={{ label: tr.home.seeAll, onClick: () => navigate('/missions') }}
           />
           <div style={{ ...card, padding: '20px 20px', position: 'relative', overflow: 'visible' }}>
-            <StickerAccent seed="home-missions" size={30} rotate={-10} style={{ position: 'absolute', top: -8, right: 12 }} />
             {/* Progress header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-dark)' }}>
@@ -351,8 +337,6 @@ const Home: React.FC = () => {
                 className="press-card"
                 style={{ ...card, overflow: 'hidden', cursor: 'pointer', position: 'relative' }}
               >
-                <StickerAccent seed={REWARD_STICKERS[idx % REWARD_STICKERS.length]} size={24} rotate={12 - idx * 4}
-                  style={{ position: 'absolute', top: 6, right: 6, zIndex: 2 }} />
                 <div style={{ height: 110, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)', position: 'relative' }}>
                   <img src={reward.image ?? undefined} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   {reward.limited && (

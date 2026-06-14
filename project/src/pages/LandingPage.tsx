@@ -143,7 +143,7 @@ const LandingPage: React.FC = () => {
                 </button>
                 <button type="button" onClick={() => navigate('/home')} className="lbtn-primary-sm">
                   Panele Gir <ArrowRight size={12} />
-                </button>
+              </button>
               </div>
 
               {/* Hamburger */}

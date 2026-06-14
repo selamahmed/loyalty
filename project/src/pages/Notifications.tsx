@@ -140,7 +140,6 @@ const Notifications: React.FC = () => {
           badge="🔔 BİLDİRİM"
           title={unreadCount > 0 ? `${unreadCount} yeni bildirim` : 'Hepsi okundu'}
           highlight="Güncel kal!"
-          accentSeed="notif-hero-accent"
           height={120}
         />
 

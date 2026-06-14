@@ -11,41 +11,48 @@ export type DuoLevel = {
   bonus: number;
   unlocked: boolean;
   isCurrent: boolean;
+  tierLabel?: string;
+  tierEmoji?: string;
+  tierColor?: string;
+  isTierStart?: boolean;
 };
 
 type DuoProgressPathProps = {
   levels: DuoLevel[];
-  tierColor: string;
   currentRef: React.RefObject<HTMLButtonElement>;
   selectedLevel: number | null;
   onSelect: (level: number) => void;
 };
 
 const PATH_W = 320;
-const NODE_GAP = 152;
-const TOP_PAD = 36;
-const BOTTOM_PAD = 48;
+const NODE_GAP = 136;
+const TOP_PAD = 24;
+const BOTTOM_PAD = 40;
+const TIER_MARKER_H = 44;
 const SLOT_X = [160, 248, 160, 72];
 
 function badgeWidth(lvl: DuoLevel) {
-  if (lvl.isCurrent) return 84;
-  if (lvl.unlocked) return 76;
-  return 68;
+  if (lvl.isCurrent) return 80;
+  if (lvl.unlocked) return 72;
+  return 64;
 }
 
-function nodePos(index: number) {
-  return {
-    x: SLOT_X[index % SLOT_X.length],
-    y: TOP_PAD + index * NODE_GAP,
-  };
+function computeLayout(levels: DuoLevel[]) {
+  let y = TOP_PAD;
+  return levels.map((lvl, i) => {
+    if (i > 0 && lvl.isTierStart) y += TIER_MARKER_H;
+    const pos = { x: SLOT_X[i % SLOT_X.length], y };
+    y += NODE_GAP;
+    return pos;
+  });
 }
 
-function buildTrail(levelCount: number): string {
-  if (levelCount < 2) return '';
+function buildTrail(positions: { x: number; y: number }[]): string {
+  if (positions.length < 2) return '';
   let d = '';
-  for (let i = 0; i < levelCount - 1; i += 1) {
-    const a = nodePos(i);
-    const b = nodePos(i + 1);
+  for (let i = 0; i < positions.length - 1; i += 1) {
+    const a = positions[i];
+    const b = positions[i + 1];
     const midY = (a.y + b.y) / 2;
     if (i === 0) d += `M ${a.x} ${a.y} `;
     d += `C ${a.x} ${midY}, ${b.x} ${midY}, ${b.x} ${b.y} `;
@@ -53,14 +60,16 @@ function buildTrail(levelCount: number): string {
   return d;
 }
 
-function buildProgressTrail(levels: DuoLevel[]): string {
+function buildProgressTrail(levels: DuoLevel[], positions: { x: number; y: number }[]): string {
   const currentIdx = levels.findIndex(l => l.isCurrent);
-  const endIdx = currentIdx >= 0 ? currentIdx : levels.reduce((acc, l, i) => (l.unlocked ? i : acc), 0);
-  if (endIdx <= 0 || levels.length < 2) return '';
+  const endIdx = currentIdx >= 0
+    ? currentIdx
+    : levels.reduce((acc, l, i) => (l.unlocked ? i : acc), 0);
+  if (endIdx <= 0 || positions.length < 2) return '';
   let d = '';
   for (let i = 0; i < endIdx; i += 1) {
-    const a = nodePos(i);
-    const b = nodePos(i + 1);
+    const a = positions[i];
+    const b = positions[i + 1];
     const midY = (a.y + b.y) / 2;
     if (i === 0) d += `M ${a.x} ${a.y} `;
     d += `C ${a.x} ${midY}, ${b.x} ${midY}, ${b.x} ${b.y} `;
@@ -70,20 +79,22 @@ function buildProgressTrail(levels: DuoLevel[]): string {
 
 const DuoProgressPath: React.FC<DuoProgressPathProps> = ({
   levels,
-  tierColor,
   currentRef,
   selectedLevel,
   onSelect,
 }) => {
-  const height = levels.length > 0
-    ? TOP_PAD + (levels.length - 1) * NODE_GAP + BOTTOM_PAD
+  const positions = useMemo(() => computeLayout(levels), [levels]);
+  const height = positions.length > 0
+    ? positions[positions.length - 1].y + BOTTOM_PAD
     : 120;
 
-  const trail = useMemo(() => buildTrail(levels.length), [levels.length]);
-  const progressTrail = useMemo(() => buildProgressTrail(levels), [levels]);
+  const trail = useMemo(() => buildTrail(positions), [positions]);
+  const progressTrail = useMemo(() => buildProgressTrail(levels, positions), [levels, positions]);
+
+  const activeColor = levels.find(l => l.isCurrent)?.tierColor ?? 'var(--gradient-start)';
 
   return (
-    <div className="duo-path" style={{ ['--duo-tier-color' as string]: tierColor }}>
+    <div className="duo-path">
       <div className="duo-path__canvas" style={{ height }}>
         <svg
           className="duo-path__svg"
@@ -98,16 +109,16 @@ const DuoProgressPath: React.FC<DuoProgressPathProps> = ({
                 d={trail}
                 fill="none"
                 stroke="var(--dark-border)"
-                strokeWidth={5}
+                strokeWidth={4}
                 strokeLinecap="round"
-                opacity={0.2}
+                opacity={0.12}
               />
               {progressTrail && (
                 <path
                   d={progressTrail}
                   fill="none"
-                  stroke={tierColor}
-                  strokeWidth={5}
+                  stroke={activeColor}
+                  strokeWidth={4}
                   strokeLinecap="round"
                   className="duo-path__trail-active"
                 />
@@ -117,55 +128,77 @@ const DuoProgressPath: React.FC<DuoProgressPathProps> = ({
         </svg>
 
         {levels.map((lvl, i) => {
-          const { x, y } = nodePos(i);
+          const { x, y } = positions[i];
           const locked = !lvl.unlocked && !lvl.isCurrent;
           const state = lvl.isCurrent ? 'current' : lvl.unlocked ? 'done' : 'locked';
           const xPct = (x / PATH_W) * 100;
           const w = badgeWidth(lvl);
+          const tierTop = i > 0 && lvl.isTierStart ? y - NODE_GAP / 2 - TIER_MARKER_H / 2 : null;
 
           return (
-            <div
-              key={lvl.level}
-              className="duo-path__station"
-              style={{ left: `${xPct}%`, top: y }}
-            >
-              {lvl.isCurrent && <span className="duo-path__now">ŞU AN</span>}
-
-              <button
-                type="button"
-                ref={lvl.isCurrent ? currentRef : undefined}
-                className={[
-                  'duo-path__node',
-                  `duo-path__node--${state}`,
-                  selectedLevel === lvl.level ? 'duo-path__node--selected' : '',
-                ].filter(Boolean).join(' ')}
-                onClick={() => { playSound('click'); onSelect(lvl.level); }}
-                aria-label={`${lvl.title}, ${getLevelBadge(lvl.level).label}`}
-              >
-                {lvl.unlocked && !lvl.isCurrent && (
-                  <span className="duo-path__check" aria-hidden>✓</span>
-                )}
-                {locked && <span className="duo-path__lock" aria-hidden>🔒</span>}
-                <LevelBadge
-                  level={lvl.level}
-                  width={w}
-                  dimmed={locked}
-                  locked={locked}
-                  className="duo-path__badge"
-                />
-              </button>
-
-              {lvl.bonus > 0 && (
-                <span className="duo-path__bonus">+{lvl.bonus}</span>
+            <React.Fragment key={lvl.level}>
+              {lvl.isTierStart && tierTop != null && (
+                <div
+                  className="duo-path__tier-marker"
+                  style={{ left: '50%', top: tierTop, ['--tier-color' as string]: lvl.tierColor ?? 'var(--gradient-start)' }}
+                >
+                  <span className="duo-path__tier-marker-pill">
+                    {lvl.tierEmoji} {lvl.tierLabel}
+                  </span>
+                </div>
+              )}
+              {lvl.isTierStart && i === 0 && (
+                <div
+                  className="duo-path__tier-marker duo-path__tier-marker--start"
+                  style={{ left: '50%', top: Math.max(8, y - NODE_GAP * 0.55), ['--tier-color' as string]: lvl.tierColor ?? 'var(--gradient-start)' }}
+                >
+                  <span className="duo-path__tier-marker-pill">
+                    {lvl.tierEmoji} {lvl.tierLabel}
+                  </span>
+                </div>
               )}
 
-              <div className="duo-path__label">
-                <p className="duo-path__title">{lvl.title}</p>
-                <p className="duo-path__meta">
-                  {lvl.unlocked || lvl.isCurrent ? lvl.reward : `${lvl.xp.toLocaleString()} XP`}
-                </p>
+              <div className="duo-path__station" style={{ left: `${xPct}%`, top: y }}>
+                {lvl.isCurrent && <span className="duo-path__now">ŞU AN</span>}
+
+                <button
+                  type="button"
+                  ref={lvl.isCurrent ? currentRef : undefined}
+                  className={[
+                    'duo-path__node',
+                    `duo-path__node--${state}`,
+                    selectedLevel === lvl.level ? 'duo-path__node--selected' : '',
+                  ].filter(Boolean).join(' ')}
+                  onClick={() => { playSound('click'); onSelect(lvl.level); }}
+                  aria-label={`${lvl.title}, ${getLevelBadge(lvl.level).label}`}
+                >
+                  {lvl.unlocked && !lvl.isCurrent && (
+                    <span className="duo-path__check" aria-hidden>✓</span>
+                  )}
+                  {locked && <span className="duo-path__lock" aria-hidden>🔒</span>}
+                  <LevelBadge
+                    level={lvl.level}
+                    width={w}
+                    dimmed={locked}
+                    locked={locked}
+                    className="duo-path__badge"
+                  />
+                </button>
+
+                {lvl.bonus > 0 && (
+                  <span className="duo-path__bonus">+{lvl.bonus}</span>
+                )}
+
+                <div className="duo-path__label">
+                  <p className="duo-path__title">{lvl.title}</p>
+                  <p className="duo-path__meta">
+                    {lvl.unlocked || lvl.isCurrent
+                      ? (lvl.reward || 'Ödül açıldı')
+                      : `${lvl.xp.toLocaleString('tr-TR')} XP`}
+                  </p>
+                </div>
               </div>
-            </div>
+            </React.Fragment>
           );
         })}
       </div>

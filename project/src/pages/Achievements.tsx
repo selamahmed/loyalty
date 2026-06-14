@@ -110,7 +110,6 @@ const Achievements: React.FC = () => {
           badge="⭐ ROZETLER"
           title="Rozetleri topla,"
           highlight="efsane ol!"
-          accentSeed="ach-hero-accent"
         />
 
         {/* ── Summary hero ── */}

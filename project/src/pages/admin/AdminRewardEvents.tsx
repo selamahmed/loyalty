@@ -44,7 +44,7 @@ const rankLabel = (rank: number) =>
   rank === 1 ? '🥇 Birinci' : rank === 2 ? '🥈 İkinci' : rank === 3 ? '🥉 Üçüncü' : `🏅 ${rank}. Sıra`;
 
 const blankPrize = (rank: number): RewardPrize => ({
-  rank, label: rankLabel(rank), rewardName: '', rewardImage: '🏆', quantity: 1, pointsRequired: 1000,
+  rank, label: rankLabel(rank), rewardName: '', rewardImage: '🏆', quantity: 1, pointsRequired: 0,
 });
 
 /* ─── Form types ──────────────────────────────────────────── */
@@ -90,10 +90,10 @@ const formToPayload = (f: FormState) => ({
   start_date:        f.startDateTime ? new Date(f.startDateTime).toISOString() : undefined,
   end_date:          f.endDateTime   ? new Date(f.endDateTime).toISOString()   : undefined,
   distribution_date: f.distributionDate ? new Date(f.distributionDate).toISOString() : undefined,
-  active:            f.active,
+  active:            f.published ? true : f.active,
   published:         f.published,
   win_count:         f.winnerCount,
-  rewards_json:      f.rewards,
+  rewards_json:      f.rewards.map(({ pointsRequired: _pr, ...prize }) => prize),
   image:             null,
   multiplier:        null,
   emoji:             null,
@@ -480,10 +480,10 @@ const AdminRewardEvents: React.FC = () => {
               />
               <ToggleButton
                 active={form.published}
-                label={form.published ? '✅ Yayında' : 'Yayınla'}
+                label={form.published ? '✅ Liderlikte yayında' : 'Liderlikte yayınla'}
                 activeClass="border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700"
                 icon={<Send size={13}/>}
-                onClick={() => setForm(f => ({ ...f, published: !f.published }))}
+                onClick={() => setForm(f => ({ ...f, published: !f.published, active: !f.published ? true : f.active }))}
               />
             </div>
           </FormSection>
@@ -591,7 +591,7 @@ const RewardRow: React.FC<RewardRowProps> = ({ reward, expanded, emojiOpen, onTo
   };
   const cardCls = medalColors[reward.rank] ?? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800';
   return (
-    <div className={`rounded-2xl border-2 overflow-hidden ${cardCls}`}>
+    <div className={`rounded-2xl border-2 ${cardCls}`}>
       <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
         <span className="text-2xl w-8 text-center flex-shrink-0">{medal(reward.rank)}</span>
         <div className="flex-1 text-left">
@@ -602,7 +602,7 @@ const RewardRow: React.FC<RewardRowProps> = ({ reward, expanded, emojiOpen, onTo
         {expanded ? <ChevronUp size={15} className="text-gray-400 flex-shrink-0"/> : <ChevronDown size={15} className="text-gray-400 flex-shrink-0"/>}
       </button>
       {expanded && (
-        <div className="px-4 pb-4 pt-2 border-t-2 border-black/10 dark:border-white/10 space-y-3 bg-white dark:bg-gray-900/50">
+        <div className="px-4 pb-4 pt-2 border-t-2 border-black/10 dark:border-white/10 space-y-3 bg-white dark:bg-gray-900/50 overflow-visible">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">Ödül Adı *</label>
@@ -613,10 +613,9 @@ const RewardRow: React.FC<RewardRowProps> = ({ reward, expanded, emojiOpen, onTo
               <input type="number" min={1} value={reward.quantity} onChange={e => onChange({ quantity: Number(e.target.value) })} className="input-field text-sm" />
             </div>
           </div>
-          <div>
-            <label className="label">Gerekli Min. Puan</label>
-            <input type="number" min={0} step={100} value={reward.pointsRequired} onChange={e => onChange({ pointsRequired: Number(e.target.value) })} className="input-field text-sm" />
-          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold">
+            #{reward.rank} sıradaki katılımcı bu ödülü kazanır — minimum puan gerekmez.
+          </p>
           <div>
             <label className="label flex items-center gap-1"><ImageIcon size={11}/> Emoji İkon</label>
             <div className="relative">
@@ -625,7 +624,7 @@ const RewardRow: React.FC<RewardRowProps> = ({ reward, expanded, emojiOpen, onTo
                 <span className="text-xs font-bold text-gray-500">Değiştir</span>
               </button>
               {emojiOpen && (
-                <div className="absolute top-full mt-1.5 left-0 z-30 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 rounded-2xl p-3 shadow-2xl grid grid-cols-6 gap-1">
+                <div className="absolute bottom-full mb-1.5 left-0 z-50 w-[min(100%,280px)] bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 rounded-2xl p-3 shadow-2xl grid grid-cols-6 gap-1">
                   {EMOJI_OPTIONS.map(em => (
                     <button key={em} onClick={() => onEmojiPick(em)} className="text-2xl p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                       {em}
@@ -688,6 +687,11 @@ const EventCard: React.FC<EventCardProps> = ({
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0 space-y-2">
+            {status === 'draft' && (
+              <p className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2">
+                Taslak — liderlikte görünmez. Liderlikte göstermek için yayınlayın.
+              </p>
+            )}
             {/* Status + dates */}
             <div className="flex flex-wrap items-center gap-2">
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black ${meta.cls}`}>
@@ -722,6 +726,21 @@ const EventCard: React.FC<EventCardProps> = ({
 
           {/* Action column */}
           <div className="flex flex-col gap-1 flex-shrink-0">
+            <button
+              onClick={onTogglePublish}
+              title={ev.published ? 'Liderlikten kaldır' : 'Liderlikte yayınla'}
+              disabled={togglingId === ev.id + 'published'}
+              className={`px-2.5 py-2 rounded-xl border text-xs font-black transition-colors flex items-center gap-1.5 ${
+                ev.published
+                  ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 border-blue-200'
+                  : 'text-white bg-[#7B6EF6] border-black hover:shadow-md'
+              }`}
+            >
+              {togglingId === ev.id + 'published'
+                ? <Loader2 size={12} className="animate-spin"/>
+                : <Send size={12}/>}
+              {ev.published ? 'Yayında' : 'Liderlikte Yayınla'}
+            </button>
             <button onClick={onEdit} title="Düzenle" className="p-2 rounded-xl hover:bg-[#7B6EF6]/10 text-gray-400 hover:text-[#7B6EF6] transition-colors border border-transparent hover:border-[#7B6EF6]/30">
               <Edit3 size={14}/>
             </button>
@@ -730,12 +749,6 @@ const EventCard: React.FC<EventCardProps> = ({
               disabled={togglingId === ev.id + 'active'}
               className={`p-2 rounded-xl border transition-colors ${ev.active ? 'text-green-500 bg-green-50 dark:bg-green-900/20 border-green-200' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border-transparent'}`}>
               {togglingId === ev.id + 'active' ? <Loader2 size={14} className="animate-spin"/> : <Power size={14}/>}
-            </button>
-            <button
-              onClick={onTogglePublish} title={ev.published ? 'Yayından Kaldır' : 'Yayınla'}
-              disabled={togglingId === ev.id + 'published'}
-              className={`p-2 rounded-xl border transition-colors ${ev.published ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20 border-blue-200' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border-transparent'}`}>
-              <Send size={14}/>
             </button>
             {deletingId === ev.id ? (
               <div className="flex gap-1">
@@ -834,8 +847,7 @@ const PreviewView: React.FC<{
                 <div className="text-4xl mb-2">{r.rewardImage}</div>
                 <p className={`font-black text-sm mb-1 ${r.rank===1?'text-amber-600':r.rank===2?'text-gray-500':'text-orange-500'}`}>{r.label}</p>
                 <p className="font-black text-gray-900 dark:text-white text-sm">{r.rewardName || '—'}</p>
-                <p className="text-xs text-gray-400 mt-1">×{r.quantity} adet</p>
-                {r.pointsRequired > 0 && <p className="text-xs text-[#7B6EF6] font-bold mt-0.5">Min. {r.pointsRequired.toLocaleString()} puan</p>}
+                <p className="text-xs text-gray-400 mt-1">×{r.quantity} adet · #{r.rank} sıra</p>
               </div>
             ))}
           </div>

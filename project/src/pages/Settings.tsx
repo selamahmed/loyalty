@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
 import { usePushNotification } from '../hooks/usePushNotification';
-import StickerAccent from '../components/StickerAccent';
 import StickerHero from '../components/StickerHero';
 
 const card = {
@@ -187,8 +186,6 @@ const Settings: React.FC = () => {
           badge="⚙️ AYARLAR"
           title="Tercihlerini"
           highlight="yönet!"
-          accentSeed="settings-hero-accent"
-          height={120}
         />
 
         {/* ── Appearance ── */}
@@ -293,7 +290,6 @@ const Settings: React.FC = () => {
           onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 #dc2626'; }}
           onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 #dc2626'; }}
         >
-          <StickerAccent seed="settings-logout" size={20} rotate={8} style={{ position: 'absolute', top: -6, right: 10 }} />
           <LogOut size={18} color="#ef4444" />
           <span style={{ fontWeight: 900, fontSize: 15, color: '#ef4444' }}>{tr.settings.logout}</span>
         </button>

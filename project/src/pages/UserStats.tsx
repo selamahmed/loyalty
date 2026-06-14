@@ -1,16 +1,13 @@
-import React from 'react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Star, Gamepad2, QrCode, Target, Trophy } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import {
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
+import { TrendingUp, TrendingDown, Trophy, BarChart3 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { tr } from '../lib/tr';
-import StickerAccent from '../components/StickerAccent';
+import { useAuth } from '../context/AuthContext';
 import StickerHero from '../components/StickerHero';
-
-const statsData = {
-  pointsOverTime: [] as { month: string; points: number }[],
-  activityBreakdown: [] as { name: string; value: number; color: string }[],
-  rewardUsage: [] as { month: string; redeemed: number }[],
-};
+import { loadUserStats, STAT_CARD_CONFIG, type UserStatsData } from '../services/userStats';
 
 const card = {
   background: 'var(--card-bg)',
@@ -19,20 +16,56 @@ const card = {
   borderRadius: 20,
 };
 
-const statCards = [
-  { label: 'Toplam Kazanılan', value: '4,250', emoji: '⭐', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', accent: '#f59e0b', trend: '+12%' },
-  { label: 'Oynanan Oyun',    value: '47',    emoji: '🎮', color: '#22c55e', bg: 'rgba(34,197,94,0.12)',   accent: '#22c55e', trend: '+8%' },
-  { label: 'QR Tarama',       value: '23',    emoji: '📱', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', accent: '#3b82f6', trend: '+5%' },
-  { label: 'Görev Tamamlandı',value: '31',    emoji: '🎯', color: '#7B6EF6', bg: 'rgba(123,110,246,0.12)',accent: '#7B6EF6', trend: '+15%' },
-];
+const tooltipStyle = {
+  background: 'var(--card-bg)',
+  border: '3px solid var(--dark-border)',
+  borderRadius: 14,
+  fontSize: 12,
+  fontWeight: 900 as const,
+  boxShadow: '0 4px 0 var(--dark-border)',
+};
+
+const EmptyChart: React.FC<{ message: string }> = ({ message }) => (
+  <div style={{
+    height: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    gap: 8, color: 'var(--text-muted)', textAlign: 'center', padding: '0 16px',
+  }}>
+    <BarChart3 size={28} strokeWidth={2.5} opacity={0.45} />
+    <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{message}</p>
+  </div>
+);
 
 const UserStats: React.FC = () => {
   const { user } = useApp();
-  const achievePct = Math.round((user.achievements / user.totalAchievements) * 100);
+  const { authUser } = useAuth();
+  const [stats, setStats] = useState<UserStatsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    setLoading(true);
+    setError(null);
+    loadUserStats(authUser.id)
+      .then(setStats)
+      .catch(() => {
+        setStats(null);
+        setError('İstatistikler yüklenemedi.');
+      })
+      .finally(() => setLoading(false));
+  }, [authUser?.id]);
+
+  const achievePct = user.totalAchievements > 0
+    ? Math.round((user.achievements / user.totalAchievements) * 100)
+    : 0;
+
+  const pointsTrend = stats?.pointsTrendPct;
+  const hasPointsChart = (stats?.pointsOverTime.length ?? 0) > 0;
+  const hasActivityChart = (stats?.activityBreakdown.length ?? 0) > 0;
+  const hasRewardsChart = (stats?.rewardUsage.length ?? 0) > 0;
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
-      {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{
           position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
@@ -42,8 +75,6 @@ const UserStats: React.FC = () => {
       </div>
 
       <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
-
-        {/* ── Page header ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 16, flexShrink: 0,
@@ -63,104 +94,128 @@ const UserStats: React.FC = () => {
           badge="📊 İSTATİSTİK"
           title="Performansını"
           highlight="analiz et!"
-          accentSeed="stats-hero-accent"
         />
 
-        {/* ── Stat cards ── */}
+        {error && (
+          <div style={{ ...card, padding: '14px 16px', borderColor: '#ef4444', background: 'rgba(239,68,68,0.06)' }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#ef4444' }}>{error}</p>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-          {statCards.map((s, i) => (
-            <div key={s.label} style={{ ...card, padding: '16px 14px', position: 'relative', overflow: 'visible' }}>
-              {i < 2 && <StickerAccent seed={`stats-card-${i}`} size={18} rotate={-8 + i * 12} style={{ position: 'absolute', top: -5, right: 6, zIndex: 2 }} />}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          {STAT_CARD_CONFIG.map(s => {
+            const raw = stats?.[s.key] ?? 0;
+            return (
+              <div key={s.key} style={{ ...card, padding: '16px 14px' }}>
                 <div style={{
-                  width: 40, height: 40, borderRadius: 12, background: s.bg,
+                  width: 40, height: 40, borderRadius: 12, background: s.bg, marginBottom: 10,
                   border: `2.5px solid ${s.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 18, boxShadow: `0 3px 0 ${s.accent}44`,
                 }}>{s.emoji}</div>
-                <span style={{
-                  fontSize: 10, fontWeight: 900, padding: '3px 8px', borderRadius: 999,
-                  background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1.5px solid #22c55e',
-                }}>{s.trend}</span>
+                <p style={{
+                  fontWeight: 900, fontSize: 24, color: 'var(--text-dark)', margin: '0 0 2px', lineHeight: 1,
+                  opacity: loading ? 0.35 : 1,
+                }}>
+                  {loading ? '—' : s.format(raw)}
+                </p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, fontWeight: 600 }}>{s.label}</p>
               </div>
-              <p style={{ fontWeight: 900, fontSize: 24, color: 'var(--text-dark)', margin: '0 0 2px', lineHeight: 1 }}>{s.value}</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, fontWeight: 600 }}>{s.label}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* ── Points growth ── */}
         <div style={{ ...card, padding: '18px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: 0 }}>Puan Büyümesi</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <TrendingUp size={14} color="#22c55e" />
-              <span style={{ fontSize: 11, fontWeight: 900, color: '#22c55e' }}>Bu ay +23%</span>
-            </div>
+            {!loading && pointsTrend != null && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                {pointsTrend >= 0 ? <TrendingUp size={14} color="#22c55e" /> : <TrendingDown size={14} color="#ef4444" />}
+                <span style={{ fontSize: 11, fontWeight: 900, color: pointsTrend >= 0 ? '#22c55e' : '#ef4444' }}>
+                  Bu ay {pointsTrend >= 0 ? '+' : ''}{pointsTrend}%
+                </span>
+              </div>
+            )}
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={statsData.pointsOverTime}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--dark-border)" strokeOpacity={0.15} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)', fontWeight: 700 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)', fontWeight: 700 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: 'var(--card-bg)', border: '3px solid var(--dark-border)', borderRadius: 14, fontSize: 12, fontWeight: 900, boxShadow: '0 4px 0 var(--dark-border)' }} />
-              <Line type="monotone" dataKey="points" stroke="var(--primary-blue)" strokeWidth={3} dot={{ fill: 'var(--primary-blue)', strokeWidth: 2, r: 5 }} activeDot={{ r: 7 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          {loading ? (
+            <EmptyChart message="Yükleniyor…" />
+          ) : hasPointsChart ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={stats!.pointsOverTime}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--dark-border)" strokeOpacity={0.15} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Line type="monotone" dataKey="points" stroke="var(--primary-blue)" strokeWidth={3} dot={{ fill: 'var(--primary-blue)', strokeWidth: 2, r: 5 }} activeDot={{ r: 7 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyChart message="Henüz puan kazanmadın. QR tara veya görev tamamla!" />
+          )}
         </div>
 
-        {/* ── Activity breakdown ── */}
         <div style={{ ...card, padding: '18px 20px' }}>
           <h2 style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: '0 0 16px' }}>Aktivite Dağılımı</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <ResponsiveContainer width="50%" height={180}>
-              <PieChart>
-                <Pie data={statsData.activityBreakdown} innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
-                  {statsData.activityBreakdown.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} stroke="var(--card-bg)" strokeWidth={2} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(val: unknown) => `${val}%`} contentStyle={{ background: 'var(--card-bg)', border: '3px solid var(--dark-border)', borderRadius: 14, fontSize: 12, fontWeight: 900 }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {statsData.activityBreakdown.map(item => (
-                <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: item.color, flexShrink: 0, border: '2px solid var(--dark-border)' }} />
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1, fontWeight: 600 }}>{item.name}</span>
-                  <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-dark)' }}>{item.value}%</span>
-                </div>
-              ))}
+          {loading ? (
+            <EmptyChart message="Yükleniyor…" />
+          ) : hasActivityChart ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+              <div style={{ width: 'min(100%, 180px)', height: 180, flexShrink: 0, margin: '0 auto' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={stats!.activityBreakdown} innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
+                      {stats!.activityBreakdown.map(entry => (
+                        <Cell key={entry.name} fill={entry.color} stroke="var(--card-bg)" strokeWidth={2} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(val: unknown) => `${val}%`} contentStyle={tooltipStyle} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ flex: 1, minWidth: 140, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {stats!.activityBreakdown.map(item => (
+                  <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: item.color, flexShrink: 0, border: '2px solid var(--dark-border)' }} />
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1, fontWeight: 600 }}>{item.name}</span>
+                    <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-dark)' }}>{item.value}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <EmptyChart message="Aktivite verisi yok. Uygulamayı kullanmaya başla!" />
+          )}
         </div>
 
-        {/* ── Rewards redeemed ── */}
         <div style={{ ...card, padding: '18px 20px' }}>
           <h2 style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: '0 0 16px' }}>Kullanılan Ödüller</h2>
-          <ResponsiveContainer width="100%" height={150}>
-            <BarChart data={statsData.rewardUsage}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--dark-border)" strokeOpacity={0.15} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)', fontWeight: 700 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)', fontWeight: 700 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: 'var(--card-bg)', border: '3px solid var(--dark-border)', borderRadius: 14, fontSize: 12, fontWeight: 900 }} />
-              <Bar dataKey="redeemed" fill="var(--primary-blue)" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {loading ? (
+            <EmptyChart message="Yükleniyor…" />
+          ) : hasRewardsChart ? (
+            <ResponsiveContainer width="100%" height={150}>
+              <BarChart data={stats!.rewardUsage}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--dark-border)" strokeOpacity={0.15} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--text-muted)', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="redeemed" fill="var(--primary-blue)" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyChart message="Henüz ödül kullanmadın. Mağazadan ödül al!" />
+          )}
         </div>
 
-        {/* ── Achievement progress ── */}
         <div style={{ ...card, padding: '18px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <Trophy size={20} color="#f59e0b" />
             <h2 style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: 0 }}>Başarı İlerlemesi</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            {/* Circular progress */}
             <div style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
               <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
                 <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--tab-bg)" strokeWidth="2.5" />
                 <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f59e0b" strokeWidth="2.5"
-                  strokeDasharray={`${achievePct} 100`} strokeDashoffset="0" strokeLinecap="round"
+                  strokeDasharray={`${achievePct} 100`} strokeLinecap="round"
                 />
               </svg>
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -179,7 +234,6 @@ const UserStats: React.FC = () => {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
