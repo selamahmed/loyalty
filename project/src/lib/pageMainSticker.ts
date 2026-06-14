@@ -56,9 +56,9 @@ export const PAGE_MAIN_STICKERS: Record<MainStickerPageKey, PageMainStickerConfi
     sizes: BRAND_STICKER_SIZES,
   },
   shop: {
-    group: 'thanks.svg',
+    group: 'loveit.svg',
     rotate: 3,
-    accent: 'var(--neo-lime)',
+    accent: '#ec4899',
     sizes: BRAND_STICKER_SIZES,
   },
   profile: {

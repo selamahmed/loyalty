@@ -1,4 +1,6 @@
 import React from 'react';
+import { StickerAccent } from './StickerAccent';
+import { GAME_LOSE_STICKER } from '../lib/pageStickers';
 
 type Props = { children: React.ReactNode };
 type State = { hasError: boolean; error: Error | null };
@@ -31,7 +33,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
             background: 'var(--card-bg, #fff)', border: '3px solid var(--dark-border, #000)',
             boxShadow: '0 8px 0 var(--dark-border, #000)', textAlign: 'center',
           }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>😵</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <StickerAccent
+                group={GAME_LOSE_STICKER}
+                variant="colorful"
+                size={88}
+                rotate={-8}
+              />
+            </div>
             <h1 style={{ fontWeight: 900, fontSize: 22, margin: '0 0 8px' }}>Bir şeyler ters gitti</h1>
             <p style={{ color: 'var(--text-muted, #666)', fontSize: 14, margin: '0 0 20px', lineHeight: 1.5 }}>
               Beklenmeyen bir hata oluştu. Sayfayı yenilemeyi deneyin.

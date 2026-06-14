@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, TrendingUp, Calendar, Package, Ticket, Tag, Gift, Check, Copy, Clock, CreditCard as Edit3 } from 'lucide-react';
+import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, Package, CreditCard as Edit3, Bell, HelpCircle, History, BarChart2, Gamepad2, Home, QrCode, ShoppingBag, Sun, Moon } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,8 @@ import NeoAvatar from '../components/NeoAvatar';
 import LevelBadge from '../components/LevelBadge';
 import PageMainSticker from '../components/PageMainSticker';
 import { getLevelBadge } from '../lib/levelBadges';
+import InventoryWalletCard, { inventoryTypeConfig, getDaysLeft } from '../components/InventoryWalletCard';
+import InventoryDetailModal from '../components/InventoryDetailModal';
 
 const card = {
   background: 'var(--card-bg)',
@@ -38,33 +40,83 @@ const SectionHeader: React.FC<{
   </div>
 );
 
+/* ── Compact settings shortcut button ── */
+const SettingButton: React.FC<{
+  icon: LucideIcon;
+  label: string;
+  color: string;
+  bg: string;
+  onClick: () => void;
+}> = ({ icon: Icon, label, color, bg, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="press-card"
+    style={{
+      ...card,
+      padding: '12px 8px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 8,
+      cursor: 'pointer',
+      textAlign: 'center',
+    }}
+  >
+    <div style={{ width: 42, height: 42, borderRadius: 12, background: bg, border: `2px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Icon size={18} color={color} />
+    </div>
+    <span style={{ fontWeight: 900, fontSize: 10, color: 'var(--text-dark)', lineHeight: 1.2 }}>{label}</span>
+  </button>
+);
+
+/* ── Hub link row (reused across account sections) ── */
+const HubLink: React.FC<{
+  icon: LucideIcon;
+  label: string;
+  path: string;
+  color: string;
+  bg: string;
+  onNavigate: (path: string) => void;
+}> = ({ icon: Icon, label, path, color, bg, onNavigate }) => (
+  <button
+    type="button"
+    onClick={() => onNavigate(path)}
+    className="press-card"
+    style={{ ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+  >
+    <div style={{ width: 42, height: 42, borderRadius: 12, background: bg, border: `2px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <Icon size={18} color={color} />
+    </div>
+    <span style={{ flex: 1, fontWeight: 900, fontSize: 14, color: 'var(--text-dark)' }}>{label}</span>
+    <ChevronRight size={16} color="var(--text-muted)" />
+  </button>
+);
+
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { user, points } = useApp();
+  const { user, points, theme, toggleTheme } = useApp();
   const { logout } = useAuth();
   const { items: inventoryItems } = useInventory();
   const [showAllInventory, setShowAllInventory] = useState(false);
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [selectedInventoryId, setSelectedInventoryId] = useState<string | null>(null);
   const xpProgress = useXpProgress(user.xp, user.level);
-  const completedAchievements: { id: string; title: string; icon: string }[] = [];
 
-  const typeConfig: Record<string, { color: string; bg: string; accent: string; icon: LucideIcon }> = {
-    coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', accent: '#3b82f6', icon: Tag },
-    ticket: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', accent: '#f59e0b', icon: Ticket },
-    reward: { color: '#22c55e', bg: 'rgba(34,197,94,0.1)', accent: '#22c55e', icon: Gift },
+  const handleNavigate = (path: string) => {
+    playSound('click');
+    navigate(path);
   };
 
-  const handleCopy = (code: string) => {
-    playSound('success');
-    navigator.clipboard.writeText(code).catch(() => {});
-    setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2000);
-  };
-
-  const isExpired = (date: string) => new Date(date) < new Date();
-  const activeInventory = inventoryItems.filter(i => !i.used);
+  const activeInventory = inventoryItems.filter(i => !i.used && new Date(i.expires) >= new Date());
+  const urgentInventory = activeInventory.filter(i => getDaysLeft(i.expires) <= 3);
   const displayedInventory = showAllInventory ? activeInventory : activeInventory.slice(0, 3);
-  const recentAchievements = completedAchievements.slice(0, 4);
+  const selectedInventoryItem = inventoryItems.find(i => i.id === selectedInventoryId);
+
+  const inventoryCounts = {
+    coupon: activeInventory.filter(i => i.type === 'coupon').length,
+    ticket: activeInventory.filter(i => i.type === 'ticket').length,
+    reward: activeInventory.filter(i => i.type === 'reward').length,
+  };
 
   const stats = [
     { label: tr.profile.totalPoints,  value: user.totalPoints.toLocaleString(), color: '#f59e0b', emoji: '⭐' },
@@ -116,10 +168,26 @@ const Profile: React.FC = () => {
                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0, fontWeight: 600 }}>{user.email}</p>
                   </div>
                   <button
+                    type="button"
+                    aria-label={tr.profile.editProfile}
                     onClick={() => { playSound('click'); navigate('/settings'); }}
-                    style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', border: '2px solid rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      background: '#ffffff',
+                      border: '2.5px solid var(--dark-border)',
+                      boxShadow: '0 4px 0 var(--dark-border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      position: 'relative',
+                      zIndex: 3,
+                    }}
                   >
-                    <Edit3 size={15} color="white" />
+                    <Edit3 size={16} color="#6d28d9" strokeWidth={2.5} />
                   </button>
                 </div>
 
@@ -132,26 +200,18 @@ const Profile: React.FC = () => {
                     </span>
                   </div>
                 </div>
-
-                {/* XP bar */}
-                <div style={{ marginTop: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.65)', marginBottom: 6, fontWeight: 700 }}>
-                    <span>Lv.{user.level}{xpProgress.nextTitle ? ` → ${user.level + 1}` : ''}</span>
-                    <span>{xpProgress.inLevel.toLocaleString()} / {xpProgress.isMaxLevel ? 'MAX' : xpProgress.needed.toLocaleString()} XP</span>
-                  </div>
-                  <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.25)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${xpProgress.pct}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
-                  </div>
-                </div>
               </div>
             </div>
 
-            {/* Join date */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 16, color: 'rgba(255,255,255,0.6)' }}>
-              <Calendar size={12} />
-              <span style={{ fontSize: 11, fontWeight: 600 }}>
-                {new Date(user.joinDate).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' })} tarihinden beri üye
-              </span>
+            {/* XP bar */}
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.65)', marginBottom: 6, fontWeight: 700 }}>
+                <span>Lv.{user.level}{xpProgress.nextTitle ? ` → ${user.level + 1}` : ''}</span>
+                <span>{xpProgress.inLevel.toLocaleString()} / {xpProgress.isMaxLevel ? 'MAX' : xpProgress.needed.toLocaleString()} XP</span>
+              </div>
+              <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.25)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${xpProgress.pct}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
+              </div>
             </div>
           </div>
         </div>
@@ -206,148 +266,143 @@ const Profile: React.FC = () => {
           >{tr.profile.redeem}</button>
         </div>
 
-        {/* ── Recent achievements ── */}
-        <div>
-          <SectionHeader
-            micro="KAZANILDI"
-            title={tr.profile.recentAchievements}
-            action={{ label: tr.profile.seeAll, onClick: () => navigate('/achievements') }}
-          />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-            {recentAchievements.map(ach => (
-              <div
-                key={ach.id}
-                className="press-card"
-                style={{ ...card, padding: '14px 8px', textAlign: 'center' }}
-              >
-                <div style={{ fontSize: 28, marginBottom: 6 }}>{ach.icon}</div>
-                <p style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-dark)', margin: 0, lineHeight: 1.2 }}>{ach.title}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Inventory ── */}
+        {/* ── Inventory wallet ── */}
         {activeInventory.length > 0 && (
           <div>
             <SectionHeader
               micro="ENVANTER"
-              title={tr.profile.myInventory}
-              action={activeInventory.length > 3 ? {
-                label: showAllInventory ? 'Daha Az' : `${tr.profile.seeAll} (${activeInventory.length})`,
-                onClick: () => setShowAllInventory(!showAllInventory),
-              } : undefined}
+              title="Cüzdanım"
+              action={{ label: tr.profile.seeAll, onClick: () => handleNavigate('/inventory') }}
             />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {displayedInventory.map(item => {
-                const config = typeConfig[item.type];
-                const IconComp = config.icon;
-                const expired = isExpired(item.expires);
-                return (
-                  <div key={item.id} style={{ ...card, padding: '16px 18px', opacity: expired ? 0.6 : 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                      <div style={{
-                        width: 48, height: 48, borderRadius: 14, background: config.bg,
-                        border: `2.5px solid ${config.accent}`, flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: `0 3px 0 ${config.accent}44`,
-                      }}>
-                        <IconComp size={22} color={config.color} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-                          <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: 0 }}>{item.title}</p>
-                          {expired ? (
-                            <span style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.1)', border: '1.5px solid #ef4444', fontSize: 9, fontWeight: 900, color: '#ef4444', flexShrink: 0, textTransform: 'uppercase' }}>Doldu</span>
-                          ) : (
-                            <span style={{ padding: '2px 8px', borderRadius: 999, background: config.bg, border: `1.5px solid ${config.accent}`, fontSize: 9, fontWeight: 900, color: config.color, flexShrink: 0, textTransform: 'capitalize' }}>{item.type}</span>
-                          )}
-                        </div>
-                        <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 10px', lineHeight: 1.5 }}>{item.description}</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1, padding: '8px 12px', background: 'var(--tab-bg)', borderRadius: 10, border: '2px dashed var(--dark-border)' }}>
-                            <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 900, color: 'var(--text-dark)', letterSpacing: '0.1em' }}>{item.code}</span>
-                          </div>
-                          <button
-                            onClick={() => handleCopy(item.code)}
-                            disabled={expired}
-                            style={{
-                              width: 40, height: 40, borderRadius: 10, background: 'var(--tab-bg)',
-                              border: `2px solid ${copiedCode === item.code ? '#22c55e' : 'var(--dark-border)'}`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              cursor: expired ? 'not-allowed' : 'pointer', flexShrink: 0,
-                              transition: 'all 0.15s',
-                            }}
-                          >
-                            {copiedCode === item.code ? <Check size={16} color="#22c55e" /> : <Copy size={16} color="var(--text-muted)" />}
-                          </button>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8 }}>
-                          <Clock size={10} color="var(--text-muted)" />
-                          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{tr.profile.expires} {new Date(item.expires).toLocaleDateString('tr-TR')}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+
+            <div style={{
+              ...card,
+              padding: '12px 14px',
+              marginBottom: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              background: 'linear-gradient(135deg,rgba(59,130,246,0.08) 0%,rgba(6,182,212,0.06) 100%)',
+            }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 900, color: '#3b82f6', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {activeInventory.length} aktif bilet
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
+                  {urgentInventory.length > 0
+                    ? `⚡ ${urgentInventory.length} bilet yakında doluyor`
+                    : 'Koda tıkla, kasada göster'}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                {(['coupon', 'ticket', 'reward'] as const)
+                  .filter(type => inventoryCounts[type] > 0)
+                  .map(type => (
+                    <span
+                      key={type}
+                      style={{
+                        fontSize: 9, fontWeight: 900, padding: '4px 8px', borderRadius: 999,
+                        background: inventoryTypeConfig[type].bg,
+                        color: inventoryTypeConfig[type].color,
+                        border: `1.5px solid ${inventoryTypeConfig[type].color}44`,
+                      }}
+                    >
+                      {inventoryTypeConfig[type].emoji} {inventoryCounts[type]}
+                    </span>
+                  ))}
+              </div>
             </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {displayedInventory.map(item => (
+                <InventoryWalletCard
+                  key={item.id}
+                  item={item}
+                  compact
+                  onClick={() => setSelectedInventoryId(item.id)}
+                />
+              ))}
+            </div>
+
+            {activeInventory.length > 3 && (
+              <button
+                type="button"
+                onClick={() => { playSound('click'); setShowAllInventory(!showAllInventory); }}
+                style={{
+                  width: '100%', marginTop: 10, padding: '12px 16px', borderRadius: 14,
+                  background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)',
+                  boxShadow: '0 3px 0 var(--dark-border)', cursor: 'pointer',
+                  fontWeight: 900, fontSize: 13, color: 'var(--text-dark)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}
+              >
+                {showAllInventory ? 'Daha Az Göster' : `${activeInventory.length - 3} bilet daha`}
+                <ChevronRight size={14} style={{ transform: showAllInventory ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s' }} />
+              </button>
+            )}
           </div>
         )}
 
-        {/* ── Activity summary ── */}
-        <div>
-          <SectionHeader micro="İSTATİSTİKLER" title={tr.profile.activitySummary} />
-          <div style={{ ...card, padding: '0 20px' }}>
-            {[
-              { label: tr.profile.qrScansThisMonth, value: '12', emoji: '📱' },
-              { label: tr.profile.gamesPlayed,      value: '47', emoji: '🎮' },
-              { label: tr.profile.rewardsRedeemed,  value: '6',  emoji: '🎁' },
-              { label: tr.profile.missionsCompleted,value: '23', emoji: '🎯' },
-            ].map((item, i, arr) => (
-              <div key={item.label} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 0',
-                borderBottom: i < arr.length - 1 ? '1.5px dashed var(--divider-dash)' : 'none',
-              }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
-                  <span style={{ fontSize: 18 }}>{item.emoji}</span> {item.label}
-                </span>
-                <span style={{ fontWeight: 900, fontSize: 18, color: 'var(--text-dark)' }}>{item.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Nav links ── */}
+        {/* ── Account hub — secondary routes via progressive disclosure ── */}
         <div>
           <SectionHeader micro="HESAP" title="Ayarlar & Daha Fazla" />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[
-              { icon: Target,   label: tr.profile.viewMissions,    path: '/missions',     color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
-              { icon: Trophy,   label: tr.profile.viewAchievements, path: '/achievements', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-              { icon: Settings, label: tr.profile.accountSettings,  path: '/settings',    color: '#7B6EF6', bg: 'rgba(123,110,246,0.1)' },
-            ].map(item => (
-              <button
-                key={item.path}
-                onClick={() => { playSound('click'); navigate(item.path); }}
-                className="press-card"
-                style={{ ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left' }}
-              >
-                <div style={{ width: 42, height: 42, borderRadius: 12, background: item.bg, border: `2px solid ${item.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <item.icon size={18} color={item.color} />
-                </div>
-                <span style={{ flex: 1, fontWeight: 900, fontSize: 14, color: 'var(--text-dark)' }}>{item.label}</span>
-                <ChevronRight size={16} color="var(--text-muted)" />
-              </button>
-            ))}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Settings shortcuts */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+              <SettingButton icon={Target}    label="Günlük Görevler"              color="#ef4444" bg="rgba(239,68,68,0.1)"   onClick={() => handleNavigate('/missions')} />
+              <SettingButton icon={Trophy}    label="Başarılar"                    color="#f59e0b" bg="rgba(245,158,11,0.1)"  onClick={() => handleNavigate('/achievements')} />
+              <SettingButton icon={BarChart2} label="İstatistikler"                color="#3b82f6" bg="rgba(59,130,246,0.1)"  onClick={() => handleNavigate('/stats')} />
+              <SettingButton icon={History}   label="Geçmiş"                       color="#56C8FF" bg="rgba(86,200,255,0.14)" onClick={() => handleNavigate('/history')} />
+              <SettingButton icon={Bell}       label="Bildirimler"                  color="#f59e0b" bg="rgba(245,158,11,0.1)"  onClick={() => handleNavigate('/notifications')} />
+              <SettingButton icon={Settings}   label={tr.profile.accountSettings}   color="#7B6EF6" bg="rgba(123,110,246,0.1)" onClick={() => handleNavigate('/settings')} />
+              <SettingButton icon={HelpCircle} label="Destek"                       color="#22c55e" bg="rgba(34,197,94,0.1)"   onClick={() => handleNavigate('/support')} />
+              <SettingButton
+                icon={theme === 'light' ? Moon : Sun}
+                label={theme === 'light' ? 'Karanlık Mod' : 'Açık Mod'}
+                color="var(--text-dark)"
+                bg="var(--tab-bg)"
+                onClick={() => { playSound('click'); toggleTheme(); }}
+              />
+            </div>
+
+            {/* Genel */}
+            <div>
+              <p className="section-label" style={{ marginBottom: 10 }}>GENEL</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <HubLink icon={Home}     label="Ana Sayfa"     path="/home"        color="#7B6EF6" bg="rgba(123,110,246,0.1)" onNavigate={handleNavigate} />
+                <HubLink icon={QrCode}   label="QR Tara"       path="/qr"          color="#a78bfa" bg="rgba(167,139,250,0.1)" onNavigate={handleNavigate} />
+                <HubLink icon={Trophy}   label="Lider Tablosu" path="/leaderboard" color="#FFE500" bg="rgba(255,229,0,0.14)"  onNavigate={handleNavigate} />
+              </div>
+            </div>
+
+            {/* Mağaza & Ödüller */}
+            <div>
+              <p className="section-label" style={{ marginBottom: 10 }}>MAĞAZA & ÖDÜLLER</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <HubLink icon={ShoppingBag} label="Ürün Mağazası"          path="/shop"      color="#22c55e" bg="rgba(34,197,94,0.1)"  onNavigate={handleNavigate} />
+                <HubLink icon={Package}     label={tr.profile.myInventory} path="/inventory" color="#06b6d4" bg="rgba(6,182,212,0.1)"  onNavigate={handleNavigate} />
+              </div>
+            </div>
+
+            {/* Aktiviteler */}
+            <div>
+              <p className="section-label" style={{ marginBottom: 10 }}>AKTİVİTELER</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <HubLink icon={Gamepad2} label="Mini Oyunlar"    path="/games"    color="#22c55e" bg="rgba(34,197,94,0.1)"   onNavigate={handleNavigate} />
+                <HubLink icon={BarChart2} label="İlerleme Yolu" path="/progress" color="#7B6EF6" bg="rgba(123,110,246,0.1)" onNavigate={handleNavigate} />
+                <HubLink icon={Zap}      label="Etkinlikler"     path="/events"   color="#ec4899" bg="rgba(236,72,153,0.1)" onNavigate={handleNavigate} />
+              </div>
+            </div>
 
             <button
+              type="button"
               onClick={() => { playSound('click'); logout().then(() => navigate('/login', { replace: true })).catch(() => navigate('/login', { replace: true })); }}
               style={{
                 ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
                 cursor: 'pointer', border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626',
-                background: 'rgba(239,68,68,0.05)',
+                background: 'rgba(239,68,68,0.05)', width: '100%', textAlign: 'left',
               }}
             >
               <div style={{ width: 42, height: 42, borderRadius: 12, background: '#ef4444', border: '2px solid #dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -360,6 +415,13 @@ const Profile: React.FC = () => {
         </div>
 
       </div>
+
+      {selectedInventoryItem && (
+        <InventoryDetailModal
+          item={selectedInventoryItem}
+          onClose={() => setSelectedInventoryId(null)}
+        />
+      )}
     </div>
   );
 };

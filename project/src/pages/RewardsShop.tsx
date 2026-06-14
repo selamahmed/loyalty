@@ -10,7 +10,7 @@ import type { Reward } from '../services/rewards';
 import { playSound } from '../lib/sounds';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { WinningParticles } from '../components/WinningParticles';
-import StickerHero from '../components/StickerHero';
+import PageMainSticker from '../components/PageMainSticker';
 import { activityLogService } from '../lib/activityLogger';
 
 const card = {
@@ -19,15 +19,6 @@ const card = {
   boxShadow: '0px 6px 0px var(--dark-border)',
   borderRadius: 20,
 };
-
-const categories = [
-  { id: 'all',      label: 'Tümü',        emoji: '🛍️' },
-  { id: 'coffee',   label: 'Kahve',       emoji: '☕' },
-  { id: 'hot',      label: 'Sıcak İçecek', emoji: '🫖' },
-  { id: 'drinks',   label: 'Soğuk İçecek', emoji: '🥤' },
-  { id: 'pastries', label: 'Pastane',     emoji: '🥐' },
-  { id: 'food',     label: 'Yemek',       emoji: '🍔' },
-];
 
 /* ── Buy modal ── */
 interface BuyModalProps {
@@ -125,7 +116,6 @@ const RewardsShop: React.FC = () => {
   const { reload: reloadInventory } = useInventory();
   const [search, setSearch]             = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
-  const [category, setCategory]         = useState('all');
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [success, setSuccess]           = useState<string | null>(null);
   const [showParticles, setShowParticles] = useState(false);
@@ -140,17 +130,8 @@ const RewardsShop: React.FC = () => {
 
   const filtered = useMemo(() => {
     const q = debouncedSearch.toLowerCase();
-    return rewards.filter(r => {
-      const matchSearch = !q || r.title.toLowerCase().includes(q);
-      const matchCat    = category === 'all' || r.category === category;
-      return matchSearch && matchCat;
-    });
-  }, [rewards, debouncedSearch, category]);
-
-  const canAffordCount = useMemo(
-    () => rewards.filter(r => points >= r.points).length,
-    [rewards, points],
-  );
+    return rewards.filter(r => !q || r.title.toLowerCase().includes(q));
+  }, [rewards, debouncedSearch]);
 
   const playClick = () => { if (soundEnabled) playSound('click'); };
 
@@ -222,36 +203,42 @@ const RewardsShop: React.FC = () => {
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
           }}>🛍️</div>
           <div>
-            <p className="section-label">ÖDÜL MAĞAZASI</p>
             <h1 style={{ fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, color: 'var(--text-dark)', lineHeight: 1.1 }}>Ürün Mağazası</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Puanlarınla ürün satın al</p>
           </div>
         </div>
 
-        <StickerHero
-          page="shop"
-          bg="linear-gradient(135deg,#fbbf24 0%,#d97706 100%)"
-          badge="🛍️ MAĞAZA"
-          title="Puanlarınla"
-          highlight="ödül al!"
-        />
-
-        {/* ── Balance banner ── */}
-        <div style={{
-          ...card,
-          background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)',
-          padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', overflow: 'visible',
-        }}>
-          <div style={{ position: 'absolute', top: -25, right: -25, width: 110, height: 110, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
-          <Star size={32} fill="white" color="white" />
-          <div style={{ flex: 1 }}>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>Mevcut Bakiye</p>
-            <p style={{ color: 'white', fontWeight: 900, fontSize: 30, margin: 0, lineHeight: 1 }}>{points.toLocaleString()} <span style={{ fontSize: 14, opacity: 0.75, fontWeight: 700 }}>pts</span></p>
+        <div
+          className="sticker-hero sticker-hero--balance"
+          style={{
+            border: '3px solid var(--dark-border)',
+            boxShadow: '0px 6px 0px var(--dark-border)',
+            borderRadius: 20,
+            position: 'relative',
+            background: 'linear-gradient(135deg,#ec4899 0%,#f97316 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '18px 20px',
+            minHeight: 96,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            className="sticker-hero--balance__content"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              flex: 1,
+              minWidth: 0,
+              zIndex: 2,
+            }}
+          >
+            <Star size={26} fill="white" color="white" style={{ flexShrink: 0 }} />
+            <p style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, lineHeight: 1 }}>
+              {points.toLocaleString()} <span style={{ fontSize: 14, opacity: 0.8, fontWeight: 700 }}>pts</span>
+            </p>
           </div>
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: 900, margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>ALINA BİLİR</p>
-            <p style={{ color: 'white', fontSize: 22, fontWeight: 900, margin: 0, lineHeight: 1 }}>{canAffordCount}</p>
-          </div>
+          <PageMainSticker page="shop" variant="hero-inline" />
         </div>
 
         {/* ── Success toast ── */}
@@ -284,27 +271,6 @@ const RewardsShop: React.FC = () => {
           />
         </div>
 
-        {/* ── Categories ── */}
-        <div className="hide-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => { playClick(); setCategory(cat.id); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                padding: '9px 16px', borderRadius: 12, fontWeight: 900, fontSize: 12,
-                cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', transition: 'color 0.12s, background-color 0.12s, box-shadow 0.12s', position: 'relative',
-                background: category === cat.id ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--card-bg)',
-                color: category === cat.id ? 'white' : 'var(--text-dark)',
-                border: '3px solid var(--dark-border)',
-                boxShadow: category === cat.id ? '0 5px 0 var(--dark-border)' : '0 4px 0 var(--dark-border)',
-              }}
-            >
-              <span>{cat.emoji}</span> {cat.label}
-            </button>
-          ))}
-        </div>
-
         {/* ── Results label ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 700, margin: 0 }}>
@@ -327,7 +293,7 @@ const RewardsShop: React.FC = () => {
           <div style={{ ...card, padding: '56px 24px', textAlign: 'center' }}>
             <p style={{ fontSize: 48, margin: '0 0 12px' }}>🔍</p>
             <p style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: '0 0 6px' }}>Ürün bulunamadı</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Farklı bir arama veya kategori dene</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Farklı bir arama dene</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 14 }}>

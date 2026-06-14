@@ -12,6 +12,7 @@ type StickerHeroProps = {
   height?: number;
   titleColor?: string;
   highlightColor?: string;
+  footer?: React.ReactNode;
 };
 
 /** Hero banner with brand-system sticker in a reserved right slot. */
@@ -24,32 +25,50 @@ const StickerHero: React.FC<StickerHeroProps> = ({
   height = 140,
   titleColor,
   highlightColor,
+  footer,
 }) => {
   const dims = stickerDimensions(page, 'hero-inline');
 
-  return (
-    <div
-      className="sticker-hero"
-      style={{
-        border: '3px solid var(--dark-border)',
-        boxShadow: '0px 6px 0px var(--dark-border)',
-        borderRadius: 20,
-        position: 'relative',
-        height,
-        background: bg,
-        ['--pms-size-d' as string]: `${dims.desktop}px`,
-        ['--pms-size-m' as string]: `${dims.mobile}px`,
-        ...(titleColor ? { ['--hero-title-color' as string]: titleColor } : {}),
-        ...(highlightColor ? { ['--hero-highlight-color' as string]: highlightColor } : {}),
-      }}
-    >
+  const copyBlock = (
     <div className="sticker-hero__copy">
       <div className="sticker-hero__badge">{badge}</div>
       <h2 className="sticker-hero__title">{title}</h2>
       {highlight && <h2 className="sticker-hero__highlight">{highlight}</h2>}
     </div>
-    <PageMainSticker page={page} variant="hero-inline" />
-  </div>
+  );
+
+  const sticker = <PageMainSticker page={page} variant="hero-inline" />;
+
+  const shellStyle: React.CSSProperties = {
+    border: '3px solid var(--dark-border)',
+    boxShadow: '0px 6px 0px var(--dark-border)',
+    borderRadius: 20,
+    position: 'relative',
+    background: bg,
+    ['--pms-size-d' as string]: `${dims.desktop}px`,
+    ['--pms-size-m' as string]: `${dims.mobile}px`,
+    ...(titleColor ? { ['--hero-title-color' as string]: titleColor } : {}),
+    ...(highlightColor ? { ['--hero-highlight-color' as string]: highlightColor } : {}),
+    ...(footer ? { height: 'auto', minHeight: height } : { height }),
+  };
+
+  if (footer) {
+    return (
+      <div className="sticker-hero sticker-hero--with-footer" style={shellStyle}>
+        <div className="sticker-hero__body">
+          {copyBlock}
+          {sticker}
+        </div>
+        <div className="sticker-hero__footer">{footer}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="sticker-hero" style={shellStyle}>
+      {copyBlock}
+      {sticker}
+    </div>
   );
 };
 

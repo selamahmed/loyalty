@@ -1,0 +1,135 @@
+import React from 'react';
+import { ChevronRight, Clock } from 'lucide-react';
+import type { InventoryItem } from '../context/InventoryContext';
+import { playSound } from '../lib/sounds';
+
+export const inventoryTypeConfig: Record<string, { color: string; bg: string; label: string; emoji: string }> = {
+  coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', label: 'Kupon', emoji: '🏷️' },
+  ticket: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Bilet', emoji: '🎫' },
+  reward: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', label: 'Ödül', emoji: '🎁' },
+};
+
+export const getDaysLeft = (expires: string) =>
+  Math.max(0, Math.ceil((new Date(expires).getTime() - Date.now()) / 86400000));
+
+interface InventoryWalletCardProps {
+  item: InventoryItem;
+  onClick: () => void;
+  dimmed?: boolean;
+  compact?: boolean;
+}
+
+const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick, dimmed, compact }) => {
+  const cfg = inventoryTypeConfig[item.type] || inventoryTypeConfig.reward;
+  const expired = new Date(item.expires) < new Date();
+  const days = getDaysLeft(item.expires);
+  const urgency = !expired && !item.used && days <= 3;
+
+  return (
+    <button
+      type="button"
+      className="press-card"
+      onClick={() => { playSound('click'); onClick(); }}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'stretch', overflow: 'hidden',
+        background: 'var(--card-bg)',
+        border: `2.5px solid ${urgency ? '#f59e0b' : 'var(--dark-border)'}`,
+        boxShadow: urgency ? '0 4px 0 #d97706' : '0 4px 0 var(--dark-border)',
+        borderRadius: 16, cursor: 'pointer', textAlign: 'left',
+        opacity: dimmed ? 0.55 : 1,
+        position: 'relative',
+      }}
+    >
+      <div style={{ width: 5, flexShrink: 0, background: cfg.color }} />
+
+      <div style={{
+        width: compact ? 64 : 72, flexShrink: 0, position: 'relative', overflow: 'hidden',
+        borderRight: '2px solid var(--dark-border)',
+      }}>
+        {item.image ? (
+          <img
+            src={item.image}
+            alt=""
+            style={{
+              width: '100%', height: '100%', minHeight: compact ? 72 : 80,
+              objectFit: 'cover', display: 'block', filter: dimmed ? 'grayscale(80%)' : 'none',
+            }}
+          />
+        ) : (
+          <div style={{
+            width: '100%', height: '100%', minHeight: compact ? 72 : 80,
+            background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: compact ? 24 : 28,
+          }}>
+            {cfg.emoji}
+          </div>
+        )}
+        {expired && !item.used && (
+          <div style={{
+            position: 'absolute', inset: 0, background: 'rgba(239,68,68,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ fontSize: 8, fontWeight: 900, color: 'white', background: '#ef4444', padding: '2px 6px', borderRadius: 4 }}>DOLDU</span>
+          </div>
+        )}
+      </div>
+
+      <div style={{ flex: 1, padding: compact ? '8px 10px' : '10px 12px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 999,
+            background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}44`,
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>
+            {cfg.emoji} {cfg.label}
+          </span>
+          {urgency && (
+            <span style={{ fontSize: 8, fontWeight: 900, color: '#f59e0b' }}>⚡ {days}g</span>
+          )}
+          {item.used && (
+            <span style={{ fontSize: 8, fontWeight: 900, color: 'var(--text-muted)' }}>Kullanıldı</span>
+          )}
+        </div>
+        <p style={{
+          fontWeight: 900, fontSize: compact ? 12 : 13, color: 'var(--text-dark)', margin: '0 0 3px',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          textDecoration: item.used ? 'line-through' : 'none',
+        }}>
+          {item.title}
+        </p>
+        <p style={{
+          fontFamily: 'monospace', fontSize: 10, color: cfg.color, fontWeight: 700, margin: '0 0 4px',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {item.code}
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+            <Clock size={10} />
+            {item.used ? 'Tamamlandı' : expired ? 'Süresi doldu' : `${days} gün kaldı`}
+          </span>
+          {!item.used && !expired && (
+            <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--primary-blue)' }}>Göster →</span>
+          )}
+        </div>
+        {!item.used && !expired && (
+          <div style={{
+            marginTop: 6, height: 4, borderRadius: 999, background: 'var(--tab-bg)',
+            border: '1px solid var(--dark-border)', overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', borderRadius: 999, transition: 'width 0.4s ease',
+              width: `${Math.min(100, (days / 30) * 100)}%`,
+              background: urgency ? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : `linear-gradient(90deg,${cfg.color},${cfg.color}88)`,
+            }} />
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', paddingRight: 10, flexShrink: 0 }}>
+        <ChevronRight size={16} color="var(--text-muted)" />
+      </div>
+    </button>
+  );
+};
+
+export default InventoryWalletCard;

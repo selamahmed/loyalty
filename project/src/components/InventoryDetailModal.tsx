@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Copy, Check, Clock, Tag, Ticket, Gift, Package, AlertCircle, QrCode } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { InventoryItem, useInventory } from '../context/InventoryContext';
@@ -48,6 +49,12 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
     return () => clearInterval(timer);
   }, [item.expires]);
 
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(item.code).catch(() => {});
     setCopied(true);
@@ -62,10 +69,10 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
   const accent    = isActive ? cfg.color : '#ef4444';
   const urgent    = countdown.days < 3;
 
-  return (
+  return createPortal(
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 200,
+        position: 'fixed', inset: 0, zIndex: 1000,
         display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
         background: 'rgba(0,0,0,0.55)',
         backdropFilter: 'blur(12px) saturate(1.3)',
@@ -351,7 +358,8 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
           to   { transform: translateY(0);    opacity: 1; }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

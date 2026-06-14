@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Search, ChevronRight, ChevronDown, Clock } from 'lucide-react';
+import { Search, ChevronRight, ChevronDown } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import InventoryDetailModal from '../components/InventoryDetailModal';
+import InventoryWalletCard from '../components/InventoryWalletCard';
 import StickerAccent from '../components/StickerAccent';
 import StickerHero from '../components/StickerHero';
 import { playSound } from '../lib/sounds';
@@ -13,110 +14,12 @@ const card = {
   borderRadius: 20,
 };
 
-const typeConfig: Record<string, { color: string; bg: string; label: string; emoji: string }> = {
-  coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', label: 'Kupon', emoji: '🏷️' },
-  ticket: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Bilet', emoji: '🎫' },
-  reward: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', label: 'Ödül', emoji: '🎁' },
-};
-
 const tabs = [
   { id: 'all', label: 'Tümü', emoji: '🗂️' },
   { id: 'coupon', label: 'Kupon', emoji: '🏷️' },
   { id: 'ticket', label: 'Bilet', emoji: '🎫' },
   { id: 'reward', label: 'Ödül', emoji: '🎁' },
 ];
-
-type InvItem = ReturnType<typeof useInventory>['items'][number];
-
-const WalletCard: React.FC<{ item: InvItem; onClick: () => void; dimmed?: boolean }> = ({ item, onClick, dimmed }) => {
-  const cfg = typeConfig[item.type] || typeConfig.reward;
-  const expired = new Date(item.expires) < new Date();
-  const days = Math.max(0, Math.ceil((new Date(item.expires).getTime() - Date.now()) / 86400000));
-  const urgency = !expired && !item.used && days <= 3;
-
-  return (
-    <button
-      className="press-card"
-      onClick={() => { playSound('click'); onClick(); }}
-      style={{
-        width: '100%', display: 'flex', alignItems: 'stretch', overflow: 'hidden',
-        background: 'var(--card-bg)',
-        border: `2.5px solid ${urgency ? '#f59e0b' : 'var(--dark-border)'}`,
-        boxShadow: urgency ? '0 4px 0 #d97706' : '0 4px 0 var(--dark-border)',
-        borderRadius: 16, cursor: 'pointer', textAlign: 'left',
-        opacity: dimmed ? 0.55 : 1,
-        position: 'relative',
-      }}
-    >
-      {/* Color strip */}
-      <div style={{ width: 5, flexShrink: 0, background: cfg.color }} />
-
-      {/* Thumbnail */}
-      <div style={{
-        width: 72, flexShrink: 0, position: 'relative', overflow: 'hidden',
-        borderRight: '2px solid var(--dark-border)',
-      }}>
-        {item.image ? (
-          <img src={item.image} alt="" style={{ width: '100%', height: '100%', minHeight: 80, objectFit: 'cover', display: 'block', filter: dimmed ? 'grayscale(80%)' : 'none' }} />
-        ) : (
-          <div style={{ width: '100%', height: '100%', minHeight: 80, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
-            {cfg.emoji}
-          </div>
-        )}
-        {expired && !item.used && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(239,68,68,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: 8, fontWeight: 900, color: 'white', background: '#ef4444', padding: '2px 6px', borderRadius: 4 }}>DOLDU</span>
-          </div>
-        )}
-      </div>
-
-      {/* Info */}
-      <div style={{ flex: 1, padding: '10px 12px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
-          <span style={{
-            fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 999,
-            background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}44`,
-            textTransform: 'uppercase', letterSpacing: '0.06em',
-          }}>
-            {cfg.emoji} {cfg.label}
-          </span>
-          {urgency && (
-            <span style={{ fontSize: 8, fontWeight: 900, color: '#f59e0b' }}>⚡ {days}g</span>
-          )}
-          {item.used && (
-            <span style={{ fontSize: 8, fontWeight: 900, color: 'var(--text-muted)' }}>Kullanıldı</span>
-          )}
-        </div>
-        <p style={{
-          fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 3px',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          textDecoration: item.used ? 'line-through' : 'none',
-        }}>
-          {item.title}
-        </p>
-        <p style={{
-          fontFamily: 'monospace', fontSize: 10, color: cfg.color, fontWeight: 700, margin: '0 0 4px',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {item.code}
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Clock size={10} />
-            {item.used ? 'Tamamlandı' : expired ? 'Süresi doldu' : `${days} gün kaldı`}
-          </span>
-          {!item.used && !expired && (
-            <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--primary-blue)' }}>Göster →</span>
-          )}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', paddingRight: 10, flexShrink: 0 }}>
-        <ChevronRight size={16} color="var(--text-muted)" />
-      </div>
-    </button>
-  );
-};
 
 const Inventory: React.FC = () => {
   const { items } = useInventory();
@@ -283,7 +186,7 @@ const Inventory: React.FC = () => {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {active.map(item => (
-                <WalletCard key={item.id} item={item} onClick={() => setSelectedId(item.id)} />
+                <InventoryWalletCard key={item.id} item={item} onClick={() => setSelectedId(item.id)} />
               ))}
             </div>
           </div>
@@ -307,7 +210,7 @@ const Inventory: React.FC = () => {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {expired.map(item => (
-                <WalletCard key={item.id} item={item} onClick={() => setSelectedId(item.id)} dimmed />
+                <InventoryWalletCard key={item.id} item={item} onClick={() => setSelectedId(item.id)} dimmed />
               ))}
             </div>
           </div>
@@ -333,7 +236,7 @@ const Inventory: React.FC = () => {
             {showUsed && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {used.map(item => (
-                  <WalletCard key={item.id} item={item} onClick={() => setSelectedId(item.id)} dimmed />
+                  <InventoryWalletCard key={item.id} item={item} onClick={() => setSelectedId(item.id)} dimmed />
                 ))}
               </div>
             )}
