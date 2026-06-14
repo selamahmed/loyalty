@@ -198,8 +198,8 @@ const Home: React.FC = () => {
                 <div className="home-stat-shape" style={{ transform: `rotate(${s.rotate}deg)` }} aria-hidden>
                   <StickerDecorImg
                     src={s.sticker.url}
-                    width={88}
-                    height={88}
+                    width={120}
+                    height={120}
                     loading="lazy"
                     className="home-stat-shape__img"
                   />

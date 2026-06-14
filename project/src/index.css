@@ -2789,8 +2789,8 @@ body::before {
   align-items: center;
   justify-content: center;
   margin: 0 auto 10px;
-  width: clamp(72px, 22vw, 96px);
-  height: clamp(72px, 22vw, 96px);
+  width: clamp(96px, 28vw, 132px);
+  height: clamp(96px, 28vw, 132px);
 }
 
 .home-stat-shape__img {
