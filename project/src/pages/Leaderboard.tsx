@@ -322,10 +322,10 @@ const useCountdown = (endDate: string) => {
   return cd;
 };
 
-const PRIZE_RANK_THEME: Record<number, { medal: string; accent: string; bg: string; shadow: string }> = {
-  1: { medal: '🥇', accent: '#f59e0b', bg: '#fef9c3', shadow: '#d97706' },
-  2: { medal: '🥈', accent: '#94a3b8', bg: '#f1f5f9', shadow: '#64748b' },
-  3: { medal: '🥉', accent: '#f97316', bg: '#ffedd5', shadow: '#ea580c' },
+const PRIZE_MEDALS: Record<number, string> = {
+  1: '🥇',
+  2: '🥈',
+  3: '🥉',
 };
 
 type PrizeLeader = { username: string; avatar_url: string | null };
@@ -336,16 +336,14 @@ const EventPrizeChip: React.FC<{ prize: RewardPrize; leader?: PrizeLeader; featu
   featured = false,
 }) => {
   const rank = Math.min(Math.max(prize.rank, 1), 3);
-  const theme = PRIZE_RANK_THEME[rank];
   const imageIsUrl = /^https?:\/\//i.test(prize.rewardImage ?? '');
 
   return (
     <div
       className={`event-lb__prize event-lb__prize--r${rank}${featured ? ' event-lb__prize--featured' : ''}`}
-      style={{ '--prize-accent': theme.accent, '--prize-bg': theme.bg, '--prize-shadow': theme.shadow } as React.CSSProperties}
     >
       <div className="event-lb__prize-head">
-        <span className="event-lb__prize-medal" aria-hidden>{theme.medal}</span>
+        <span className="event-lb__prize-medal" aria-hidden>{PRIZE_MEDALS[rank]}</span>
         <span className="event-lb__prize-rank-label">{prize.label || `${rank}. sıra`}</span>
       </div>
 
