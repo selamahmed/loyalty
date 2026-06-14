@@ -9,6 +9,7 @@ import RewardPopup from './RewardPopup';
 import { playSound } from '../lib/sounds';
 import { prefetchRoute } from '../lib/routePrefetch';
 import AppLogo from './AppLogo';
+import DesktopFooter from './DesktopFooter';
 
 const navItems = [
   { path: '/home',         icon: Home,        label: 'Sayfa'     },
@@ -123,9 +124,11 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
           </button>
         </header>
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto" style={{ paddingBottom: 88, position: 'relative', zIndex: 1 }}>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto app-main-with-nav" style={{ position: 'relative', zIndex: 1 }}>
           {children}
         </main>
+
+        {!hideNav && <DesktopFooter onNavigate={navigateTo} />}
 
         {/* ── Bottom nav (mobile) ── */}
         {!hideNav && (
