@@ -201,7 +201,12 @@ const MemoryGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
 
 type FallingItem = { id: number; x: number; y: number; type: 'gift' | 'star' | 'bomb' };
 
+const CATCH_FALL_SPEED = 58; // % of arena height per second
+const CATCH_CUP_SPEED = 96;  // % per second when holding left/right
+const CATCH_SPAWN_MS = 720;
+
 const CatchGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
+  const gridPatternId = React.useId().replace(/:/g, '');
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'done'>('idle');
   const [displayItems, setDisplayItems] = useState<FallingItem[]>([]);
   const [displayScore, setDisplayScore] = useState(0);
@@ -216,6 +221,10 @@ const CatchGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
   const activeRef = useRef(false);
   const timeRef   = useRef(20);
   const holdDir   = useRef<-1 | 0 | 1>(0);
+  const rafRef    = useRef(0);
+  const lastFrameRef = useRef(0);
+  const spawnAccRef = useRef(0);
+  const timeAccRef = useRef(0);
 
   const CUP_HALF = 10; // % half-width of cup
 
@@ -243,71 +252,85 @@ const CatchGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
     cupXRef.current = x; setCupX(x);
   };
 
-  // Hold-button movement
-  useEffect(() => {
-    if (gameState !== 'playing') return;
-    const id = setInterval(() => {
-      if (holdDir.current !== 0) {
-        const nx = clampCup(cupXRef.current + holdDir.current * 4);
-        cupXRef.current = nx; setCupX(nx);
-      }
-    }, 40);
-    return () => clearInterval(id);
-  }, [gameState]);
+  const spawnItem = useCallback(() => {
+    const r = Math.random();
+    itemsRef.current = [...itemsRef.current, {
+      id: nextIdRef.current++,
+      x: Math.random() * 78 + 11,
+      y: -6,
+      type: r > 0.8 ? 'bomb' : r > 0.5 ? 'star' : 'gift',
+    }];
+  }, []);
 
-  // Main game loop
+  // Main game loop — requestAnimationFrame for smooth 60fps motion
   useEffect(() => {
     if (gameState !== 'playing') return;
     activeRef.current = true;
+    lastFrameRef.current = performance.now();
+    spawnAccRef.current = 0;
+    timeAccRef.current = 0;
 
-    const spawnId = setInterval(() => {
+    const tick = (now: number) => {
       if (!activeRef.current) return;
-      const r = Math.random();
-      itemsRef.current = [...itemsRef.current, {
-        id: nextIdRef.current++,
-        x: Math.random() * 78 + 11,
-        y: -6,
-        type: r > 0.8 ? 'bomb' : r > 0.5 ? 'star' : 'gift',
-      }];
-    }, 750);
 
-    const loopId = setInterval(() => {
-      if (!activeRef.current) return;
+      const dt = Math.min((now - lastFrameRef.current) / 1000, 0.05);
+      lastFrameRef.current = now;
+
+      if (holdDir.current !== 0) {
+        const nx = clampCup(cupXRef.current + holdDir.current * CATCH_CUP_SPEED * dt);
+        cupXRef.current = nx;
+        setCupX(nx);
+      }
+
+      spawnAccRef.current += dt * 1000;
+      while (spawnAccRef.current >= CATCH_SPAWN_MS) {
+        spawnAccRef.current -= CATCH_SPAWN_MS;
+        spawnItem();
+      }
+
       const cup = cupXRef.current;
+      let scoreChanged = false;
       itemsRef.current = itemsRef.current
-        .map(i => ({ ...i, y: i.y + 2.4 }))
+        .map(i => ({ ...i, y: i.y + CATCH_FALL_SPEED * dt }))
         .filter(i => {
           if (i.y >= 78 && i.y < 94) {
             if (Math.abs(i.x - cup) <= CUP_HALF + 2) {
-              if (i.type === 'bomb')  scoreRef.current = Math.max(0, scoreRef.current - 3);
+              if (i.type === 'bomb') scoreRef.current = Math.max(0, scoreRef.current - 3);
               else if (i.type === 'star') scoreRef.current += 2;
-              else                    scoreRef.current += 1;
-              setDisplayScore(scoreRef.current);
+              else scoreRef.current += 1;
+              scoreChanged = true;
               return false;
             }
           }
           return i.y < 102;
         });
-      setDisplayItems([...itemsRef.current]);
-    }, 40);
 
-    const timerId = setInterval(() => {
-      if (!activeRef.current) return;
-      timeRef.current--;
-      setDisplayTime(timeRef.current);
-      if (timeRef.current <= 0) {
-        activeRef.current = false;
-        clearInterval(spawnId); clearInterval(loopId); clearInterval(timerId);
-        setGameState('done');
-        onWin();
+      if (scoreChanged) setDisplayScore(scoreRef.current);
+      setDisplayItems([...itemsRef.current]);
+
+      timeAccRef.current += dt;
+      if (timeAccRef.current >= 1) {
+        timeAccRef.current -= 1;
+        timeRef.current = Math.max(0, timeRef.current - 1);
+        setDisplayTime(timeRef.current);
+        if (timeRef.current <= 0) {
+          activeRef.current = false;
+          setGameState('done');
+          onWin();
+          return;
+        }
       }
-    }, 1000);
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
 
     return () => {
       activeRef.current = false;
-      clearInterval(spawnId); clearInterval(loopId); clearInterval(timerId);
+      cancelAnimationFrame(rafRef.current);
     };
-  }, [gameState, onWin]);
+  }, [gameState, onWin, spawnItem]);
 
   const emoji = (t: FallingItem['type']) => t === 'gift' ? '🎁' : t === 'star' ? '⭐' : '💣';
 
@@ -353,9 +376,9 @@ const CatchGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
             ref={gameAreaRef}
             onPointerMove={handlePointerMove}
             onTouchMove={handleTouchMove}
+            className="catch-game-arena"
             style={{
               position: 'relative', height: 360, width: '100%',
-              background: '#f0f9ff',
               border: '3px solid #000',
               borderRadius: 18, overflow: 'hidden',
               cursor: 'none', touchAction: 'none',
@@ -363,31 +386,54 @@ const CatchGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
               userSelect: 'none',
             }}
           >
-            {/* Grid background (neo-brutalism) */}
-            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.07 }} xmlns="http://www.w3.org/2000/svg">
+            <svg
+              className="catch-game-arena__bg"
+              aria-hidden
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+              xmlns="http://www.w3.org/2000/svg"
+              preserveAspectRatio="none"
+            >
               <defs>
-                <pattern id="cgrid" width="28" height="28" patternUnits="userSpaceOnUse">
-                  <path d="M 28 0 L 0 0 0 28" fill="none" stroke="black" strokeWidth="1"/>
-                </pattern>
+                <linearGradient id={`${gridPatternId}-sky`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#dbeafe" />
+                  <stop offset="45%" stopColor="#ede9fe" />
+                  <stop offset="100%" stopColor="#fef3c7" />
+                </linearGradient>
+                <linearGradient id={`${gridPatternId}-floor`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#c8ff00" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#9122ff" stopOpacity="0.22" />
+                </linearGradient>
               </defs>
-              <rect width="100%" height="100%" fill="url(#cgrid)"/>
+              <rect width="100%" height="100%" fill={`url(#${gridPatternId}-sky)`} />
+              <ellipse cx="18%" cy="16%" rx="11%" ry="5%" fill="#fff" opacity="0.72" />
+              <ellipse cx="24%" cy="14%" rx="7%" ry="3.5%" fill="#fff" opacity="0.55" />
+              <ellipse cx="78%" cy="22%" rx="13%" ry="5.5%" fill="#fff" opacity="0.62" />
+              <ellipse cx="70%" cy="19%" rx="8%" ry="3.5%" fill="#fff" opacity="0.48" />
+              <rect x="0" y="82%" width="100%" height="18%" fill={`url(#${gridPatternId}-floor)`} />
+              <line x1="0" y1="82%" x2="100%" y2="82%" stroke="#000" strokeWidth="2" opacity="0.18" />
             </svg>
 
             {/* Catch zone indicator */}
-            <div style={{ position: 'absolute', bottom: '14%', left: 0, right: 0, height: 2, background: '#000', opacity: 0.12 }} />
+            <div style={{ position: 'absolute', bottom: '14%', left: '4%', right: '4%', height: 3, borderRadius: 99, background: 'rgba(145,34,255,0.22)', border: '1.5px dashed rgba(0,0,0,0.18)' }} />
 
             {/* Falling items */}
             {displayItems.map(item => (
               <div
                 key={item.id}
+                className="catch-game-item"
                 style={{
                   position: 'absolute',
                   left: `${item.x}%`,
                   top: `${item.y}%`,
-                  transform: 'translate(-50%, -50%)',
+                  transform: 'translate3d(-50%, -50%, 0)',
                   fontSize: 30, lineHeight: 1,
                   pointerEvents: 'none',
-                  filter: item.type === 'bomb' ? 'drop-shadow(0 0 5px rgba(239,68,68,0.8))' : 'drop-shadow(0 2px 2px rgba(0,0,0,0.3))',
+                  willChange: 'transform',
+                  filter: item.type === 'bomb'
+                    ? 'drop-shadow(0 0 6px rgba(239,68,68,0.85))'
+                    : item.type === 'star'
+                      ? 'drop-shadow(0 2px 4px rgba(251,191,36,0.55))'
+                      : 'drop-shadow(0 2px 3px rgba(0,0,0,0.28))',
                 }}
               >
                 {emoji(item.type)}

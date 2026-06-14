@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Star, Crown, TrendingUp, Gift, Timer, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getLeaderboard, LEADERBOARD_TOP_LIMIT, type LeaderboardEntry } from '../services/points';
+import { getLeaderboard, getMyAlltimeRank, LEADERBOARD_TOP_LIMIT, type LeaderboardEntry } from '../services/points';
 import { getActiveEvents, type AppEvent, type RewardPrize, deriveEventStatus } from '../services/events';
 import {
   getLeaderboardPrizeEvents,
@@ -51,15 +51,27 @@ const toEventRankPlayer = (entry: EventLeaderboardEntry): RankDisplayPlayer => (
   points: entry.points,
 });
 
-/* ── Shared weekly-style podium + rows ── */
-const PODIUM_SLOT_RANKS = [2, 1, 3] as const;
+/* ── Podium layout ── */
+const PODIUM_LAYOUT: Record<number, number[]> = {
+  1: [1],
+  2: [2, 1],
+  3: [2, 1, 3],
+};
+
+const podiumVisualIndex = (slotRank: number): number => {
+  if (slotRank === 1) return 1;
+  if (slotRank === 2) return 0;
+  return 2;
+};
 
 const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[]; loading?: boolean }> = ({ topThree, loading }) => {
-  const podiumOrder: (RankDisplayPlayer | undefined)[] = [topThree[1], topThree[0], topThree[2]];
+  const sorted = [...topThree].sort((a, b) => a.rank - b.rank);
+  const layout = PODIUM_LAYOUT[Math.min(sorted.length, 3)] ?? [];
+  const shellClass = 'lb-podium';
 
   if (loading) {
     return (
-      <div style={{
+      <div className={shellClass} style={{
         ...card,
         background: 'linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
         border: '3px solid #f59e0b',
@@ -75,7 +87,7 @@ const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[]; loading?: bo
 
   if (topThree.length === 0) {
     return (
-      <div style={{
+      <div className={shellClass} style={{
         ...card,
         background: 'linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
         border: '3px solid #f59e0b',
@@ -90,14 +102,13 @@ const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[]; loading?: bo
   }
 
   return (
-    <div style={{
+    <div className={shellClass} style={{
       ...card,
       background: 'linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
       border: '3px solid #f59e0b',
       boxShadow: '0 6px 0 #d97706',
       padding: 'clamp(16px,4vw,28px)',
       position: 'relative',
-      overflow: 'visible',
     }}>
       <h2 style={{
         textAlign: 'center', fontWeight: 900, fontSize: 16, color: 'var(--text-dark)',
@@ -105,37 +116,30 @@ const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[]; loading?: bo
       }}>
         <Crown size={20} color="#f59e0b" /> Top 3 Şampiyonlar
       </h2>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 12 }}>
-        {podiumOrder.map((player, i) => {
-          const slotRank = PODIUM_SLOT_RANKS[i];
-          const isFirst = player?.rank === 1;
-          const badge = player?.rank === 1 ? '👑' : player?.rank === 2 ? '🥈' : player?.rank === 3 ? '🥉' : null;
+      <div className="lb-podium__stage">
+        {layout.map(slotRank => {
+          const player = sorted.find(p => p.rank === slotRank);
+          if (!player) return null;
+          const i = podiumVisualIndex(slotRank);
+          const isFirst = player.rank === 1;
+          const badge = player.rank === 1 ? '👑' : player.rank === 2 ? '🥈' : '🥉';
           const sz = isFirst ? 72 : 58;
           return (
-            <div key={player?.id ?? `slot-${slotRank}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div key={player.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               <div style={{ position: 'relative' }}>
-                {player
-                  ? <Avatar url={player.avatar_url} name={player.username} size={sz} border={`${isFirst ? 4 : 3}px solid ${PODIUM_COLORS[i]}`} />
-                  : <div style={{
-                    width: sz, height: sz, borderRadius: '50%', background: 'var(--tab-bg)',
-                    border: `3px dashed ${PODIUM_COLORS[i]}`, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: 14, color: 'var(--text-muted)', opacity: 0.55,
-                  }}>—</div>
-                }
-                {badge && (
-                  <div style={{ position: 'absolute', top: -8, right: -6, fontSize: isFirst ? 22 : 18 }}>{badge}</div>
-                )}
+                <Avatar url={player.avatar_url} name={player.username} size={sz} border={`${isFirst ? 4 : 3}px solid ${PODIUM_COLORS[i]}`} />
+                <div style={{ position: 'absolute', top: -8, right: -6, fontSize: isFirst ? 22 : 18 }}>{badge}</div>
               </div>
               <p style={{
                 fontWeight: 900, fontSize: isFirst ? 14 : 12, color: 'var(--text-dark)',
                 textAlign: 'center', margin: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
-                {player?.username ?? '—'}
+                {player.username}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <Star size={10} fill="#f59e0b" color="#f59e0b" />
                 <span style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b' }}>
-                  {player ? player.points.toLocaleString('tr-TR') : '—'}
+                  {player.points.toLocaleString('tr-TR')}
                 </span>
               </div>
               <div style={{
@@ -146,7 +150,7 @@ const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[]; loading?: bo
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <span style={{ fontSize: isFirst ? 24 : 20, fontWeight: 900, color: 'white' }}>
-                  #{player?.rank ?? slotRank}
+                  #{player.rank}
                 </span>
               </div>
             </div>
@@ -263,14 +267,34 @@ const Avatar: React.FC<{ url: string | null; name: string; size?: number; border
   <NeoAvatar src={url} name={name} size={size} shape="circle" border={border !== undefined ? Boolean(border) : true} />
 );
 
-const TAB_LABELS: Record<string, string> = {
-  weekly: 'Bu Hafta',
-  monthly: 'Bu Ay',
-  alltime: 'Tüm Zamanlar',
-  events: '🏆 Etkinlikler',
-};
-const PERIOD_LABEL: Record<string, string> = { weekly: 'bu hafta', monthly: 'bu ay', alltime: 'toplam' };
-type LeaderboardTab = 'weekly' | 'monthly' | 'alltime' | 'events';
+type LeaderboardTab = 'alltime' | 'events';
+
+const LeaderboardTabs: React.FC<{
+  tab: LeaderboardTab;
+  onChange: (tab: LeaderboardTab) => void;
+  eventCount?: number;
+}> = ({ tab, onChange, eventCount = 0 }) => (
+  <div className="lb-tabs" role="tablist" aria-label="Sıralama türü">
+    <button
+      type="button"
+      role="tab"
+      aria-selected={tab === 'alltime'}
+      className={`lb-tab${tab === 'alltime' ? ' lb-tab--active' : ''}`}
+      onClick={() => onChange('alltime')}
+    >
+      Tüm Zamanlar
+    </button>
+    <button
+      type="button"
+      role="tab"
+      aria-selected={tab === 'events'}
+      className={`lb-tab${tab === 'events' ? ' lb-tab--active lb-tab--events' : ''}`}
+      onClick={() => onChange('events')}
+    >
+      Etkinlikler{eventCount > 0 ? ` (${eventCount})` : ''}
+    </button>
+  </div>
+);
 
 /* ── Countdown hook ── */
 const useCountdown = (endDate: string) => {
@@ -406,6 +430,17 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
   };
 
   const inEventList = Boolean(authUser?.id && topPlayers.some(p => p.id === authUser.id));
+  const eventTop3 = displayPlayers.slice(0, 3);
+  const eventRest = displayPlayers.slice(3);
+  const winnerTop3 = sortedWinners.slice(0, 3);
+  const winnerRest = sortedWinners.slice(3);
+  const showEventMyRank = Boolean(
+    showUserCard
+    && participation?.joined
+    && participation.rank != null
+    && authUser
+    && !inEventList,
+  );
 
   return (
     <div className="event-lb">
@@ -473,59 +508,96 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
         </div>
       )}
 
-      {showUserCard && (
-        <EventUserPositionCard
-          participation={participation}
-          ended={ended}
-          upcoming={upcoming}
-          onJoin={() => { void handleJoin(); }}
-          joining={joining}
-          isLoggedIn={Boolean(authUser?.id)}
-        />
-      )}
+      <div className="event-lb__body">
+        {showUserCard && (
+          <EventUserPositionCard
+            participation={participation}
+            ended={ended}
+            upcoming={upcoming}
+            onJoin={() => { void handleJoin(); }}
+            joining={joining}
+            isLoggedIn={Boolean(authUser?.id)}
+          />
+        )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {showEventMyRank && (
+          <MyRankingCard
+            rank={participation!.rank!}
+            points={participation!.points ?? 0}
+            level={topPlayers.find(p => p.id === authUser!.id)?.level ?? profile?.level ?? 1}
+            username={profile?.username ?? authUser!.email ?? 'Sen'}
+            avatarUrl={profile?.avatar_url ?? null}
+            pointsLabel="etkinlik"
+            outsideTop50={participation!.rank! > 50}
+          />
+        )}
+
         {!ended && displayPlayers.length > 0 && (
           <>
-            <ChampionPodiumCard topThree={displayPlayers.slice(0, 3).map(toEventRankPlayer)} />
-            {displayPlayers.slice(3).map(p => (
-              <LeaderboardRankRow
-                key={p.id}
-                player={toEventRankPlayer(p)}
-                isCurrentUser={p.id === authUser?.id}
-                subtitle={prizeSubtitle(p.rank)}
-                pointsLabel="etkinlik"
-              />
-            ))}
+            <div className="event-lb__standings-head">
+              <h4>Canlı sıralama</h4>
+              <span className="event-lb__live-dot" aria-hidden />
+            </div>
+            <div className="event-lb__standings">
+              <ChampionPodiumCard topThree={eventTop3.map(toEventRankPlayer)} />
+              {eventRest.length > 0 && (
+                <>
+                  <p className="lb-section-label">Sıra 4+</p>
+                  <div className="event-lb__list">
+                    {eventRest.map(p => (
+                      <LeaderboardRankRow
+                        key={p.id}
+                        player={toEventRankPlayer(p)}
+                        isCurrentUser={p.id === authUser?.id}
+                        subtitle={prizeSubtitle(p.rank)}
+                        pointsLabel="etkinlik"
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </>
         )}
 
         {ended && sortedWinners.length > 0 && (
           <>
-            <ChampionPodiumCard topThree={sortedWinners.slice(0, 3).map(w => ({
-              id: w.user_id,
-              rank: w.final_rank,
-              username: w.profiles?.username ?? '—',
-              avatar_url: w.profiles?.avatar_url ?? null,
-              level: 0,
-              points: w.final_points,
-            }))} />
-            {sortedWinners.slice(3).map(w => (
-              <LeaderboardRankRow
-                key={w.id}
-                player={{
-                  id: w.user_id,
-                  rank: w.final_rank,
-                  username: w.profiles?.username ?? '—',
-                  avatar_url: w.profiles?.avatar_url ?? null,
-                  level: 0,
-                  points: w.final_points,
-                }}
-                isCurrentUser={w.user_id === authUser?.id}
-                subtitle={w.prize_title}
-                pointsLabel="final"
-              />
-            ))}
+            <div className="event-lb__standings-head">
+              <h4>Final sıralaması</h4>
+            </div>
+            <div className="event-lb__standings">
+              <ChampionPodiumCard topThree={winnerTop3.map(w => ({
+                id: w.user_id,
+                rank: w.final_rank,
+                username: w.profiles?.username ?? '—',
+                avatar_url: w.profiles?.avatar_url ?? null,
+                level: 0,
+                points: w.final_points,
+              }))} />
+              {winnerRest.length > 0 && (
+                <>
+                  <p className="lb-section-label">Sıra 4+</p>
+                  <div className="event-lb__list">
+                    {winnerRest.map(w => (
+                      <LeaderboardRankRow
+                        key={w.id}
+                        player={{
+                          id: w.user_id,
+                          rank: w.final_rank,
+                          username: w.profiles?.username ?? '—',
+                          avatar_url: w.profiles?.avatar_url ?? null,
+                          level: 0,
+                          points: w.final_points,
+                        }}
+                        isCurrentUser={w.user_id === authUser?.id}
+                        subtitle={w.prize_title}
+                        pointsLabel="final"
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </>
         )}
 
@@ -539,18 +611,6 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
           </div>
         )}
       </div>
-
-      {showUserCard && participation?.joined && participation.rank != null && authUser && (
-        <MyRankingCard
-          rank={participation.rank}
-          points={participation.points ?? 0}
-          level={topPlayers.find(p => p.id === authUser.id)?.level ?? profile?.level ?? 1}
-          username={profile?.username ?? authUser.email ?? 'Sen'}
-          avatarUrl={profile?.avatar_url ?? null}
-          pointsLabel="etkinlik"
-          outsideTop50={!inEventList && participation.rank > 50}
-        />
-      )}
     </div>
   );
 };
@@ -571,46 +631,36 @@ const Leaderboard: React.FC = () => {
   tabRef.current = tab;
   authUserRef.current = authUser;
 
-  const fetchMyRank = React.useCallback(async (userId: string, period: 'weekly' | 'monthly' | 'alltime') => {
+  const fetchMyRank = React.useCallback(async () => {
     try {
-      if (period === 'alltime') {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, username, avatar_url, level, total_points')
-          .eq('id', userId)
-          .single();
-        if (!data) return;
-        const { count } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'active')
-          .gt('total_points', data.total_points);
-        setMyRankEntry({ ...data, rank: (count ?? 0) + 1 });
-        return;
-      }
-
-      const view = period === 'weekly' ? 'leaderboard_weekly' : 'leaderboard_monthly';
-      const { data, error } = await supabase
-        .from(view)
-        .select('id, username, avatar_url, level, period_points, rank')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error || !data || (data.period_points ?? 0) <= 0) {
-        setMyRankEntry(null);
-        return;
-      }
-
-      setMyRankEntry({
-        id: data.id,
-        username: data.username,
-        avatar_url: data.avatar_url,
-        level: data.level,
-        total_points: data.period_points,
-        rank: data.rank,
-      });
-    } catch { /**/ }
+      setMyRankEntry(await getMyAlltimeRank());
+    } catch {
+      setMyRankEntry(null);
+    }
   }, []);
+
+  const loadLeaderboard = React.useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    try {
+      const data = await getLeaderboard(LEADERBOARD_TOP_LIMIT);
+      setLeaderboard(data);
+      const uid = authUserRef.current?.id;
+      if (uid && !data.find(p => p.id === uid)) {
+        await fetchMyRank();
+      } else {
+        setMyRankEntry(null);
+      }
+    } catch (err) {
+      console.warn('[Leaderboard] load failed:', err);
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
+  }, [fetchMyRank]);
+
+  useEffect(() => {
+    if (tab === 'events') return;
+    loadLeaderboard();
+  }, [tab, authUser, loadLeaderboard]);
 
   const loadPrizeEvents = React.useCallback(async () => {
     try {
@@ -627,29 +677,6 @@ const Leaderboard: React.FC = () => {
     }
   }, []);
 
-  const loadLeaderboard = React.useCallback(async (period: 'weekly' | 'monthly' | 'alltime', silent = false) => {
-    if (!silent) setIsLoading(true);
-    try {
-      const data = await getLeaderboard(LEADERBOARD_TOP_LIMIT, period);
-      setLeaderboard(data);
-      const uid = authUserRef.current?.id;
-      if (uid && !data.find(p => p.id === uid)) {
-        fetchMyRank(uid, period);
-      } else {
-        setMyRankEntry(null);
-      }
-    } catch (err) {
-      console.warn('[Leaderboard] load failed:', err);
-    } finally {
-      if (!silent) setIsLoading(false);
-    }
-  }, [fetchMyRank]);
-
-  useEffect(() => {
-    if (tab === 'events') return;
-    loadLeaderboard(tab);
-  }, [tab, authUser, loadLeaderboard]);
-
   useEffect(() => {
     if (tab !== 'events') return;
     void syncEventStatuses().then(() => loadPrizeEvents());
@@ -661,7 +688,7 @@ const Leaderboard: React.FC = () => {
   useEffect(() => {
     const refresh = () => {
       if (tabRef.current === 'events') return;
-      loadLeaderboard(tabRef.current, true);
+      loadLeaderboard(true);
     };
 
     const channel = supabase
@@ -676,7 +703,7 @@ const Leaderboard: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (tabRef.current === 'events') return;
-      loadLeaderboard(tabRef.current, true);
+      loadLeaderboard(true);
     }, 10000);
     return () => clearInterval(interval);
   }, [loadLeaderboard]);
@@ -719,29 +746,34 @@ const Leaderboard: React.FC = () => {
 
   const top3 = leaderboard.slice(0, 3);
   const rest = leaderboard.slice(3);
+  const inLeaderboardList = Boolean(authUser && leaderboard.some(p => p.id === authUser.id));
+  const myRank = inLeaderboardList
+    ? leaderboard.find(p => p.id === authUser!.id)!
+    : myRankEntry;
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
-      {/* Ghost watermark */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
-        <div style={{
-          position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
-          fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
-          opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em',
-        }}>LİDERLİK</div>
-      </div>
+    <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden lb-page">
 
-      <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
+        {tab === 'alltime' ? (
+          <StickerHero
+            page="leaderboard"
+            bg="linear-gradient(135deg,#FF3E9D 0%,#9122FF 100%)"
+            badge="👑 LİDERLİK"
+            title="Zirveye çık,"
+            highlight="efsane ol!"
+            titleColor="#ffffff"
+            highlightColor="#C8FF00"
+          />
+        ) : (
+          <header className="lb-header lb-header--compact">
+            <div className="lb-header__copy">
+              <p className="section-label">Etkinlik sıralaması</p>
+              <h1 className="section-title">{selectedEvent?.title ?? 'Ödül etkinlikleri'}</h1>
+            </div>
+          </header>
+        )}
 
-        <StickerHero
-          page="leaderboard"
-          bg="linear-gradient(135deg,#FF3E9D 0%,#9122FF 100%)"
-          badge="👑 LİDERLİK"
-          title="Zirveye çık,"
-          highlight="efsane ol!"
-          titleColor="#ffffff"
-          highlightColor="#C8FF00"
-        />
+        <LeaderboardTabs tab={tab} onChange={setTab} eventCount={activeEvents.length} />
 
         {!eventsDbReady && (tab === 'events' || activeEvents.length > 0) && (
           <div style={{
@@ -834,22 +866,15 @@ const Leaderboard: React.FC = () => {
             ) : (
               <>
                 {activeEvents.length > 1 && (
-                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                  <div className="lb-tabs">
                     {activeEvents.map(ev => (
                       <button
                         key={ev.id}
                         type="button"
+                        className={`lb-tab${selectedEvent?.id === ev.id ? ' lb-tab--active lb-tab--events' : ''}`}
                         onClick={() => setSelectedEventId(ev.id)}
-                        style={{
-                          flexShrink: 0, padding: '8px 14px', borderRadius: 999, cursor: 'pointer',
-                          fontWeight: 900, fontSize: 11, fontFamily: 'inherit',
-                          background: selectedEvent?.id === ev.id ? (ev.color ?? '#7B6EF6') : 'var(--card-bg)',
-                          color: selectedEvent?.id === ev.id ? '#000' : 'var(--text-dark)',
-                          border: '2.5px solid var(--dark-border)',
-                          boxShadow: selectedEvent?.id === ev.id ? '0 3px 0 var(--dark-border)' : '0 2px 0 var(--dark-border)',
-                        }}
                       >
-                        {ev.emoji ?? '🏆'} {ev.title}
+                        {ev.emoji ?? '🏆'} {ev.title.length > 24 ? `${ev.title.slice(0, 24)}…` : ev.title}
                       </button>
                     ))}
                   </div>
@@ -861,70 +886,51 @@ const Leaderboard: React.FC = () => {
         )}
 
         {tab !== 'events' && (
-        <>
+        <div className="lb-rankings-block">
+        {authUser && myRank && !inLeaderboardList && (
+          <MyRankingCard
+            rank={myRank.rank}
+            points={myRank.total_points}
+            level={myRank.level}
+            username={profile?.username ?? authUser.email ?? 'Sen'}
+            avatarUrl={profile?.avatar_url ?? null}
+            outsideTop50={!inLeaderboardList && myRank.rank > LEADERBOARD_TOP_LIMIT}
+          />
+        )}
+
         <ChampionPodiumCard topThree={top3.map(toRankPlayer)} loading={isLoading} />
 
-        {/* ── Rest of rankings (positions 4+) ── */}
-        {isLoading ? (
-          <div style={{ ...card, padding: 40, textAlign: 'center' }}>
-            <div className="w-8 h-8 rounded-full border-4 border-violet-400 border-t-transparent animate-spin mx-auto mb-3" />
-            <p style={{ color: 'var(--text-muted)', fontWeight: 700, margin: 0 }}>Yükleniyor...</p>
-          </div>
-        ) : rest.length === 0 && leaderboard.length === 0 ? (
-          /* Empty state for period with no activity */
+        {!isLoading && rest.length === 0 && leaderboard.length === 0 ? (
           <div style={{ ...card, padding: '32px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 10 }}>📊</div>
             <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 6px' }}>
-              {tab === 'alltime' ? 'Henüz kimse yok' : `${TAB_LABELS[tab]} aktivite yok`}
+              Henüz kimse yok
             </p>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
-              {tab === 'alltime'
-                ? 'İlk puanı kazanan olun 🚀'
-                : `Bu ${tab === 'weekly' ? 'hafta' : 'ay'} puan kazan ve sıralamana gir! 🚀`}
+              İlk puanı kazanan olun 🚀
             </p>
           </div>
         ) : (
           <>
-          {rest.length > 0 && (
-            <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          {!isLoading && rest.length > 0 && (
+            <p className="lb-section-label">
               Sıra 4–{Math.min(LEADERBOARD_TOP_LIMIT, leaderboard.length)}
             </p>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="event-lb__list">
             {rest.map(player => (
               <LeaderboardRankRow
-                key={player.rank}
+                key={player.id}
                 player={toRankPlayer(player)}
                 isCurrentUser={player.id === authUser?.id}
-                pointsLabel={tab !== 'alltime' ? PERIOD_LABEL[tab] : undefined}
               />
             ))}
           </div>
           </>
         )}
-
-        {/* ── Your ranking ── */}
-        {authUser && (() => {
-          const inList = leaderboard.find(p => p.id === authUser.id);
-          const myRank = inList ?? myRankEntry;
-          if (!myRank) return null;
-          return (
-            <MyRankingCard
-              rank={myRank.rank}
-              points={myRank.total_points}
-              level={myRank.level}
-              username={profile?.username ?? authUser.email ?? 'Sen'}
-              avatarUrl={profile?.avatar_url ?? null}
-              pointsLabel={tab !== 'alltime' ? PERIOD_LABEL[tab] : undefined}
-              outsideTop50={!inList && myRank.rank > LEADERBOARD_TOP_LIMIT}
-            />
-          );
-        })()}
-
-        </>
+        </div>
         )}
 
-      </div>
     </div>
   );
 };

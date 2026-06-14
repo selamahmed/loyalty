@@ -352,30 +352,9 @@ create policy "Admins manage events"
     or (auth.jwt() -> 'user_metadata' ->> 'role') in ('super_admin','store_admin')
   );
 
--- ── Points: add weekly/monthly helper view ────────────────────────────────────
-create or replace view public.leaderboard_weekly as
-  select
-    p.id, p.username, p.avatar_url, p.level,
-    coalesce(sum(pt.amount) filter (where pt.amount > 0), 0)::int as period_points,
-    rank() over (order by coalesce(sum(pt.amount) filter (where pt.amount > 0), 0) desc) as rank
-  from public.profiles p
-  left join public.points_transactions pt
-    on pt.user_id = p.id
-   and pt.created_at >= (now() - interval '7 days')
-  where p.status = 'active'
-  group by p.id, p.username, p.avatar_url, p.level;
-
-create or replace view public.leaderboard_monthly as
-  select
-    p.id, p.username, p.avatar_url, p.level,
-    coalesce(sum(pt.amount) filter (where pt.amount > 0), 0)::int as period_points,
-    rank() over (order by coalesce(sum(pt.amount) filter (where pt.amount > 0), 0) desc) as rank
-  from public.profiles p
-  left join public.points_transactions pt
-    on pt.user_id = p.id
-   and pt.created_at >= (now() - interval '30 days')
-  where p.status = 'active'
-  group by p.id, p.username, p.avatar_url, p.level;
+-- ── Points: period leaderboard views removed (all-time uses get_alltime_leaderboard RPC) ──
+drop view if exists public.leaderboard_monthly;
+drop view if exists public.leaderboard_weekly;
 
 -- ── ACTIVITY LOGS: add region, isp, timezone columns ─────────
 alter table public.activity_logs

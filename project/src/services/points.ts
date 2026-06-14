@@ -46,97 +46,80 @@ export async function spendPoints(
   if (error) throw error;
 }
 
-export type LeaderboardEntry = { rank: number; username: string; total_points: number; level: number; avatar_url: string | null; id: string };
+export type LeaderboardEntry = {
+  rank: number;
+  username: string;
+  total_points: number;
+  level: number;
+  avatar_url: string | null;
+  id: string;
+};
 
 export const LEADERBOARD_TOP_LIMIT = 20;
 
-export async function getLeaderboard(
-  limit = LEADERBOARD_TOP_LIMIT,
-  period: 'alltime' | 'weekly' | 'monthly' = 'alltime',
-): Promise<LeaderboardEntry[]> {
-  // All-time: top players by profiles.total_points
-  if (period === 'alltime') {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username, total_points, level, avatar_url')
-      .eq('status', 'active')
-      .order('total_points', { ascending: false })
-      .order('username', { ascending: true })
-      .limit(limit);
-    if (error) throw error;
-    return (data ?? []).map((u, i) => ({
-      rank: i + 1,
-      id: u.id,
-      username: u.username ?? 'Oyuncu',
-      total_points: u.total_points ?? 0,
-      level: u.level ?? 1,
-      avatar_url: u.avatar_url,
-    }));
-  }
+type AlltimeRow = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  level: number;
+  total_points: number;
+  rank: number;
+};
 
-  // Weekly / Monthly — try the pre-built view first (requires patch_new_tables.sql to be run)
-  const view = period === 'weekly' ? 'leaderboard_weekly' : 'leaderboard_monthly';
+function mapLeaderboardRow(u: AlltimeRow): LeaderboardEntry {
+  return {
+    id: u.id,
+    username: u.username ?? 'Oyuncu',
+    total_points: u.total_points ?? 0,
+    level: u.level ?? 1,
+    avatar_url: u.avatar_url,
+    rank: u.rank,
+  };
+}
+
+async function getLeaderboardFallback(limit: number): Promise<LeaderboardEntry[]> {
   const { data, error } = await supabase
-    .from(view)
-    .select('id, username, avatar_url, level, period_points, rank')
-    .gt('period_points', 0)          // exclude users with 0 period activity
-    .order('period_points', { ascending: false })
-    .limit(limit);
-
-  if (!error && data) {
-    // View exists and returned data — use it (even if empty for this period)
-    return data.map(u => ({
-      id: u.id,
-      username: u.username,
-      avatar_url: u.avatar_url,
-      level: u.level,
-      total_points: u.period_points,
-      rank: u.rank ?? 0,
-    })).filter(u => u.total_points > 0)
-      .sort((a, b) => a.rank - b.rank)
-      .slice(0, limit);
-  }
-
-  // View not created yet — compute inline from points_transactions
-  const days = period === 'weekly' ? 7 : 30;
-  const since = new Date(Date.now() - days * 86400000).toISOString();
-  const { data: txData, error: txError } = await supabase
-    .from('points_transactions')
-    .select('user_id, amount')
-    .gte('created_at', since)
-    .gt('amount', 0);
-
-  // If the table query itself fails, fall back to all-time
-  if (txError) {
-    const { data: fb } = await supabase
-      .from('profiles')
-      .select('id, username, total_points, level, avatar_url')
-      .eq('status', 'active')
-      .order('total_points', { ascending: false })
-      .limit(limit);
-    return (fb ?? []).map((u, i) => ({ rank: i + 1, ...u }));
-  }
-
-  // No transactions in this period — return empty (don't fake it with all-time data)
-  if (!txData || txData.length === 0) return [];
-
-  // Aggregate per user
-  const totals: Record<string, number> = {};
-  txData.forEach(r => { totals[r.user_id] = (totals[r.user_id] ?? 0) + (r.amount ?? 0); });
-  const topIds = Object.entries(totals)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([id]) => id);
-
-  const { data: profiles } = await supabase
     .from('profiles')
     .select('id, username, total_points, level, avatar_url')
-    .in('id', topIds);
+    .eq('status', 'active')
+    .gt('total_points', 0)
+    .order('total_points', { ascending: false })
+    .order('username', { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((u, i) => ({
+    rank: i + 1,
+    id: u.id,
+    username: u.username ?? 'Oyuncu',
+    total_points: u.total_points ?? 0,
+    level: u.level ?? 1,
+    avatar_url: u.avatar_url,
+  }));
+}
 
-  return (profiles ?? [])
-    .map(u => ({ ...u, period_total: totals[u.id] ?? 0 }))
-    .sort((a, b) => b.period_total - a.period_total)
-    .map((u, i) => ({ rank: i + 1, id: u.id, username: u.username, avatar_url: u.avatar_url, level: u.level, total_points: u.period_total }));
+export async function getLeaderboard(limit = LEADERBOARD_TOP_LIMIT): Promise<LeaderboardEntry[]> {
+  const { data, error } = await supabase.rpc('get_alltime_leaderboard', { p_limit: limit });
+
+  if (error) {
+    if (error.code === 'PGRST202') {
+      console.warn('[getLeaderboard] RPC missing — run apply_alltime_leaderboard.sql');
+      return getLeaderboardFallback(limit);
+    }
+    throw error;
+  }
+
+  const rows = (Array.isArray(data) ? data : []) as AlltimeRow[];
+  return rows.map(mapLeaderboardRow).filter(u => u.total_points > 0);
+}
+
+export async function getMyAlltimeRank(): Promise<LeaderboardEntry | null> {
+  const { data, error } = await supabase.rpc('get_my_alltime_rank');
+  if (error) {
+    if (error.code === 'PGRST202') return null;
+    throw error;
+  }
+  if (!data || typeof data !== 'object') return null;
+  return mapLeaderboardRow(data as AlltimeRow);
 }
 
 export async function getUserStats(userId: string): Promise<{

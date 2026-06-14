@@ -46,9 +46,12 @@ const checks = [
     },
   },
   {
-    name: 'leaderboard_weekly view',
+    name: 'get_alltime_leaderboard RPC',
     run: async () => {
-      const { error } = await sb.from('leaderboard_weekly').select('id', { head: true, count: 'exact' });
+      const { error } = await sb.rpc('get_alltime_leaderboard', { p_limit: 5 });
+      if (error?.code === 'PGRST202') {
+        return { ok: false, detail: 'RPC missing — run apply_alltime_leaderboard.sql' };
+      }
       return error ? { ok: false, detail: error.message } : { ok: true, detail: 'ok' };
     },
   },
@@ -103,8 +106,9 @@ for (const c of checks) {
 
 if (failed > 0) {
   console.log('\nFix: Supabase Dashboard → SQL Editor → run:');
-  console.log('  project/supabase/apply_event_leaderboard.sql');
-  console.log('\nOr: SUPABASE_DB_PASSWORD=... npm run db:apply-leaderboard');
+  console.log('  project/supabase/apply_alltime_leaderboard.sql');
+  console.log('  project/supabase/apply_event_leaderboard.sql (if event checks fail)');
+  console.log('\nOr: npm run db:apply-alltime && npm run db:apply-leaderboard');
   process.exit(1);
 }
 

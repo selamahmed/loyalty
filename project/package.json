@@ -19,7 +19,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:check-leaderboard": "node scripts/check-leaderboard-db.mjs",
-    "db:apply-leaderboard": "node scripts/apply-event-leaderboard.mjs"
+    "db:apply-leaderboard": "node scripts/apply-event-leaderboard.mjs",
+    "db:apply-alltime": "node scripts/apply-alltime-leaderboard.mjs"
   },
   "dependencies": {
     "@fontsource/archivo-black": "^5.2.8",
