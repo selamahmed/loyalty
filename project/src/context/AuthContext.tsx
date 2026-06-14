@@ -5,6 +5,7 @@ import { activityLogService } from '../lib/activityLogger';
 import { fetchMyAccountStatus, isRestrictedStatus, type AccountStatus } from '../services/accountStatus';
 import { authCallbackUrl } from '../lib/appUrl';
 import { useCanonicalProfile, useInvalidateProfile } from '../hooks/useCanonicalProfile';
+import { initializeAvatarIfNeeded } from '../services/avatar';
 import type { CanonicalProfile } from '../services/canonicalProfile';
 
 export type UserRole = 'customer' | 'super_admin' | 'store_admin' | 'cashier';
@@ -106,6 +107,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSessionUser(prev => (prev?.id === user.id ? prev : user));
 
     if (alreadySynced && knownStatus === undefined) return;
+
+    // Initialize avatar if needed
+    void initializeAvatarIfNeeded(user.id, user.user_metadata?.full_name ?? user.user_metadata?.username, user.email).catch(err => {
+      console.error('[AuthContext] Avatar initialization failed:', err);
+    });
 
     invalidateProfile(user.id);
   }, [signOutBannedUser, invalidateProfile]);
