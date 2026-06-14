@@ -20,6 +20,16 @@ export async function getRewards(category?: string): Promise<Reward[]> {
   return data ?? [];
 }
 
+/** All rewards for admin screens (includes inactive). */
+export async function getAdminRewards(): Promise<Reward[]> {
+  const { data, error } = await supabase
+    .from('rewards')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function getFeaturedRewards(): Promise<Reward[]> {
   const { data, error } = await supabase
     .from('rewards')
@@ -50,6 +60,18 @@ export async function createReward(reward: Omit<Reward, 'id' | 'created_at' | 'u
     .single();
   if (error) throw error;
   return data;
+}
+
+export async function bulkCreateRewards(
+  rewards: Omit<Reward, 'id' | 'created_at' | 'updated_at'>[],
+): Promise<Reward[]> {
+  if (rewards.length === 0) return [];
+  const { data, error } = await supabase
+    .from('rewards')
+    .insert(rewards)
+    .select();
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function updateReward(id: string, updates: Partial<Reward>): Promise<Reward> {

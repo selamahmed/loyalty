@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, X, Check, Star, Search, Eye, EyeOff, Image, Tag } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Trash2, X, Check, Star, Search, Eye, EyeOff, Image, Tag, Upload, Download, Loader2 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getRewards, createReward, updateReward, deleteReward } from '../../services/rewards';
+import { getAdminRewards, createReward, updateReward, deleteReward, bulkCreateRewards } from '../../services/rewards';
 import type { Reward as DBReward } from '../../services/rewards';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 import { playSound } from '../../lib/sounds';
+import { downloadRewardsCsvTemplate, parseRewardsCsv, type CsvParseResult } from '../../lib/rewardsCsv';
 
 type Reward = DBReward & { available?: boolean; imageUrl?: string };
 
@@ -171,6 +172,97 @@ const RewardModal: React.FC<ModalProps> = ({ reward, onClose, onSave }) => {
   );
 };
 
+const CsvImportModal: React.FC<{
+  result: CsvParseResult;
+  importing: boolean;
+  importError: string;
+  onClose: () => void;
+  onImport: () => void;
+}> = ({ result, importing, importError, onClose, onImport }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div className={`${card} max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto`}>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-black text-lg text-gray-900 dark:text-white">CSV ile Toplu Yükleme</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {result.rows.length} ürün içe aktarılacak
+            {result.errors.length > 0 ? ` · ${result.errors.length} satır atlandı` : ''}
+          </p>
+        </div>
+        <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
+          <X size={18} />
+        </button>
+      </div>
+
+      {result.errors.length > 0 && (
+        <div className="mb-4 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 max-h-32 overflow-y-auto">
+          {result.errors.slice(0, 8).map(err => (
+            <p key={`${err.rowNumber}-${err.message}`} className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+              Satır {err.rowNumber}: {err.message}
+            </p>
+          ))}
+          {result.errors.length > 8 && (
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">+{result.errors.length - 8} hata daha</p>
+          )}
+        </div>
+      )}
+
+      {result.rows.length > 0 ? (
+        <div className="rounded-xl border-2 border-black dark:border-gray-600 overflow-hidden mb-4">
+          <div className="max-h-56 overflow-y-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
+                <tr>
+                  <th className="px-3 py-2 font-black">Ürün</th>
+                  <th className="px-3 py-2 font-black">Puan</th>
+                  <th className="px-3 py-2 font-black">Kategori</th>
+                  <th className="px-3 py-2 font-black">Stok</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.rows.slice(0, 12).map(row => (
+                  <tr key={row.rowNumber} className="border-t border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-2 font-semibold text-gray-900 dark:text-white">{row.reward.title}</td>
+                    <td className="px-3 py-2">{row.reward.points}</td>
+                    <td className="px-3 py-2">{row.reward.category}</td>
+                    <td className="px-3 py-2">{row.reward.stock}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {result.rows.length > 12 && (
+            <p className="px-3 py-2 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700">
+              +{result.rows.length - 12} ürün daha
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className={`${card} p-8 text-center mb-4`}>
+          <p className="font-bold text-gray-500">İçe aktarılacak geçerli satır yok.</p>
+        </div>
+      )}
+
+      {importError && (
+        <div className="mb-4 rounded-xl border-2 border-red-300 bg-red-50 dark:bg-red-950/30 p-3 text-sm font-semibold text-red-700 dark:text-red-300">
+          {importError}
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <button onClick={onClose} className="btn-secondary flex-1 py-2.5 text-sm font-bold">İptal</button>
+        <button
+          onClick={onImport}
+          disabled={importing || result.rows.length === 0}
+          className="btn-primary flex-1 py-2.5 text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60"
+        >
+          {importing ? <><Loader2 size={14} className="animate-spin" /> Yükleniyor…</> : <><Upload size={14} /> {result.rows.length} Ürünü Yükle</>}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const AdminRewards: React.FC = () => {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -178,10 +270,18 @@ const AdminRewards: React.FC = () => {
   const [search, setSearch]   = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [catFilter, setCatFilter] = useState('all');
+  const [csvResult, setCsvResult] = useState<CsvParseResult | null>(null);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvImportError, setCsvImportError] = useState('');
+  const [importToast, setImportToast] = useState<string | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   const loadRewards = useCallback(() => {
     setIsLoading(true);
-    getRewards().then(data => setRewards(data.map(r => ({ ...r, available: r.active, imageUrl: r.image ?? '' })))).catch(() => setRewards([])).finally(() => setIsLoading(false));
+    getAdminRewards()
+      .then(data => setRewards(data.map(r => ({ ...r, available: r.active, imageUrl: r.image ?? '' }))))
+      .catch(() => setRewards([]))
+      .finally(() => setIsLoading(false));
   }, []);
 
   useEffect(() => { loadRewards(); }, [loadRewards]);
@@ -231,12 +331,70 @@ const AdminRewards: React.FC = () => {
     setRewards(prev => prev.map(r => r.id === id ? { ...r, available: !r.available } : r));
   };
 
+  const handleCsvFile = async (file: File) => {
+    setCsvImportError('');
+    try {
+      const text = await file.text();
+      const parsed = parseRewardsCsv(text);
+      setCsvResult(parsed);
+    } catch {
+      setCsvImportError('CSV dosyası okunamadı.');
+      setCsvResult({ rows: [], errors: [{ rowNumber: 0, message: 'Dosya okunamadı.' }] });
+    }
+  };
+
+  const handleCsvImport = async () => {
+    if (!csvResult || csvResult.rows.length === 0) return;
+    setCsvImporting(true);
+    setCsvImportError('');
+    try {
+      const created = await bulkCreateRewards(csvResult.rows.map(row => row.reward));
+      playSound('success');
+      setImportToast(`${created.length} ürün yüklendi!`);
+      setTimeout(() => setImportToast(null), 3200);
+      setCsvResult(null);
+      loadRewards();
+    } catch (err) {
+      setCsvImportError((err as Error).message ?? 'Toplu yükleme başarısız.');
+    } finally {
+      setCsvImporting(false);
+    }
+  };
+
   const totalValue  = rewards.reduce((s, r) => s + r.points, 0);
   const activeCount = rewards.filter(r => r.available !== false).length;
+  const avgPoints = rewards.length > 0 ? Math.round(totalValue / rewards.length) : 0;
 
   return (
     <AdminLayout>
       {modal.show && <RewardModal reward={modal.reward} onClose={() => setModal({ show: false })} onSave={handleSave} />}
+      {csvResult && (
+        <CsvImportModal
+          result={csvResult}
+          importing={csvImporting}
+          importError={csvImportError}
+          onClose={() => { setCsvResult(null); setCsvImportError(''); }}
+          onImport={handleCsvImport}
+        />
+      )}
+
+      <input
+        ref={csvInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={e => {
+          const file = e.target.files?.[0];
+          if (file) void handleCsvFile(file);
+          e.target.value = '';
+        }}
+      />
+
+      {importToast && (
+        <div className="fixed top-5 right-5 z-[60] px-4 py-3 rounded-xl bg-green-500 text-white font-black text-sm border-2 border-green-700 shadow-[0_4px_0_#15803d] flex items-center gap-2">
+          <Check size={15} /> {importToast}
+        </div>
+      )}
 
       <div className="p-4 lg:p-6 space-y-5 max-w-5xl mx-auto">
 
@@ -246,10 +404,26 @@ const AdminRewards: React.FC = () => {
             <h1 className="text-2xl font-black text-gray-900 dark:text-white">Ürün Mağazası Yönetimi</h1>
             <p className="text-sm text-gray-500 mt-0.5">Mağazadaki ürünleri yönet, fiyatlandır ve stok güncelle</p>
           </div>
-          <button onClick={() => { playSound('click'); setModal({ show: true }); }}
-            className="btn-primary flex items-center gap-2 py-2 px-4 text-sm">
-            <Plus size={14} /> Yeni Ürün
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => { playSound('click'); downloadRewardsCsvTemplate(); }}
+              className="btn-secondary flex items-center gap-2 py-2 px-4 text-sm"
+            >
+              <Download size={14} /> Şablon İndir
+            </button>
+            <button
+              type="button"
+              onClick={() => { playSound('click'); csvInputRef.current?.click(); }}
+              className="btn-secondary flex items-center gap-2 py-2 px-4 text-sm"
+            >
+              <Upload size={14} /> CSV Yükle
+            </button>
+            <button onClick={() => { playSound('click'); setModal({ show: true }); }}
+              className="btn-primary flex items-center gap-2 py-2 px-4 text-sm">
+              <Plus size={14} /> Yeni Ürün
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -257,7 +431,7 @@ const AdminRewards: React.FC = () => {
           {[
             { label: 'Toplam Ürün',  value: rewards.length,  color: '#7B6EF6', emoji: '📦' },
             { label: 'Satışta',      value: activeCount,      color: '#22c55e', emoji: '✅' },
-            { label: 'Ort. Puan',    value: Math.round(totalValue / rewards.length) + ' pts', color: '#f59e0b', emoji: '⭐' },
+            { label: 'Ort. Puan',    value: `${avgPoints} pts`, color: '#f59e0b', emoji: '⭐' },
           ].map(s => (
             <div key={s.label} className={card + ' p-4 text-center'}>
               <div className="text-2xl mb-1">{s.emoji}</div>
