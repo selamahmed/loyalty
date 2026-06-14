@@ -1825,9 +1825,10 @@ body::before {
   flex: none;
   display: flex;
   flex-direction: row;
-  align-items: stretch;
+  align-items: center;
+  gap: 12px;
   min-height: 100px;
-  padding: 0;
+  padding: 14px 16px;
   overflow: hidden;
   text-align: left;
   border-radius: 18px;
@@ -1854,16 +1855,15 @@ body::before {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 14px 16px;
+  padding: 0;
 }
 
 .lb-event-chip__visual {
-  flex: 0 0 clamp(84px, 24vw, 100px);
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-left: 3px solid var(--dark-border);
-  background: rgba(0, 0, 0, 0.06);
+  background: transparent;
 }
 
 .lb-event-chip__sticker {
@@ -1885,10 +1885,6 @@ body::before {
 
 .lb-event-chip--alltime .lb-event-chip__meta {
   color: rgba(255, 255, 255, 0.82);
-}
-
-.lb-event-chip--alltime .lb-event-chip__visual {
-  background: rgba(0, 0, 0, 0.12);
 }
 
 /* Event status — single solid color per kind */
@@ -1915,12 +1911,6 @@ body::before {
 .lb-event-chip--upcoming .lb-event-chip__meta,
 .lb-event-chip--ended .lb-event-chip__meta {
   color: rgba(0, 0, 0, 0.62);
-}
-
-.lb-event-chip--live .lb-event-chip__visual,
-.lb-event-chip--upcoming .lb-event-chip__visual,
-.lb-event-chip--ended .lb-event-chip__visual {
-  background: rgba(0, 0, 0, 0.08);
 }
 
 .lb-event-chip__status {
@@ -2000,10 +1990,7 @@ body::before {
 
   .lb-event-chip {
     min-height: 108px;
-  }
-
-  .lb-event-chip__visual {
-    flex-basis: 92px;
+    padding: 16px 18px;
   }
 }
 
