@@ -256,8 +256,8 @@ const Home: React.FC = () => {
                     {sticker && (
                       <StickerDecorImg
                         src={sticker.url}
-                        width={88}
-                        height={88}
+                        width={112}
+                        height={112}
                         loading="lazy"
                         className={['home-quick-action__sticker', action.stickerClass].filter(Boolean).join(' ')}
                       />

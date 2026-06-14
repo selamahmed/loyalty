@@ -2803,7 +2803,7 @@ body::before {
 /* Home quick action cards — colorful stickers */
 .home-quick-action__visual {
   position: relative;
-  height: 100px;
+  height: clamp(112px, 28vw, 132px);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -2811,7 +2811,7 @@ body::before {
 }
 
 .home-quick-action__sticker {
-  width: clamp(76px, 24vw, 96px) !important;
+  width: clamp(92px, 30vw, 120px) !important;
   height: auto !important;
   aspect-ratio: 1 / 1;
   object-fit: contain;
