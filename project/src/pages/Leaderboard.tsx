@@ -808,13 +808,13 @@ const Leaderboard: React.FC = () => {
                 className={`lb-event-chip lb-event-chip--alltime${tab === 'alltime' ? ' lb-event-chip--active' : ''}`}
                 onClick={() => setTab('alltime')}
               >
-                <div className="lb-event-chip__visual" aria-hidden>
-                  <ChipSticker kind="alltime" />
-                </div>
                 <div className="lb-event-chip__body">
                   <span className="lb-event-chip__status lb-event-chip__status--alltime">Genel</span>
                   <p className="lb-event-chip__title">Tüm Zamanlar</p>
                   <p className="lb-event-chip__meta">Top {LEADERBOARD_TOP_LIMIT} · toplam puan sıralaması</p>
+                </div>
+                <div className="lb-event-chip__visual" aria-hidden>
+                  <ChipSticker kind="alltime" />
                 </div>
               </button>
               {activeEvents.map(ev => {
@@ -829,9 +829,6 @@ const Leaderboard: React.FC = () => {
                     className={`lb-event-chip lb-event-chip--${kind}${isSelected ? ' lb-event-chip--active' : ''}`}
                     style={{ '--chip-accent': ev.color ?? 'var(--primary-blue)' } as React.CSSProperties}
                   >
-                    <div className="lb-event-chip__visual" aria-hidden>
-                      <ChipSticker kind={kind} />
-                    </div>
                     <div className="lb-event-chip__body">
                       <span className={`lb-event-chip__status lb-event-chip__status--${kind}`}>
                         {label}
@@ -840,6 +837,9 @@ const Leaderboard: React.FC = () => {
                       <p className="lb-event-chip__meta">
                         {prizeCount} ödül · Etkinlik puanına göre sıralama
                       </p>
+                    </div>
+                    <div className="lb-event-chip__visual" aria-hidden>
+                      <ChipSticker kind={kind} />
                     </div>
                   </button>
                 );
