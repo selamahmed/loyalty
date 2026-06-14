@@ -8,6 +8,7 @@ import { useApp } from '../context/AppContext';
 import RewardPopup from './RewardPopup';
 import { playSound } from '../lib/sounds';
 import { prefetchRoute } from '../lib/routePrefetch';
+import AppLogo from './AppLogo';
 
 const navItems = [
   { path: '/home',         icon: Home,        label: 'Sayfa'     },
@@ -22,7 +23,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
-  const { theme, toggleTheme, points, user, rewardPopup, dismissRewardPopup, soundEnabled } = useApp();
+  const { theme, toggleTheme, points, rewardPopup, dismissRewardPopup, soundEnabled } = useApp();
   const location = useLocation();
   const navigate  = useNavigate();
 
@@ -65,10 +66,14 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
             borderBottom: '3px solid var(--dark-border)',
           }}
         >
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>Hoşgeldiniz,</span>
-            <span style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 14 }}>{user.username}</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigateTo('/home')}
+            className="app-header-logo flex items-center flex-1 min-w-0"
+            aria-label="NexReward ana sayfa"
+          >
+            <AppLogo size={64} priority className="app-header-logo__mark" />
+          </button>
 
           {/* Points badge */}
           <div style={{

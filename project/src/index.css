@@ -348,6 +348,26 @@
   box-shadow: 0px 2px 0px var(--dark-border) !important;
 }
 
+/* App shell header — logo only, no frame */
+.app-header-logo {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  min-height: clamp(48px, 13vw, 56px);
+}
+
+.app-header-logo__mark {
+  width: clamp(48px, 13vw, 56px) !important;
+  height: clamp(48px, 13vw, 56px) !important;
+}
+
+.app-header-logo:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
 /* ── Section header micro-label ── */
 .section-label {
   font-size: 10px;
@@ -586,6 +606,15 @@ body::before {
 
   .hero-card-brand__body {
     padding-right: clamp(72px, 24vw, 120px);
+  }
+
+  .home-hero-balance__cta {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .home-hero-balance__unit {
+    font-size: 12px;
   }
 }
 
@@ -2300,22 +2329,85 @@ body::before {
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.28));
 }
 
-/* Home hero — vivid rainbow points (readable on purple, no violet clash) */
-.home-hero-points-pill {
-  background: rgba(255, 255, 255, 0.22);
-  border-radius: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.32);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    0 4px 16px rgba(0, 0, 0, 0.12);
+
+/* Home hero — balance block */
+.home-hero-balance {
+  margin-bottom: 16px;
+}
+
+.home-hero-balance__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-hero-balance__label-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 213, 0, 0.18);
+  flex-shrink: 0;
+}
+
+.home-hero-balance__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.home-hero-balance__amount {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.home-hero-balance__unit {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+.home-hero-balance__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #ffffff;
+  color: #6d28d9;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.home-hero-balance__cta:active {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15) !important;
 }
 
 .hero-card-brand .home-hero-points__value {
   margin: 0;
-  font-size: clamp(26px, 6vw, 32px);
+  font-size: clamp(28px, 7vw, 36px);
   font-weight: 900;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  min-width: 0;
 }
 
 .hero-card-brand .home-hero-points__value-text {

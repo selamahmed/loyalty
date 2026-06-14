@@ -118,7 +118,7 @@ const Home: React.FC = () => {
 
           <div className="hero-card-brand__body" style={{ padding: 'clamp(16px,5vw,28px)' }}>
             {/* Top row — avatar left, name right */}
-            <div className="home-hero-user" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+            <div className="home-hero-user" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <NeoAvatar
                   src={user.avatar}
@@ -137,47 +137,38 @@ const Home: React.FC = () => {
                 />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 700, margin: '0 0 4px', letterSpacing: '0.04em' }}>
-                  {tr.home.welcomeBack} 👋
-                </p>
-                <h1 style={{ fontSize: 'clamp(20px,4.5vw,28px)', fontWeight: 900, lineHeight: 1.1, margin: '0 0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <h1 style={{ fontSize: 'clamp(20px,4.5vw,28px)', fontWeight: 900, lineHeight: 1.1, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.username}
                 </h1>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'rgba(255,255,255,0.18)', borderRadius: 999, border: '1.5px solid rgba(255,255,255,0.3)' }}>
-                  <span style={{ fontSize: 14 }}>⚡</span>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>{user.streak} {tr.home.streak}</span>
-                </div>
               </div>
             </div>
 
-            {/* Points pill */}
-            <div className="home-hero-points-pill" style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px',
-              marginBottom: 18,
-            }}>
-              <Star size={24} fill="white" color="white" />
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 700, margin: '0 0 2px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{tr.home.currentBalance}</p>
-                <p className="home-hero-points__value">
-                  <span className="home-hero-points__value-text">
-                    {points.toLocaleString('tr-TR')}
-                  </span>
-                </p>
+            {/* Balance — focal metric + shop CTA */}
+            <div className="home-hero-balance">
+              <div className="home-hero-balance__label">
+                <span className="home-hero-balance__label-icon" aria-hidden>
+                  <Star size={14} fill="#FFD500" color="#FCC707" />
+                </span>
+                <span>{tr.home.currentBalance}</span>
               </div>
-              <button
-                onClick={() => navigate('/shop')}
-                style={{
-                  position: 'relative',
-                  padding: '9px 18px', background: 'white', color: '#6d28d9',
-                  borderRadius: 12, fontWeight: 900, fontSize: 13,
-                  border: '2px solid rgba(255,255,255,0.7)',
-                  boxShadow: '0 3px 0 rgba(0,0,0,0.15)',
-                  cursor: 'pointer', flexShrink: 0,
-                  transition: 'transform 0.1s',
-                }}
-              >
-                {tr.home.redeem}
-              </button>
+              <div className="home-hero-balance__row">
+                <div className="home-hero-balance__amount">
+                  <p className="home-hero-points__value">
+                    <span className="home-hero-points__value-text">
+                      {points.toLocaleString('tr-TR')}
+                    </span>
+                  </p>
+                  <span className="home-hero-balance__unit">puan</span>
+                </div>
+                <button
+                  type="button"
+                  className="home-hero-balance__cta press-card"
+                  onClick={() => { playSound('click'); navigate('/shop'); }}
+                >
+                  {tr.home.redeem}
+                  <ArrowRight size={16} strokeWidth={2.5} aria-hidden />
+                </button>
+              </div>
             </div>
 
             {/* XP bar */}
