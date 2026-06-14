@@ -2818,6 +2818,14 @@ body::before {
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.28));
 }
 
+.home-quick-action__sticker--white-outline {
+  filter:
+    drop-shadow(0 0 1.5px #fff)
+    drop-shadow(0 0 3px #fff)
+    drop-shadow(0 0 6px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 4px 10px rgba(0, 0, 0, 0.22));
+}
+
 /* QR scanner — inventory shortcut */
 .qr-inventory-link {
   position: relative;

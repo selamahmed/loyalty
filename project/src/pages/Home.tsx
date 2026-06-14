@@ -44,7 +44,7 @@ const quickActions = [
   { label: tr.home.scanQr,    path: '/qr',       bg: '#9122FF', sticker: HOME_QUICK_STICKERS.qr },
   { label: tr.home.playGames,  path: '/games',    bg: '#FF3E9D', sticker: HOME_QUICK_STICKERS.games },
   { label: tr.home.rewards,    path: '/shop',     bg: '#FF6B35', sticker: HOME_QUICK_STICKERS.shop },
-  { label: tr.profile.myInventory, path: '/inventory', bg: '#22c55e', sticker: HOME_QUICK_STICKERS.inventory },
+  { label: tr.profile.myInventory, path: '/inventory', bg: '#C8FF00', sticker: HOME_QUICK_STICKERS.inventory, stickerClass: 'home-quick-action__sticker--white-outline' },
 ];
 
 /* ── Section header ── */
@@ -259,7 +259,7 @@ const Home: React.FC = () => {
                         width={88}
                         height={88}
                         loading="lazy"
-                        className="home-quick-action__sticker"
+                        className={['home-quick-action__sticker', action.stickerClass].filter(Boolean).join(' ')}
                       />
                     )}
                   </div>
