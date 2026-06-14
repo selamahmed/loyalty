@@ -44,10 +44,13 @@ export const PAGE_MAIN_STICKERS: Record<MainStickerPageKey, PageMainStickerConfi
     sizes: BRAND_STICKER_SIZES,
   },
   leaderboard: {
-    group: 'SATISFYSTAR.svg',
+    group: 'RANKING.svg',
     rotate: 4,
     accent: 'var(--neo-pink)',
-    sizes: BRAND_STICKER_SIZES,
+    sizes: {
+      'hero-inline': { desktop: 220, mobile: 148 },
+      'hero-card': BRAND_STICKER_SIZES['hero-card'],
+    },
   },
   events: {
     group: 'partytime.svg',

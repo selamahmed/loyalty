@@ -832,6 +832,7 @@ const Leaderboard: React.FC = () => {
           highlight="efsane ol!"
           titleColor="#ffffff"
           highlightColor="#C8FF00"
+          height={168}
         />
 
         {!eventsDbReady && (tab === 'events' || activeEvents.length > 0) && (
