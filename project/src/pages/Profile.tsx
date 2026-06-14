@@ -161,61 +161,47 @@ const Profile: React.FC = () => {
       >
 
         {/* ── Profile hero ── */}
-        <div className="hero-card-brand" style={{ ...card, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', position: 'relative' }}>
+        <div className="hero-card-brand profile-hero-card" style={{ ...card, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', position: 'relative' }}>
           <div style={{ position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
           <PageMainSticker page="profile" variant="hero-card" />
-          <div className="hero-card-brand__body" style={{ padding: 'clamp(16px,5vw,28px)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-              {/* Avatar */}
-              <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div className="hero-card-brand__body profile-hero-card__body">
+            <div className="profile-hero-user">
+              <div className="profile-hero-user__avatar-wrap">
                 <NeoAvatar
                   src={user.avatar}
                   name={user.username}
                   email={user.email}
-                  size={80}
+                  size={72}
                   shape="circle"
+                  className="profile-hero-user__avatar"
                   style={{ border: '4px solid rgba(255,255,255,0.55)', boxShadow: '0 4px 0 rgba(0,0,0,0.18)' }}
                 />
                 <LevelBadge
                   level={user.level}
-                  width={38}
-                  className="level-badge-overlay"
-                  style={{ bottom: -4, right: -12 }}
+                  width={34}
+                  className="level-badge-overlay profile-hero-user__level-chip"
+                  style={{ bottom: -4, right: -10 }}
                 />
               </div>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                  <div>
-                    <h1 style={{ color: 'white', fontWeight: 900, fontSize: 24, margin: '0 0 3px', lineHeight: 1 }}>{user.username}</h1>
-                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0, fontWeight: 600 }}>{user.email}</p>
+              <div className="profile-hero-user__info">
+                <div className="profile-hero-user__head">
+                  <div className="profile-hero-user__identity">
+                    <h1 className="profile-hero-user__name">{user.username}</h1>
+                    <p className="profile-hero-user__email">{user.email}</p>
                   </div>
                   <button
                     type="button"
                     aria-label={tr.profile.editProfile}
+                    className="profile-hero-user__edit"
                     onClick={() => { playSound('click'); navigate('/settings'); }}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 12,
-                      background: '#ffffff',
-                      border: '2.5px solid var(--dark-border)',
-                      boxShadow: '0 4px 0 var(--dark-border)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      position: 'relative',
-                      zIndex: 3,
-                    }}
                   >
                     <Edit3 size={16} color="#6d28d9" strokeWidth={2.5} />
                   </button>
                 </div>
 
                 <div className="profile-hero-meta">
-                  <LevelBadge level={user.level} width={72} className="profile-hero-meta__badge" />
+                  <LevelBadge level={user.level} width={58} className="profile-hero-meta__badge" />
                   <div className="profile-hero-meta__text">
                     <span className="profile-hero-meta__level">{getLevelBadge(user.level).label}</span>
                     <span className="profile-hero-meta__streak">
@@ -227,13 +213,13 @@ const Profile: React.FC = () => {
             </div>
 
             {/* XP bar */}
-            <div style={{ marginTop: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.65)', marginBottom: 6, fontWeight: 700 }}>
+            <div className="profile-hero-xp">
+              <div className="profile-hero-xp__labels">
                 <span>Lv.{user.level}{xpProgress.nextTitle ? ` → ${user.level + 1}` : ''}</span>
                 <span>{xpProgress.inLevel.toLocaleString()} / {xpProgress.isMaxLevel ? 'MAX' : xpProgress.needed.toLocaleString()} XP</span>
               </div>
-              <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.25)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${xpProgress.pct}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
+              <div className="profile-hero-xp__track">
+                <div className="profile-hero-xp__fill" style={{ width: `${xpProgress.pct}%` }} />
               </div>
             </div>
           </div>
