@@ -1,0 +1,15 @@
+---
+description: Commit and push completed work to GitHub on main
+alwaysApply: true
+---
+
+# Git push policy
+
+After completing a task that changes code:
+
+1. Commit the relevant changes with a concise message focused on why.
+2. Push to `origin/main` unless the user asks for a branch or PR instead.
+3. Do not push secrets (`.env`, credentials, keys).
+4. Report the commit hash and remote URL when done.
+
+Skip commit/push only when the user explicitly says not to, or when there are no changes to commit.
