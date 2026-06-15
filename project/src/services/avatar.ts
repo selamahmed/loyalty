@@ -2,11 +2,43 @@
  * Avatar service - handles avatar operations with Supabase
  */
 import { supabase } from '../lib/supabase';
-import { buildAvatarUrl, getDefaultAvatarSeed } from '../lib/avatar';
+import { getDefaultAvatarSeed } from '../lib/avatar';
+import {
+  defaultAvatarRefForSeed,
+  isAvatarAssetRef,
+  pickRandomAvatarRef,
+} from '../lib/avatarCatalog';
 import type { Database } from '../lib/supabase';
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+
+function isDiceBearUrl(value: string): boolean {
+  return value.includes('dicebear.com');
+}
+
+function isExternalPhotoUrl(value: string): boolean {
+  return (
+    (value.startsWith('http://') || value.startsWith('https://'))
+    && !isDiceBearUrl(value)
+  );
+}
+
+function defaultAvatarForUser(
+  userName: string | null | undefined,
+  userEmail: string | null | undefined,
+  userId: string,
+): { avatar_seed: string; avatar_url: string } {
+  const seed = getDefaultAvatarSeed({
+    name: userName,
+    email: userEmail,
+    id: userId,
+  });
+  return {
+    avatar_seed: seed,
+    avatar_url: defaultAvatarRefForSeed(seed),
+  };
+}
 
 /**
  * Initialize avatar for a user if missing
@@ -20,7 +52,6 @@ export async function initializeAvatarIfNeeded(
   if (!userId) return null;
 
   try {
-    // Fetch current profile
     const { data: profile, error: fetchError } = await supabase
       .from('profiles')
       .select('avatar_seed, avatar_url')
@@ -29,26 +60,52 @@ export async function initializeAvatarIfNeeded(
 
     if (fetchError) throw fetchError;
 
-    // If avatar already exists, return it
-    if (profile?.avatar_seed && profile?.avatar_url) {
-      return { avatar_seed: profile.avatar_seed, avatar_url: profile.avatar_url };
-    }
-
-    // Generate default seed and URL
     const seed = getDefaultAvatarSeed({
       name: userName,
       email: userEmail,
       id: userId,
     });
 
-    const avatarUrl = buildAvatarUrl(seed);
+    if (profile?.avatar_url) {
+      const updates: ProfileUpdate = {};
+      const storedSeed = profile.avatar_seed ?? seed;
 
-    // Update profile with new avatar
+      if (!profile.avatar_seed) {
+        updates.avatar_seed = storedSeed;
+      }
+
+      // Migrate legacy DiceBear API URLs to bundled local assets.
+      if (isDiceBearUrl(profile.avatar_url)) {
+        updates.avatar_url = defaultAvatarRefForSeed(storedSeed);
+      }
+
+      if (Object.keys(updates).length > 0) {
+        const { data: updated, error: updateError } = await supabase
+          .from('profiles')
+          .update({ ...updates, updated_at: new Date().toISOString() })
+          .eq('id', userId)
+          .select('avatar_seed, avatar_url')
+          .single();
+
+        if (updateError) throw updateError;
+        return updated
+          ? { avatar_seed: updated.avatar_seed!, avatar_url: updated.avatar_url! }
+          : null;
+      }
+
+      return {
+        avatar_seed: profile.avatar_seed ?? storedSeed,
+        avatar_url: profile.avatar_url,
+      };
+    }
+
+    const defaults = defaultAvatarForUser(userName, userEmail, userId);
+
     const { data: updated, error: updateError } = await supabase
       .from('profiles')
       .update({
-        avatar_seed: seed,
-        avatar_url: avatarUrl,
+        avatar_seed: defaults.avatar_seed,
+        avatar_url: defaults.avatar_url,
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId)
@@ -57,7 +114,9 @@ export async function initializeAvatarIfNeeded(
 
     if (updateError) throw updateError;
 
-    return updated ? { avatar_seed: updated.avatar_seed, avatar_url: updated.avatar_url } : null;
+    return updated
+      ? { avatar_seed: updated.avatar_seed!, avatar_url: updated.avatar_url! }
+      : null;
   } catch (err) {
     console.error('[Avatar] Failed to initialize avatar:', err);
     return null;
@@ -65,22 +124,24 @@ export async function initializeAvatarIfNeeded(
 }
 
 /**
- * Update user avatar with new seed
+ * Update user avatar with a bundled asset ref (asset:filename.svg)
  */
 export async function updateAvatar(
   userId: string,
-  seed: string,
+  avatarRef: string,
 ): Promise<{ avatar_seed: string; avatar_url: string } | null> {
-  if (!userId || !seed.trim()) return null;
+  if (!userId || !avatarRef.trim()) return null;
+
+  const normalizedRef = avatarRef.trim();
+  if (!isAvatarAssetRef(normalizedRef) && !isExternalPhotoUrl(normalizedRef)) {
+    throw new Error('Invalid avatar reference');
+  }
 
   try {
-    const avatarUrl = buildAvatarUrl(seed);
-
     const { data, error } = await supabase
       .from('profiles')
       .update({
-        avatar_seed: seed,
-        avatar_url: avatarUrl,
+        avatar_url: normalizedRef,
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId)
@@ -89,11 +150,25 @@ export async function updateAvatar(
 
     if (error) throw error;
 
-    return data ? { avatar_seed: data.avatar_seed, avatar_url: data.avatar_url } : null;
+    return data
+      ? { avatar_seed: data.avatar_seed ?? '', avatar_url: data.avatar_url! }
+      : null;
   } catch (err) {
     console.error('[Avatar] Failed to update avatar:', err);
     throw err;
   }
+}
+
+/**
+ * Pick and save a random bundled avatar for the user
+ */
+export async function randomizeAvatar(
+  userId: string,
+  excludeRef?: string | null,
+): Promise<{ avatar_seed: string; avatar_url: string } | null> {
+  const avatarRef = pickRandomAvatarRef(excludeRef);
+  if (!avatarRef) return null;
+  return updateAvatar(userId, avatarRef);
 }
 
 /**
@@ -121,7 +196,7 @@ export async function getUserAvatar(userId: string): Promise<{ seed: string | nu
 }
 
 /**
- * Regenerate avatar from seed (useful for migration)
+ * Regenerate avatar ref from seed (useful for migration)
  */
 export async function regenerateAvatarUrl(userId: string): Promise<string | null> {
   if (!userId) return null;
@@ -134,21 +209,24 @@ export async function regenerateAvatarUrl(userId: string): Promise<string | null
       .maybeSingle();
 
     if (fetchError) throw fetchError;
-    if (!profile?.avatar_seed) return null;
 
-    const newUrl = buildAvatarUrl(profile.avatar_seed);
+    const seed = profile?.avatar_seed
+      ?? getDefaultAvatarSeed({ id: userId });
+    const newRef = defaultAvatarRefForSeed(seed);
+    if (!newRef) return null;
 
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
-        avatar_url: newUrl,
+        avatar_url: newRef,
+        avatar_seed: seed,
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
 
     if (updateError) throw updateError;
 
-    return newUrl;
+    return newRef;
   } catch (err) {
     console.error('[Avatar] Failed to regenerate avatar URL:', err);
     return null;

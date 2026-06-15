@@ -9,14 +9,11 @@ import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { useXpProgress } from '../hooks/useXpProgress';
 import NeoAvatar from '../components/NeoAvatar';
-import AvatarEditor from '../components/AvatarEditor';
 import LevelBadge from '../components/LevelBadge';
 import PageMainSticker from '../components/PageMainSticker';
 import { getLevelBadge } from '../lib/levelBadges';
 import InventoryWalletCard from '../components/InventoryWalletCard';
 import InventoryDetailModal from '../components/InventoryDetailModal';
-import { updateAvatar } from '../services/avatar';
-import { toast } from 'sonner';
 
 const card = {
   background: 'var(--card-bg)',
@@ -124,38 +121,16 @@ const PROFILE_MENU_SECTIONS: { label: string; items: ProfileMenuItem[] }[] = [
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { user, points, theme, toggleTheme } = useApp();
-  const { logout, authUser, refreshProfile } = useAuth();
+  const { logout } = useAuth();
   const { items: inventoryItems } = useInventory();
   const [showAllInventory, setShowAllInventory] = useState(false);
   const [selectedInventoryId, setSelectedInventoryId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
-  const [avatarLoading, setAvatarLoading] = useState(false);
   const xpProgress = useXpProgress(user.xp, user.level);
 
   const handleNavigate = (path: string) => {
     playSound('click');
     navigate(path);
-  };
-
-  const handleAvatarSave = async (seed: string, avatarUrl: string) => {
-    if (!authUser?.id) {
-      toast.error('Kullanıcı kimliği bulunamadı');
-      return;
-    }
-    try {
-      setAvatarLoading(true);
-      await updateAvatar(authUser.id, seed);
-      await refreshProfile();
-      toast.success('Avatar başarıyla güncellendi! 🎉');
-      setShowAvatarEditor(false);
-    } catch (err) {
-      console.error('[Profile] Avatar save error:', err);
-      toast.error('Avatar güncellemesi başarısız oldu');
-      throw err;
-    } finally {
-      setAvatarLoading(false);
-    }
   };
 
   const activeInventory = inventoryItems.filter(i => !i.used && new Date(i.expires) >= new Date());
@@ -205,7 +180,7 @@ const Profile: React.FC = () => {
                   type="button"
                   aria-label="Avatar özelleştir"
                   className="profile-hero-user__edit"
-                  onClick={() => { playSound('click'); setShowAvatarEditor(!showAvatarEditor); }}
+                  onClick={() => { playSound('click'); handleNavigate('/settings/edit-profile'); }}
                   title="Avatar Özelleştir"
                 >
                   <Palette size={14} color="#6d28d9" strokeWidth={2.5} />
@@ -248,26 +223,6 @@ const Profile: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* ── Avatar Editor (collapsible) ── */}
-        {showAvatarEditor && (
-          <div style={{ ...card, padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: 0 }}>Avatar Özelleştir</h3>
-              <button
-                onClick={() => setShowAvatarEditor(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text-muted)' }}
-              >
-                ✕
-              </button>
-            </div>
-            <AvatarEditor
-              currentSeed={user.avatar_seed}
-              onSave={handleAvatarSave}
-              loading={avatarLoading}
-            />
-          </div>
-        )}
 
         {/* ── Stats grid ── */}
         <div className="profile-stats-grid">
