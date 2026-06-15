@@ -1,69 +1,41 @@
-/** Stored in profiles.avatar_url as `asset:filename.svg` */
+/** Seed-based avatars using DiceBear API */
 
-export const AVATAR_ASSET_PREFIX = 'asset:';
-
-const modules = import.meta.glob<string>('../assets/avatars/*.svg', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-});
+export const AVATAR_SEED_PREFIX = 'seed:';
 
 export type AvatarAsset = { id: string; url: string; ref: string };
 
-export const AVATAR_ASSETS: AvatarAsset[] = Object.entries(modules)
-  .map(([path, url]) => {
-    const id = path.split('/').pop() ?? path;
-    return { id, url, ref: `${AVATAR_ASSET_PREFIX}${id}` };
-  })
-  .sort((a, b) => a.id.localeCompare(b.id));
-
-const byId = new Map(AVATAR_ASSETS.map(a => [a.id, a]));
-const byRef = new Map(AVATAR_ASSETS.map(a => [a.ref, a]));
-
-export function toAvatarAssetRef(filename: string): string {
-  return `${AVATAR_ASSET_PREFIX}${filename}`;
-}
-
-export function isAvatarAssetRef(value?: string | null): boolean {
-  return Boolean(value?.startsWith(AVATAR_ASSET_PREFIX));
-}
-
-/** Resolve stored avatar_url to a displayable URL */
+/** Resolve stored avatar value to a displayable URL */
 export function resolveAvatarSrc(stored?: string | null): string | null {
   if (!stored) return null;
-  if (stored.startsWith(AVATAR_ASSET_PREFIX)) {
-    const id = stored.slice(AVATAR_ASSET_PREFIX.length);
-    return byId.get(id)?.url ?? byRef.get(stored)?.url ?? null;
+  
+  if (stored.startsWith(AVATAR_SEED_PREFIX)) {
+    const seed = stored.slice(AVATAR_SEED_PREFIX.length);
+    // Using adventurer style for a friendly look, or initials as fallback
+    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
   }
+  
   if (stored.startsWith('http://') || stored.startsWith('https://')) {
     return stored;
   }
-  return null;
+  
+  // Fallback to treat any other string as a seed
+  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(stored)}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 }
 
-export function pickRandomAvatarRef(excludeRef?: string | null): string {
-  const pool = excludeRef
-    ? AVATAR_ASSETS.filter(a => a.ref !== excludeRef)
-    : AVATAR_ASSETS;
-  if (pool.length === 0) return AVATAR_ASSETS[0]?.ref ?? '';
-  return pool[Math.floor(Math.random() * pool.length)].ref;
+export function isAvatarAssetRef(value?: string | null): boolean {
+  return Boolean(value?.startsWith(AVATAR_SEED_PREFIX));
+}
+
+export function pickRandomAvatarRef(): string {
+  const randomSeed = Math.random().toString(36).substring(2, 10);
+  return `${AVATAR_SEED_PREFIX}${randomSeed}`;
 }
 
 export function defaultAvatarRefForSeed(seed: string): string {
-  if (AVATAR_ASSETS.length === 0) return '';
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  }
-  return AVATAR_ASSETS[hash % AVATAR_ASSETS.length].ref;
+  return `${AVATAR_SEED_PREFIX}${seed}`;
 }
 
-/** Local bundled avatar URL for marketing/demo UI (no external requests). */
-export function demoAvatarUrl(seed: string): string {
-  return resolveAvatarSrc(defaultAvatarRefForSeed(seed)) ?? AVATAR_ASSETS[0]?.url ?? '';
-}
-
-/** Solid neo-brutalism tile colors behind bundled avatar art */
+/** Legacy support for background colors if needed */
 export const NEO_AVATAR_BG_COLORS = [
   '#FFE500',
   '#C8FF00',
@@ -81,9 +53,15 @@ function hashString(seed: string): number {
   return hash;
 }
 
-/** Deterministic solid background for a picked avatar asset */
 export function getAvatarBgColor(stored?: string | null): string | null {
-  if (!stored || !isAvatarAssetRef(stored)) return null;
-  const id = stored.slice(AVATAR_ASSET_PREFIX.length);
-  return NEO_AVATAR_BG_COLORS[hashString(id) % NEO_AVATAR_BG_COLORS.length];
+  if (!stored) return null;
+  const seed = stored.startsWith(AVATAR_SEED_PREFIX) 
+    ? stored.slice(AVATAR_SEED_PREFIX.length) 
+    : stored;
+  return NEO_AVATAR_BG_COLORS[hashString(seed) % NEO_AVATAR_BG_COLORS.length];
 }
+
+export function demoAvatarUrl(seed: string): string {
+  return resolveAvatarSrc(defaultAvatarRefForSeed(seed)) ?? '';
+}
+

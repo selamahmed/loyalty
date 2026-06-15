@@ -18,6 +18,7 @@ function isDiceBearUrl(value: string): boolean {
 }
 
 function isExternalPhotoUrl(value: string): boolean {
+  // Now we treat DiceBear as part of our core system, but external URLs are still supported if manually set in DB
   return (
     (value.startsWith('http://') || value.startsWith('https://'))
     && !isDiceBearUrl(value)
@@ -42,7 +43,6 @@ function defaultAvatarForUser(
 
 /**
  * Initialize avatar for a user if missing
- * Called on first login/profile fetch
  */
 export async function initializeAvatarIfNeeded(
   userId: string,
@@ -60,41 +60,22 @@ export async function initializeAvatarIfNeeded(
 
     if (fetchError) throw fetchError;
 
-    const seed = getDefaultAvatarSeed({
+    // Use name as seed if available, otherwise fallback
+    const seed = userName || profile?.avatar_seed || getDefaultAvatarSeed({
       name: userName,
       email: userEmail,
       id: userId,
     });
 
     if (profile?.avatar_url) {
-      const updates: ProfileUpdate = {};
-      const storedSeed = profile.avatar_seed ?? seed;
-
       if (!profile.avatar_seed) {
-        updates.avatar_seed = storedSeed;
-      }
-
-      // Migrate legacy DiceBear API URLs to bundled local assets.
-      if (isDiceBearUrl(profile.avatar_url)) {
-        updates.avatar_url = defaultAvatarRefForSeed(storedSeed);
-      }
-
-      if (Object.keys(updates).length > 0) {
-        const { data: updated, error: updateError } = await supabase
+        await supabase
           .from('profiles')
-          .update({ ...updates, updated_at: new Date().toISOString() })
-          .eq('id', userId)
-          .select('avatar_seed, avatar_url')
-          .single();
-
-        if (updateError) throw updateError;
-        return updated
-          ? { avatar_seed: updated.avatar_seed!, avatar_url: updated.avatar_url! }
-          : null;
+          .update({ avatar_seed: seed, updated_at: new Date().toISOString() })
+          .eq('id', userId);
       }
-
       return {
-        avatar_seed: profile.avatar_seed ?? storedSeed,
+        avatar_seed: profile.avatar_seed ?? seed,
         avatar_url: profile.avatar_url,
       };
     }
@@ -124,7 +105,7 @@ export async function initializeAvatarIfNeeded(
 }
 
 /**
- * Update user avatar with a bundled asset ref (asset:filename.svg)
+ * Update user avatar with a seed ref (seed:random-string)
  */
 export async function updateAvatar(
   userId: string,
@@ -133,8 +114,10 @@ export async function updateAvatar(
   if (!userId || !avatarRef.trim()) return null;
 
   const normalizedRef = avatarRef.trim();
+  // Simplified validation: either it's our seed ref or an external URL
   if (!isAvatarAssetRef(normalizedRef) && !isExternalPhotoUrl(normalizedRef)) {
-    throw new Error('Invalid avatar reference');
+    // If it doesn't have the prefix but isn't an external URL, assume it's a seed and add prefix
+    return updateAvatar(userId, `seed:${normalizedRef}`);
   }
 
   try {
@@ -160,20 +143,15 @@ export async function updateAvatar(
 }
 
 /**
- * Pick and save a random bundled avatar for the user
+ * Pick and save a random seed-based avatar for the user
  */
 export async function randomizeAvatar(
   userId: string,
-  excludeRef?: string | null,
 ): Promise<{ avatar_seed: string; avatar_url: string } | null> {
-  const avatarRef = pickRandomAvatarRef(excludeRef);
-  if (!avatarRef) return null;
+  const avatarRef = pickRandomAvatarRef();
   return updateAvatar(userId, avatarRef);
 }
 
-/**
- * Get user avatar by ID
- */
 export async function getUserAvatar(userId: string): Promise<{ seed: string | null; url: string | null } | null> {
   if (!userId) return null;
 
@@ -196,7 +174,7 @@ export async function getUserAvatar(userId: string): Promise<{ seed: string | nu
 }
 
 /**
- * Regenerate avatar ref from seed (useful for migration)
+ * Regenerate avatar ref from seed
  */
 export async function regenerateAvatarUrl(userId: string): Promise<string | null> {
   if (!userId) return null;
@@ -213,7 +191,6 @@ export async function regenerateAvatarUrl(userId: string): Promise<string | null
     const seed = profile?.avatar_seed
       ?? getDefaultAvatarSeed({ id: userId });
     const newRef = defaultAvatarRefForSeed(seed);
-    if (!newRef) return null;
 
     const { error: updateError } = await supabase
       .from('profiles')
@@ -232,3 +209,4 @@ export async function regenerateAvatarUrl(userId: string): Promise<string | null
     return null;
   }
 }
+

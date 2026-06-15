@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, RefreshCw, Shuffle } from 'lucide-react';
+import { Check, Shuffle } from 'lucide-react';
 import AccountPageShell, { Section, SaveButton, inputStyle } from '../components/AccountPageShell';
 import NeoAvatar from '../components/NeoAvatar';
 import { useApp } from '../context/AppContext';
@@ -8,13 +8,10 @@ import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { activityLogService } from '../lib/activityLogger';
 import {
-  AVATAR_ASSETS,
   isAvatarAssetRef,
   pickRandomAvatarRef,
   defaultAvatarRefForSeed,
 } from '../lib/avatarCatalog';
-import { uploadAvatar } from '../services/profile';
-
 
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 11, fontWeight: 900, color: 'var(--text-muted)',
@@ -23,7 +20,7 @@ const labelStyle: React.CSSProperties = {
 
 function initialAvatarRef(avatar: string, fallbackSeed: string): string {
   if (isAvatarAssetRef(avatar)) return avatar;
-  if (avatar) return defaultAvatarRefForSeed(avatar);
+  if (avatar) return avatar.startsWith('http') ? avatar : defaultAvatarRefForSeed(avatar);
   return defaultAvatarRefForSeed(fallbackSeed);
 }
 
@@ -48,34 +45,8 @@ const EditProfile: React.FC = () => {
 
   const handleRandomPick = () => {
     playSound('click');
-    setSelectedAvatar(pickRandomAvatarRef(selectedAvatar));
+    setSelectedAvatar(pickRandomAvatarRef());
   };
-
-  const [uploading, setUploading] = useState(false);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !authUser?.id) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setSaveErr("Dosya boyutu 5MB'dan küçük olmalı.");
-      return;
-    }
-
-    setUploading(true);
-    setSaveErr('');
-
-    try {
-      const url = await uploadAvatar(authUser.id, file);
-      setSelectedAvatar(url);
-      playSound('success');
-    } catch (err: any) {
-      setSaveErr(err.message || 'Yükleme başarısız.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
 
   const handleSave = async () => {
     if (!authUser?.id) return;
@@ -130,102 +101,30 @@ const EditProfile: React.FC = () => {
       title={tr.settings.editProfile}
       subtitle="Kişisel bilgilerini güncelle"
     >
-      {/* ── Avatar preview ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 4 }}>
-        <NeoAvatar
-          src={selectedAvatar}
-          name={displayName}
-          email={authUser?.email}
-          size={96}
-          shape="circle"
-        />
+      {/* ── Avatar preview & Randomizer ── */}
+      <Section title="Avatarın" emoji="🎭">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '24px 0' }}>
+          <NeoAvatar
+            src={selectedAvatar}
+            name={displayName}
+            email={authUser?.email}
+            size={120}
+            shape="circle"
+          />
 
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button type="button" onClick={handleRandomPick} disabled={saving || uploading} style={btnStyle}>
+          <button 
+            type="button" 
+            onClick={handleRandomPick} 
+            disabled={saving} 
+            style={btnStyle}
+          >
             <Shuffle size={15} />
-            Rastgele Seç
+            Rastgele Avatar Oluştur
           </button>
-
-          <label style={{ ...btnStyle, background: 'var(--card-bg)', color: 'var(--text-dark)', cursor: uploading ? 'not-allowed' : 'pointer' }}>
-            {uploading ? (
-              <RefreshCw size={15} className="animate-spin" />
-            ) : (
-              <Shuffle size={15} />
-            )}
-            {uploading ? 'Yükleniyor...' : 'Fotoğraf Yükle'}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              disabled={saving || uploading}
-              style={{ display: 'none' }}
-            />
-          </label>
-        </div>
-
-      </div>
-
-      {/* ── Avatar picker grid ── */}
-      <Section title="Avatar Seç" emoji="🎭">
-        <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, lineHeight: 1.5 }}>
-            {AVATAR_ASSETS.length} avatar arasından birini seç veya rastgele dene.
+          
+          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textAlign: 'center', maxWidth: '80%' }}>
+            Avatarınız isminize veya rastgele oluşturulan bir koda göre otomatik olarak üretilir.
           </p>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))',
-              gap: 10,
-              maxHeight: 320,
-              overflowY: 'auto',
-              padding: 4,
-            }}
-          >
-            {AVATAR_ASSETS.map(asset => {
-              const selected = selectedAvatar === asset.ref;
-              return (
-                <button
-                  key={asset.id}
-                  type="button"
-                  onClick={() => { playSound('click'); setSelectedAvatar(asset.ref); }}
-                  style={{
-                    padding: 6,
-                    borderRadius: 14,
-                    border: selected ? '3px solid #7B6EF6' : '2.5px solid var(--dark-border)',
-                    boxShadow: selected ? '0 4px 0 #7B6EF6' : '0 3px 0 var(--dark-border)',
-                    background: 'var(--card-bg)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <NeoAvatar
-                    src={asset.ref}
-                    name={displayName}
-                    size={52}
-                    shape="rounded"
-                  />
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleRandomPick}
-            disabled={saving}
-            style={{
-              ...btnStyle,
-              width: '100%',
-              justifyContent: 'center',
-              background: 'var(--card-bg)',
-              color: 'var(--text-dark)',
-            }}
-          >
-            <RefreshCw size={14} /> Yeni Rastgele Avatar
-          </button>
         </div>
       </Section>
 
@@ -286,3 +185,4 @@ const EditProfile: React.FC = () => {
 };
 
 export default EditProfile;
+
