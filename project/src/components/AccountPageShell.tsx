@@ -84,7 +84,7 @@ type AccountPageShellProps = {
   subtitle: string;
   backPath?: string;
   backLabel?: string;
-  maxWidth?: 'lg' | '2xl';
+  maxWidth?: 'lg' | '2xl' | '4xl';
   children: React.ReactNode;
 };
 
@@ -104,7 +104,7 @@ const AccountPageShell: React.FC<AccountPageShellProps> = ({
         }}>{watermark}</div>
       </div>
 
-      <div className={`p-3 sm:p-4 lg:p-6 space-y-5 mx-auto overflow-x-hidden ${maxWidth === '2xl' ? 'max-w-2xl' : 'max-w-lg'}`} style={{ position: 'relative', zIndex: 1 }}>
+      <div className={`p-3 sm:p-4 lg:p-6 space-y-5 mx-auto overflow-x-hidden ${maxWidth === '4xl' ? 'max-w-4xl' : maxWidth === '2xl' ? 'max-w-2xl' : 'max-w-lg'}`} style={{ position: 'relative', zIndex: 1 }}>
         <button
           onClick={() => { playSound('click'); navigate(backPath); }}
           style={{

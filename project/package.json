@@ -24,8 +24,6 @@
     "db:apply-leaderboard-signals": "node scripts/apply-leaderboard-signals.mjs"
   },
   "dependencies": {
-    "@dicebear/core": "^10.3.0",
-    "@dicebear/styles": "^10.2.0",
     "@fontsource/archivo-black": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
     "@sentry/react": "^9.15.0",

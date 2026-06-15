@@ -29,6 +29,15 @@ function seedFromRef(ref: string): string {
   return ref;
 }
 
+function seedFromDiceBearUrl(url: string, fallbackSeed: string): string {
+  try {
+    const parsed = new URL(url);
+    return parsed.searchParams.get('seed')?.trim() || fallbackSeed;
+  } catch {
+    return fallbackSeed;
+  }
+}
+
 function defaultAvatarForUser(
   userName: string | null | undefined,
   userEmail: string | null | undefined,
@@ -46,7 +55,10 @@ function defaultAvatarForUser(
 }
 
 function normalizeAvatarUrl(storedUrl: string | null | undefined, seed: string): string {
-  if (storedUrl && (isDiceBearUrl(storedUrl) || isExternalPhotoUrl(storedUrl))) {
+  if (storedUrl && isDiceBearUrl(storedUrl)) {
+    return resolveAvatarSrc(storedUrl, seed);
+  }
+  if (storedUrl && isExternalPhotoUrl(storedUrl)) {
     return storedUrl;
   }
   if (storedUrl && isAvatarAssetRef(storedUrl)) {
@@ -126,19 +138,29 @@ export async function initializeAvatarIfNeeded(
 export async function saveUserAvatar(
   userId: string,
   seed: string,
-  avatarUrl: string,
+  _avatarUrl?: string,
 ): Promise<{ avatar_seed: string; avatar_url: string }> {
   if (!userId) throw new Error('Kullanıcı oturumu bulunamadı.');
+
   const trimmedSeed = seed.trim();
-  const trimmedUrl = avatarUrl.trim();
-  if (!trimmedSeed) throw new Error('Avatar seed boş olamaz.');
-  if (!trimmedUrl) throw new Error('Avatar URL boş olamaz.');
+
+  if (!trimmedSeed) {
+    throw new Error('Avatar seed boş olamaz.');
+  }
+
+  // IMPORTANT:
+  // Ignore the incoming avatarUrl from AvatarEditor for now.
+  // It may contain unsupported DiceBear query params.
+  const cleanAvatarUrl = buildAvatarUrl({
+    seed: trimmedSeed,
+    size: 512,
+  });
 
   const { data, error } = await supabase
     .from('profiles')
     .update({
       avatar_seed: trimmedSeed,
-      avatar_url: trimmedUrl,
+      avatar_url: cleanAvatarUrl,
       updated_at: new Date().toISOString(),
     })
     .eq('id', userId)
@@ -146,7 +168,10 @@ export async function saveUserAvatar(
     .single();
 
   if (error) throw error;
-  if (!data?.avatar_url) throw new Error('Avatar kaydedilemedi.');
+
+  if (!data?.avatar_url) {
+    throw new Error('Avatar kaydedilemedi.');
+  }
 
   return {
     avatar_seed: data.avatar_seed ?? trimmedSeed,
@@ -170,13 +195,11 @@ export async function updateAvatar(
 
   const seed = isAvatarAssetRef(normalizedRef)
     ? seedFromRef(normalizedRef)
-    : getDefaultAvatarSeed({ id: userId });
+    : isDiceBearUrl(normalizedRef)
+      ? seedFromDiceBearUrl(normalizedRef, getDefaultAvatarSeed({ id: userId }))
+      : getDefaultAvatarSeed({ id: userId });
 
-  const url = isDiceBearUrl(normalizedRef)
-    ? normalizedRef
-    : isExternalPhotoUrl(normalizedRef)
-      ? normalizedRef
-      : buildAvatarUrl({ seed, size: 512 });
+  const url = buildAvatarUrl({ seed, size: 512 });
 
   return saveUserAvatar(userId, seed, url);
 }
@@ -205,10 +228,7 @@ export async function getUserAvatar(
     if (!data) return null;
 
     const seed = data.avatar_seed;
-    const url = data.avatar_url
-      ? resolveAvatarSrc(data.avatar_url) ?? data.avatar_url
-      : null;
-
+    const url = resolveAvatarSrc(data.avatar_url, data.avatar_seed);
     return { seed, url };
   } catch (err) {
     console.error('[Avatar] Failed to get avatar:', err);

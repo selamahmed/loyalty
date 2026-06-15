@@ -10,6 +10,7 @@ import { performAction, type EarnResult, type EarnAction, type PerformOptions } 
 import { updateUserSettings } from '../services/userSettings';
 
 import { canonicalToAppUser } from '../hooks/useCanonicalProfile';
+import { resolveAvatarSrc } from '../lib/avatarCatalog';
 
 import { captureError } from '../lib/monitoring';
 
@@ -262,15 +263,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [authUser?.id, refreshProfile]);
 
   const updateUser = useCallback(async (data: Partial<AppUser>) => {
-    setUser(prev => ({ ...prev, ...data }));
+    const cleanData = data.avatar !== undefined
+      ? { ...data, avatar: resolveAvatarSrc(data.avatar, data.avatarSeed ?? null) }
+      : data;
+
+    setUser(prev => ({ ...prev, ...cleanData }));
     if (authUser?.id) {
       try {
         await updateProfile(authUser.id, {
-          username: data.username,
-          avatar_url: data.avatar,
-          avatar_seed: data.avatarSeed,
-          phone: data.phone ?? null,
-          bio: data.bio ?? null,
+          username: cleanData.username,
+          avatar_url: cleanData.avatar,
+          avatar_seed: cleanData.avatarSeed,
+          phone: cleanData.phone ?? null,
+          bio: cleanData.bio ?? null,
         });
         await refreshProfile();
       } catch (err) {
@@ -361,5 +366,4 @@ export const useApp = () => {
   return ctx;
 
 };
-
 
