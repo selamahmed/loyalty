@@ -2,7 +2,7 @@
  * Avatar service — DiceBear Open Peeps + Supabase profiles
  */
 import { supabase } from '../lib/supabase';
-import { buildAvatarUrl, getDefaultAvatarSeed } from '../lib/avatar';
+import { buildAvatarUrl, getDefaultAvatarSeed, normalizeAvatarAccessory } from '../lib/avatar';
 import {
   AVATAR_SEED_PREFIX,
   defaultAvatarRefForSeed,
@@ -35,6 +35,34 @@ function seedFromDiceBearUrl(url: string, fallbackSeed: string): string {
     return parsed.searchParams.get('seed')?.trim() || fallbackSeed;
   } catch {
     return fallbackSeed;
+  }
+}
+
+function cleanAvatarUrlForSave(seed: string, avatarUrl?: string): string {
+  if (!avatarUrl || !isDiceBearUrl(avatarUrl)) {
+    return buildAvatarUrl({ seed, size: 512 });
+  }
+
+  try {
+    const parsed = new URL(avatarUrl);
+    const backgroundColor = parsed.searchParams.get('backgroundColor')?.trim() || undefined;
+    const skinColor = parsed.searchParams.get('skinColor')?.trim() || undefined;
+    const accessories = normalizeAvatarAccessory(
+      parsed.searchParams.get('accessories')?.trim() || undefined,
+    );
+    const incomingProbability = Number(parsed.searchParams.get('accessoriesProbability'));
+    const accessoriesProbability = Number.isFinite(incomingProbability) ? incomingProbability : undefined;
+
+    return buildAvatarUrl({
+      seed,
+      size: 512,
+      backgroundColor,
+      skinColor,
+      accessories,
+      accessoriesProbability,
+    });
+  } catch {
+    return buildAvatarUrl({ seed, size: 512 });
   }
 }
 
@@ -138,7 +166,7 @@ export async function initializeAvatarIfNeeded(
 export async function saveUserAvatar(
   userId: string,
   seed: string,
-  _avatarUrl?: string,
+  avatarUrl?: string,
 ): Promise<{ avatar_seed: string; avatar_url: string }> {
   if (!userId) throw new Error('Kullanıcı oturumu bulunamadı.');
 
@@ -148,13 +176,7 @@ export async function saveUserAvatar(
     throw new Error('Avatar seed boş olamaz.');
   }
 
-  // IMPORTANT:
-  // Ignore the incoming avatarUrl from AvatarEditor for now.
-  // It may contain unsupported DiceBear query params.
-  const cleanAvatarUrl = buildAvatarUrl({
-    seed: trimmedSeed,
-    size: 512,
-  });
+  const cleanAvatarUrl = cleanAvatarUrlForSave(trimmedSeed, avatarUrl);
 
   const { data, error } = await supabase
     .from('profiles')

@@ -182,7 +182,7 @@ const LandingPage: React.FC = () => {
         </nav>
 
         {/* ══ HERO ══ */}
-        <section style={{ minHeight: '90vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', padding: '56px 0 32px', overflow: 'hidden' }}>
+        <section className="landing-hero-shell">
           <DoodleField opacity={isDark ? 0.4 : 0.65} />
           <div className="hero-layout" style={{ padding: '0 clamp(20px,5vw,80px)', position: 'relative', zIndex: 1 }}>
             {/* Copy */}
@@ -251,6 +251,18 @@ const LandingPage: React.FC = () => {
             {/* Art — Group sticker cluster (star centerpiece) */}
             <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,24px)' }}>
               <HeroGroupComposition />
+              <div className="hero-live-panel" style={{ background: t.cardBg, color: t.textPrimary }}>
+                <div className="hero-live-panel__header">
+                  <span style={{ color: t.textMuted }}>Bugünkü kazanç</span>
+                  <strong>1.840 puan</strong>
+                </div>
+                <div className="hero-live-progress"><span /></div>
+                <div className="hero-live-list">
+                  <div><span style={{ background: '#56C8FF' }}>QR</span><strong>QR tara</strong><small style={{ color: t.textMuted }}>+75 puan</small></div>
+                  <div><span style={{ background: '#C8FF00' }}>G</span><strong>Görev</strong><small style={{ color: t.textMuted }}>+120 puan</small></div>
+                  <div><span style={{ background: '#FF3E9D', color: '#fff' }}>Ö</span><strong>Ödül</strong><small style={{ color: t.textMuted }}>Kupon açıldı</small></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -276,27 +288,93 @@ const LandingPage: React.FC = () => {
         @keyframes tickerRight { from{transform:translateX(calc(-100% / 3))} to{transform:translateX(0)} }
 
         /* ── Hero ── */
-        .hero-layout { display:flex; flex-direction:column; align-items:center; gap:32px; text-align:center; }
-        .hero-copy  { max-width:640px; }
-        .hero-art   { width:100%; max-width:320px; min-height:clamp(240px,44vw,340px); }
+        .landing-hero-shell {
+          min-height: min(820px, calc(100vh - 60px));
+          display:flex; flex-direction:column; justify-content:center;
+          position:relative; padding:clamp(36px,6vh,72px) 0 clamp(24px,5vh,48px);
+          overflow:hidden; border-bottom:3px solid rgba(0,0,0,0.08);
+        }
+        .hero-layout {
+          width:min(1220px,100%); margin:0 auto;
+          display:flex; flex-direction:column; align-items:center;
+          gap:clamp(24px,5vw,56px); text-align:center;
+        }
+        .hero-copy  { max-width:640px; min-width:0; }
+        .hero-art   { width:100%; max-width:360px; min-height:clamp(290px,50vw,430px); min-width:0; isolation:isolate; }
+        .hero-copy > div:first-child { margin-bottom:clamp(16px,3vw,24px) !important; }
+        .hero-copy > p { margin-top:clamp(14px,2.5vw,18px) !important; max-width:560px !important; }
+        .hero-copy > div:nth-of-type(2) { margin-top:clamp(18px,3vw,24px) !important; }
+        .hero-copy > div:nth-of-type(3) { margin-top:clamp(18px,3vw,24px) !important; }
         @media (min-width: 900px) {
-          .hero-layout { flex-direction:row; align-items:center; justify-content:space-between; text-align:left; gap:48px; }
+          .hero-layout { flex-direction:row; align-items:center; justify-content:space-between; text-align:left; gap:clamp(36px,5vw,72px); }
           .hero-copy   { flex:1; max-width:none; }
-          .hero-art    { flex:0 0 38%; max-width:380px; }
+          .hero-art    { flex:0 0 min(40%, 460px); max-width:460px; }
         }
 
         .hero-headline {
-          font-weight:900; font-size:clamp(42px,9vw,120px);
-          line-height:0.97; letter-spacing:-0.04em;
-          color:${t.heroText}; text-transform:uppercase; margin:0;
+          font-weight:900; font-size:clamp(40px,7.2vw,88px);
+          line-height:0.92; letter-spacing:-0.025em;
+          color:${t.heroText}; text-transform:uppercase; margin:0; text-wrap:balance;
         }
         .hero-headline-line {
           display:flex; align-items:center; justify-content:center;
-          gap:clamp(6px,1.5vw,14px);
+          gap:clamp(6px,1.5vw,14px); min-width:0;
         }
-        .hero-headline-sticker { flex-shrink:0; }
+        .hero-headline-sticker { flex-shrink:0; width:clamp(20px,2.2vw,30px); height:auto; }
         @media (min-width:900px) {
           .hero-headline-line { justify-content:flex-start; }
+        }
+        @media (max-width:520px) {
+          .landing-hero-shell { min-height:auto; padding-top:34px; }
+          .hero-headline { font-size:clamp(38px,14vw,58px); line-height:.95; }
+          .hero-art { flex-direction:column; gap:0; min-height:0; }
+          .hero-copy > div:first-child { transform:none !important; }
+          .hero-copy > div:nth-of-type(2),
+          .hero-copy > div:nth-of-type(3) { justify-content:center; }
+          .hero-copy > div:nth-of-type(3) > div {
+            flex:1 1 calc(33.333% - 8px); min-width:92px; justify-content:center; padding-inline:8px !important;
+          }
+        }
+
+        .hero-group-composition {
+          position:relative; width:min(100%,360px); aspect-ratio:1; margin-inline:auto;
+          display:grid; place-items:center; filter:drop-shadow(0 12px 0 rgba(0,0,0,0.16));
+        }
+        .hero-group-composition__star { width:min(78%,300px); height:auto; }
+        .hero-live-panel {
+          position:absolute; left:50%; bottom:clamp(4px,1vw,14px); transform:translateX(-50%);
+          width:min(92%,310px); border:3px solid #000; border-radius:18px; box-shadow:7px 7px 0 #000;
+          padding:14px; z-index:4;
+        }
+        .hero-live-panel__header {
+          display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;
+        }
+        .hero-live-panel__header span {
+          display:block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+        }
+        .hero-live-panel__header strong { display:block; font-size:20px; font-weight:900; line-height:1; }
+        .hero-live-progress {
+          height:10px; border:2px solid #000; border-radius:999px; background:rgba(0,0,0,.08); overflow:hidden; margin-bottom:10px;
+        }
+        .hero-live-progress span { display:block; width:72%; height:100%; background:linear-gradient(90deg,#C8FF00,#56C8FF); }
+        .hero-live-list { display:grid; gap:7px; }
+        .hero-live-list div {
+          display:grid; grid-template-columns:30px 1fr auto; align-items:center; gap:9px; min-width:0;
+          padding:7px; border:2px solid rgba(0,0,0,.16); border-radius:12px;
+        }
+        .hero-live-list span {
+          width:30px; height:30px; border:2px solid #000; border-radius:10px; display:grid; place-items:center;
+          font-size:11px; font-weight:900; color:#000; box-shadow:2px 2px 0 #000;
+        }
+        .hero-live-list strong { font-size:12px; font-weight:900; white-space:nowrap; }
+        .hero-live-list small { font-size:11px; font-weight:800; white-space:nowrap; }
+        @media (min-width:900px) {
+          .hero-live-panel { left:auto; right:0; bottom:4%; transform:none; }
+        }
+        @media (max-width:520px) {
+          .hero-live-panel { position:relative; left:auto; bottom:auto; transform:none; margin:-32px auto 0; width:min(100%,310px); }
+          .hero-live-list div { grid-template-columns:30px 1fr; }
+          .hero-live-list small { grid-column:2; }
         }
 
         /* ── Nav buttons ── */

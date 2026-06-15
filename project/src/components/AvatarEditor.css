@@ -233,6 +233,40 @@
   box-shadow: 0 0 0 3px var(--primary-blue), 3px 3px 0 var(--dark-border);
 }
 
+.glasses-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.glasses-choice {
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 2.5px solid var(--dark-border);
+  border-radius: 10px;
+  background: var(--tab-bg);
+  color: var(--text-dark);
+  box-shadow: 2px 2px 0 var(--dark-border);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+}
+
+.glasses-choice:hover {
+  transform: translateY(-2px);
+  box-shadow: 3px 3px 0 var(--dark-border);
+}
+
+.glasses-choice.selected {
+  color: white;
+  background: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.35), 3px 3px 0 var(--dark-border);
+}
+
 .custom-hex-input-wrapper {
   display: flex;
   align-items: center;

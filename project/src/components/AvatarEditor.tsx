@@ -1,18 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Save, RotateCcw, Sparkles } from 'lucide-react';
 import {
+  ALLOWED_ACCESSORIES,
   ALLOWED_SKIN_COLORS,
   buildAvatarUrl,
   getDefaultAvatarSeed,
   randomAvatarSeed,
   STRONG_BG_COLORS,
 } from '../lib/avatar';
-import type { AvatarOptions } from '../lib/avatar';
+import type { AvatarAccessory, AvatarOptions } from '../lib/avatar';
 import './AvatarEditor.css';
 
 interface AvatarEditorProps {
   currentSeed: string | null;
   currentUrl: string | null;
+  onChange?: (seed: string, avatarUrl: string) => void;
   onSave: (seed: string, avatarUrl: string) => Promise<void>;
   loading?: boolean;
   userContext?: {
@@ -22,9 +24,23 @@ interface AvatarEditorProps {
   };
 }
 
-type AvatarUrlSettings = Pick<AvatarOptions, 'seed' | 'size' | 'skinColor' | 'backgroundColor'>;
+type AvatarUrlSettings = Pick<
+  AvatarOptions,
+  'seed' | 'size' | 'skinColor' | 'backgroundColor' | 'accessories' | 'accessoriesProbability'
+>;
 
 const AVATAR_SIZE = 512;
+
+const GLASSES_OPTIONS: Array<{ value: AvatarAccessory; label: string }> = [
+  { value: 'blank', label: 'Yok' },
+  { value: 'glasses', label: 'Klasik' },
+  { value: 'glasses2', label: 'Yuvarlak' },
+  { value: 'glasses3', label: 'İnce' },
+  { value: 'glasses4', label: 'Kalın' },
+  { value: 'glasses5', label: 'Retro' },
+  { value: 'sunglasses', label: 'Güneş' },
+  { value: 'sunglasses2', label: 'Güneş 2' },
+];
 
 const cleanHex = (value: string | null): string | undefined => {
   const cleaned = value?.trim().replace(/^#/, '').toLowerCase();
@@ -37,12 +53,16 @@ const parseAvatarUrl = (url: string | null | undefined): Partial<AvatarUrlSettin
   try {
     const params = new URL(url).searchParams;
     const parsedSize = Number(params.get('size'));
+    const accessories = params.get('accessories')?.trim();
+    const accessoriesProbability = Number(params.get('accessoriesProbability'));
 
     return {
       seed: params.get('seed')?.trim() || undefined,
       size: Number.isFinite(parsedSize) && parsedSize > 0 ? parsedSize : AVATAR_SIZE,
       skinColor: cleanHex(params.get('skinColor')),
       backgroundColor: cleanHex(params.get('backgroundColor')),
+      accessories: ALLOWED_ACCESSORIES.find((value) => value === accessories),
+      accessoriesProbability: Number.isFinite(accessoriesProbability) ? accessoriesProbability : undefined,
     };
   } catch {
     return {};
@@ -52,6 +72,7 @@ const parseAvatarUrl = (url: string | null | undefined): Partial<AvatarUrlSettin
 export const AvatarEditor: React.FC<AvatarEditorProps> = ({
   currentSeed,
   currentUrl,
+  onChange,
   onSave,
   loading = false,
   userContext,
@@ -65,11 +86,22 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
   const [backgroundColor, setBackgroundColor] = useState<string>(
     urlSettings.backgroundColor || STRONG_BG_COLORS[0],
   );
+  const [accessories, setAccessories] = useState<AvatarAccessory>(urlSettings.accessories || 'blank');
   const [customBgHex, setCustomBgHex] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'appearance' | 'colors'>('appearance');
   const [saving, setSaving] = useState<boolean>(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const parsed = parseAvatarUrl(currentUrl);
+    const nextSeed = currentSeed?.trim() || parsed.seed || fallbackSeed;
+
+    setSeed(nextSeed);
+    setSkinColor(parsed.skinColor || ALLOWED_SKIN_COLORS[0]);
+    setBackgroundColor(parsed.backgroundColor || STRONG_BG_COLORS[0]);
+    setAccessories(parsed.accessories || 'blank');
+  }, [currentSeed, currentUrl, fallbackSeed]);
 
   useEffect(() => {
     if (/^[0-9a-fA-F]{6}$/.test(customBgHex)) {
@@ -85,8 +117,10 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
       size: AVATAR_SIZE,
       skinColor,
       backgroundColor,
+      accessories,
+      accessoriesProbability: 100,
     }),
-    [backgroundColor, resolvedSeed, skinColor],
+    [accessories, backgroundColor, resolvedSeed, skinColor],
   );
 
   const fallbackAvatarUrl = useMemo(
@@ -94,13 +128,19 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
     [fallbackSeed],
   );
 
+  useEffect(() => {
+    onChange?.(resolvedSeed, avatarUrl);
+  }, [avatarUrl, onChange, resolvedSeed]);
+
   const handleRandomize = () => {
     const randomSkin = ALLOWED_SKIN_COLORS[Math.floor(Math.random() * ALLOWED_SKIN_COLORS.length)];
     const randomBg = STRONG_BG_COLORS[Math.floor(Math.random() * STRONG_BG_COLORS.length)];
+    const randomAccessories = ALLOWED_ACCESSORIES[Math.floor(Math.random() * ALLOWED_ACCESSORIES.length)];
 
     setSeed(randomAvatarSeed());
     setSkinColor(randomSkin);
     setBackgroundColor(randomBg);
+    setAccessories(randomAccessories);
     setCustomBgHex('');
     setError(null);
     setSuccess(null);
@@ -112,6 +152,7 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
     setSeed(currentSeed?.trim() || parsed.seed || fallbackSeed);
     setSkinColor(parsed.skinColor || ALLOWED_SKIN_COLORS[0]);
     setBackgroundColor(parsed.backgroundColor || STRONG_BG_COLORS[0]);
+    setAccessories(parsed.accessories || 'blank');
     setCustomBgHex('');
     setError(null);
     setSuccess(null);
@@ -232,6 +273,22 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
                       onClick={() => setSkinColor(hex)}
                       title={`#${hex}`}
                     />
+                  ))}
+                </div>
+              </div>
+
+              <div className="control-group">
+                <label className="control-label">Gözlük</label>
+                <div className="glasses-choice-grid">
+                  {GLASSES_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`glasses-choice ${accessories === option.value ? 'selected' : ''}`}
+                      onClick={() => setAccessories(option.value)}
+                    >
+                      {option.label}
+                    </button>
                   ))}
                 </div>
               </div>

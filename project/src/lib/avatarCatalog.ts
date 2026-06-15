@@ -1,6 +1,6 @@
 /** Seed-based avatars using DiceBear API */
 
-import { buildAvatarUrl } from './avatar';
+import { buildAvatarUrl, normalizeAvatarAccessory } from './avatar';
 
 export const AVATAR_SEED_PREFIX = 'seed:';
 
@@ -23,12 +23,21 @@ function cleanDiceBearUrl(url: string, fallbackSeed: string): string {
     const size = Number.isFinite(sizeParam) && sizeParam > 0 ? sizeParam : 512;
     const backgroundColor = parsed.searchParams.get('backgroundColor')?.trim() || undefined;
     const skinColor = parsed.searchParams.get('skinColor')?.trim() || undefined;
+    const accessories = normalizeAvatarAccessory(
+      parsed.searchParams.get('accessories')?.trim() || undefined,
+    );
+    const accessoriesProbabilityParam = Number(parsed.searchParams.get('accessoriesProbability'));
+    const accessoriesProbability = Number.isFinite(accessoriesProbabilityParam)
+      ? accessoriesProbabilityParam
+      : undefined;
 
     return buildAvatarUrl({
       seed,
       size,
       backgroundColor,
       skinColor,
+      accessories,
+      accessoriesProbability,
     });
   } catch {
     return buildAvatarUrl({ seed: fallbackSeed || 'user', size: 512 });

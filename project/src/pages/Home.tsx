@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, ArrowRight } from 'lucide-react';
+import { ArrowRight, Bell, Box, ChevronRight, QrCode, Star, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
@@ -42,10 +42,10 @@ const card = {
 
 
 const quickActions = [
-  { label: tr.home.scanQr,    path: '/qr',       bg: '#9122FF', sticker: HOME_QUICK_STICKERS.qr },
-  { label: tr.home.playGames,  path: '/games',    bg: '#FF3E9D', sticker: HOME_QUICK_STICKERS.games },
-  { label: tr.home.rewards,    path: '/shop',     bg: '#FF6B35', sticker: HOME_QUICK_STICKERS.shop },
-  { label: tr.profile.myInventory, path: '/inventory', bg: '#C8FF00', sticker: HOME_QUICK_STICKERS.inventory, stickerClass: 'home-quick-action__sticker--white-outline' },
+  { label: tr.home.scanQr,    path: '/qr',       bg: '#9122FF', sticker: HOME_QUICK_STICKERS.qr, hint: 'Kamerayla puan kazan' },
+  { label: tr.home.playGames,  path: '/games',    bg: '#FF3E9D', sticker: HOME_QUICK_STICKERS.games, hint: 'Mini oyun bonusları' },
+  { label: tr.home.rewards,    path: '/shop',     bg: '#FF6B35', sticker: HOME_QUICK_STICKERS.shop, hint: 'Puanlarını kullan' },
+  { label: tr.profile.myInventory, path: '/inventory', bg: '#C8FF00', sticker: HOME_QUICK_STICKERS.inventory, stickerClass: 'home-quick-action__sticker--white-outline', hint: 'Kuponlarını takip et' },
 ];
 
 /* ── Section header ── */
@@ -112,12 +112,12 @@ const Home: React.FC = () => {
       {showDailyReward && <DailyRewardModal onClose={() => setShowDailyReward(false)} />}
 
       <div
-        className="page-enter"
-        style={{ padding: 'clamp(12px,4vw,24px)', paddingBottom: 32, maxWidth: 680, margin: '0 auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}
+        className="page-enter home-page-content"
+        style={{ padding: 'clamp(12px,4vw,24px)', paddingBottom: 32, maxWidth: 1120, margin: '0 auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}
       >
 
         {/* ── Hero card ── */}
-        <div className="hero-card-brand" style={{
+        <div className="hero-card-brand home-hero-card" style={{
           ...card,
           background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)',
           color: 'white', position: 'relative',
@@ -147,10 +147,20 @@ const Home: React.FC = () => {
                 />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
+                <p className="home-hero-kicker">Hoş geldin</p>
                 <h1 style={{ fontSize: 'clamp(20px,4.5vw,28px)', fontWeight: 900, lineHeight: 1.1, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.username}
                 </h1>
               </div>
+              <button
+                type="button"
+                className="home-hero-notification-btn"
+                onClick={() => navigate('/notifications')}
+                aria-label="Bildirimleri aç"
+              >
+                <Bell size={17} />
+                {unreadNotifs.length > 0 && <span>{unreadNotifs.length}</span>}
+              </button>
             </div>
 
             {/* Balance */}
@@ -188,12 +198,13 @@ const Home: React.FC = () => {
         </div>
 
         {/* ── Stats row — rank & active inventory (streak lives in hero) ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+        <div className="home-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
           {[
-            { sticker: HOME_STAT_STICKERS.rank, value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b', rotate: -8 },
-            { sticker: HOME_STAT_STICKERS.inventory, value: activeInventoryCount, label: tr.profile.myInventory, color: '#7B6EF6', rotate: 6 },
+            { sticker: HOME_STAT_STICKERS.rank, value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b', rotate: -8, icon: Trophy },
+            { sticker: HOME_STAT_STICKERS.inventory, value: activeInventoryCount, label: tr.profile.myInventory, color: '#7B6EF6', rotate: 6, icon: Box },
           ].map((s) => (
-            <div key={s.label} style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'visible' }}>
+            <div key={s.label} className="home-stat-card" style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'visible' }}>
+              <s.icon className="home-stat-card__icon" size={18} style={{ color: s.color }} />
               {s.sticker?.url && (
                 <div className="home-stat-shape" style={{ transform: `rotate(${s.rotate}deg)` }} aria-hidden>
                   <StickerDecorImg
@@ -234,11 +245,14 @@ const Home: React.FC = () => {
             <p className="font-display" style={{ color: '#fff', fontSize: 'clamp(18px,4vw,24px)', fontWeight: 900, margin: 0, lineHeight: 1.2, textTransform: 'uppercase', maxWidth: '55%' }}>
               Alışveriş yap,<br />puan topla!
             </p>
+            <button type="button" className="home-promo-banner__cta" onClick={() => navigate('/qr')}>
+              QR Tara <QrCode size={14} />
+            </button>
           </div>
         </div>
 
         {/* ── Quick actions ── */}
-        <div>
+        <div className="home-quick-section">
           <SectionHeader micro="HIZLI ERİŞİM" title={tr.home.quickActions} />
           <div className="home-quick-actions" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
             {quickActions.map(action => {
@@ -269,9 +283,11 @@ const Home: React.FC = () => {
                     )}
                   </div>
                   <div style={{ padding: '10px 12px 14px' }}>
-                    <span className="font-display" style={{ color: 'var(--text-dark)', fontSize: 12, fontWeight: 900, textTransform: 'uppercase' }}>
-                      {action.label}
+                    <span className="home-quick-action__label">
+                      <span className="font-display">{action.label}</span>
+                      <ChevronRight size={14} />
                     </span>
+                    <small className="home-quick-action__hint">{action.hint}</small>
                   </div>
                 </button>
               );
@@ -281,7 +297,7 @@ const Home: React.FC = () => {
 
         {/* ── Notifications preview ── */}
         {unreadNotifs.length > 0 && (
-          <div>
+          <div className="home-notifications-section">
             <SectionHeader
               micro="BİLDİRİMLER"
               title={`${unreadNotifs.length} Yeni`}

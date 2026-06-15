@@ -8,6 +8,8 @@ export interface AvatarOptions {
   size?: number;
   skinColor?: string;
   backgroundColor?: string;
+  accessories?: AvatarAccessory;
+  accessoriesProbability?: number;
 }
 
 const DICEBEAR_OPEN_PEEPS_URL = 'https://api.dicebear.com/10.x/open-peeps/svg';
@@ -22,7 +24,29 @@ const normalizeColorParam = (value: string | undefined, fallback: string): strin
   return firstColor || fallback;
 };
 
-export const ALLOWED_SKIN_COLORS = ['deceeb', 'e0abb4', 'abe0d7', 'faead9'];
+export const ALLOWED_ACCESSORIES = [
+  'blank',
+  'glasses',
+  'glasses2',
+  'glasses3',
+  'glasses4',
+  'glasses5',
+  'sunglasses',
+  'sunglasses2',
+] as const;
+
+export type AvatarAccessory = (typeof ALLOWED_ACCESSORIES)[number];
+
+export const normalizeAvatarAccessory = (value: string | undefined): AvatarAccessory | undefined => {
+  return ALLOWED_ACCESSORIES.find((accessory) => accessory === value);
+};
+
+const normalizeProbability = (value: number | undefined): number | undefined => {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  return Math.max(0, Math.min(100, Math.round(value)));
+};
+
+export const ALLOWED_SKIN_COLORS = ['deceeb', 'e0abb4', 'abe0d7', 'faead9', 'bcb1f2'];
 
 export const STRONG_BG_COLORS = [
   'ff006e',
@@ -81,6 +105,14 @@ export const buildAvatarUrl = (options: AvatarOptions | string): string => {
   params.set('size', String(DEFAULT_AVATAR_SIZE));
   params.set('backgroundColor', normalizeColorParam(opts.backgroundColor, STRONG_BG_COLORS[0]));
   params.set('skinColor', normalizeColorParam(opts.skinColor, ALLOWED_SKIN_COLORS[0]));
+
+  const accessories = normalizeAvatarAccessory(opts.accessories);
+  const accessoriesProbability = normalizeProbability(opts.accessoriesProbability);
+
+  if (accessories) {
+    params.set('accessories', accessories);
+    params.set('accessoriesProbability', String(accessoriesProbability ?? 100));
+  }
 
   return `${DICEBEAR_OPEN_PEEPS_URL}?${params.toString()}`;
 };

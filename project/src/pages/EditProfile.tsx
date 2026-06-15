@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Check } from 'lucide-react';
 import AccountPageShell, { Section, SaveButton, inputStyle } from '../components/AccountPageShell';
 import AvatarEditor from '../components/AvatarEditor';
@@ -38,6 +38,11 @@ const EditProfile: React.FC = () => {
   const [saveErr, setSaveErr] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const handleAvatarDraftChange = useCallback((seed: string, url: string) => {
+    setSelectedAvatar(url);
+    setSelectedAvatarSeed(seed);
+  }, []);
 
   const handleSaveAvatar = async (seed: string, url: string) => {
     if (!authUser?.id) return;
@@ -143,6 +148,7 @@ const EditProfile: React.FC = () => {
           <AvatarEditor
             currentSeed={selectedAvatarSeed ?? null}
             currentUrl={selectedAvatar}
+            onChange={handleAvatarDraftChange}
             onSave={handleSaveAvatar}
             loading={saving}
             userContext={{
