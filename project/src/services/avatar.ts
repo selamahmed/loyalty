@@ -1,28 +1,32 @@
 /**
- * Avatar service - handles avatar operations with Supabase
+ * Avatar service — DiceBear Open Peeps + Supabase profiles
  */
 import { supabase } from '../lib/supabase';
-import { getDefaultAvatarSeed } from '../lib/avatar';
+import { buildAvatarUrl, getDefaultAvatarSeed } from '../lib/avatar';
 import {
+  AVATAR_SEED_PREFIX,
   defaultAvatarRefForSeed,
   isAvatarAssetRef,
   pickRandomAvatarRef,
+  resolveAvatarSrc,
 } from '../lib/avatarCatalog';
-import type { Database } from '../lib/supabase';
-
-export type Profile = Database['public']['Tables']['profiles']['Row'];
-export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 function isDiceBearUrl(value: string): boolean {
   return value.includes('dicebear.com');
 }
 
 function isExternalPhotoUrl(value: string): boolean {
-  // Now we treat DiceBear as part of our core system, but external URLs are still supported if manually set in DB
   return (
     (value.startsWith('http://') || value.startsWith('https://'))
     && !isDiceBearUrl(value)
   );
+}
+
+function seedFromRef(ref: string): string {
+  if (ref.startsWith(AVATAR_SEED_PREFIX)) {
+    return ref.slice(AVATAR_SEED_PREFIX.length);
+  }
+  return ref;
 }
 
 function defaultAvatarForUser(
@@ -37,8 +41,18 @@ function defaultAvatarForUser(
   });
   return {
     avatar_seed: seed,
-    avatar_url: defaultAvatarRefForSeed(seed),
+    avatar_url: buildAvatarUrl({ seed, size: 512 }),
   };
+}
+
+function normalizeAvatarUrl(storedUrl: string | null | undefined, seed: string): string {
+  if (storedUrl && (isDiceBearUrl(storedUrl) || isExternalPhotoUrl(storedUrl))) {
+    return storedUrl;
+  }
+  if (storedUrl && isAvatarAssetRef(storedUrl)) {
+    return buildAvatarUrl({ seed: seedFromRef(storedUrl), size: 512 });
+  }
+  return buildAvatarUrl({ seed, size: 512 });
 }
 
 /**
@@ -60,24 +74,26 @@ export async function initializeAvatarIfNeeded(
 
     if (fetchError) throw fetchError;
 
-    // Use name as seed if available, otherwise fallback
-    const seed = userName || profile?.avatar_seed || getDefaultAvatarSeed({
-      name: userName,
-      email: userEmail,
-      id: userId,
-    });
+    const seed = profile?.avatar_seed
+      || getDefaultAvatarSeed({ name: userName, email: userEmail, id: userId });
 
     if (profile?.avatar_url) {
-      if (!profile.avatar_seed) {
+      const normalizedUrl = normalizeAvatarUrl(profile.avatar_url, seed);
+      const needsSeed = !profile.avatar_seed;
+      const needsUrlUpgrade = profile.avatar_url !== normalizedUrl;
+
+      if (needsSeed || needsUrlUpgrade) {
         await supabase
           .from('profiles')
-          .update({ avatar_seed: seed, updated_at: new Date().toISOString() })
+          .update({
+            avatar_seed: seed,
+            avatar_url: normalizedUrl,
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', userId);
       }
-      return {
-        avatar_seed: profile.avatar_seed ?? seed,
-        avatar_url: profile.avatar_url,
-      };
+
+      return { avatar_seed: seed, avatar_url: normalizedUrl };
     }
 
     const defaults = defaultAvatarForUser(userName, userEmail, userId);
@@ -105,7 +121,41 @@ export async function initializeAvatarIfNeeded(
 }
 
 /**
- * Update user avatar with a seed ref (seed:random-string)
+ * Save DiceBear avatar seed + generated URL to Supabase
+ */
+export async function saveUserAvatar(
+  userId: string,
+  seed: string,
+  avatarUrl: string,
+): Promise<{ avatar_seed: string; avatar_url: string }> {
+  if (!userId) throw new Error('Kullanıcı oturumu bulunamadı.');
+  const trimmedSeed = seed.trim();
+  const trimmedUrl = avatarUrl.trim();
+  if (!trimmedSeed) throw new Error('Avatar seed boş olamaz.');
+  if (!trimmedUrl) throw new Error('Avatar URL boş olamaz.');
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      avatar_seed: trimmedSeed,
+      avatar_url: trimmedUrl,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId)
+    .select('avatar_seed, avatar_url')
+    .single();
+
+  if (error) throw error;
+  if (!data?.avatar_url) throw new Error('Avatar kaydedilemedi.');
+
+  return {
+    avatar_seed: data.avatar_seed ?? trimmedSeed,
+    avatar_url: data.avatar_url,
+  };
+}
+
+/**
+ * Update user avatar with a seed ref (seed:random-string) or external URL
  */
 export async function updateAvatar(
   userId: string,
@@ -114,37 +164,23 @@ export async function updateAvatar(
   if (!userId || !avatarRef.trim()) return null;
 
   const normalizedRef = avatarRef.trim();
-  // Simplified validation: either it's our seed ref or an external URL
-  if (!isAvatarAssetRef(normalizedRef) && !isExternalPhotoUrl(normalizedRef)) {
-    // If it doesn't have the prefix but isn't an external URL, assume it's a seed and add prefix
-    return updateAvatar(userId, `seed:${normalizedRef}`);
+  if (!isAvatarAssetRef(normalizedRef) && !isExternalPhotoUrl(normalizedRef) && !isDiceBearUrl(normalizedRef)) {
+    return updateAvatar(userId, defaultAvatarRefForSeed(normalizedRef));
   }
 
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({
-        avatar_url: normalizedRef,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId)
-      .select('avatar_seed, avatar_url')
-      .single();
+  const seed = isAvatarAssetRef(normalizedRef)
+    ? seedFromRef(normalizedRef)
+    : getDefaultAvatarSeed({ id: userId });
 
-    if (error) throw error;
+  const url = isDiceBearUrl(normalizedRef)
+    ? normalizedRef
+    : isExternalPhotoUrl(normalizedRef)
+      ? normalizedRef
+      : buildAvatarUrl({ seed, size: 512 });
 
-    return data
-      ? { avatar_seed: data.avatar_seed ?? '', avatar_url: data.avatar_url! }
-      : null;
-  } catch (err) {
-    console.error('[Avatar] Failed to update avatar:', err);
-    throw err;
-  }
+  return saveUserAvatar(userId, seed, url);
 }
 
-/**
- * Pick and save a random seed-based avatar for the user
- */
 export async function randomizeAvatar(
   userId: string,
 ): Promise<{ avatar_seed: string; avatar_url: string } | null> {
@@ -152,7 +188,9 @@ export async function randomizeAvatar(
   return updateAvatar(userId, avatarRef);
 }
 
-export async function getUserAvatar(userId: string): Promise<{ seed: string | null; url: string | null } | null> {
+export async function getUserAvatar(
+  userId: string,
+): Promise<{ seed: string | null; url: string | null } | null> {
   if (!userId) return null;
 
   try {
@@ -164,18 +202,20 @@ export async function getUserAvatar(userId: string): Promise<{ seed: string | nu
 
     if (error) throw error;
 
-    return data
-      ? { seed: data.avatar_seed, url: data.avatar_url }
+    if (!data) return null;
+
+    const seed = data.avatar_seed;
+    const url = data.avatar_url
+      ? resolveAvatarSrc(data.avatar_url) ?? data.avatar_url
       : null;
+
+    return { seed, url };
   } catch (err) {
     console.error('[Avatar] Failed to get avatar:', err);
     return null;
   }
 }
 
-/**
- * Regenerate avatar ref from seed
- */
 export async function regenerateAvatarUrl(userId: string): Promise<string | null> {
   if (!userId) return null;
 
@@ -188,14 +228,13 @@ export async function regenerateAvatarUrl(userId: string): Promise<string | null
 
     if (fetchError) throw fetchError;
 
-    const seed = profile?.avatar_seed
-      ?? getDefaultAvatarSeed({ id: userId });
-    const newRef = defaultAvatarRefForSeed(seed);
+    const seed = profile?.avatar_seed ?? getDefaultAvatarSeed({ id: userId });
+    const newUrl = buildAvatarUrl({ seed, size: 512 });
 
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
-        avatar_url: newRef,
+        avatar_url: newUrl,
         avatar_seed: seed,
         updated_at: new Date().toISOString(),
       })
@@ -203,10 +242,9 @@ export async function regenerateAvatarUrl(userId: string): Promise<string | null
 
     if (updateError) throw updateError;
 
-    return newRef;
+    return newUrl;
   } catch (err) {
     console.error('[Avatar] Failed to regenerate avatar URL:', err);
     return null;
   }
 }
-

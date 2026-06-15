@@ -1,8 +1,9 @@
 /**
- * NeoAvatar — profile avatar from bundled asset library
+ * NeoAvatar — DiceBear Open Peeps or initials fallback
  */
 
 import React, { useState } from 'react';
+import { buildAvatarUrl, getDefaultAvatarSeed } from '../lib/avatar';
 import { getAvatarBgColor, resolveAvatarSrc } from '../lib/avatarCatalog';
 import { getInitials, getInitialsBg } from '../lib/avatarGenerator';
 
@@ -27,8 +28,6 @@ function radiusFor(shape: AvatarShape, size: number): string {
   return `${Math.max(6, Math.round(size * 0.18))}px`;
 }
 
-import { buildAvatarUrl, getDefaultAvatarSeed } from '../lib/avatar';
-
 export const NeoAvatar: React.FC<NeoAvatarProps> = ({
   src,
   name,
@@ -42,14 +41,16 @@ export const NeoAvatar: React.FC<NeoAvatarProps> = ({
   border = true,
 }) => {
   const [imgFailed, setImgFailed] = useState(false);
-  
-  // Auto-generate DiceBear avatar URL if none is saved
+
   const defaultSeed = getDefaultAvatarSeed({ name, email });
-  const fallbackUrl = buildAvatarUrl({ seed: defaultSeed });
+  const fallbackUrl = buildAvatarUrl({ seed: defaultSeed, size: 512 });
   const effectiveSrc = src || fallbackUrl;
 
   const imageSrc = resolveAvatarSrc(effectiveSrc);
   const assetBg = getAvatarBgColor(effectiveSrc);
+  const isRemoteAvatar = Boolean(
+    imageSrc && (imageSrc.includes('dicebear.com') || imageSrc.startsWith('http')),
+  );
   const initials = getInitials(name, email);
   const initialsBg = getInitialsBg((name || email || 'user').trim());
   const radius = radiusFor(shape, size);
@@ -75,7 +76,7 @@ export const NeoAvatar: React.FC<NeoAvatarProps> = ({
     return (
       <div
         className={`${cursor} ${className}`}
-        style={{ ...baseStyle, background: assetBg ?? undefined }}
+        style={{ ...baseStyle, background: isRemoteAvatar ? undefined : (assetBg ?? undefined) }}
         onClick={onClick}
         title={tooltip}
       >
@@ -84,7 +85,7 @@ export const NeoAvatar: React.FC<NeoAvatarProps> = ({
           alt={initials}
           width={size}
           height={size}
-          className={`w-full h-full block ${assetBg ? 'object-contain p-[8%]' : 'object-cover'}`}
+          className={`w-full h-full block ${isRemoteAvatar || !assetBg ? 'object-cover' : 'object-contain p-[8%]'}`}
           onError={() => setImgFailed(true)}
           loading="lazy"
           decoding="async"

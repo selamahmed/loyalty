@@ -18,6 +18,7 @@ export interface AuthUser {
   role: UserRole;
   avatar?: string;
   provider?: string;
+  avatar_seed?: string;
 }
 
 export type UserProfile = CanonicalProfile;
@@ -109,9 +110,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (alreadySynced && knownStatus === undefined) return;
 
     // Initialize avatar if needed
-    void initializeAvatarIfNeeded(user.id, user.user_metadata?.full_name ?? user.user_metadata?.username, user.email).catch(err => {
-      console.error('[AuthContext] Avatar initialization failed:', err);
-    });
+    void initializeAvatarIfNeeded(user.id, user.user_metadata?.full_name ?? user.user_metadata?.username, user.email)
+      .then(result => {
+        if (result) invalidateProfile(user.id);
+      })
+      .catch((err: unknown) => {
+        console.error('[AuthContext] Avatar initialization failed:', err);
+      });
 
     invalidateProfile(user.id);
   }, [signOutBannedUser, invalidateProfile]);
@@ -164,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       username: canonicalProfile.username ?? base.username,
       avatar: canonicalProfile.avatar_url ?? base.avatar,
       role: (canonicalProfile.role as UserRole) ?? base.role,
+      avatar_seed: canonicalProfile.avatar_seed ?? base.avatar_seed,
     };
   }, [sessionUser, canonicalProfile]);
 
@@ -233,6 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authUser,
     profile: canonicalProfile ?? null,
     session,
+  
     role,
     isAuthenticated,
     isLoading,

@@ -893,22 +893,17 @@ body::before {
   white-space: nowrap;
 }
 
-.profile-hero-user__edit {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: #fff;
-  border: 2.5px solid var(--dark-border);
-  box-shadow: 0 3px 0 var(--dark-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.profile-hero-user__avatar--editable {
   cursor: pointer;
-  z-index: 4;
-  padding: 0;
+  transition: transform 0.15s ease;
+}
+
+.profile-hero-user__avatar--editable:hover {
+  transform: scale(1.03);
+}
+
+.profile-hero-user__avatar--editable:active {
+  transform: scale(0.98);
 }
 
 .profile-hero-xp {

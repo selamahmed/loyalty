@@ -4,6 +4,8 @@ import AccountPageShell, { Section, SaveButton, inputStyle } from '../components
 import AvatarEditor from '../components/AvatarEditor';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useInvalidateProfile } from '../hooks/useCanonicalProfile';
+import { saveUserAvatar } from '../services/avatar';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { activityLogService } from '../lib/activityLogger';
@@ -16,6 +18,7 @@ const labelStyle: React.CSSProperties = {
 const EditProfile: React.FC = () => {
   const { user, updateUser } = useApp();
   const { authUser } = useAuth();
+  const invalidateProfile = useInvalidateProfile();
 
   const [form, setForm] = useState({
     username: user.username,
@@ -31,21 +34,23 @@ const EditProfile: React.FC = () => {
   const [saved, setSaved] = useState(false);
 
   const handleSaveAvatar = async (seed: string, url: string) => {
-    setSelectedAvatar(url);
     if (!authUser?.id) return;
+    const saved = await saveUserAvatar(authUser.id, seed, url);
+    setSelectedAvatar(saved.avatar_url);
     await updateUser({
-      avatar: url,
-      avatarSeed: seed,
+      avatar: saved.avatar_url,
+      avatarSeed: saved.avatar_seed,
     });
+    invalidateProfile(authUser.id);
     void activityLogService.logActivity({
       userId:     authUser.id,
       username:   form.username.trim() || (authUser.username ?? authUser.name ?? authUser.email),
       email:      authUser.email,
       role:       authUser.role,
       action:     'Avatar güncellendi',
-      actionType: 'avatar_update',
+      actionType: 'profile_update',
       riskLevel:  'low',
-      details:    { avatarSeed: seed, avatarUrl: url },
+      details:    { avatarSeed: saved.avatar_seed, avatarUrl: saved.avatar_url },
     });
   };
 

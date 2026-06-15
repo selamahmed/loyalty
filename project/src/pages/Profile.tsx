@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, Package, CreditCard as Edit3, Bell, HelpCircle, History, BarChart2, Gamepad2, Home, QrCode, ShoppingBag, Sun, Moon, LayoutGrid, Palette } from 'lucide-react';
+import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, Package, CreditCard as Edit3, Bell, HelpCircle, History, BarChart2, Gamepad2, Home, QrCode, ShoppingBag, Sun, Moon, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -173,18 +173,11 @@ const Profile: React.FC = () => {
                   email={user.email}
                   size={72}
                   shape="circle"
-                  className="profile-hero-user__avatar"
+                  className="profile-hero-user__avatar profile-hero-user__avatar--editable"
                   style={{ border: '4px solid rgba(255,255,255,0.55)', boxShadow: '0 4px 0 rgba(0,0,0,0.18)' }}
-                />
-                <button
-                  type="button"
-                  aria-label="Avatar özelleştir"
-                  className="profile-hero-user__edit"
                   onClick={() => { playSound('click'); handleNavigate('/settings/edit-profile'); }}
-                  title="Avatar Özelleştir"
-                >
-                  <Palette size={14} color="#6d28d9" strokeWidth={2.5} />
-                </button>
+                  title="Avatar özelleştir"
+                />
                 <LevelBadge
                   level={user.level}
                   width={34}
