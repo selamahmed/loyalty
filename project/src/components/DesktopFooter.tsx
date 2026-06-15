@@ -71,7 +71,7 @@ const DesktopFooter: React.FC<DesktopFooterProps> = ({ onNavigate }) => {
             onClick={() => onNavigate('/home')}
             aria-label="NexReward ana sayfa"
           >
-            <AppLogo size={48} className="app-desktop-footer__logo-mark" />
+            <AppLogo size={36} className="app-desktop-footer__logo-mark" />
             <div>
               <p className="app-desktop-footer__logo-title">NexReward</p>
               <p className="app-desktop-footer__logo-sub">Puan kazan, ödül topla</p>

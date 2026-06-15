@@ -93,7 +93,7 @@ const formToPayload = (f: FormState) => ({
   active:            f.published ? true : f.active,
   published:         f.published,
   win_count:         f.winnerCount,
-  rewards_json:      f.rewards.map(({ pointsRequired: _pr, ...prize }) => prize),
+  rewards_json:      f.rewards,
   image:             null,
   multiplier:        null,
   emoji:             null,

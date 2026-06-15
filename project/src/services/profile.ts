@@ -36,3 +36,24 @@ export async function upsertProfile(profile: Database['public']['Tables']['profi
   if (error) throw error;
   return data;
 }
+
+/** Upload avatar to storage and return public URL */
+export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  const fileExt = file.name.split('.').pop();
+  const filePath = `${userId}/avatar-${Date.now()}.${fileExt}`;
+
+  // 1. Upload
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(filePath, file, { upsert: true });
+
+  if (uploadError) throw uploadError;
+
+  // 2. Get public URL
+  const { data } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+}
+

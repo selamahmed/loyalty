@@ -22,11 +22,11 @@ const StickerSlot: React.FC<{ slot: StickerSlotConfig; index: number }> = ({ slo
     if (!slot.defer) return;
     const mount = () => setMounted(true);
     if ('requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(mount, { timeout: 2200 });
-      return () => window.cancelIdleCallback(id);
+      const id = (window as any).requestIdleCallback(mount, { timeout: 2200 });
+      return () => (window as any).cancelIdleCallback(id);
     }
-    const t = window.setTimeout(mount, 500);
-    return () => window.clearTimeout(t);
+    const t = setTimeout(mount, 500);
+    return () => clearTimeout(t);
   }, [slot.defer]);
 
   if (!mounted) return null;

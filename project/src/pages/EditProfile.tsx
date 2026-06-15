@@ -13,6 +13,8 @@ import {
   pickRandomAvatarRef,
   defaultAvatarRefForSeed,
 } from '../lib/avatarCatalog';
+import { uploadAvatar } from '../services/profile';
+
 
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 11, fontWeight: 900, color: 'var(--text-muted)',
@@ -48,6 +50,32 @@ const EditProfile: React.FC = () => {
     playSound('click');
     setSelectedAvatar(pickRandomAvatarRef(selectedAvatar));
   };
+
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !authUser?.id) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setSaveErr("Dosya boyutu 5MB'dan küçük olmalı.");
+      return;
+    }
+
+    setUploading(true);
+    setSaveErr('');
+
+    try {
+      const url = await uploadAvatar(authUser.id, file);
+      setSelectedAvatar(url);
+      playSound('success');
+    } catch (err: any) {
+      setSaveErr(err.message || 'Yükleme başarısız.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
 
   const handleSave = async () => {
     if (!authUser?.id) return;
@@ -112,10 +140,29 @@ const EditProfile: React.FC = () => {
           shape="circle"
         />
 
-        <button type="button" onClick={handleRandomPick} disabled={saving} style={btnStyle}>
-          <Shuffle size={15} />
-          Rastgele Seç
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button type="button" onClick={handleRandomPick} disabled={saving || uploading} style={btnStyle}>
+            <Shuffle size={15} />
+            Rastgele Seç
+          </button>
+
+          <label style={{ ...btnStyle, background: 'var(--card-bg)', color: 'var(--text-dark)', cursor: uploading ? 'not-allowed' : 'pointer' }}>
+            {uploading ? (
+              <RefreshCw size={15} className="animate-spin" />
+            ) : (
+              <Shuffle size={15} />
+            )}
+            {uploading ? 'Yükleniyor...' : 'Fotoğraf Yükle'}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={saving || uploading}
+              style={{ display: 'none' }}
+            />
+          </label>
+        </div>
+
       </div>
 
       {/* ── Avatar picker grid ── */}
