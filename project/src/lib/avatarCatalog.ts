@@ -4,22 +4,22 @@ export const AVATAR_SEED_PREFIX = 'seed:';
 
 export type AvatarAsset = { id: string; url: string; ref: string };
 
+import { buildAvatarUrl } from './avatar';
+
 /** Resolve stored avatar value to a displayable URL */
 export function resolveAvatarSrc(stored?: string | null): string | null {
   if (!stored) return null;
   
-  if (stored.startsWith(AVATAR_SEED_PREFIX)) {
-    const seed = stored.slice(AVATAR_SEED_PREFIX.length);
-    // Using adventurer style for a friendly look, or initials as fallback
-    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
-  }
-  
   if (stored.startsWith('http://') || stored.startsWith('https://')) {
     return stored;
   }
+
+  let seed = stored;
+  if (stored.startsWith(AVATAR_SEED_PREFIX)) {
+    seed = stored.slice(AVATAR_SEED_PREFIX.length);
+  }
   
-  // Fallback to treat any other string as a seed
-  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(stored)}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+  return buildAvatarUrl({ seed });
 }
 
 export function isAvatarAssetRef(value?: string | null): boolean {

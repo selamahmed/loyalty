@@ -16,39 +16,23 @@ import { captureError } from '../lib/monitoring';
 
 
 export type AppUser = {
-
   id: string;
-
   username: string;
-
   email: string;
-
   avatar: string;
-
+  avatarSeed?: string;
   level: number;
-
   xp: number;
-
   xpToNext: number;
-
   totalPoints: number;
-
   currentPoints: number;
-
   rank: number;
-
   joinDate: string;
-
   streak: number;
-
   achievements: number;
-
   totalAchievements: number;
-
   phone?: string;
-
   bio?: string;
-
 };
 
 
@@ -284,6 +268,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         await updateProfile(authUser.id, {
           username: data.username,
           avatar_url: data.avatar,
+          avatar_seed: data.avatarSeed,
           phone: data.phone ?? null,
           bio: data.bio ?? null,
         });

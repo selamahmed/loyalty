@@ -3,32 +3,158 @@
  * Provides utilities for generating, storing, and managing user avatars
  */
 
-/**
- * Build a DiceBear Open Peeps avatar URL from a seed
- */
-export const buildAvatarUrl = (seed: string): string => {
-  const safeSeed = encodeURIComponent(seed || 'user');
+export interface AvatarOptions {
+  seed?: string;
+  size?: number;
+  skinColor?: string; // Hex code or comma-separated hex codes (without #)
+  backgroundColor?: string; // Hex code or comma-separated hex codes (without #)
+  expressionVariant?: string; // e.g. calm, cheeky, etc.
+  headVariant?: string; // Hair style
+  clothingColor?: string; // Hex code
+  scale?: number; // 0 to 200
+  borderRadius?: number; // 0 to 50 (maps to 'radius' in DiceBear)
+  rotate?: number; // 0 to 360
+  translateX?: number; // -100 to 100
+  translateY?: number; // -100 to 100
+  flip?: boolean;
+  accessoriesProbability?: number; // 0 to 100
+  facialHairProbability?: number; // 0 to 100
+  maskProbability?: number; // always 0
+}
 
-  return (
-    'https://api.dicebear.com/10.x/open-peeps/svg' +
-    '?seed=' +
-    safeSeed +
-    '&size=512' +
-    '&backgroundColor=ff006e,8338ec,3a86ff,06d6a0,ffbe0b,fb5607,ef4444,14b8a6' +
-    '&backgroundColorFill=solid' +
-    '&skinColor=faead9,ffdbb4,deceeb,e0abb4,abe0d7' +
-    '&skinColorFill=solid' +
-    '&maskProbability=0' +
-    '&accessoriesProbability=45' +
-    '&accessoriesVariant=glasses,glasses2,glasses3,glasses4,glasses5,sunglasses,sunglasses2' +
-    '&expressionProbability=100' +
-    '&expressionVariant=smile,smileBig,smileLOL,cute,calm,cheeky,lovingGrin1,lovingGrin2,eatingHappy' +
-    '&headProbability=100' +
-    '&headVariant=short1,short2,short3,short4,short5,medium1,medium2,medium3,mediumStraight,bangs,bangs2,long,longCurly,longBangs,pomp,bun,bun2' +
-    '&facialHairProbability=15' +
-    '&clothingColor=111827,2563eb,ec4899,06d6a0,ffbe0b,ef4444,7c3aed' +
-    '&clothingColorFill=solid'
-  );
+// Allowed skin colors: deceeb, e0abb4, abe0d7, faead9
+export const ALLOWED_SKIN_COLORS = ['deceeb', 'e0abb4', 'abe0d7', 'faead9'];
+
+// Solid background colors (strong colors)
+export const STRONG_BG_COLORS = [
+  'ff006e', // Hot pink
+  '8338ec', // Purple
+  '3a86ff', // Blue
+  '06d6a0', // Teal
+  'ffbe0b', // Yellow
+  'fb5607', // Orange
+  'ef4444', // Red
+  '14b8a6', // Dark teal
+];
+
+// Happy, calm, cheeky faces only (no sad, angry, surprised)
+export const ALLOWED_EXPRESSIONS = [
+  'calm',
+  'cheeky',
+  'cute',
+  'eatingHappy',
+  'lovingGrin1',
+  'lovingGrin2',
+  'smile',
+  'smileBig',
+  'smileLOL'
+];
+
+// Normal hair options (no gray hair, no hats, no hair loss options)
+export const ALLOWED_HAIRSTYLES = [
+  'afro',
+  'bangs',
+  'bangs2',
+  'bantuKnots',
+  'bear',
+  'bun',
+  'bun2',
+  'buns',
+  'cornrows',
+  'cornrows2',
+  'dreads1',
+  'dreads2',
+  'flatTop',
+  'flatTopLong',
+  'long',
+  'longAfro',
+  'longBangs',
+  'longCurly',
+  'medium1',
+  'medium2',
+  'medium3',
+  'mediumBangs',
+  'mediumBangs2',
+  'mediumBangs3',
+  'mediumStraight',
+  'mohawk',
+  'mohawk2',
+  'pomp',
+  'short1',
+  'short2',
+  'short3',
+  'short4',
+  'short5',
+  'twists',
+  'twists2'
+];
+
+export const ALLOWED_CLOTHING_COLORS = [
+  '111827', // Dark Gray
+  '2563eb', // Blue
+  'ec4899', // Pink
+  '06d6a0', // Mint
+  'ffbe0b', // Yellow
+  'ef4444', // Red
+  '7c3aed', // Purple
+];
+
+/**
+ * Build a DiceBear Open Peeps avatar URL from a seed and optional configurations
+ */
+export const buildAvatarUrl = (options: AvatarOptions | string): string => {
+  const opts: AvatarOptions = typeof options === 'string' ? { seed: options } : options;
+  
+  const seed = opts.seed || 'user';
+  const safeSeed = encodeURIComponent(seed);
+  
+  // Set default skin colors (if not specified, use allowed skin colors)
+  const skinColor = opts.skinColor || ALLOWED_SKIN_COLORS.join(',');
+  
+  // Set default background (if not specified, choose from strong solid colors or let DiceBear select)
+  const backgroundColor = opts.backgroundColor || STRONG_BG_COLORS.join(',');
+
+  // Set default expression (if not specified, only use allowed ones)
+  const expressionVariant = opts.expressionVariant || ALLOWED_EXPRESSIONS.join(',');
+
+  // Set default head variant (if not specified, only use allowed normal hair)
+  const headVariant = opts.headVariant || ALLOWED_HAIRSTYLES.join(',');
+
+  // Set default clothing color
+  const clothingColor = opts.clothingColor || ALLOWED_CLOTHING_COLORS.join(',');
+
+  const params = new URLSearchParams();
+  params.set('seed', seed);
+  
+  if (opts.size) params.set('size', opts.size.toString());
+  params.set('skinColor', skinColor);
+  params.set('backgroundColor', backgroundColor);
+  params.set('expressionVariant', expressionVariant);
+  params.set('headVariant', headVariant);
+  params.set('clothingColor', clothingColor);
+
+  if (opts.scale !== undefined) params.set('scale', opts.scale.toString());
+  if (opts.borderRadius !== undefined) params.set('radius', opts.borderRadius.toString());
+  if (opts.rotate !== undefined) params.set('rotate', opts.rotate.toString());
+  if (opts.translateX !== undefined) params.set('translateX', opts.translateX.toString());
+  if (opts.translateY !== undefined) params.set('translateY', opts.translateY.toString());
+  if (opts.flip !== undefined) params.set('flip', opts.flip.toString());
+  
+  // Accessories probability (optional)
+  const accProb = opts.accessoriesProbability !== undefined ? opts.accessoriesProbability : 30;
+  params.set('accessoriesProbability', accProb.toString());
+  
+  // Facial hair probability
+  const facialHairProb = opts.facialHairProbability !== undefined ? opts.facialHairProbability : 15;
+  params.set('facialHairProbability', facialHairProb.toString());
+
+  // Mask must always be off (probability = 0)
+  params.set('maskProbability', '0');
+
+  // Solid background fill
+  params.set('backgroundColorFill', 'solid');
+
+  return `https://api.dicebear.com/10.x/open-peeps/svg?${params.toString()}`;
 };
 
 /**

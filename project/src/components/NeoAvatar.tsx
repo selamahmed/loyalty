@@ -27,6 +27,8 @@ function radiusFor(shape: AvatarShape, size: number): string {
   return `${Math.max(6, Math.round(size * 0.18))}px`;
 }
 
+import { buildAvatarUrl, getDefaultAvatarSeed } from '../lib/avatar';
+
 export const NeoAvatar: React.FC<NeoAvatarProps> = ({
   src,
   name,
@@ -40,8 +42,14 @@ export const NeoAvatar: React.FC<NeoAvatarProps> = ({
   border = true,
 }) => {
   const [imgFailed, setImgFailed] = useState(false);
-  const imageSrc = resolveAvatarSrc(src);
-  const assetBg = getAvatarBgColor(src);
+  
+  // Auto-generate DiceBear avatar URL if none is saved
+  const defaultSeed = getDefaultAvatarSeed({ name, email });
+  const fallbackUrl = buildAvatarUrl({ seed: defaultSeed });
+  const effectiveSrc = src || fallbackUrl;
+
+  const imageSrc = resolveAvatarSrc(effectiveSrc);
+  const assetBg = getAvatarBgColor(effectiveSrc);
   const initials = getInitials(name, email);
   const initialsBg = getInitialsBg((name || email || 'user').trim());
   const radius = radiusFor(shape, size);

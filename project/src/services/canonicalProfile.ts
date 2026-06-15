@@ -8,6 +8,7 @@ export type CanonicalProfile = {
   email: string | null;
   role: string | null;
   avatar_url: string | null;
+  avatar_seed: string | null;
   total_points: number;
   current_points: number;
   level: number;
@@ -47,6 +48,7 @@ export async function fetchCanonicalProfile(userId: string): Promise<CanonicalPr
     email: profile.email,
     role: profile.role,
     avatar_url: profile.avatar_url,
+    avatar_seed: profile.avatar_seed,
     total_points: profile.total_points ?? 0,
     current_points: profile.current_points ?? 0,
     level: profile.level ?? 1,

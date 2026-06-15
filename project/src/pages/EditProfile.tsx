@@ -1,28 +1,17 @@
 import React, { useState } from 'react';
-import { Check, Shuffle } from 'lucide-react';
+import { Check } from 'lucide-react';
 import AccountPageShell, { Section, SaveButton, inputStyle } from '../components/AccountPageShell';
-import NeoAvatar from '../components/NeoAvatar';
+import AvatarEditor from '../components/AvatarEditor';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { activityLogService } from '../lib/activityLogger';
-import {
-  isAvatarAssetRef,
-  pickRandomAvatarRef,
-  defaultAvatarRefForSeed,
-} from '../lib/avatarCatalog';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 11, fontWeight: 900, color: 'var(--text-muted)',
   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6,
 };
-
-function initialAvatarRef(avatar: string, fallbackSeed: string): string {
-  if (isAvatarAssetRef(avatar)) return avatar;
-  if (avatar) return avatar.startsWith('http') ? avatar : defaultAvatarRefForSeed(avatar);
-  return defaultAvatarRefForSeed(fallbackSeed);
-}
 
 const EditProfile: React.FC = () => {
   const { user, updateUser } = useApp();
@@ -36,16 +25,28 @@ const EditProfile: React.FC = () => {
   });
 
   const displayName = form.username || authUser?.name || authUser?.email || 'user';
-  const [selectedAvatar, setSelectedAvatar] = useState(() =>
-    initialAvatarRef(user.avatar, displayName),
-  );
+  const [selectedAvatar, setSelectedAvatar] = useState(() => user.avatar);
   const [saveErr, setSaveErr] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const handleRandomPick = () => {
-    playSound('click');
-    setSelectedAvatar(pickRandomAvatarRef());
+  const handleSaveAvatar = async (seed: string, url: string) => {
+    setSelectedAvatar(url);
+    if (!authUser?.id) return;
+    await updateUser({
+      avatar: url,
+      avatarSeed: seed,
+    });
+    void activityLogService.logActivity({
+      userId:     authUser.id,
+      username:   form.username.trim() || (authUser.username ?? authUser.name ?? authUser.email),
+      email:      authUser.email,
+      role:       authUser.role,
+      action:     'Avatar güncellendi',
+      actionType: 'avatar_update',
+      riskLevel:  'low',
+      details:    { avatarSeed: seed, avatarUrl: url },
+    });
   };
 
   const handleSave = async () => {
@@ -60,6 +61,7 @@ const EditProfile: React.FC = () => {
         phone:    form.phone.trim(),
         bio:      form.bio.trim(),
         avatar:   selectedAvatar,
+        avatarSeed: user.avatarSeed,
       });
 
       playSound('success');
@@ -83,16 +85,6 @@ const EditProfile: React.FC = () => {
     }
   };
 
-  const btnStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 6,
-    padding: '8px 16px', borderRadius: 12, fontSize: 13, fontWeight: 900,
-    background: 'linear-gradient(180deg,#a78bfa,#7B6EF6)',
-    color: '#fff',
-    border: '2.5px solid var(--dark-border)',
-    boxShadow: '0 4px 0 var(--dark-border)',
-    cursor: 'pointer',
-  };
-
   return (
     <AccountPageShell
       watermark="PROFİL"
@@ -101,30 +93,20 @@ const EditProfile: React.FC = () => {
       title={tr.settings.editProfile}
       subtitle="Kişisel bilgilerini güncelle"
     >
-      {/* ── Avatar preview & Randomizer ── */}
-      <Section title="Avatarın" emoji="🎭">
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '24px 0' }}>
-          <NeoAvatar
-            src={selectedAvatar}
-            name={displayName}
-            email={authUser?.email}
-            size={120}
-            shape="circle"
+      {/* ── Avatar customizer ── */}
+      <Section title="Avatar Özelleştir" emoji="🎨">
+        <div style={{ padding: '8px 10px' }}>
+          <AvatarEditor
+            currentSeed={user.avatarSeed || null}
+            currentUrl={user.avatar || null}
+            onSave={handleSaveAvatar}
+            loading={saving}
+            userContext={{
+              name: form.username,
+              email: authUser?.email,
+              id: authUser?.id,
+            }}
           />
-
-          <button 
-            type="button" 
-            onClick={handleRandomPick} 
-            disabled={saving} 
-            style={btnStyle}
-          >
-            <Shuffle size={15} />
-            Rastgele Avatar Oluştur
-          </button>
-          
-          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textAlign: 'center', maxWidth: '80%' }}>
-            Avatarınız isminize veya rastgele oluşturulan bir koda göre otomatik olarak üretilir.
-          </p>
         </div>
       </Section>
 

@@ -51,6 +51,7 @@ export function canonicalToAppUser(p: CanonicalProfile) {
     username: p.username ?? '',
     email: p.email ?? '',
     avatar: p.avatar_url ?? '',
+    avatarSeed: p.avatar_seed ?? '',
     level: p.level,
     xp: p.xp,
     xpToNext: p.xp_to_next,
