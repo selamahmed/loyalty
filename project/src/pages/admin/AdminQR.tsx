@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { QrCode, Plus, Trash2, X, Check, Copy, Edit2, Save, RefreshCw, ToggleLeft, ToggleRight, ShoppingCart, Clock, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getQRCodes, createQRCode, toggleQRCode, deleteQRCode, getRedemptionsAdmin } from '../../services/admin';
+import { getQRCodes, createQRCode, toggleQRCode, deleteQRCode, getRedemptionsAdmin, createCashierQR, getCashierQRCodes } from '../../services/admin';
+import { useAuth } from '../../context/AuthContext';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 import {
   createCashierQRPayload, saveCashierQR, loadCashierQRs,
@@ -87,7 +88,38 @@ const StatusBadge: React.FC<{ qr: CashierQRPayload }> = ({ qr }) => {
   );
 };
 
+const CASHIER_QR_TTL_MS = 7 * 60 * 1000;
+const CASHIER_POINTS_PER_TL = 10;
+
+function generateCashierCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'QR-';
+  for (let i = 0; i < 8; i += 1) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function amountFromCashierLabel(label: string | null): number {
+  const match = (label ?? '').match(/(?:TRY|₺)\s*([\d.]+)/i);
+  return match ? Number(match[1]) : 0;
+}
+
+function rowToCashierQR(row: DBQRCode): CashierQRPayload {
+  const used = !row.active || ((row.max_uses ?? 0) > 0 && (row.uses_count ?? 0) >= (row.max_uses ?? 0));
+  const expired = row.expires_at ? isQRExpired(row.expires_at) : false;
+  return {
+    type: 'cashier_purchase',
+    qr_id: row.code,
+    amount: amountFromCashierLabel(row.label),
+    points: row.points,
+    merchant_id: row.store_id ?? '',
+    issued_at: row.created_at,
+    expires_at: row.expires_at ?? new Date(new Date(row.created_at).getTime() + CASHIER_QR_TTL_MS).toISOString(),
+    status: used ? 'used' : expired ? 'expired' : 'pending',
+  };
+}
+
 const AdminQR: React.FC = () => {
+  const { authUser } = useAuth();
   const [tab, setTab] = useState<TabType>('purchase');
 
   /* ── Cashier purchase QR state ── */
@@ -115,8 +147,22 @@ const AdminQR: React.FC = () => {
   const [invCopied, setInvCopied] = useState<string | null>(null);
   const [invPreview, setInvPreview] = useState<string | null>(null);
 
-  /* ── Load cashier history from localStorage ── */
-  useEffect(() => { setQrHistory(loadCashierQRs().slice(0, 10)); }, [tab]);
+  const loadCashierHistory = useCallback(async () => {
+    try {
+      const rows = await getCashierQRCodes(20);
+      const history = (rows as DBQRCode[]).map(rowToCashierQR);
+      setQrHistory(history.slice(0, 10));
+      setActiveQR(prev => {
+        if (!prev) return prev;
+        return history.find(qr => qr.qr_id === prev.qr_id) ?? prev;
+      });
+    } catch {
+      setQrHistory([]);
+    }
+  }, []);
+
+  useEffect(() => { if (tab === 'purchase') void loadCashierHistory(); }, [tab, loadCashierHistory]);
+  useRealtimeTable('qr_codes', loadCashierHistory, tab === 'purchase');
 
   /* ── Load store QR codes from Supabase ── */
   const loadCodes = useCallback(async () => {
@@ -157,12 +203,11 @@ const AdminQR: React.FC = () => {
   /* ── Realtime: refresh inventory on redemption change ── */
   useRealtimeTable('redemptions', loadInventory, tab === 'inventory');
 
-  const POINTS_PER_TL = 1;
   const parsedAmount = parseFloat(amount) || 0;
-  const estimatedPoints = Math.round(parsedAmount * POINTS_PER_TL);
+  const estimatedPoints = Math.round(parsedAmount * CASHIER_POINTS_PER_TL);
 
   /* ── Generate cashier QR (localStorage session) ── */
-  const handleGenerate = () => {
+  const handleGenerateLocal = () => {
     if (parsedAmount <= 0) return;
     setGenerating(true);
     setTimeout(() => {
@@ -178,6 +223,34 @@ const AdminQR: React.FC = () => {
         setActiveQR(prev => prev?.qr_id === qr.qr_id ? null : prev);
       }, 5 * 60 * 1000 + 500);
     }, 300);
+  };
+
+  const handleGenerate = async () => {
+    if (parsedAmount <= 0) return;
+    setGenerating(true);
+    try {
+      const expiresAt = new Date(Date.now() + CASHIER_QR_TTL_MS).toISOString();
+      const row = await createCashierQR({
+        code: generateCashierCode(),
+        points: estimatedPoints,
+        amount: parsedAmount,
+        cashierUserId: authUser?.id ?? 'admin',
+        expiresAt,
+      });
+      const qr = rowToCashierQR(row as DBQRCode);
+      appendAuditLog({ event: 'qr_generated', qr_id: qr.qr_id, detail: `${qr.amount} TL purchase QR for ${qr.points} points`, points: qr.points });
+      setActiveQR(qr);
+      setAmount('');
+      await loadCashierHistory();
+      if (expiryTimerRef.current) clearTimeout(expiryTimerRef.current);
+      expiryTimerRef.current = setTimeout(() => {
+        setActiveQR(prev => prev?.qr_id === qr.qr_id ? null : prev);
+      }, CASHIER_QR_TTL_MS + 500);
+    } catch (e) {
+      console.error('[AdminQR] Could not create cashier QR:', e);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   /* ── Store QR handlers (Supabase) ── */
@@ -372,7 +445,7 @@ const AdminQR: React.FC = () => {
                   </div>
                   {parsedAmount > 0 && (
                     <p className="text-xs text-purple-500 font-bold mt-1">
-                      → {estimatedPoints} puan kazanacak (1₺ = 1 puan)
+                      → {estimatedPoints} puan kazanacak (1 TL = 10 puan)
                     </p>
                   )}
                 </div>

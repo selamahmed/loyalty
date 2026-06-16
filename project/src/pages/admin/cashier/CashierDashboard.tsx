@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import CashierLayout from './CashierLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { getCashierTodayStats, getRecentPointsTransactions } from '../../../services/admin';
+import { useRealtimeTables } from '../../../hooks/useRealtime';
 import { ScanLine, Star, Users, CheckCircle, Clock, ArrowRight, PackageCheck, History, Loader2, QrCode, Zap, User } from 'lucide-react';
 
 const AMBER      = '#f59e0b';
@@ -56,6 +57,7 @@ const CashierDashboard: React.FC = () => {
   }, [authUser?.id]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useRealtimeTables(['points_transactions', 'qr_scans', 'qr_codes', 'profiles'], () => { void loadData(); }, Boolean(authUser?.id));
 
   const catIcon = (cat: string | null) => {
     if (cat === 'qr_scan') return <QrCode size={14} style={{ color: '#7B6EF6' }} />;

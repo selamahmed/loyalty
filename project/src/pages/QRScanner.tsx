@@ -11,6 +11,7 @@ import { pageGroup } from '../lib/pageStickers';
 import { playSound } from '../lib/sounds';
 import {
   parseQRPayload, isCashierQR, isInventoryQR,
+  isStoreQR,
   isQRExpired, msRemaining,
   type CashierQRPayload,
 } from '../lib/qrUtils';
@@ -171,18 +172,20 @@ const QRScanner: React.FC = () => {
       if (item) { setInventoryMatch(item); return; }
     }
 
+    const lookupCode = isStoreQR(parsed) ? parsed.code : trimmed;
+
     // ── Inventory code entered manually ──
-    const invItem = getByCode(trimmed);
+    const invItem = getByCode(lookupCode);
     if (invItem) { setInventoryMatch(invItem); return; }
 
     // ── Look up in qr_codes table ──
     try {
-      const dbQR = await lookupStoreQR(trimmed);
+      const dbQR = await lookupStoreQR(lookupCode);
       if (dbQR) {
         // Cashier-generated QR: single-use (max_uses=1) with expiry
         // Reconstruct the full CashierQRPayload so the user sees amount + countdown
         if (dbQR.max_uses === 1 && dbQR.expires_at) {
-          const amountMatch = (dbQR.label ?? '').match(/₺([\d.]+)/);
+          const amountMatch = (dbQR.label ?? '').match(/(?:TRY|₺)\s*([\d.]+)/i);
           const amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
           const isUsed = (dbQR.uses_count ?? 0) >= (dbQR.max_uses ?? 1);
           setCashierQRResult({
@@ -210,7 +213,7 @@ const QRScanner: React.FC = () => {
     } catch { /* ignore lookup errors */ }
 
     // ── Not found anywhere ──
-    setResult({ code: trimmed, title: 'QR Kodu Tanınmadı', points: 0, location: 'Bilinmeyen' });
+    setResult({ code: lookupCode, title: 'QR Kodu Tanınmadı', points: 0, location: 'Bilinmeyen' });
   }, [getByCode]);
 
   /* 3a. Keep a ref to the latest handleDecodedQR so tickScan is never stale */

@@ -27,7 +27,14 @@ export interface InventoryQRPayload {
   issued_at: string;
 }
 
-export type ParsedQR = CashierQRPayload | InventoryQRPayload | { type: 'unknown'; raw: string };
+export interface StoreQRPayload {
+  type: 'store_qr';
+  code: string;
+  points?: number;
+  label?: string | null;
+}
+
+export type ParsedQR = CashierQRPayload | InventoryQRPayload | StoreQRPayload | { type: 'unknown'; raw: string };
 
 const LS_KEY = 'loyalty_cashier_qrs';
 const POINTS_PER_TL = 10; // 10 points per ₺ spent
@@ -80,6 +87,7 @@ export function parseQRPayload(raw: string): ParsedQR {
     const obj = JSON.parse(trimmed);
     if (obj?.type === 'cashier_purchase') return obj as CashierQRPayload;
     if (obj?.type === 'item_redemption')  return obj as InventoryQRPayload;
+    if (obj?.type === 'store_qr' && typeof obj.code === 'string') return obj as StoreQRPayload;
   } catch { /* not JSON */ }
   return { type: 'unknown', raw: trimmed };
 }
@@ -89,6 +97,9 @@ export function isCashierQR(p: ParsedQR): p is CashierQRPayload {
 }
 export function isInventoryQR(p: ParsedQR): p is InventoryQRPayload {
   return p.type === 'item_redemption';
+}
+export function isStoreQR(p: ParsedQR): p is StoreQRPayload {
+  return p.type === 'store_qr';
 }
 
 /* ── Validity check ── */

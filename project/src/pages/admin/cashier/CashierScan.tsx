@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import CashierLayout from './CashierLayout';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../context/AuthContext';
-import { adminAddPoints, createCashierQR } from '../../../services/admin';
+import { adminAddPoints, createCashierQR, getQRCodeById } from '../../../services/admin';
 import { activityLogService } from '../../../lib/activityLogger';
+import { useRealtimeTable } from '../../../hooks/useRealtime';
 import {
   QrCode, Search, CheckCircle, AlertCircle, RefreshCw,
   User, Star, Clock, XCircle, ChevronRight, Banknote, Zap, Loader2
@@ -21,6 +22,7 @@ interface ActiveQR {
   points: number;
   issuedAt: number;
   expiresAt: number;
+  status?: 'pending' | 'used';
 }
 
 interface GiftResult {
@@ -70,6 +72,33 @@ const AmountQRTab: React.FC = () => {
     return () => clearInterval(id);
   }, [activeQR]);
 
+  const syncActiveQR = useCallback(async () => {
+    if (!activeQR?.id) return;
+    try {
+      const row = await getQRCodeById(activeQR.id);
+      if (!row) return;
+      const used = !row.active || ((row.max_uses ?? 0) > 0 && (row.uses_count ?? 0) >= (row.max_uses ?? 0));
+      if (used && activeQR.status !== 'used') {
+        const ts = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        setSessionLog(prev => [{
+          customerName: 'QR Musterisi',
+          customerId: row.id,
+          points: row.points ?? activeQR.points,
+          timestamp: ts,
+        }, ...prev]);
+        setSessionPts(prev => prev + (row.points ?? activeQR.points));
+      }
+      setActiveQR(prev => {
+        if (!prev || prev.id !== row.id) return prev;
+        return { ...prev, status: used ? 'used' : 'pending' };
+      });
+    } catch (e) {
+      console.warn('[CashierScan] Could not refresh active QR:', e);
+    }
+  }, [activeQR?.id, activeQR?.points, activeQR?.status]);
+
+  useRealtimeTable('qr_codes', () => { void syncActiveQR(); }, Boolean(activeQR?.id));
+
   const handleGenerate = async () => {
     const amtNum = parseFloat(amount);
     if (!amtNum || amtNum <= 0) return;
@@ -80,14 +109,6 @@ const AmountQRTab: React.FC = () => {
     const expiresAt  = new Date(now + QR_TTL_SEC * 1000).toISOString();
     const pointsVal  = Math.round(amtNum * POINTS_PER_TL);
 
-    const qrLocal: ActiveQR = {
-      code,
-      amount: amtNum,
-      points: pointsVal,
-      issuedAt: now,
-      expiresAt: now + QR_TTL_SEC * 1000,
-    };
-
     try {
       const row = await createCashierQR({
         code,
@@ -96,16 +117,23 @@ const AmountQRTab: React.FC = () => {
         cashierUserId: authUser?.id ?? 'cashier',
         expiresAt,
       });
-      qrLocal.id = row.id;
+      setActiveQR({
+        id: row.id,
+        code: row.code,
+        amount: amtNum,
+        points: row.points,
+        issuedAt: new Date(row.created_at ?? now).getTime(),
+        expiresAt: new Date(row.expires_at ?? expiresAt).getTime(),
+        status: 'pending',
+      });
+      setExpired(false);
+      setSecondsLeft(QR_TTL_SEC);
+      setAmount('');
     } catch (e: unknown) {
-      // Non-fatal: QR still works as local ephemeral code
-      console.warn('[CashierScan] Could not persist QR to DB:', (e as Error).message);
+      setGenError((e as Error).message ?? 'QR Supabase uzerine kaydedilemedi.');
+    } finally {
+      setGenerating(false);
     }
-
-    setActiveQR(qrLocal);
-    setExpired(false);
-    setSecondsLeft(QR_TTL_SEC);
-    setGenerating(false);
   };
 
   const handleReset = () => {
@@ -126,12 +154,13 @@ const AmountQRTab: React.FC = () => {
         points: activeQR.points,
         issued_at: new Date(activeQR.issuedAt).toISOString(),
         expires_at: new Date(activeQR.expiresAt).toISOString(),
-        status: 'pending',
+        status: activeQR.status ?? 'pending',
       }))
     : '';
 
   const pctBar = activeQR ? (secondsLeft / QR_TTL_SEC) * 100 : 0;
-  const isWarn = secondsLeft <= 60 && !expired;
+  const isUsed = activeQR?.status === 'used';
+  const isWarn = secondsLeft <= 60 && !expired && !isUsed;
 
   return (
     <div className="space-y-4">
@@ -203,12 +232,12 @@ const AmountQRTab: React.FC = () => {
 
       {/* Active QR */}
       {activeQR && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: `3px solid ${expired ? '#ef4444' : isWarn ? '#f59e0b' : '#22c55e'}`, boxShadow: `0px 5px 0px ${expired ? '#dc2626' : isWarn ? '#d97706' : '#16a34a'}`, background: 'var(--card-bg)' }}>
+        <div className="rounded-2xl overflow-hidden" style={{ border: `3px solid ${expired ? '#ef4444' : isUsed ? '#9ca3af' : isWarn ? '#f59e0b' : '#22c55e'}`, boxShadow: `0px 5px 0px ${expired ? '#dc2626' : isUsed ? '#6b7280' : isWarn ? '#d97706' : '#16a34a'}`, background: 'var(--card-bg)' }}>
 
-          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '2.5px solid var(--dark-border)', background: expired ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.05)' }}>
+          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '2.5px solid var(--dark-border)', background: expired ? 'rgba(239,68,68,0.06)' : isUsed ? 'rgba(107,114,128,0.08)' : 'rgba(34,197,94,0.05)' }}>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: expired ? '#ef4444' : '#22c55e' }}>
-                {expired ? <XCircle size={16} color="white" /> : <QrCode size={16} color="white" />}
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: expired ? '#ef4444' : isUsed ? '#9ca3af' : '#22c55e' }}>
+                {expired || isUsed ? <XCircle size={16} color="white" /> : <QrCode size={16} color="white" />}
               </div>
               <div>
                 <p className="font-black text-sm" style={{ color: 'var(--text-dark)' }}>{expired ? 'QR Süresi Doldu' : 'QR Aktif'}</p>
@@ -221,7 +250,7 @@ const AmountQRTab: React.FC = () => {
           </div>
 
           <div className="h-2" style={{ background: 'var(--tab-bg)' }}>
-            <div className="h-full transition-all duration-1000" style={{ width: `${pctBar}%`, background: expired ? '#ef4444' : isWarn ? '#f59e0b' : '#22c55e' }} />
+            <div className="h-full transition-all duration-1000" style={{ width: `${pctBar}%`, background: expired ? '#ef4444' : isUsed ? '#9ca3af' : isWarn ? '#f59e0b' : '#22c55e' }} />
           </div>
 
           <div className="p-5 space-y-4">
@@ -230,9 +259,9 @@ const AmountQRTab: React.FC = () => {
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?data=${qrPayload}&size=240x240&margin=8`}
                   alt="QR Code"
-                  style={{ width: 240, height: 240, display: 'block', borderRadius: 8, opacity: expired ? 0.3 : 1 }}
+                  style={{ width: 240, height: 240, display: 'block', borderRadius: 8, opacity: expired || isUsed ? 0.3 : 1 }}
                 />
-                {expired && (
+                {(expired || isUsed) && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl" style={{ background: 'rgba(239,68,68,0.7)', backdropFilter: 'blur(3px)' }}>
                     <XCircle size={48} color="white" strokeWidth={2} />
                     <p className="font-black text-white text-lg mt-2">SÜRESI DOLDU</p>
@@ -241,7 +270,7 @@ const AmountQRTab: React.FC = () => {
               </div>
             </div>
 
-            {!expired && (
+            {!expired && !isUsed && (
               <div className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-2">
                   <Clock size={16} style={{ color: isWarn ? '#f59e0b' : '#22c55e' }} />
@@ -374,7 +403,7 @@ const ManualSearchTab: React.FC = () => {
     }
     setGifting(true);
     try {
-      await adminAddPoints(selected.id, ptsToGive, 'cashier_manual');
+      await adminAddPoints(selected.id, ptsToGive, 'Kasa manuel puan', 'cashier_manual');
       const ts = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
       setLog(p => [{ customerName: selected.username, customerId: selected.id, points: ptsToGive, timestamp: ts }, ...p]);
       setTotalPts(p => p + ptsToGive);

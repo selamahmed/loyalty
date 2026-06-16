@@ -231,13 +231,16 @@ export async function updateUserRole(userId: string, role: string): Promise<void
 export async function adminAddPoints(
   userId: string,
   amount: number,
-  description: string
+  description: string,
+  category = 'admin_adjustment',
+  referenceId?: string,
 ): Promise<void> {
   const { error } = await supabase.rpc('add_points', {
     p_user_id: userId,
     p_amount: amount,
     p_description: description,
-    p_category: 'admin_adjustment',
+    p_category: category,
+    p_reference_id: referenceId ?? null,
   });
   if (error) throw error;
 }
@@ -773,6 +776,28 @@ export async function lookupStoreQR(code: string) {
   return data;
 }
 
+export async function getQRCodeById(id: string) {
+  const { data, error } = await supabase
+    .from('qr_codes')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getCashierQRCodes(limit = 20) {
+  const { data, error } = await supabase
+    .from('qr_codes')
+    .select('*')
+    .eq('max_uses', 1)
+    .not('expires_at', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
 /** @deprecated Use claimQrScan from earn.ts — server validates QR */
 export async function recordQRScan(
   _userId: string,
@@ -800,7 +825,7 @@ export async function createCashierQR(payload: {
       code: payload.code,
       store_id: payload.cashierUserId,
       points: payload.points,
-      label: `Kasa QR — ₺${payload.amount}`,
+      label: `Cashier QR - TRY ${payload.amount}`,
       active: true,
       max_uses: 1,
       uses_count: 0,

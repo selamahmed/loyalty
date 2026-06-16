@@ -3,6 +3,7 @@ import CashierLayout from './CashierLayout';
 import { getRedemptionByCode, markRedemptionUsedByCode } from '../../../services/redemptions';
 import { activityLogService } from '../../../lib/activityLogger';
 import { useAuth } from '../../../context/AuthContext';
+import { useRealtimeTable } from '../../../hooks/useRealtime';
 import {
   Search, CheckCircle, XCircle, AlertCircle, Package,
   Tag, Ticket, Gift, RefreshCw, Clock, History, Loader2,
@@ -67,6 +68,10 @@ const CashierRedeem: React.FC = () => {
       setStatus('not_found');
     }
   }, [code]);
+
+  useRealtimeTable('redemptions', () => {
+    if (code.trim()) void handleCheck();
+  }, Boolean(code.trim()));
 
   const handleConfirm = async () => {
     if (!foundItem) return;

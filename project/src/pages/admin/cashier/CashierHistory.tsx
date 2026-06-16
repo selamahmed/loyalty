@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import CashierLayout from './CashierLayout';
 import { getCashierHistory } from '../../../services/admin';
+import { useRealtimeTables } from '../../../hooks/useRealtime';
 import { Search, Download, Star, Loader2, RefreshCw, QrCode, User, Zap } from 'lucide-react';
 
 interface TxRow {
@@ -58,6 +59,7 @@ const CashierHistory: React.FC = () => {
   }, []);
 
   useEffect(() => { load(0); }, [load]);
+  useRealtimeTables(['points_transactions', 'qr_scans', 'profiles'], () => { setPage(0); void load(0); });
 
   const filtered = rows.filter(r => {
     const q = search.toLowerCase();
