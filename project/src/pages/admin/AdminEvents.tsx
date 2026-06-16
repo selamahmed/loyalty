@@ -7,6 +7,7 @@ import AdminLayout from './AdminLayout';
 import { getAllEvents, createEvent, updateEvent, deleteEvent } from '../../services/events';
 import type { AppEvent } from '../../services/events';
 import { useRealtimeTable } from '../../hooks/useRealtime';
+import { eventEndTime, eventStartTime } from '../../lib/eventDates';
 
 /* ─── Styles ──────────────────────────────────────────────── */
 const nbCard: React.CSSProperties = {
@@ -26,8 +27,8 @@ const fmtDate = (iso?: string | null) => iso ? iso.split('T')[0] : '—';
 
 function eventStatus(ev: AppEvent): 'live' | 'upcoming' | 'ended' {
   const now = Date.now();
-  const s   = ev.start_date ? new Date(ev.start_date).getTime() : 0;
-  const e   = ev.end_date   ? new Date(ev.end_date).getTime()   : 0;
+  const s   = eventStartTime(ev.start_date);
+  const e   = eventEndTime(ev.end_date);
   if (now > e) return 'ended';
   if (now < s) return 'upcoming';
   return 'live';

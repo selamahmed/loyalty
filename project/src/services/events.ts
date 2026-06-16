@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/supabase';
+import { eventEndTime } from '../lib/eventDates';
 
 export type EventStatus = 'draft' | 'active' | 'ended' | 'distributed';
 
@@ -31,11 +32,12 @@ function eventWritePayload(payload: Partial<AppEvent>): Record<string, unknown> 
 
 /** Derive lifecycle status from existing columns when `events.status` is not migrated yet. */
 export function deriveEventStatus(ev: AppEvent): EventStatus {
-  if (ev.status) return ev.status;
+  if (ev.status === 'distributed') return 'distributed';
   if (ev.published === false) return 'draft';
   const now = Date.now();
-  const end = ev.end_date ? new Date(ev.end_date).getTime() : 0;
+  const end = eventEndTime(ev.end_date);
   if (end && now > end) return 'ended';
+  if (ev.status === 'draft') return 'draft';
   return 'active';
 }
 

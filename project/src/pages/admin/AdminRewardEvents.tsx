@@ -11,11 +11,12 @@ import {
   deriveEventStatus,
   type AppEvent, type RewardPrize,
 } from '../../services/events';
-import { getEventWinners, markWinnerDistributed, syncEventStatuses, finalizeEvent,
+import { getEventWinners, markWinnerDistributed, finalizeEvent,
   type EventWinner,
 } from '../../services/eventLeaderboard';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 import NeoAvatar from '../../components/NeoAvatar';
+import { eventEndTime, eventStartTime, eventHasEnded } from '../../lib/eventDates';
 
 /* ─── Constants ───────────────────────────────────────────── */
 const EMOJI_OPTIONS = [
@@ -106,8 +107,8 @@ function eventStatus(ev: AppEvent): 'live' | 'upcoming' | 'ended' | 'draft' | 'd
   if (dbStatus === 'ended') return 'ended';
   if (dbStatus === 'draft' || !ev.published) return 'draft';
   const now = Date.now();
-  const start = ev.start_date ? new Date(ev.start_date).getTime() : 0;
-  const end   = ev.end_date   ? new Date(ev.end_date).getTime()   : 0;
+  const start = eventStartTime(ev.start_date);
+  const end   = eventEndTime(ev.end_date);
   if (now > end) return 'ended';
   if (now < start) return 'upcoming';
   return 'live';
@@ -125,7 +126,7 @@ const STATUS_META = {
 function useCountdown(end?: string | null) {
   const calc = () => {
     if (!end) return null;
-    const diff = new Date(end).getTime() - Date.now();
+    const diff = eventEndTime(end) - Date.now();
     if (diff <= 0) return null;
     return {
       d: Math.floor(diff / 86400000),
@@ -164,12 +165,11 @@ const AdminRewardEvents: React.FC = () => {
   /* Load */
   const load = useCallback(async () => {
     try {
-      await syncEventStatuses().catch(() => {});
       const evs = await getAllEvents();
       setEvents(evs);
       const ended = evs.filter(e => eventStatus(e) === 'ended' || eventStatus(e) === 'distributed');
       for (const e of ended) {
-        if (new Date(e.end_date) < new Date() && deriveEventStatus(e) === 'active') {
+        if (eventHasEnded(e.end_date) && deriveEventStatus(e) === 'active') {
           await finalizeEvent(e.id).catch(() => {});
         }
       }

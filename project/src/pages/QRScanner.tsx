@@ -333,15 +333,16 @@ const QRScanner: React.FC = () => {
     if (!result || !authUser?.id) return;
     try {
       const earnResult = await claimQrScan(result.code);
+      const claimedPoints = earnResult.qrPoints ?? earnResult.points;
       showRewardPopup({
         type: 'reward',
         title: result.title,
         subtitle: `${result.location} adresinde QR kod taradın`,
-        points: earnResult.points,
+        points: claimedPoints,
       });
       setScanHistory(prev => [{
         code: result.code,
-        points: earnResult.points,
+        points: claimedPoints,
         time: 'Az önce',
         location: result.location,
         type: 'store',
@@ -351,10 +352,10 @@ const QRScanner: React.FC = () => {
         username: profile?.username ?? authUser.email ?? 'User',
         email: authUser.email ?? '',
         role: profile?.role ?? 'customer',
-        action: `QR kod tarandı: ${result.title} → ${earnResult.points} puan`,
+        action: `QR kod tarandı: ${result.title} → ${claimedPoints} puan`,
         actionType: 'qr_scan',
-        details: { code: result.code, title: result.title, location: result.location },
-        amount: earnResult.points,
+        details: { code: result.code, title: result.title, location: result.location, qrPoints: claimedPoints },
+        amount: claimedPoints,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'QR tarama başarısız');
@@ -367,15 +368,16 @@ const QRScanner: React.FC = () => {
     if (cashierQRResult.status === 'used' || isQRExpired(cashierQRResult.expires_at)) return;
     try {
       const earnResult = await claimQrScan(cashierQRResult.qr_id);
+      const claimedPoints = earnResult.qrPoints ?? cashierQRResult.points;
       showRewardPopup({
         type: 'reward',
         title: 'Alışveriş Puanı!',
-        subtitle: `${cashierQRResult.amount}₺ alışverişten ${earnResult.points} puan kazandın`,
-        points: earnResult.points,
+        subtitle: `${cashierQRResult.amount}₺ alışverişten ${claimedPoints} puan kazandın`,
+        points: claimedPoints,
       });
       setScanHistory(prev => [{
         code: cashierQRResult.qr_id,
-        points: earnResult.points,
+        points: claimedPoints,
         time: 'Az önce',
         location: `${cashierQRResult.amount}₺ Alışveriş`,
         type: 'store',
@@ -385,10 +387,10 @@ const QRScanner: React.FC = () => {
         username: profile?.username ?? authUser.email ?? 'User',
         email: authUser.email ?? '',
         role: profile?.role ?? 'customer',
-        action: `Kasiyer QR kullanıldı: ${cashierQRResult.amount}₺ → ${earnResult.points} puan`,
+        action: `Kasiyer QR kullanıldı: ${cashierQRResult.amount}₺ → ${claimedPoints} puan`,
         actionType: 'qr_scan',
-        details: { qrId: cashierQRResult.qr_id, amount: cashierQRResult.amount },
-        amount: earnResult.points,
+        details: { qrId: cashierQRResult.qr_id, amount: cashierQRResult.amount, qrPoints: claimedPoints },
+        amount: claimedPoints,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'QR kullanımı başarısız');

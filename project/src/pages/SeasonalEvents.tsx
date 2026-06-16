@@ -13,6 +13,7 @@ import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
 import NeoAvatar from '../components/NeoAvatar';
 import StickerHero from '../components/StickerHero';
+import { eventEndTime, eventStartTime } from '../lib/eventDates';
 
 const card = {
   background: 'var(--card-bg)',
@@ -28,9 +29,9 @@ const getEventStatus = (event: AppEvent): EventStatus => {
   if (dbStatus === 'distributed') return 'distributed';
   if (dbStatus === 'ended') return 'ended';
   if (dbStatus === 'draft' || !event.published) return 'upcoming';
-  const now = new Date();
-  const start = new Date(event.start_date);
-  const end = new Date(event.end_date);
+  const now = Date.now();
+  const start = eventStartTime(event.start_date);
+  const end = eventEndTime(event.end_date);
   if (now > end) return 'ended';
   if (now < start) return 'upcoming';
   return 'active';
@@ -55,7 +56,7 @@ const useCountdown = (endDate: string, active: boolean) => {
   useEffect(() => {
     if (!active) return;
     const tick = () => {
-      const diff = new Date(endDate).getTime() - Date.now();
+      const diff = eventEndTime(endDate) - Date.now();
       if (diff <= 0) { setLeft({ days: 0, hours: 0, mins: 0, secs: 0 }); return; }
       setLeft({
         days: Math.floor(diff / 86400000),

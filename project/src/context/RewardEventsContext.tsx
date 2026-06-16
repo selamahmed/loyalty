@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { demoAvatarUrl } from '../lib/avatarCatalog';
+import { eventEndTime, eventHasEnded } from '../lib/eventDates';
 
 export type RankReward = {
   rank: number;
@@ -130,10 +131,10 @@ export const RewardEventsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const toggleActive = (id: string) => setEvents(prev => prev.map(x => x.id === id ? { ...x, active: !x.active } : x));
   const togglePublished = (id: string) => setEvents(prev => prev.map(x => x.id === id ? { ...x, published: !x.published } : x));
 
-  const isEventEnded = (event: RewardEvent) => new Date(event.endDate) < new Date();
+  const isEventEnded = (event: RewardEvent) => eventHasEnded(event.endDate);
 
   const getCountdown = (event: RewardEvent): string => {
-    const end = new Date(event.endDate).getTime();
+    const end = eventEndTime(event.endDate);
     const diff = end - Date.now();
     if (diff <= 0) return 'Ended';
     const days = Math.floor(diff / 86400000);

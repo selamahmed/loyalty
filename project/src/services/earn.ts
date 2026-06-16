@@ -11,6 +11,7 @@ export type EarnAction =
 
 export type EarnResult = {
   points: number;
+  qrPoints?: number;
   xp: number;
   leveledUp: boolean;
   level: number;
@@ -31,6 +32,7 @@ function parseEarnResult(raw: unknown): EarnResult {
   const r = (raw ?? {}) as Record<string, unknown>;
   return {
     points: Number(r.points ?? 0),
+    qrPoints: r.qr_points != null ? Number(r.qr_points) : undefined,
     xp: Number(r.xp ?? 0),
     leveledUp: Boolean(r.leveled_up),
     level: Number(r.level ?? 1),

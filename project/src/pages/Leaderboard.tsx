@@ -17,6 +17,7 @@ import StickerDecorImg from '../components/StickerDecorImg';
 import { colorfulSticker } from '../lib/stickerCatalog';
 import { useRealtimeTable } from '../hooks/useRealtime';
 import { onLeaderboardRefresh } from '../lib/leaderboardRefresh';
+import { eventEndTime, eventStartTime } from '../lib/eventDates';
 
 const card = {
   background: 'var(--card-bg)',
@@ -287,10 +288,10 @@ const LB_CHIP_STICKERS = {
 } as const;
 
 const eventStatusMeta = (ev: AppEvent) => {
-  const ended = new Date(ev.end_date) < new Date()
+  const ended = eventEndTime(ev.end_date) < Date.now()
     || deriveEventStatus(ev) === 'ended'
     || deriveEventStatus(ev) === 'distributed';
-  const upcoming = !ended && new Date(ev.start_date) > new Date();
+  const upcoming = !ended && eventStartTime(ev.start_date) > Date.now();
   const kind: EventChipKind = ended ? 'ended' : upcoming ? 'upcoming' : 'live';
   return {
     ended,
@@ -317,7 +318,7 @@ const ChipSticker: React.FC<{ kind: keyof typeof LB_CHIP_STICKERS }> = ({ kind }
 /* ── Countdown hook ── */
 const useCountdown = (endDate: string) => {
   const calc = () => {
-    const diff = new Date(endDate).getTime() - Date.now();
+    const diff = eventEndTime(endDate) - Date.now();
     if (diff <= 0) return { days: 0, hours: 0, mins: 0, secs: 0, ended: true };
     return { days: Math.floor(diff/86400000), hours: Math.floor((diff%86400000)/3600000), mins: Math.floor((diff%3600000)/60000), secs: Math.floor((diff%60000)/1000), ended: false };
   };
@@ -413,10 +414,10 @@ const EventUserPositionCard: React.FC<{
 /* ── Active Event Banner — event-specific points leaderboard ── */
 const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> = ({ event, showUserCard = false }) => {
   const { authUser, profile } = useAuth();
-  const ended = new Date(event.end_date) < new Date()
+  const ended = eventEndTime(event.end_date) < Date.now()
     || deriveEventStatus(event) === 'ended'
     || deriveEventStatus(event) === 'distributed';
-  const upcoming = !ended && new Date(event.start_date) > new Date();
+  const upcoming = !ended && eventStartTime(event.start_date) > Date.now();
   const cd = useCountdown(event.end_date);
   const prizes = (event.rewards_json as RewardPrize[] | null) ?? [];
   const bannerColor = event.color ?? '#FFE500';
@@ -762,11 +763,9 @@ const Leaderboard: React.FC = () => {
 
   const loadPrizeEvents = React.useCallback(async () => {
     try {
-      await syncEventStatuses().catch(() => {});
       setActiveEvents(await getLeaderboardPrizeEvents());
     } catch {
       try {
-        await syncEventStatuses().catch(() => {});
         const evs = await getActiveEvents();
         setActiveEvents(evs.filter(e => Array.isArray(e.rewards_json) && (e.rewards_json as RewardPrize[]).length > 0));
       } catch {
@@ -777,8 +776,8 @@ const Leaderboard: React.FC = () => {
 
   useEffect(() => {
     if (tab !== 'events') return;
-    void syncEventStatuses().then(() => loadPrizeEvents());
-    const interval = setInterval(() => { void syncEventStatuses().then(() => loadPrizeEvents()); }, 30000);
+    void loadPrizeEvents();
+    const interval = setInterval(() => { void loadPrizeEvents(); }, 30000);
     return () => clearInterval(interval);
   }, [tab, loadPrizeEvents]);
 
