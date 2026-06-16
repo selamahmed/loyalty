@@ -6,7 +6,7 @@ import { playSound } from '../lib/sounds';
 export const inventoryTypeConfig: Record<string, { color: string; bg: string; label: string; emoji: string }> = {
   coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', label: 'Kupon', emoji: '🏷️' },
   ticket: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Bilet', emoji: '🎫' },
-  reward: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', label: 'Ödül', emoji: '🎁' },
+  reward: { color: '#fbbf24', bg: 'rgba(251,191,36,0.14)', label: 'Ödül', emoji: '🎁' },
 };
 
 export const getDaysLeft = (expires: string) =>
@@ -28,37 +28,37 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
   return (
     <button
       type="button"
-      className={`press-card inventory-wallet-card ${expired ? 'inventory-wallet-card--expired' : ''} ${urgency ? 'inventory-wallet-card--urgent' : ''}`}
+      className={`press-card inventory-wallet-card ${compact ? 'inventory-wallet-card--compact' : ''} ${dimmed ? 'inventory-wallet-card--dimmed' : ''} ${expired ? 'inventory-wallet-card--expired' : ''} ${urgency ? 'inventory-wallet-card--urgent' : ''}`}
       onClick={() => { playSound('click'); onClick(); }}
       aria-label={`${item.title}, ${item.code}`}
       style={{
         width: '100%', display: 'flex', alignItems: 'stretch', overflow: 'hidden',
         background: 'var(--card-bg)',
-        border: `2.5px solid ${urgency ? '#f59e0b' : 'var(--dark-border)'}`,
-        boxShadow: urgency ? '0 4px 0 #d97706' : '0 4px 0 var(--dark-border)',
-        borderRadius: 16, cursor: 'pointer', textAlign: 'left',
-        opacity: dimmed ? 0.55 : 1,
+        border: `3px solid ${urgency ? '#f59e0b' : 'var(--dark-border)'}`,
+        boxShadow: urgency ? '0 6px 0 #d97706' : '0 6px 0 var(--dark-border)',
+        borderRadius: 18, cursor: 'pointer', textAlign: 'left',
+        opacity: dimmed ? 0.72 : 1,
         position: 'relative',
       }}
     >
       <div className="inventory-wallet-card__stripe" style={{ width: 5, flexShrink: 0, background: cfg.color }} />
 
       <div className="inventory-wallet-card__media" style={{
-        width: compact ? 64 : 72, flexShrink: 0, position: 'relative', overflow: 'hidden',
-        borderRight: '2px solid var(--dark-border)',
+        width: compact ? 68 : 96, flexShrink: 0, position: 'relative', overflow: 'hidden',
+        borderRight: '3px solid var(--dark-border)',
       }}>
         {item.image ? (
           <img
             src={item.image}
             alt=""
             style={{
-              width: '100%', height: '100%', minHeight: compact ? 72 : 80,
+              width: '100%', height: '100%', minHeight: compact ? 76 : 108,
               objectFit: 'cover', display: 'block', filter: dimmed ? 'grayscale(80%)' : 'none',
             }}
           />
         ) : (
           <div style={{
-            width: '100%', height: '100%', minHeight: compact ? 72 : 80,
+            width: '100%', height: '100%', minHeight: compact ? 76 : 108,
             background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: compact ? 24 : 28,
           }}>
             {cfg.emoji}
@@ -76,7 +76,7 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
         )}
       </div>
 
-      <div className="inventory-wallet-card__body" style={{ flex: 1, padding: compact ? '8px 10px' : '10px 12px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div className="inventory-wallet-card__body" style={{ flex: 1, padding: compact ? '9px 11px' : '12px 14px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
           <span className="inventory-wallet-card__type" style={{
             fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 999,
@@ -92,20 +92,20 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
             <span style={{ fontSize: 8, fontWeight: 900, color: 'var(--text-muted)' }}>Kullanıldı</span>
           )}
         </div>
-        <p style={{
-          fontWeight: 900, fontSize: compact ? 12 : 13, color: 'var(--text-dark)', margin: '0 0 3px',
+        <p className="inventory-wallet-card__title" style={{
+          fontWeight: 900, fontSize: compact ? 12 : 15, color: 'var(--text-dark)', margin: '0 0 3px',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           textDecoration: item.used ? 'line-through' : 'none',
         }}>
           {item.title}
         </p>
-        <p style={{
+        <p className="inventory-wallet-card__code" style={{
           fontFamily: 'monospace', fontSize: 10, color: cfg.color, fontWeight: 700, margin: '0 0 4px',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {item.code}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <div className="inventory-wallet-card__meta-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
           <span className="inventory-wallet-card__time" style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
             <Clock size={10} />
             {item.used ? 'Tamamlandı' : expired ? 'Süresi doldu' : `${days} gün kaldı`}
@@ -116,7 +116,7 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
         </div>
         {!item.used && !expired && (
           <div className="inventory-wallet-card__progress" style={{
-            marginTop: 6, height: 4, borderRadius: 999, background: 'var(--tab-bg)',
+            marginTop: 7, height: 5, borderRadius: 999, background: 'var(--tab-bg)',
             border: '1px solid var(--dark-border)', overflow: 'hidden',
           }}>
             <div style={{
@@ -128,7 +128,7 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', paddingRight: 10, flexShrink: 0 }}>
+      <div className="inventory-wallet-card__chevron" style={{ display: 'flex', alignItems: 'center', paddingRight: 10, flexShrink: 0 }}>
         <ChevronRight size={16} color="var(--text-muted)" />
       </div>
     </button>

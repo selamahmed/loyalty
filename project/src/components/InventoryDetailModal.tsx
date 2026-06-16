@@ -16,7 +16,7 @@ const brutal = {
 const typeConfig: Record<string, { color: string; bg: string; icon: LucideIcon; label: string }> = {
   coupon: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: Tag,    label: 'Kupon' },
   ticket: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: Ticket, label: 'Bilet' },
-  reward: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  icon: Gift,   label: 'Ödül'  },
+  reward: { color: '#fbbf24', bg: 'rgba(251,191,36,0.14)', icon: Gift,   label: 'Ödül'  },
 };
 
 interface Countdown { days: number; hours: number; minutes: number; seconds: number; expired: boolean; }

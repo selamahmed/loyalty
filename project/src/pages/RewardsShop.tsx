@@ -228,7 +228,7 @@ const RewardsShop: React.FC = () => {
             alignItems: 'center',
             padding: '18px 20px',
             minHeight: 96,
-            overflow: 'hidden',
+            overflow: 'visible',
           }}
         >
           <div

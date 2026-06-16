@@ -114,13 +114,13 @@ const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[]; loading?: bo
       padding: 'clamp(16px,4vw,28px)',
       position: 'relative',
     }}>
-      <h2 style={{
+      <h2 className="lb-podium__title" style={{
         textAlign: 'center', fontWeight: 900, fontSize: 16, color: 'var(--text-dark)',
         margin: '0 0 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
       }}>
         <Crown size={20} color="#f59e0b" /> Top 3 Şampiyonlar
       </h2>
-      <div className="lb-podium__stage">
+      <div className="lb-podium__stage" aria-label="Top 3 champions podium">
         {layout.map(slotRank => {
           const player = sorted.find(p => p.rank === slotRank);
           if (!player) return null;
@@ -129,31 +129,35 @@ const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[]; loading?: bo
           const badge = player.rank === 1 ? '👑' : player.rank === 2 ? '🥈' : '🥉';
           const sz = isFirst ? 72 : 58;
           return (
-            <div key={player.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-              <div style={{ position: 'relative' }}>
+            <div
+              key={player.id}
+              className={`lb-podium__slot lb-podium__slot--rank-${player.rank} ${isFirst ? 'lb-podium__slot--first' : ''}`}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
+            >
+              <div className="lb-podium__avatar-wrap" style={{ position: 'relative' }}>
                 <Avatar url={player.avatar_url} name={player.username} size={sz} border={`${isFirst ? 4 : 3}px solid ${PODIUM_COLORS[i]}`} />
-                <div style={{ position: 'absolute', top: -8, right: -6, fontSize: isFirst ? 22 : 18 }}>{badge}</div>
+                <div className="lb-podium__badge" style={{ position: 'absolute', top: -8, right: -6, fontSize: isFirst ? 22 : 18 }}>{badge}</div>
               </div>
-              <p style={{
+              <p className="lb-podium__name" style={{
                 fontWeight: 900, fontSize: isFirst ? 14 : 12, color: 'var(--text-dark)',
                 textAlign: 'center', margin: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {player.username}
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <div className="lb-podium__points" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <Star size={10} fill="#f59e0b" color="#f59e0b" />
                 <span style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b' }}>
                   {player.points.toLocaleString('tr-TR')}
                 </span>
               </div>
-              <div style={{
+              <div className={`lb-podium__block lb-podium__block--rank-${player.rank}`} style={{
                 width: isFirst ? 80 : 64, height: PODIUM_HEIGHTS[i],
                 borderRadius: '12px 12px 0 0',
                 background: PODIUM_COLORS[i], border: '3px solid var(--dark-border)',
                 boxShadow: '0 -4px 0 var(--dark-border) inset',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{ fontSize: isFirst ? 24 : 20, fontWeight: 900, color: 'white' }}>
+                <span className="lb-podium__rank-text" style={{ fontSize: isFirst ? 24 : 20, fontWeight: 900, color: 'white' }}>
                   #{player.rank}
                 </span>
               </div>
@@ -825,6 +829,7 @@ const Leaderboard: React.FC = () => {
     <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden lb-page">
 
         <StickerHero
+          className="leaderboard-hero-card"
           page="leaderboard"
           bg="linear-gradient(135deg,#FF3E9D 0%,#9122FF 100%)"
           badge="👑 LİDERLİK"

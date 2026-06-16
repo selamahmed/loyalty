@@ -13,6 +13,7 @@ type StickerHeroProps = {
   titleColor?: string;
   highlightColor?: string;
   footer?: React.ReactNode;
+  className?: string;
 };
 
 /** Hero banner with brand-system sticker in a reserved right slot. */
@@ -26,6 +27,7 @@ const StickerHero: React.FC<StickerHeroProps> = ({
   titleColor,
   highlightColor,
   footer,
+  className = '',
 }) => {
   const dims = stickerDimensions(page, 'hero-inline');
 
@@ -54,7 +56,7 @@ const StickerHero: React.FC<StickerHeroProps> = ({
 
   if (footer) {
     return (
-      <div className="sticker-hero sticker-hero--with-footer" style={shellStyle}>
+      <div className={['sticker-hero sticker-hero--with-footer', className].filter(Boolean).join(' ')} style={shellStyle}>
         <div className="sticker-hero__body">
           {copyBlock}
           {sticker}
@@ -65,7 +67,7 @@ const StickerHero: React.FC<StickerHeroProps> = ({
   }
 
   return (
-    <div className="sticker-hero" style={shellStyle}>
+    <div className={['sticker-hero', className].filter(Boolean).join(' ')} style={shellStyle}>
       {copyBlock}
       {sticker}
     </div>

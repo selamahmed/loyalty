@@ -200,10 +200,10 @@ const Home: React.FC = () => {
         {/* ── Stats row — rank & active inventory (streak lives in hero) ── */}
         <div className="home-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
           {[
-            { sticker: HOME_STAT_STICKERS.rank, value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b', rotate: -8, icon: Trophy },
-            { sticker: HOME_STAT_STICKERS.inventory, value: activeInventoryCount, label: tr.profile.myInventory, color: '#7B6EF6', rotate: 6, icon: Box },
+            { id: 'rank', sticker: HOME_STAT_STICKERS.rank, value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b', rotate: -8, icon: Trophy },
+            { id: 'inventory', sticker: HOME_STAT_STICKERS.inventory, value: activeInventoryCount, label: tr.profile.myInventory, color: '#7B6EF6', rotate: 6, icon: Box },
           ].map((s) => (
-            <div key={s.label} className="home-stat-card" style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'visible' }}>
+            <div key={s.label} className={`home-stat-card home-stat-card--${s.id}`} style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'visible' }}>
               <s.icon className="home-stat-card__icon" size={18} style={{ color: s.color }} />
               {s.sticker?.url && (
                 <div className="home-stat-shape" style={{ transform: `rotate(${s.rotate}deg)` }} aria-hidden>
@@ -216,8 +216,10 @@ const Home: React.FC = () => {
                   />
                 </div>
               )}
-              <p style={{ fontWeight: 900, fontSize: 22, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
-              <p style={{ color: 'var(--text-muted)', fontSize: 9, fontWeight: 900, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</p>
+              <div className="home-stat-card__content">
+                <p className="home-stat-card__value" style={{ fontWeight: 900, fontSize: 22, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
+                <p className="home-stat-card__label" style={{ color: 'var(--text-muted)', fontSize: 9, fontWeight: 900, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</p>
+              </div>
             </div>
           ))}
         </div>
