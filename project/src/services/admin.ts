@@ -907,6 +907,11 @@ export async function createCashierQR(payload: {
     })
     .select()
     .single();
+  if (error && rpcError && isMissingCashierQRFunction(rpcError)) {
+    throw new Error(
+      'Supabase cannot see create_cashier_qr yet, and the direct qr_codes fallback is blocked by RLS. Run supabase/migrations/20260615000002_realtime_cashier_qr_ranking.sql in Supabase SQL Editor, then refresh the Supabase schema cache/app.',
+    );
+  }
   if (error) throw cashierQRError(error);
   return data;
 }

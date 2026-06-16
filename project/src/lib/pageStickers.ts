@@ -6,7 +6,7 @@ export const PAGE_GROUPS = {
   leaderboard: 'goodidea.svg',
   shop: 'loveit.svg',
   qr: 'qrcode.svg',
-  games: 'finisheddone.svg',
+  games: 'GAMES.svg',
   inventory: 'TICKETS.svg',
   stats: 'awesome.svg',
   history: 'Group 49.svg',

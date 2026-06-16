@@ -7,6 +7,7 @@ export type MainStickerPageKey =
   | 'dashboard'
   | 'leaderboard'
   | 'events'
+  | 'games'
   | 'shop'
   | 'profile'
   | 'settings';
@@ -57,6 +58,15 @@ export const PAGE_MAIN_STICKERS: Record<MainStickerPageKey, PageMainStickerConfi
     rotate: -2,
     accent: 'var(--neo-pink)',
     sizes: BRAND_STICKER_SIZES,
+  },
+  games: {
+    group: 'GAMES.svg',
+    rotate: -5,
+    accent: '#22c55e',
+    sizes: {
+      'hero-inline': { desktop: 178, mobile: 122 },
+      'hero-card': BRAND_STICKER_SIZES['hero-card'],
+    },
   },
   shop: {
     group: 'loveit.svg',

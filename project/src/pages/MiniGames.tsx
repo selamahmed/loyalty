@@ -1053,6 +1053,7 @@ const MiniGames: React.FC = () => {
           highlight="Her oyun puan kazandırır!"
           titleColor="#ffffff"
           highlightColor="#C8FF00"
+          className="games-hero-card"
         />
 
         {/* Game list */}
