@@ -149,14 +149,14 @@ const Profile: React.FC = () => {
   ];
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
+    <div className="profile-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
       {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.03 }}>👻</div>
       </div>
 
       <div
-        className="page-enter"
+        className="page-enter profile-auth-content"
         style={{ padding: 'clamp(12px,4vw,24px)', paddingBottom: 32, maxWidth: 640, margin: '0 auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}
       >
 

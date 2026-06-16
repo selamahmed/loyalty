@@ -300,7 +300,6 @@ const LandingPage: React.FC = () => {
         }
         .landing-hero-shell::before {
           content:""; position:absolute; inset:14px clamp(10px,2vw,20px) 18px;
-          border:1px solid ${isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)'};
           border-radius:clamp(28px,4vw,46px); pointer-events:none;
           background:${isDark ? 'rgba(255,255,255,.018)' : 'rgba(255,255,255,.24)'};
           opacity:.72;
@@ -331,7 +330,6 @@ const LandingPage: React.FC = () => {
         }
         .hero-copy-card::before {
           content:""; position:absolute; inset:10px;
-          border:1px solid ${isDark ? 'rgba(255,255,255,.13)' : 'rgba(255,255,255,.72)'};
           border-radius:clamp(20px,3vw,28px); pointer-events:none;
         }
         .hero-copy-card::after {
@@ -493,7 +491,6 @@ const LandingPage: React.FC = () => {
         }
         .landing-nav-inner::before {
           content:""; position:absolute; inset:7px;
-          border:1px solid ${isDark ? 'rgba(255,255,255,.13)' : 'rgba(255,255,255,.72)'};
           border-radius:15px; pointer-events:none;
         }
         .landing-nav-logo {

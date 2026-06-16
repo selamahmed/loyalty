@@ -422,7 +422,6 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
             content: "";
             position: absolute;
             inset: 10px;
-            border: 1px solid ${isDark ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.72)'};
             border-radius: clamp(20px, 3vw, 28px);
             pointer-events: none;
           }

@@ -52,7 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
   }
 
   return (
-    <div className="page-container flex overflow-x-hidden" style={{ position: 'relative' }}>
+    <div className="page-container customer-shell flex overflow-x-hidden" style={{ position: 'relative' }}>
       {rewardPopup && <RewardPopup data={rewardPopup} onDismiss={dismissRewardPopup} />}
 
       {/* ── Main content ── */}
@@ -60,7 +60,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
 
         {/* Header */}
         <header
-          className="sticky top-0 z-30 flex items-center gap-3"
+          className="customer-app-header sticky top-0 z-30 flex items-center gap-3"
           style={{
             padding: '10px 16px',
             background: 'var(--card-bg)',
@@ -124,7 +124,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
           </button>
         </header>
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto app-main-with-nav" style={{ position: 'relative', zIndex: 1 }}>
+        <main className="customer-main flex-1 overflow-x-hidden overflow-y-auto app-main-with-nav" style={{ position: 'relative', zIndex: 1 }}>
           {children}
         </main>
 
@@ -133,7 +133,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
         {/* ── Bottom nav (mobile) ── */}
         {!hideNav && (
           <nav
-            className="fixed bottom-0 left-0 right-0 lg:hidden z-30 safe-bottom"
+            className="customer-bottom-nav fixed bottom-0 left-0 right-0 lg:hidden z-30 safe-bottom"
             style={{
               background: 'var(--card-bg)',
               borderTop: '3px solid var(--dark-border)',
@@ -159,7 +159,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                     <div style={{
                       padding: '6px 16px', borderRadius: 12,
                       background: active ? `var(--primary-blue)18` : 'transparent',
-                      border: active ? '2px solid rgba(123,110,246,0.3)' : '2px solid transparent',
+                      border: active ? '3px solid var(--dark-border)' : '3px solid transparent',
                       transition: 'background-color 0.15s, border-color 0.15s',
                     }}>
                       <item.icon
@@ -223,7 +223,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                     <div style={{
                       padding: '6px 16px', borderRadius: 12,
                       background: active ? `var(--primary-blue)18` : 'transparent',
-                      border: active ? '2px solid rgba(123,110,246,0.3)' : '2px solid transparent',
+                      border: active ? '3px solid var(--dark-border)' : '3px solid transparent',
                       transition: 'background-color 0.15s, border-color 0.15s',
                     }}>
                       <item.icon

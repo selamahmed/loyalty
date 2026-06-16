@@ -97,7 +97,7 @@ const Home: React.FC = () => {
   }, [authUser?.id]);
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
+    <div className="home-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
 
       {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
@@ -112,7 +112,7 @@ const Home: React.FC = () => {
       {showDailyReward && <DailyRewardModal onClose={() => setShowDailyReward(false)} />}
 
       <div
-        className="page-enter home-page-content"
+        className="page-enter home-page-content home-auth-content"
         style={{ padding: 'clamp(12px,4vw,24px)', paddingBottom: 32, maxWidth: 1120, margin: '0 auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}
       >
 
@@ -187,7 +187,7 @@ const Home: React.FC = () => {
                 <span>Lv.{user.level}{xpProgress.nextTitle ? ` → ${user.level + 1}` : ''}</span>
                 <span>{xpProgress.inLevel.toLocaleString()} / {xpProgress.isMaxLevel ? 'MAX' : xpProgress.needed.toLocaleString()} XP</span>
               </div>
-              <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.25)', overflow: 'hidden' }}>
+              <div className="home-hero-xp-track" style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '0', overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${xpProgress.pct}%`, background: 'white', borderRadius: 999, transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
               </div>
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 5, fontWeight: 600 }}>
