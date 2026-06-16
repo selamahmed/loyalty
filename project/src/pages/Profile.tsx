@@ -161,7 +161,7 @@ const Profile: React.FC = () => {
       >
 
         {/* ── Profile hero ── */}
-        <div className="hero-card-brand profile-hero-card" style={{ ...card, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', position: 'relative' }}>
+        <div className="hero-card-brand profile-hero-card" style={{ ...card, background: 'linear-gradient(135deg,var(--gradient-start) 0%,var(--gradient-end) 100%)', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
           <PageMainSticker page="profile" variant="hero-card" />
           <div className="hero-card-brand__body profile-hero-card__body">
@@ -175,7 +175,7 @@ const Profile: React.FC = () => {
                   shape="circle"
                   className="profile-hero-user__avatar profile-hero-user__avatar--editable"
                   style={{ border: '4px solid rgba(255,255,255,0.55)', boxShadow: '0 4px 0 rgba(0,0,0,0.18)' }}
-                  onClick={() => { playSound('click'); handleNavigate('/settings/edit-profile'); }}
+                  onClick={() => handleNavigate('/settings/edit-profile')}
                   title="Avatar özelleştir"
                 />
                 <LevelBadge
@@ -184,6 +184,15 @@ const Profile: React.FC = () => {
                   className="level-badge-overlay profile-hero-user__level-chip"
                   style={{ bottom: -4, right: -10 }}
                 />
+                <button
+                  type="button"
+                  className="profile-hero-edit"
+                  onClick={() => handleNavigate('/settings/edit-profile')}
+                  aria-label="Edit profile"
+                >
+                  <Edit3 size={14} />
+                  <span>Duzenle</span>
+                </button>
               </div>
 
               <div className="profile-hero-user__info">
@@ -210,7 +219,14 @@ const Profile: React.FC = () => {
                 <span>Lv.{user.level}{xpProgress.nextTitle ? ` → ${user.level + 1}` : ''}</span>
                 <span>{xpProgress.inLevel.toLocaleString()} / {xpProgress.isMaxLevel ? 'MAX' : xpProgress.needed.toLocaleString()} XP</span>
               </div>
-              <div className="profile-hero-xp__track">
+              <div
+                className="profile-hero-xp__track"
+                role="progressbar"
+                aria-label="Level progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(xpProgress.pct)}
+              >
                 <div className="profile-hero-xp__fill" style={{ width: `${xpProgress.pct}%` }} />
               </div>
             </div>
@@ -220,7 +236,16 @@ const Profile: React.FC = () => {
         {/* ── Stats grid ── */}
         <div className="profile-stats-grid">
           {stats.map((stat) => (
-            <div key={stat.label} className="profile-stat-card" style={{ ...card, position: 'relative', overflow: 'visible' }}>
+            <div
+              key={stat.label}
+              className="profile-stat-card"
+              style={{
+                ...card,
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(123,110,246,0.07)), var(--card-bg)',
+                position: 'relative',
+                overflow: 'visible',
+              }}
+            >
               <div
                 className="profile-stat-card__icon"
                 style={{

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Search, X } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import InventoryDetailModal from '../components/InventoryDetailModal';
 import InventoryWalletCard from '../components/InventoryWalletCard';
@@ -17,12 +17,17 @@ const Inventory: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const filtered = items.filter(
-    i => !search || i.title.toLowerCase().includes(search.toLowerCase()) || i.code.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter(
+      i => !q || [i.title, i.code, i.type].some(value => (value ?? '').toLowerCase().includes(q)),
+    );
+  }, [items, search]);
 
   const active = filtered.filter(i => !i.used && new Date(i.expires) >= new Date());
   const expired = filtered.filter(i => i.used || new Date(i.expires) < new Date());
+  const allActiveCount = items.filter(i => !i.used && new Date(i.expires) >= new Date()).length;
+  const allExpiredCount = items.length - allActiveCount;
   const selectedItem = items.find(i => i.id === selectedId);
 
   const inputStyle: React.CSSProperties = {
@@ -43,15 +48,21 @@ const Inventory: React.FC = () => {
       </div>
 
       <div
-        className="page-enter p-3 sm:p-4 max-w-lg mx-auto overflow-x-hidden"
+        className="page-enter p-3 sm:p-4 max-w-lg mx-auto overflow-x-hidden inventory-page"
         style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}
       >
-        <div>
-          <p className="section-label">ENVANTER</p>
-          <h1 className="section-title" style={{ fontSize: 'clamp(24px,6vw,32px)' }}>Biletlerim</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '4px 0 0' }}>
-            Kazandigin kupon ve biletleri burada kullan.
-          </p>
+        <div className="inventory-header">
+          <div className="inventory-header__copy">
+            <p className="section-label">ENVANTER</p>
+            <h1 className="section-title" style={{ fontSize: 'clamp(24px,6vw,32px)' }}>Biletlerim</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 700, margin: '4px 0 0' }}>
+              Kazandigin kupon ve biletleri burada kullan.
+            </p>
+          </div>
+          <div className="inventory-header__chips" aria-label="Envanter ozeti">
+            <span>{allActiveCount} aktif</span>
+            {allExpiredCount > 0 && <span>{allExpiredCount} gecmis</span>}
+          </div>
         </div>
 
         <StickerHero
@@ -62,14 +73,14 @@ const Inventory: React.FC = () => {
           highlight="burada!"
         />
 
-        <div style={{ ...card, padding: '12px 14px', borderRadius: 16, boxShadow: '0 4px 0 var(--dark-border)' }}>
+        <div className="inventory-steps-card" style={{ ...card, padding: '12px 14px', borderRadius: 16, boxShadow: '0 4px 0 var(--dark-border)' }}>
           <p style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>
             Nasil kullanilir?
           </p>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div className="inventory-steps-card__grid" style={{ display: 'flex', gap: 6 }}>
             {['Bilete tikla', 'Kodu goster', 'Urunu al'].map((step, i) => (
-              <div key={step} style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{
+              <div key={step} className="inventory-step" style={{ flex: 1, textAlign: 'center' }}>
+                <div className="inventory-step__number" style={{
                   width: 22, height: 22, borderRadius: 7, margin: '0 auto 4px',
                   background: 'var(--tab-bg)', border: '2px solid var(--dark-border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -81,23 +92,35 @@ const Inventory: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ position: 'relative' }}>
+        <div className="inventory-search" style={{ position: 'relative' }}>
           <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             type="search"
             placeholder="Bilet veya kod ara..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={inputStyle}
+            aria-label="Bilet veya kod ara"
+            style={{ ...inputStyle, paddingRight: search ? 42 : 14 }}
           />
+          {search && (
+            <button
+              type="button"
+              className="inventory-search__clear"
+              onClick={() => setSearch('')}
+              aria-label="Aramayi temizle"
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
 
         {active.length > 0 ? (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div className="inventory-section">
+            <div className="inventory-section__heading" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
                 Aktif ({active.length})
               </p>
+              <span>{search ? 'Filtreli' : 'Kullanmaya hazir'}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {active.map(item => (
@@ -106,7 +129,7 @@ const Inventory: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div style={{ ...card, padding: 40, textAlign: 'center', borderStyle: 'dashed' }}>
+          <div className="inventory-empty-state" style={{ ...card, padding: 40, textAlign: 'center', borderStyle: 'dashed' }}>
             <p style={{ fontSize: 36, margin: '0 0 10px' }}>Ticket</p>
             <p style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: '0 0 4px' }}>
               {search ? 'Sonuc bulunamadi' : 'Henuz bilet yok'}
@@ -118,10 +141,13 @@ const Inventory: React.FC = () => {
         )}
 
         {expired.length > 0 && (
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 900, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>
-              Suresi Dolan / Kullanilan ({expired.length})
-            </p>
+          <div className="inventory-section inventory-section--expired">
+            <div className="inventory-section__heading inventory-section__heading--expired">
+              <p style={{ fontSize: 11, fontWeight: 900, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
+                Suresi Dolan / Kullanilan ({expired.length})
+              </p>
+              <span>Arsiv</span>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {expired.map(item => (
                 <InventoryWalletCard key={item.id} item={item} onClick={() => setSelectedId(item.id)} dimmed />

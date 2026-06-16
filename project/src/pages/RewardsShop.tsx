@@ -129,9 +129,12 @@ const RewardsShop: React.FC = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    const q = debouncedSearch.toLowerCase();
-    return rewards.filter(r => !q || r.title.toLowerCase().includes(q));
+    const q = debouncedSearch.trim().toLowerCase();
+    return rewards.filter(r => !q || [r.title, r.description, r.category].some(value => (value ?? '').toLowerCase().includes(q)));
   }, [rewards, debouncedSearch]);
+
+  const affordableCount = useMemo(() => filtered.filter(r => points >= r.points).length, [filtered, points]);
+  const limitedCount = useMemo(() => filtered.filter(r => r.limited).length, [filtered]);
 
   const playClick = () => { if (soundEnabled) playSound('click'); };
 
@@ -146,6 +149,7 @@ const RewardsShop: React.FC = () => {
       const redemption = await redeemReward(authUser.id, selectedReward.id, selectedReward.points, expiryDate);
       await reloadInventory();
       setSuccess(selectedReward.title);
+      setShowParticles(true);
       // Audit log
       void activityLogService.logActivity({
         userId: authUser.id,
@@ -195,20 +199,25 @@ const RewardsShop: React.FC = () => {
       >
 
         {/* ── Page header ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="shop-page-header" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
             width: 56, height: 56, borderRadius: 18, flexShrink: 0,
             background: 'linear-gradient(180deg,#fbbf24,#d97706)',
             border: '3px solid var(--dark-border)', boxShadow: '0 5px 0 var(--dark-border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
           }}>🛍️</div>
-          <div>
+          <div className="shop-page-header__copy">
             <h1 style={{ fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, color: 'var(--text-dark)', lineHeight: 1.1 }}>Ürün Mağazası</h1>
+            <p className="shop-page-header__subtitle">Puanlarını bilete çevir, kasada QR ile kullan.</p>
+          </div>
+          <div className="shop-page-header__points">
+            <Star size={14} fill="#f59e0b" color="#f59e0b" />
+            <span>{points.toLocaleString()} pts</span>
           </div>
         </div>
 
         <div
-          className="sticker-hero sticker-hero--balance"
+          className="sticker-hero sticker-hero--balance shop-balance-card"
           style={{
             border: '3px solid var(--dark-border)',
             boxShadow: '0px 6px 0px var(--dark-border)',
@@ -234,9 +243,12 @@ const RewardsShop: React.FC = () => {
             }}
           >
             <Star size={26} fill="white" color="white" style={{ flexShrink: 0 }} />
-            <p style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, lineHeight: 1 }}>
-              {points.toLocaleString()} <span style={{ fontSize: 14, opacity: 0.8, fontWeight: 700 }}>pts</span>
-            </p>
+            <div>
+              <p className="shop-balance-card__label">Mevcut Puan</p>
+              <p style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, lineHeight: 1 }}>
+                {points.toLocaleString()} <span style={{ fontSize: 14, opacity: 0.8, fontWeight: 700 }}>pts</span>
+              </p>
+            </div>
           </div>
           <PageMainSticker page="shop" variant="hero-inline" />
         </div>
@@ -255,32 +267,42 @@ const RewardsShop: React.FC = () => {
         )}
 
         {/* ── Search ── */}
-        <div style={{ position: 'relative' }}>
+        <div className="shop-search" style={{ position: 'relative' }}>
           <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             type="text"
             placeholder="Ürün ara..."
             value={search}
             onChange={e => setSearch(e.target.value)}
+            aria-label="Ürün ara"
             style={{
-              width: '100%', padding: '13px 16px 13px 44px', borderRadius: 14, fontWeight: 700, fontSize: 14,
+              width: '100%', padding: search ? '13px 44px 13px 44px' : '13px 16px 13px 44px', borderRadius: 14, fontWeight: 700, fontSize: 14,
               background: 'var(--card-bg)', color: 'var(--text-dark)',
               border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', outline: 'none',
               boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
             }}
           />
+          {search && (
+            <button
+              className="shop-search__clear"
+              onClick={() => setSearch('')}
+              aria-label="Aramayı temizle"
+              type="button"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         {/* ── Results label ── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 700, margin: 0 }}>
+        <div className="shop-results-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 800, margin: 0 }}>
             <span style={{ fontWeight: 900, color: 'var(--text-dark)' }}>{filtered.length}</span> ürün gösteriliyor
           </p>
-          {search && (
-            <button onClick={() => setSearch('')} style={{ fontSize: 11, fontWeight: 900, color: 'var(--primary-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-              Temizle ✕
-            </button>
-          )}
+          <div className="shop-results-bar__chips">
+            <span>{affordableCount} alınabilir</span>
+            {limitedCount > 0 && <span>{limitedCount} sınırlı</span>}
+          </div>
         </div>
 
         {/* ── Products grid ── */}
@@ -296,47 +318,56 @@ const RewardsShop: React.FC = () => {
             <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Farklı bir arama dene</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 14 }}>
+          <div className="shop-products-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 14 }}>
             {filtered.map((reward, index) => {
               const canAfford = points >= reward.points;
               return (
                 <div
                   key={reward.id}
                   onClick={() => { playClick(); setSelectedReward(reward); }}
-                  className="press-card"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      playClick();
+                      setSelectedReward(reward);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${reward.title}, ${reward.points.toLocaleString()} puan`}
+                  className={`press-card shop-product-card ${canAfford ? 'shop-product-card--available' : 'shop-product-card--locked'}`}
                   style={{
                     ...card, overflow: 'hidden', cursor: 'pointer',
                     animation: `shopFadeIn 0.3s ease-out ${index * 0.03}s both`,
-                    opacity: canAfford ? 1 : 0.7,
                   }}
                 >
                   {/* Product image */}
-                  <div style={{ position: 'relative', height: 130, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)' }}>
+                  <div className="shop-product-card__media" style={{ position: 'relative', height: 130, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)' }}>
                     {reward.image ? (
-                      <img src={reward.image} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={reward.image} alt={reward.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🎁</div>
                     )}
                     {reward.limited && (
-                      <span style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 999, background: '#ef4444', color: 'white', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>SINIRLI</span>
+                      <span className="shop-product-card__badge">SINIRLI</span>
                     )}
                     {!canAfford && (
-                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 10, fontWeight: 900, color: 'white', padding: '4px 10px', background: 'rgba(0,0,0,0.55)', borderRadius: 999 }}>Yetersiz Puan</span>
+                      <div className="shop-product-card__lock">
+                        <span>Yetersiz Puan</span>
                       </div>
                     )}
                   </div>
 
                   {/* Product info */}
-                  <div style={{ padding: '12px 14px 14px' }}>
-                    <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 4px', lineHeight: 1.25 }}>{reward.title}</p>
-                    <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 10px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{reward.description}</p>
+                  <div className="shop-product-card__body" style={{ padding: '12px 14px 14px' }}>
+                    <p className="shop-product-card__title" style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 4px', lineHeight: 1.25 }}>{reward.title}</p>
+                    <p className="shop-product-card__desc" style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 10px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{reward.description}</p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Star size={13} fill="#f59e0b" color="#f59e0b" />
                         <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>{reward.points.toLocaleString()}</span>
                       </div>
-                      <div style={{
+                      <div className="shop-product-card__cta" style={{
                         width: 28, height: 28, borderRadius: 8,
                         background: canAfford ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--tab-bg)',
                         border: '2px solid var(--dark-border)',
