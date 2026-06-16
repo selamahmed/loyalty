@@ -5587,11 +5587,25 @@ body::before {
   border: 3px solid var(--dark-border) !important;
   border-radius: 28px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--card-bg) 94%, #ffffff 6%), color-mix(in srgb, var(--card-bg) 88%, var(--primary-blue) 12%)) !important;
+    linear-gradient(180deg, color-mix(in srgb, var(--card-bg) 96%, #ffffff 4%), var(--card-bg)) !important;
   box-shadow:
     0 7px 0 var(--dark-border),
-    0 18px 38px rgba(0, 0, 0, 0.24);
+    0 18px 38px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
   overflow: visible;
+}
+
+.customer-bottom-nav__icon-pill {
+  border-radius: 14px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.customer-bottom-nav__icon-pill--active {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-bg) 96%, #ffffff 4%), var(--card-bg)) !important;
+  box-shadow:
+    0 4px 0 var(--dark-border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
 }
 
 .customer-shell .card:not(.auth-card):not(.auth-admin-card),
@@ -5734,6 +5748,22 @@ body::before {
     0 26px 50px rgba(0, 0, 0, 0.26);
 }
 
+.customer-shell:has(.profile-auth-page) .customer-bottom-nav,
+.customer-shell:has(.home-auth-page) .customer-bottom-nav {
+  width: min(calc(100% - 24px), 640px);
+  left: 50% !important;
+  right: auto !important;
+  margin-inline: 0;
+  transform: translateX(-50%);
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--card-bg) 92%, #ffffff 8%), color-mix(in srgb, var(--card-bg) 86%, var(--primary-blue) 14%)) !important;
+  box-shadow:
+    0 10px 0 var(--dark-border),
+    0 26px 50px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
 .profile-auth-page {
   padding: clamp(10px, 3vw, 18px) clamp(10px, 3vw, 16px) 22px;
 }
@@ -5817,6 +5847,16 @@ body::before {
     width: min(100% - 20px, 640px);
     border-radius: 26px;
     box-shadow: 0 7px 0 var(--dark-border), 0 18px 38px rgba(0, 0, 0, 0.24);
+  }
+
+  .customer-shell:has(.profile-auth-page) .customer-bottom-nav,
+  .customer-shell:has(.home-auth-page) .customer-bottom-nav {
+    width: min(calc(100% - 20px), 640px);
+    border-radius: 26px;
+    box-shadow:
+      0 7px 0 var(--dark-border),
+      0 18px 38px rgba(0, 0, 0, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
 
   .profile-auth-page {

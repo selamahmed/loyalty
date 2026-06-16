@@ -156,7 +156,9 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                       background: 'none', border: 'none',
                     }}
                   >
-                    <div style={{
+                    <div
+                      className={`customer-bottom-nav__icon-pill ${active ? 'customer-bottom-nav__icon-pill--active' : ''}`}
+                      style={{
                       padding: '6px 16px', borderRadius: 12,
                       background: active ? `var(--primary-blue)18` : 'transparent',
                       border: active ? '3px solid var(--dark-border)' : '3px solid transparent',
@@ -220,7 +222,9 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                       background: 'none', border: 'none',
                     }}
                   >
-                    <div style={{
+                    <div
+                      className={`customer-bottom-nav__icon-pill ${active ? 'customer-bottom-nav__icon-pill--active' : ''}`}
+                      style={{
                       padding: '6px 16px', borderRadius: 12,
                       background: active ? `var(--primary-blue)18` : 'transparent',
                       border: active ? '3px solid var(--dark-border)' : '3px solid transparent',
