@@ -37,7 +37,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
 
         {/* ══ AVANTAJLAR (stacking banners — NO rotation on mobile) ══ */}
         <SectionStickerDecor preset="landing-banners">
-        <section id="banners" style={{ padding: '72px clamp(16px,4vw,64px)', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <section id="banners" className="landing-section-frame landing-section-frame--banners" style={{ padding: '72px clamp(16px,4vw,64px)', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ textAlign: 'center', marginBottom: 8 }}>
             <SectionBadge label="AVANTAJLAR" bg="#FFE500" />
             <h2 className="font-display" style={{ fontSize: 'clamp(26px,4.5vw,56px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
@@ -46,7 +46,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
           </div>
 
           {banners.map((b, i) => (
-            <div key={i} className="banner-card" style={{
+            <div key={i} className="banner-card landing-polish-card" style={{
               position: 'relative', background: b.bg,
               border: '3px solid #000', borderRadius: 22, boxShadow: '6px 6px 0 #000',
               padding: 'clamp(24px,4vw,44px) clamp(20px,5vw,56px)',
@@ -102,7 +102,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
 
         {/* ══ FEATURES ══ */}
         <SectionStickerDecor preset="landing-features">
-        <section id="features" style={{ padding: '72px clamp(16px,4vw,64px)', maxWidth: 1200, margin: '0 auto' }}>
+        <section id="features" className="landing-section-frame landing-section-frame--features" style={{ padding: '72px clamp(16px,4vw,64px)', maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <SectionBadge label="ÖZELLİKLER" bg="#56C8FF" />
             <h2 className="font-display" style={{ fontSize: 'clamp(28px,5vw,60px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, lineHeight: 1.1, textTransform: 'uppercase' }}>
@@ -114,6 +114,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
               const Icon = f.icon;
               return (
                 <div key={i}
+                  className="landing-feature-card landing-polish-card"
                   onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
                   style={{
                     position: 'relative', borderRadius: 20, overflow: 'hidden',
@@ -157,7 +158,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
         />
 
         {/* ══ HOW IT WORKS ══ */}
-        <section id="how" style={{ padding: '80px clamp(16px,4vw,64px)', background: t.howBg, borderTop: '3px solid #000', borderBottom: '3px solid #000', transition: 'background 0.3s' }}>
+        <section id="how" className="landing-how-section" style={{ padding: '80px clamp(16px,4vw,64px)', background: t.howBg, borderTop: '3px solid #000', borderBottom: '3px solid #000', transition: 'background 0.3s' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: 52 }}>
               <SectionBadge label="NASIL ÇALIŞIR" bg="#9122FF" color="#C8FF00" />
@@ -167,7 +168,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
             </div>
             <div className="steps-grid">
               {steps.map((item, i) => (
-                <div key={i} style={{ position: 'relative', padding: '28px 20px 24px', borderRadius: 20, overflow: 'hidden', textAlign: 'center', background: t.cardBg, border: '3px solid #000', boxShadow: '0 6px 0 #000' }}>
+                <div key={i} className="landing-step-card" style={{ position: 'relative', padding: '28px 20px 24px', borderRadius: 20, overflow: 'hidden', textAlign: 'center', background: t.cardBg, border: '3px solid #000', boxShadow: '0 6px 0 #000' }}>
                   <item.Shape color={item.color} size={80} opacity={isDark ? 0.14 : 0.16} rotate={12} />
                   <div style={{ position: 'relative', zIndex: 1 }}>
                     <div style={{ width: 38, height: 38, borderRadius: '50%', margin: '0 auto 12px', background: item.color, border: '2.5px solid #000', boxShadow: '0 3px 0 #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: item.color === '#FFE500' ? '#000' : 'white', fontSize: 14 }}>{item.step}</div>
@@ -188,7 +189,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
         </section>
 
         {/* ══ TESTIMONIALS ══ */}
-        <section id="testimonials" style={{ padding: '80px clamp(16px,4vw,64px)', maxWidth: 1100, margin: '0 auto' }}>
+        <section id="testimonials" className="landing-section-frame landing-testimonials-section" style={{ padding: '80px clamp(16px,4vw,64px)', maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <SectionBadge label="YORUMLAR" bg={isDark ? '#9122FF' : '#FFE500'} color={isDark ? '#C8FF00' : '#000'} />
             <h2 className="font-display" style={{ fontSize: 'clamp(26px,4.5vw,56px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
@@ -200,7 +201,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
           </div>
 
           {/* Rating summary bar */}
-          <div style={{ ...card, padding: '20px 28px', marginBottom: 28, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
+          <div className="landing-rating-summary" style={{ ...card, padding: '20px 28px', marginBottom: 28, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
             <div style={{ textAlign: 'center', flexShrink: 0 }}>
               <p style={{ fontWeight: 900, fontSize: 48, color: '#f59e0b', margin: 0, lineHeight: 1 }}>4.9</p>
               <div style={{ display: 'flex', gap: 3, justifyContent: 'center', margin: '4px 0' }}>
@@ -233,7 +234,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
           {/* Testimonial cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 20 }}>
             {testimonials.map((t2, i) => (
-              <div key={i} style={{
+              <div key={i} className="landing-testimonial-card" style={{
                 ...card, position: 'relative', padding: '26px 22px 22px', overflow: 'hidden',
                 transition: 'transform 0.15s, box-shadow 0.15s',
               }}
@@ -309,7 +310,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
         {/* ══ FINAL CTA ══ */}
         <section style={{ padding: '0 clamp(16px,4vw,64px) 88px' }}>
           <SectionStickerDecor preset="landing-cta">
-          <div style={{
+            <div className="landing-final-cta-card" style={{
             position: 'relative', maxWidth: 960, margin: '0 auto', textAlign: 'center',
             padding: 'clamp(52px,8vw,80px) clamp(24px,6vw,80px)',
             borderRadius: 26, overflow: 'hidden',
@@ -402,6 +403,136 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
             </div>
           </div>
         </footer>
+        <style>{`
+          .landing-section-frame {
+            position: relative;
+            border: 3px solid #000;
+            border-radius: clamp(28px, 4vw, 38px);
+            box-shadow:
+              0 10px 0 #000,
+              0 26px 58px ${isDark ? 'rgba(0,0,0,.34)' : 'rgba(15,7,32,.14)'};
+            background:
+              radial-gradient(circle at 18% 4%, ${isDark ? 'rgba(145,34,255,.16)' : 'rgba(145,34,255,.10)'}, transparent 34%),
+              linear-gradient(180deg, ${isDark ? 'rgba(42,21,80,.72)' : 'rgba(255,255,255,.86)'}, ${isDark ? 'rgba(30,15,56,.62)' : 'rgba(245,240,255,.72)'});
+            backdrop-filter: blur(18px);
+            overflow: hidden;
+          }
+
+          .landing-section-frame::before {
+            content: "";
+            position: absolute;
+            inset: 10px;
+            border: 1px solid ${isDark ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.72)'};
+            border-radius: clamp(20px, 3vw, 28px);
+            pointer-events: none;
+          }
+
+          .landing-section-frame > * {
+            position: relative;
+            z-index: 1;
+          }
+
+          .landing-section-frame--features,
+          .landing-testimonials-section {
+            margin-top: 18px !important;
+            margin-bottom: 34px !important;
+          }
+
+          .landing-section-frame--banners {
+            margin-top: 28px !important;
+            margin-bottom: 34px !important;
+          }
+
+          .landing-polish-card,
+          .landing-step-card,
+          .landing-rating-summary,
+          .landing-testimonial-card,
+          .landing-final-cta-card {
+            border-radius: 24px !important;
+            box-shadow:
+              0 8px 0 #000,
+              0 18px 40px ${isDark ? 'rgba(0,0,0,.28)' : 'rgba(15,7,32,.12)'} !important;
+          }
+
+          .landing-rating-summary {
+            position: relative;
+            overflow: hidden;
+            background:
+              linear-gradient(135deg, ${isDark ? 'rgba(42,21,80,.92)' : 'rgba(255,255,255,.92)'}, ${isDark ? 'rgba(30,15,56,.88)' : 'rgba(245,240,255,.86)'}) !important;
+            border-radius: 28px !important;
+            padding: clamp(18px, 3vw, 28px) !important;
+          }
+
+          .landing-rating-summary::after {
+            content: "";
+            position: absolute;
+            right: -36px;
+            top: -36px;
+            width: 120px;
+            height: 120px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(200,255,0,.18), transparent 68%);
+            pointer-events: none;
+          }
+
+          .landing-testimonial-card {
+            background:
+              linear-gradient(180deg, ${isDark ? 'rgba(42,21,80,.90)' : 'rgba(255,255,255,.94)'}, ${isDark ? 'rgba(30,15,56,.88)' : 'rgba(245,240,255,.82)'}) !important;
+            border-radius: 28px !important;
+          }
+
+          .landing-testimonial-card:hover {
+            box-shadow:
+              0 12px 0 #000,
+              0 26px 52px ${isDark ? 'rgba(0,0,0,.34)' : 'rgba(15,7,32,.16)'} !important;
+          }
+
+          .landing-how-section {
+            position: relative;
+            overflow: hidden;
+            background:
+              radial-gradient(circle at 50% 0%, ${isDark ? 'rgba(145,34,255,.18)' : 'rgba(145,34,255,.10)'}, transparent 38%),
+              ${t.howBg} !important;
+          }
+
+          .landing-step-card {
+            transition: transform .16s ease, box-shadow .16s ease;
+          }
+
+          .landing-step-card:hover {
+            transform: translateY(-4px);
+            box-shadow:
+              0 12px 0 #000,
+              0 24px 46px ${isDark ? 'rgba(0,0,0,.28)' : 'rgba(15,7,32,.14)'} !important;
+          }
+
+          .landing-final-cta-card {
+            background:
+              radial-gradient(circle at 18% 18%, rgba(200,255,0,.18), transparent 28%),
+              linear-gradient(180deg, #B44AFF, #9122FF) !important;
+          }
+
+          @media (max-width: 560px) {
+            .landing-section-frame {
+              border-radius: 28px;
+              box-shadow: 0 7px 0 #000, 0 20px 38px rgba(0,0,0,.24);
+            }
+
+            .landing-section-frame::before {
+              inset: 8px;
+              border-radius: 20px;
+            }
+
+            .landing-rating-summary {
+              justify-content: center;
+              text-align: center;
+            }
+
+            .landing-rating-summary .rating-divider {
+              display: none;
+            }
+          }
+        `}</style>
     </>
   );
 };

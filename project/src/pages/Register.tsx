@@ -89,24 +89,24 @@ const Register: React.FC = () => {
 
   return (
     <AuthPageShell>
-        <div className="card p-8 space-y-6" style={{ position: 'relative', overflow: 'visible' }}>
+        <div className="card auth-card auth-card--register p-7 sm:p-8 space-y-5" style={{ position: 'relative', overflow: 'visible' }}>
           <StickerAccent seed="register-card-accent" variant="shape" size={36} rotate={10} style={{ position: 'absolute', top: -10, right: -6, zIndex: 2 }} />
 
           {/* Logo */}
-          <div className="flex flex-col items-center gap-3">
+          <div className="auth-brand flex flex-col items-center gap-3">
             <AppLogo
               size={64}
-              style={{ border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)', borderRadius: 16 }}
+              style={{ border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)', borderRadius: 18 }}
             />
             <div className="text-center">
-              <h1 className="font-black text-xl" style={{ color: 'var(--text-dark)' }}>NexReward</h1>
-              <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Sadakat Platformu</p>
+              <h1 className="auth-brand__title font-black text-xl" style={{ color: 'var(--text-dark)' }}>NexReward</h1>
+              <p className="auth-brand__subtitle text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Sadakat Platformu</p>
             </div>
           </div>
 
           {/* Tab toggle */}
           <div
-            className="relative flex rounded-button p-1"
+            className="auth-tabs relative flex rounded-button p-1"
             style={{ background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)' }}
           >
             <div
@@ -132,6 +132,7 @@ const Register: React.FC = () => {
 
           {/* Important points summary */}
           <div
+            className="auth-legal-card"
             style={{
               padding: '14px 14px',
               borderRadius: 16,
@@ -146,7 +147,7 @@ const Register: React.FC = () => {
                 Kayıt olmadan önce önemli bilgiler
               </p>
             </div>
-            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <ul className="auth-legal-card__points" style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {SIGNUP_KEY_POINTS.map(point => (
                 <li key={point} style={{ fontSize: 11, lineHeight: 1.55, color: 'var(--text-muted)' }}>{point}</li>
               ))}
@@ -170,12 +171,12 @@ const Register: React.FC = () => {
             </div>
           </div>
 
-          <label className="flex items-start gap-3 cursor-pointer">
+          <label className="auth-terms-row flex items-start gap-3 cursor-pointer">
             <button
               type="button"
               onClick={() => setForm({ ...form, terms: !form.terms })}
               aria-label={form.terms ? 'Şartları kabul etmeyi kaldır' : 'Kullanım şartlarını ve gizlilik politikasını kabul et'}
-              className="w-5 h-5 mt-0.5 rounded-button border-2.5 flex items-center justify-center flex-shrink-0 transition-all"
+              className="auth-checkbox w-5 h-5 mt-0.5 rounded-button border-2.5 flex items-center justify-center flex-shrink-0 transition-all"
               style={{
                 borderColor: 'var(--dark-border)',
                 background: form.terms ? 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)' : 'var(--input-bg)',
@@ -202,7 +203,7 @@ const Register: React.FC = () => {
             type="button"
             onClick={handleGoogle}
             disabled={googleLoading || loading}
-            className="w-full flex items-center justify-center gap-3 py-3 rounded-2xl font-black text-sm transition-all active:scale-[0.98] disabled:opacity-60"
+            className="auth-google w-full flex items-center justify-center gap-3 py-3 rounded-2xl font-black text-sm transition-all active:scale-[0.98] disabled:opacity-60"
             style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 3px 0px var(--dark-border)', color: 'var(--text-dark)' }}
           >
             {googleLoading ? (
@@ -219,7 +220,7 @@ const Register: React.FC = () => {
             <div className="flex-1 divider-dashed" />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="auth-form space-y-4">
             <div>
               <label style={{ color: 'var(--text-dark)' }} className="block font-black text-sm mb-2">Kullanıcı Adı</label>
               <input
@@ -227,7 +228,8 @@ const Register: React.FC = () => {
                 placeholder="HarikaBirKullanici"
                 value={form.username}
                 onChange={e => setForm({...form, username: e.target.value})}
-                className="input-field"
+                className="input-field auth-input"
+                autoComplete="username"
               />
               {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
             </div>
@@ -239,7 +241,8 @@ const Register: React.FC = () => {
                 placeholder="you@example.com"
                 value={form.email}
                 onChange={e => setForm({...form, email: e.target.value})}
-                className="input-field"
+                className="input-field auth-input"
+                autoComplete="email"
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
@@ -252,9 +255,10 @@ const Register: React.FC = () => {
                   placeholder="••••••••"
                   value={form.password}
                   onChange={e => setForm({...form, password: e.target.value})}
-                  className="input-field pr-12"
+                  className="input-field auth-input pr-12"
+                  autoComplete="new-password"
                 />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
+                <button type="button" onClick={() => setShowPass(!showPass)} className="auth-eye-button absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
@@ -278,22 +282,23 @@ const Register: React.FC = () => {
                 placeholder="••••••••"
                 value={form.confirm}
                 onChange={e => setForm({...form, confirm: e.target.value})}
-                className="input-field"
+                className="input-field auth-input"
+                autoComplete="new-password"
               />
               {errors.confirm && <p className="text-red-500 text-xs mt-1">{errors.confirm}</p>}
             </div>
 
-            {errors.submit && <p className="text-red-500 text-xs p-2 rounded" style={{ background: '#ef444422', border: '1px solid #ef4444' }}>{errors.submit}</p>}
+            {errors.submit && <p className="auth-error text-red-500 text-xs p-2 rounded" style={{ background: '#ef444422', border: '1px solid #ef4444' }}>{errors.submit}</p>}
 
             {successMsg ? (
-              <div className="p-3 rounded-button text-sm font-600 text-center" style={{ background: '#22c55e22', border: '2px solid #22c55e', color: '#22c55e' }}>
+              <div className="auth-success p-3 rounded-button text-sm font-600 text-center" style={{ background: '#22c55e22', border: '2px solid #22c55e', color: '#22c55e' }}>
                 {successMsg}
               </div>
             ) : (
               <button
                 type="submit"
                 disabled={loading}
-                className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
+                className="auth-submit btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {loading
                   ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -302,7 +307,7 @@ const Register: React.FC = () => {
             )}
           </form>
 
-          <p style={{ color: 'var(--text-muted)' }} className="text-center text-sm">
+          <p style={{ color: 'var(--text-muted)' }} className="auth-switch-copy text-center text-sm">
             Zaten hesabın var mı?{' '}
             <button onClick={() => navigate('/login')} style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">Giriş Yap</button>
           </p>
