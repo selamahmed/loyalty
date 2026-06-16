@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import CashierLayout from './CashierLayout';
+import QRCodeLib from 'qrcode';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../context/AuthContext';
 import { adminAddPoints, createCashierQR, getQRCodeById } from '../../../services/admin';
@@ -44,6 +45,62 @@ function fmtSeconds(sec: number): string {
   const s = sec % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
+
+const CashierQRCodeImage: React.FC<{
+  data: string;
+  code: string;
+  size?: number;
+  dimmed?: boolean;
+}> = ({ data, code, size = 240, dimmed = false }) => {
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDataUrl(null);
+    setFailed(false);
+
+    QRCodeLib.toDataURL(data, {
+      width: size,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#000000', light: '#ffffff' },
+    })
+      .then(url => { if (!cancelled) setDataUrl(url); })
+      .catch(() => { if (!cancelled) setFailed(true); });
+
+    return () => { cancelled = true; };
+  }, [data, size]);
+
+  if (dataUrl || failed) {
+    return (
+      <img
+        src={dataUrl ?? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data)}&size=${size}x${size}&margin=8`}
+        alt={`QR Code ${code}`}
+        style={{ width: size, height: size, display: 'block', borderRadius: 8, opacity: dimmed ? 0.3 : 1 }}
+      />
+    );
+  }
+
+  return (
+    <div
+      aria-label="QR kod hazirlaniyor"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 8,
+        background: 'var(--tab-bg)',
+        border: '2px dashed var(--dark-border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: dimmed ? 0.3 : 1,
+      }}
+    >
+      <Loader2 size={30} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+    </div>
+  );
+};
 
 /* ─── QR section (amount → QR) ─── */
 const AmountQRTab: React.FC = () => {
@@ -117,11 +174,14 @@ const AmountQRTab: React.FC = () => {
         cashierUserId: authUser?.id ?? 'cashier',
         expiresAt,
       });
+      if (!row?.id || !row.code) {
+        throw new Error('Supabase did not return a valid QR row. Please refresh and try again.');
+      }
       setActiveQR({
         id: row.id,
         code: row.code,
         amount: amtNum,
-        points: row.points,
+        points: row.points ?? pointsVal,
         issuedAt: new Date(row.created_at ?? now).getTime(),
         expiresAt: new Date(row.expires_at ?? expiresAt).getTime(),
         status: 'pending',
@@ -145,8 +205,8 @@ const AmountQRTab: React.FC = () => {
   };
 
   /* Build QR data URL */
-  const qrPayload = activeQR
-    ? encodeURIComponent(JSON.stringify({
+  const qrPayload = useMemo(() => activeQR
+    ? JSON.stringify({
         type: 'cashier_purchase',
         qr_id: activeQR.code,
         code: activeQR.code,
@@ -155,8 +215,8 @@ const AmountQRTab: React.FC = () => {
         issued_at: new Date(activeQR.issuedAt).toISOString(),
         expires_at: new Date(activeQR.expiresAt).toISOString(),
         status: activeQR.status ?? 'pending',
-      }))
-    : '';
+      })
+    : '', [activeQR]);
 
   const pctBar = activeQR ? (secondsLeft / QR_TTL_SEC) * 100 : 0;
   const isUsed = activeQR?.status === 'used';
@@ -256,10 +316,11 @@ const AmountQRTab: React.FC = () => {
           <div className="p-5 space-y-4">
             <div className="relative flex justify-center">
               <div className="relative" style={{ background: 'white', padding: 14, borderRadius: 18, border: '3px solid var(--dark-border)', boxShadow: '0 5px 0 var(--dark-border)' }}>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?data=${qrPayload}&size=240x240&margin=8`}
-                  alt="QR Code"
-                  style={{ width: 240, height: 240, display: 'block', borderRadius: 8, opacity: expired || isUsed ? 0.3 : 1 }}
+                <CashierQRCodeImage
+                  data={qrPayload}
+                  code={activeQR.code}
+                  size={240}
+                  dimmed={expired || isUsed}
                 />
                 {(expired || isUsed) && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl" style={{ background: 'rgba(239,68,68,0.7)', backdropFilter: 'blur(3px)' }}>

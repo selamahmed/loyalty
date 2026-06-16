@@ -798,23 +798,60 @@ export async function getCashierQRCodes(limit = 20) {
   return data ?? [];
 }
 
-function isMissingCashierQRFunction(error: { code?: string; message?: string } | null): boolean {
+type SupabaseServiceError = {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+};
+
+type QRCodeRow = Database['public']['Tables']['qr_codes']['Row'];
+
+function supabaseErrorText(error: SupabaseServiceError | null): string {
+  if (!error) return '';
+  return [error.message, error.details, error.hint].filter(Boolean).join(' ');
+}
+
+function isMissingCashierQRFunction(error: SupabaseServiceError | null): boolean {
+  const text = supabaseErrorText(error).toLowerCase();
   return Boolean(
     error &&
     (error.code === 'PGRST202' ||
-      error.message?.toLowerCase().includes('could not find the function') ||
-      error.message?.toLowerCase().includes('function public.create_cashier_qr')),
+      text.includes('could not find the function') ||
+      text.includes('function public.create_cashier_qr')),
   );
 }
 
-function cashierQRRlsError(error: { message?: string }): Error {
-  if (error.message?.toLowerCase().includes('row-level security')) {
+function normalizeCashierQRRow(value: unknown): QRCodeRow | null {
+  const row = Array.isArray(value) ? value[0] : value;
+  if (!row || typeof row !== 'object') return null;
+  const candidate = row as Partial<QRCodeRow>;
+  return candidate.id && candidate.code ? (candidate as QRCodeRow) : null;
+}
+
+function cashierQRError(error: SupabaseServiceError): Error {
+  const text = supabaseErrorText(error);
+  const lower = text.toLowerCase();
+
+  if (error.code === '42501' || lower.includes('row-level security')) {
     return new Error(
-      'Cashier QR creation is blocked by Supabase RLS. Run supabase/migrations/20260615000002_realtime_cashier_qr_ranking.sql in Supabase SQL Editor.',
+      'Cashier QR is blocked by Supabase RLS. Run supabase/migrations/20260615000002_realtime_cashier_qr_ranking.sql in the Supabase SQL Editor, then refresh the app.',
     );
   }
 
-  return new Error(error.message ?? 'Cashier QR could not be created.');
+  if (lower.includes('only active cashiers and admins')) {
+    return new Error(
+      'This account is not an active cashier/admin in Supabase profiles. Set the profile role to cashier, store_admin, or super_admin and status to active.',
+    );
+  }
+
+  if (isMissingCashierQRFunction(error)) {
+    return new Error(
+      'Supabase is missing create_cashier_qr. Run supabase/migrations/20260615000002_realtime_cashier_qr_ranking.sql in the Supabase SQL Editor.',
+    );
+  }
+
+  return new Error(text || 'Cashier QR could not be created.');
 }
 
 /** @deprecated Use claimQrScan from earn.ts — server validates QR */
@@ -846,9 +883,14 @@ export async function createCashierQR(payload: {
     p_expires_at: payload.expiresAt,
   });
 
-  if (!rpcError && rpcData) return rpcData;
+  if (!rpcError) {
+    const row = normalizeCashierQRRow(rpcData);
+    if (row) return row;
+    throw new Error('Supabase created the cashier QR but did not return a valid qr_codes row.');
+  }
+
   if (rpcError && !isMissingCashierQRFunction(rpcError)) {
-    throw cashierQRRlsError(rpcError);
+    throw cashierQRError(rpcError);
   }
 
   const { data, error } = await supabase
@@ -865,7 +907,7 @@ export async function createCashierQR(payload: {
     })
     .select()
     .single();
-  if (error) throw cashierQRRlsError(error);
+  if (error) throw cashierQRError(error);
   return data;
 }
 

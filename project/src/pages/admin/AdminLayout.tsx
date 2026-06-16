@@ -39,6 +39,13 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     logout().finally(() => navigate('/login', { replace: true }));
   };
 
+  const isActivePath = (path: string) => {
+    if (path === '/admin') return location.pathname === '/admin' || location.pathname === '/admin/';
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
+  const currentNavItem = adminNavItems.find(item => isActivePath(item.path));
+
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       {sidebarOpen && (
@@ -80,7 +87,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               key={item.path}
               onClick={() => { navigate(item.path); setSidebarOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left text-sm font-medium ${
-                location.pathname === item.path
+                isActivePath(item.path)
                   ? 'bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white border-2 border-black dark:border-gray-600'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
               }`}
@@ -110,7 +117,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="flex-1 min-w-0">
             <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Süper Admin</span>
             <p className="font-black text-gray-900 dark:text-white text-sm truncate">
-              {adminNavItems.find(n => n.path === location.pathname)?.label || 'Dashboard'}
+              {currentNavItem?.label || 'Dashboard'}
             </p>
           </div>
           <button onClick={toggleTheme} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0">

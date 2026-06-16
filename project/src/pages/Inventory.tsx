@@ -66,6 +66,7 @@ const Inventory: React.FC = () => {
         </div>
 
         <StickerHero
+          className="inventory-hero-card"
           page="inventory"
           bg="linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%)"
           badge="ENVANTER"

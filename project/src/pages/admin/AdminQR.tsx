@@ -127,6 +127,7 @@ const AdminQR: React.FC = () => {
   const [activeQR, setActiveQR]   = useState<CashierQRPayload | null>(null);
   const [qrHistory, setQrHistory] = useState<CashierQRPayload[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [qrError, setQrError] = useState('');
   const [showPreviewModal, setShowPreviewModal] = useState<CashierQRPayload | null>(null);
   const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -228,6 +229,7 @@ const AdminQR: React.FC = () => {
   const handleGenerate = async () => {
     if (parsedAmount <= 0) return;
     setGenerating(true);
+    setQrError('');
     try {
       const expiresAt = new Date(Date.now() + CASHIER_QR_TTL_MS).toISOString();
       const row = await createCashierQR({
@@ -248,6 +250,7 @@ const AdminQR: React.FC = () => {
       }, CASHIER_QR_TTL_MS + 500);
     } catch (e) {
       console.error('[AdminQR] Could not create cashier QR:', e);
+      setQrError((e as Error).message ?? 'Cashier QR could not be created.');
     } finally {
       setGenerating(false);
     }
@@ -461,6 +464,14 @@ const AdminQR: React.FC = () => {
                   )}
                 </button>
               </div>
+
+              {qrError && (
+                <div className="mt-4 flex items-start gap-2 rounded-xl p-3 text-xs font-bold"
+                  style={{ background: 'rgba(239,68,68,0.08)', border: '2px solid #ef4444', color: '#ef4444' }}>
+                  <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>{qrError}</span>
+                </div>
+              )}
             </div>
 
             {/* Active QR display */}

@@ -27,7 +27,7 @@ const HOME_STAT_STICKERS = {
 /** Home quick-action stickers — curated for action meaning, not page defaults */
 const HOME_QUICK_STICKERS = {
   qr: 'qrcode.svg',
-  games: 'partytime.svg',
+  games: 'GAMES.svg',
   shop: 'superstar.svg',
   inventory: 'cardboardbox.svg',
 } as const;
@@ -263,11 +263,11 @@ const Home: React.FC = () => {
                 <button
                   key={action.path}
                   onClick={() => { playSound('click'); navigate(action.path); }}
-                  className="press-card home-quick-action"
+                  className={`press-card home-quick-action home-quick-action--${action.path.replace('/', '') || 'home'}`}
                   style={{
                     ...card, padding: 0, cursor: 'pointer',
                     display: 'flex', flexDirection: 'column', alignItems: 'stretch',
-                    overflow: 'hidden', textAlign: 'left',
+                    overflow: 'visible', textAlign: 'left', position: 'relative', isolation: 'isolate',
                   }}
                 >
                   <div

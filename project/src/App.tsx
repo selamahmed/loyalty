@@ -56,6 +56,7 @@ const UserStats      = React.lazy(() => import('./pages/UserStats'));
 
 // ── Lazy: Super Admin pages ──────────────────────────────────────────────────
 const AdminDashboard    = React.lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminDashboard2   = React.lazy(() => import('./pages/admin/AdminDashboard2'));
 const AdminAnalytics    = React.lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminUsers        = React.lazy(() => import('./pages/admin/AdminUsers'));
 const AdminRewards      = React.lazy(() => import('./pages/admin/AdminRewards'));
@@ -245,6 +246,7 @@ function App() {
 
             {/* Super Admin */}
             <Route path="/admin"                   element={<SA><AdminDashboard /></SA>} />
+            <Route path="/admin/dashboard-v2"      element={<SA><AdminDashboard2 /></SA>} />
             <Route path="/admin/analytics"         element={<SA><AdminAnalytics /></SA>} />
             <Route path="/admin/users"             element={<SA><AdminUsers /></SA>} />
             <Route path="/admin/rewards"           element={<SA><AdminRewards /></SA>} />

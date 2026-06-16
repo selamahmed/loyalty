@@ -553,35 +553,93 @@ body::before {
 }
 
 .leaderboard-hero-card .page-main-sticker--hero-inline {
-  right: -10px;
-  top: 44%;
+  right: -18px;
+  top: 40%;
   z-index: 3;
-  transform: translateY(-50%) rotate(calc(var(--pms-rotate, 0deg) - 5deg)) scale(1.04);
+  transform: translateY(-50%) rotate(calc(var(--pms-rotate, 0deg) - 7deg)) scale(1.08);
   filter:
     drop-shadow(0 0 2px rgba(255, 255, 255, 0.9))
-    drop-shadow(0 8px 0 rgba(0, 0, 0, 0.22))
-    drop-shadow(0 16px 22px rgba(0, 0, 0, 0.32));
+    drop-shadow(0 7px 0 rgba(0, 0, 0, 0.24))
+    drop-shadow(0 16px 24px rgba(0, 0, 0, 0.36));
 }
 
 .leaderboard-hero-card .page-main-sticker--hero-inline::before {
   content: '';
   position: absolute;
-  left: 18%;
-  top: 4%;
-  width: 52px;
-  height: 16px;
+  left: 10%;
+  top: 8%;
+  width: 58px;
+  height: 18px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.68);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.52));
   border: 1.5px solid rgba(0, 0, 0, 0.18);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.16);
-  transform: rotate(-13deg);
-  z-index: 2;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.16), inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  transform: rotate(-16deg);
+  z-index: 4;
   pointer-events: none;
-  mix-blend-mode: screen;
+}
+
+.leaderboard-hero-card .page-main-sticker--hero-inline::after {
+  content: '';
+  position: absolute;
+  right: 10%;
+  bottom: 16%;
+  width: 48px;
+  height: 15px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.5));
+  border: 1.5px solid rgba(0, 0, 0, 0.14);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.14);
+  transform: rotate(14deg);
+  z-index: 4;
+  pointer-events: none;
 }
 
 .leaderboard-hero-card .page-main-sticker__img {
   transform-origin: 54% 46%;
+}
+
+.inventory-hero-card {
+  overflow: visible !important;
+  isolation: isolate;
+}
+
+.inventory-hero-card .page-main-sticker--hero-inline {
+  right: -18px;
+  top: 38%;
+  z-index: 3;
+  transform: translateY(-50%) rotate(calc(var(--pms-rotate, 0deg) - 6deg)) scale(1.08);
+  filter:
+    drop-shadow(0 0 2px rgba(255, 255, 255, 0.92))
+    drop-shadow(0 7px 0 rgba(0, 0, 0, 0.22))
+    drop-shadow(0 16px 22px rgba(0, 0, 0, 0.34));
+}
+
+.inventory-hero-card .page-main-sticker--hero-inline::before,
+.inventory-hero-card .page-main-sticker--hero-inline::after {
+  content: '';
+  position: absolute;
+  height: 16px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.5));
+  border: 1.5px solid rgba(0, 0, 0, 0.16);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.14);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.inventory-hero-card .page-main-sticker--hero-inline::before {
+  left: 10%;
+  top: 10%;
+  width: 52px;
+  transform: rotate(-15deg);
+}
+
+.inventory-hero-card .page-main-sticker--hero-inline::after {
+  right: 12%;
+  bottom: 15%;
+  width: 44px;
+  transform: rotate(13deg);
 }
 
 .sticker-hero--with-footer {
@@ -642,16 +700,39 @@ body::before {
   }
 
   .leaderboard-hero-card .page-main-sticker--hero-inline {
-    right: -14px;
-    top: 52%;
-    transform: translateY(-50%) rotate(calc(var(--pms-rotate, 0deg) - 6deg)) scale(0.98);
+    right: -18px;
+    top: 47%;
+    transform: translateY(-50%) rotate(calc(var(--pms-rotate, 0deg) - 7deg)) scale(1.02);
   }
 
   .leaderboard-hero-card .page-main-sticker--hero-inline::before {
-    left: 15%;
-    top: 4%;
+    left: 11%;
+    top: 7%;
+    width: 42px;
+    height: 13px;
+  }
+
+  .leaderboard-hero-card .page-main-sticker--hero-inline::after {
+    right: 10%;
+    bottom: 16%;
+    width: 36px;
+    height: 12px;
+  }
+
+  .inventory-hero-card .page-main-sticker--hero-inline {
+    right: -18px;
+    top: 46%;
+    transform: translateY(-50%) rotate(calc(var(--pms-rotate, 0deg) - 6deg)) scale(1.02);
+  }
+
+  .inventory-hero-card .page-main-sticker--hero-inline::before {
     width: 40px;
     height: 13px;
+  }
+
+  .inventory-hero-card .page-main-sticker--hero-inline::after {
+    width: 34px;
+    height: 12px;
   }
 
   .hero-card-brand__body {
@@ -4341,21 +4422,112 @@ body::before {
 }
 
 /* Home quick action cards — colorful stickers */
+.home-quick-action {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.home-quick-action::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.home-quick-action::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -10px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  filter: blur(8px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.home-quick-action:hover,
+.home-quick-action:focus-visible {
+  transform: translateY(-2px);
+}
+
 .home-quick-action__visual {
   position: relative;
-  height: clamp(112px, 28vw, 132px);
+  height: clamp(132px, 28vw, 176px);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 16px 16px 0 0;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.22), transparent 28%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.1));
+  border-bottom: 3px solid var(--dark-border);
+}
+
+.home-quick-action__visual::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  filter: blur(10px);
+  transform: rotate(-8deg);
+}
+
+.home-quick-action__visual::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 42px;
+  height: 14px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.52);
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.14);
+  transform: rotate(12deg);
+  mix-blend-mode: screen;
 }
 
 .home-quick-action__sticker {
+  position: relative;
+  z-index: 2;
   width: clamp(92px, 30vw, 120px) !important;
   height: auto !important;
   aspect-ratio: 1 / 1;
   object-fit: contain;
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.28));
+  filter:
+    drop-shadow(0 0 2px rgba(255, 255, 255, 0.76))
+    drop-shadow(0 8px 0 rgba(0, 0, 0, 0.2))
+    drop-shadow(0 14px 16px rgba(0, 0, 0, 0.3));
+  transform: rotate(-3deg);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.home-quick-action:hover .home-quick-action__sticker,
+.home-quick-action:focus-visible .home-quick-action__sticker {
+  transform: rotate(-1deg) scale(1.05);
+}
+
+.home-quick-action--games .home-quick-action__sticker {
+  width: clamp(132px, 37vw, 165px) !important;
+  height: clamp(142px, 40vw, 178px) !important;
+  aspect-ratio: auto;
+  transform: rotate(4deg);
+}
+
+.home-quick-action--games:hover .home-quick-action__sticker,
+.home-quick-action--games:focus-visible .home-quick-action__sticker {
+  transform: rotate(2deg) scale(1.05);
+}
+
+.home-quick-action--inventory .home-quick-action__sticker {
+  width: clamp(132px, 38vw, 171px) !important;
 }
 
 .home-quick-action__sticker--white-outline {
@@ -4398,11 +4570,17 @@ body::before {
   font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .home-quick-action__label svg {
   flex-shrink: 0;
   color: var(--primary-blue);
+  box-sizing: content-box;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(123, 110, 246, 0.12);
+  border: 1.5px solid rgba(123, 110, 246, 0.28);
 }
 
 .home-quick-action__hint {
@@ -4481,6 +4659,15 @@ body::before {
 
   .home-quick-action__sticker {
     width: 92px !important;
+  }
+
+  .home-quick-action--games .home-quick-action__sticker {
+    width: 104px !important;
+    height: 112px !important;
+  }
+
+  .home-quick-action--inventory .home-quick-action__sticker {
+    width: 108px !important;
   }
 }
 

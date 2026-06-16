@@ -6,7 +6,7 @@ const StoreAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { isAuthenticated, isLoading, role } = useAuth();
   if (isLoading) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (role !== 'store_admin') return <Navigate to="/unauthorized" replace />;
+  if (!['store_admin', 'super_admin'].includes(role ?? '')) return <Navigate to="/unauthorized" replace />;
   return <>{children}</>;
 };
 

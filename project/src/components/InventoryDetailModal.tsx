@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Copy, Check, Clock, Tag, Ticket, Gift, Package, AlertCircle, QrCode } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { InventoryItem, useInventory } from '../context/InventoryContext';
+import { InventoryItem } from '../context/InventoryContext';
 import { InventoryQRCode } from './QRCodeDisplay';
 
 const brutal = {
@@ -36,13 +36,11 @@ function getCountdown(expiresStr: string): Countdown {
 interface Props { item: InventoryItem; onClose: () => void; }
 
 const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
-  const { markUsed } = useInventory();
   const cfg      = typeConfig[item.type] || typeConfig.reward;
   const IconComp = cfg.icon;
 
   const [copied, setCopied]       = useState(false);
   const [countdown, setCountdown] = useState<Countdown>(getCountdown(item.expires));
-  const [confirmUse, setConfirmUse] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCountdown(getCountdown(item.expires)), 1000);
@@ -60,8 +58,6 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const handleMarkUsed = () => { markUsed(item.id); onClose(); };
 
   const isExpired = countdown.expired;
   const isUsed    = item.used;
@@ -316,50 +312,6 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
                 {isUsed ? 'Bu bilet zaten kullanıldı.' : 'Bu biletin süresi doldu.'}
               </p>
             </div>
-          )}
-
-          {/* Mark used */}
-          {isActive && (
-            !confirmUse ? (
-              <button
-                onClick={() => setConfirmUse(true)}
-                style={{
-                  width: '100%', padding: '13px', borderRadius: 14,
-                  background: 'var(--card-bg)', color: 'var(--text-muted)',
-                  border: brutal.border, boxShadow: brutal.shadowSm,
-                  fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                }}
-              >
-                <Check size={16} /> Kullanıldı olarak işaretle
-              </button>
-            ) : (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => setConfirmUse(false)}
-                  style={{
-                    flex: 1, padding: '12px', borderRadius: 12,
-                    background: 'var(--card-bg)', color: 'var(--text-muted)',
-                    border: brutal.border, boxShadow: brutal.shadowSm,
-                    fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                  }}
-                >
-                  İptal
-                </button>
-                <button
-                  onClick={handleMarkUsed}
-                  style={{
-                    flex: 2, padding: '12px', borderRadius: 12,
-                    background: '#22c55e', color: '#fff',
-                    border: brutal.border, boxShadow: '0 4px 0 #16a34a',
-                    fontWeight: 800, fontSize: 13, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}
-                >
-                  <Check size={15} strokeWidth={2.5} /> Evet, kullanıldı
-                </button>
-              </div>
-            )
           )}
         </div>
       </div>
