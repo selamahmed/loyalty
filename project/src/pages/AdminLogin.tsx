@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowLeft, ShieldCheck, Store, ScanLine, ArrowRight, Lock, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getDashboardPath } from '../context/AuthContext';
 
 /* ─── Role tabs ─────────────────────────────────────────────── */
 type AdminRole = 'super_admin' | 'store_admin' | 'cashier';
@@ -61,7 +60,7 @@ const BgShape = ({ color }: { color: string }) => (
 /* ─── Main component ─────────────────────────────────────────── */
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, dashboardPath, isAuthenticated, isLoading } = useAuth();
 
   const [activeRole, setActiveRole] = useState<AdminRole>('super_admin');
   const [email, setEmail]       = useState('');
@@ -72,6 +71,12 @@ const AdminLogin: React.FC = () => {
 
   const role = ROLES.find(r => r.id === activeRole)!;
   const Icon = role.icon;
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate(dashboardPath, { replace: true });
+    }
+  }, [dashboardPath, isAuthenticated, isLoading, navigate]);
 
   const selectRole = (id: AdminRole) => {
     setActiveRole(id);
@@ -97,7 +102,6 @@ const AdminLogin: React.FC = () => {
       setError(result.error || 'Giriş başarısız. Bilgilerinizi kontrol edin.');
       return;
     }
-    navigate(getDashboardPath(activeRole), { replace: true });
   };
 
   return (

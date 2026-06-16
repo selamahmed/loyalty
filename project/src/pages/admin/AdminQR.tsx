@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { QrCode, Plus, Trash2, X, Check, Copy, Edit2, Save, RefreshCw, ToggleLeft, ToggleRight, ShoppingCart, Clock, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getQRCodes, createQRCode, toggleQRCode, deleteQRCode, getRedemptionsAdmin, createCashierQR, getCashierQRCodes } from '../../services/admin';
+import { getQRCodes, createQRCode, toggleQRCode, deleteQRCode, getRedemptionsAdmin, updateRedemptionCode, createCashierQR, getCashierQRCodes } from '../../services/admin';
 import { useAuth } from '../../context/AuthContext';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 import {
-  createCashierQRPayload, saveCashierQR, loadCashierQRs,
   isQRExpired, msRemaining, appendAuditLog,
   type CashierQRPayload,
 } from '../../lib/qrUtils';
@@ -118,6 +117,15 @@ function rowToCashierQR(row: DBQRCode): CashierQRPayload {
   };
 }
 
+function isCashierQRRow(row: DBQRCode): boolean {
+  return row.max_uses === 1 && Boolean(row.expires_at) && (row.label ?? '').toLowerCase().includes('cashier qr');
+}
+
+function generateInventoryCode(type: string): string {
+  const prefix = (type || 'reward').slice(0, 4).toUpperCase();
+  return `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
 const AdminQR: React.FC = () => {
   const { authUser } = useAuth();
   const [tab, setTab] = useState<TabType>('purchase');
@@ -145,6 +153,7 @@ const AdminQR: React.FC = () => {
   const [invLoading, setInvLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editCode, setEditCode]   = useState('');
+  const [invSavingId, setInvSavingId] = useState<string | null>(null);
   const [invCopied, setInvCopied] = useState<string | null>(null);
   const [invPreview, setInvPreview] = useState<string | null>(null);
 
@@ -170,7 +179,7 @@ const AdminQR: React.FC = () => {
     setCodesLoading(true);
     try {
       const data = await getQRCodes();
-      setCodes(data as DBQRCode[]);
+      setCodes((data as DBQRCode[]).filter(qr => !isCashierQRRow(qr)));
     } catch { setCodes([]); } finally { setCodesLoading(false); }
   }, []);
 
@@ -206,25 +215,6 @@ const AdminQR: React.FC = () => {
 
   const parsedAmount = parseFloat(amount) || 0;
   const estimatedPoints = Math.round(parsedAmount * CASHIER_POINTS_PER_TL);
-
-  /* ── Generate cashier QR (localStorage session) ── */
-  const handleGenerateLocal = () => {
-    if (parsedAmount <= 0) return;
-    setGenerating(true);
-    setTimeout(() => {
-      const qr = createCashierQRPayload(parsedAmount);
-      saveCashierQR(qr);
-      appendAuditLog({ event: 'qr_generated', qr_id: qr.qr_id, detail: `${qr.amount}₺ alışveriş için ${qr.points} puan QR`, points: qr.points });
-      setActiveQR(qr);
-      setQrHistory(loadCashierQRs().slice(0, 10));
-      setAmount('');
-      setGenerating(false);
-      if (expiryTimerRef.current) clearTimeout(expiryTimerRef.current);
-      expiryTimerRef.current = setTimeout(() => {
-        setActiveQR(prev => prev?.qr_id === qr.qr_id ? null : prev);
-      }, 5 * 60 * 1000 + 500);
-    }, 300);
-  };
 
   const handleGenerate = async () => {
     if (parsedAmount <= 0) return;
@@ -287,8 +277,35 @@ const AdminQR: React.FC = () => {
 
   /* ── Inventory code handlers ── */
   const startEdit  = (item: InvItem) => { setEditingId(item.id); setEditCode(item.code); };
-  const saveEdit   = (id: string)     => { setInvItems(prev => prev.map(i => i.id === id ? { ...i, code: editCode.toUpperCase().trim() } : i)); setEditingId(null); };
-  const regenCode  = (id: string, type: string) => { const prefix = type.slice(0,4).toUpperCase(); setInvItems(prev => prev.map(i => i.id === id ? { ...i, code: `${prefix}-${Math.random().toString(36).slice(2,8).toUpperCase()}` } : i)); };
+  const saveEdit = async (id: string) => {
+    const nextCode = editCode.toUpperCase().trim();
+    if (!nextCode) return;
+    setInvSavingId(id);
+    try {
+      await updateRedemptionCode(id, nextCode);
+      setInvItems(prev => prev.map(i => i.id === id ? { ...i, code: nextCode } : i));
+      setEditingId(null);
+      setEditCode('');
+      await loadInventory();
+    } catch (e) {
+      console.error('[AdminQR] Could not update redemption code:', e);
+    } finally {
+      setInvSavingId(null);
+    }
+  };
+  const regenCode = async (id: string, type: string) => {
+    const nextCode = generateInventoryCode(type);
+    setInvSavingId(id);
+    try {
+      await updateRedemptionCode(id, nextCode);
+      setInvItems(prev => prev.map(i => i.id === id ? { ...i, code: nextCode } : i));
+      await loadInventory();
+    } catch (e) {
+      console.error('[AdminQR] Could not regenerate redemption code:', e);
+    } finally {
+      setInvSavingId(null);
+    }
+  };
   const handleInvCopy = (code: string) => { navigator.clipboard.writeText(code).catch(() => {}); setInvCopied(code); setTimeout(() => setInvCopied(null), 2000); };
 
   const card = 'rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 shadow-[0_4px_0_#000] dark:shadow-[0_4px_0_#374151]';
@@ -612,9 +629,9 @@ const AdminQR: React.FC = () => {
                         <p className="text-xs text-gray-400 mb-2">Son kullanım: {item.expires ? new Date(item.expires).toLocaleDateString('tr-TR') : 'N/A'}</p>
                         {isEditing ? (
                           <div className="flex gap-2 items-center">
-                            <input value={editCode} onChange={e => setEditCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && saveEdit(item.id)}
-                              className="input-field font-mono text-sm flex-1 py-2" style={{ letterSpacing: '0.08em' }} autoFocus />
-                            <button onClick={() => saveEdit(item.id)} className="p-2 rounded-xl bg-green-500 border-2 border-black shadow-[0_2px_0_#000] hover:shadow-none hover:translate-y-0.5 transition-all"><Save size={14} className="text-white" /></button>
+                            <input value={editCode} onChange={e => setEditCode(e.target.value.toUpperCase())} onKeyDown={e => { if (e.key === 'Enter') void saveEdit(item.id); }}
+                              className="input-field font-mono text-sm flex-1 py-2" style={{ letterSpacing: '0.08em' }} autoFocus disabled={invSavingId === item.id} />
+                            <button onClick={() => void saveEdit(item.id)} disabled={invSavingId === item.id} className="p-2 rounded-xl bg-green-500 border-2 border-black shadow-[0_2px_0_#000] hover:shadow-none hover:translate-y-0.5 transition-all disabled:opacity-60"><Save size={14} className="text-white" /></button>
                             <button onClick={() => setEditingId(null)} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 border-2 border-black dark:border-gray-600"><X size={14} /></button>
                           </div>
                         ) : (
@@ -635,8 +652,8 @@ const AdminQR: React.FC = () => {
                                 </button>
                               )}
                               {!item.used && (
-                                <button onClick={() => regenCode(item.id, item.type ?? 'reward')} title="Kodu Yenile" className="w-8 h-8 rounded-xl border-2 border-black dark:border-gray-600 shadow-[0_2px_0_#000] dark:shadow-[0_2px_0_#374151] flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 hover:shadow-none hover:translate-y-0.5 transition-all">
-                                  <RefreshCw size={13} className="text-blue-600" />
+                                <button onClick={() => void regenCode(item.id, item.type ?? 'reward')} disabled={invSavingId === item.id} title="Kodu Yenile" className="w-8 h-8 rounded-xl border-2 border-black dark:border-gray-600 shadow-[0_2px_0_#000] dark:shadow-[0_2px_0_#374151] flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 hover:shadow-none hover:translate-y-0.5 transition-all disabled:opacity-60">
+                                  <RefreshCw size={13} className={`text-blue-600 ${invSavingId === item.id ? 'animate-spin' : ''}`} />
                                 </button>
                               )}
                             </div>

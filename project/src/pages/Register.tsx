@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Check, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -19,13 +19,19 @@ const GoogleIcon = () => (
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { loginWithGoogle, register } = useAuth();
+  const { loginWithGoogle, register, dashboardPath, isAuthenticated, isLoading } = useAuth();
   const [form, setForm]     = useState({ username: '', email: '', password: '', confirm: '', terms: false });
   const [showPass, setShowPass]   = useState(false);
   const [loading, setLoading]     = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate(dashboardPath, { replace: true });
+    }
+  }, [dashboardPath, isAuthenticated, isLoading, navigate]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -53,7 +59,7 @@ const Register: React.FC = () => {
       action: 'Yeni kullanıcı kaydı', actionType: 'login',
       details: { method: 'email' },
     });
-    setSuccessMsg('Hesabınız oluşturuldu! Lütfen e-postanızı doğrulayın.');
+    setSuccessMsg(result.signedIn ? 'Hesabınız oluşturuldu! Giriş yapılıyor...' : 'Hesabınız oluşturuldu! Lütfen e-postanızı doğrulayın.');
   };
 
   const handleGoogle = async () => {
@@ -62,9 +68,11 @@ const Register: React.FC = () => {
       return;
     }
     setGoogleLoading(true);
-    await loginWithGoogle();
-    setGoogleLoading(false);
-    navigate('/app', { replace: true });
+    const result = await loginWithGoogle();
+    if (!result.success) {
+      setGoogleLoading(false);
+      setErrors({ submit: result.error ?? 'Google ile kayıt başarısız. Tekrar deneyin.' });
+    }
   };
 
   const openLegal = (path: '/terms' | '/privacy') => {
@@ -95,11 +103,10 @@ const Register: React.FC = () => {
           {/* Logo */}
           <div className="auth-brand flex flex-col items-center gap-3">
             <AppLogo
-              size={64}
-              style={{ border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)', borderRadius: 18 }}
+              size={72}
             />
             <div className="text-center">
-              <h1 className="auth-brand__title font-black text-xl" style={{ color: 'var(--text-dark)' }}>NexReward</h1>
+              <h1 className="auth-brand__title font-black text-xl" style={{ color: 'var(--text-dark)' }}>NEŞVENEXT</h1>
               <p className="auth-brand__subtitle text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Sadakat Platformu</p>
             </div>
           </div>

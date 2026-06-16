@@ -203,6 +203,20 @@ export async function getRedemptionsAdmin(page = 0, pageSize = 20) {
   return data ?? [];
 }
 
+export async function updateRedemptionCode(id: string, code: string) {
+  const normalizedCode = code.trim().toUpperCase();
+  if (!normalizedCode) throw new Error('Redemption code cannot be empty.');
+
+  const { data, error } = await supabase
+    .from('redemptions')
+    .update({ code: normalizedCode })
+    .eq('id', id)
+    .select('*, profiles(username, email), rewards(title, category)')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteQRCode(id: string): Promise<void> {
   const { error } = await supabase.from('qr_codes').delete().eq('id', id);
   if (error) throw error;

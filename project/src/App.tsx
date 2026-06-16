@@ -1,29 +1,31 @@
 import React, { Suspense, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
-import Layout from './components/Layout';
 import { prefetchCommonRoutes } from './lib/routePrefetch';
 
-const AppProviders = React.lazy(() => import('./components/AppProviders'));
+const AuthProviders = React.lazy(() => import('./components/AuthProviders'));
+const AppDataProviders = React.lazy(() => import('./components/AppDataProviders'));
+const Layout = React.lazy(() => import('./components/Layout'));
 
 // Route Guards (small — always loaded)
-import CustomerRoute     from './components/guards/CustomerRoute';
-import AccountStatusGuard from './components/guards/AccountStatusGuard';
-import SuperAdminRoute   from './components/guards/SuperAdminRoute';
-import StoreAdminRoute   from './components/guards/StoreAdminRoute';
-import CashierRoute      from './components/guards/CashierRoute';
-import MaintenanceGuard  from './components/guards/MaintenanceGuard';
+const CustomerRoute = React.lazy(() => import('./components/guards/CustomerRoute'));
+const AccountStatusGuard = React.lazy(() => import('./components/guards/AccountStatusGuard'));
+const SuperAdminRoute = React.lazy(() => import('./components/guards/SuperAdminRoute'));
+const StoreAdminRoute = React.lazy(() => import('./components/guards/StoreAdminRoute'));
+const CashierRoute = React.lazy(() => import('./components/guards/CashierRoute'));
+const MaintenanceGuard = React.lazy(() => import('./components/guards/MaintenanceGuard'));
 
 // Always-needed pages (tiny, keep eager)
 import LandingPage      from './pages/LandingPage';
-import Login            from './pages/Login';
-import AdminLogin       from './pages/AdminLogin';
-import ForgotPassword   from './pages/ForgotPassword';
-import ResetPassword    from './pages/ResetPassword';
-import Register         from './pages/Register';
-import Unauthorized     from './pages/Unauthorized';
-import AuthCallback     from './pages/AuthCallback';
 import { NotFound, NoConnection, Maintenance } from './pages/ErrorPages';
+
+const Login = React.lazy(() => import('./pages/Login'));
+const AdminLogin = React.lazy(() => import('./pages/AdminLogin'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
+const Register = React.lazy(() => import('./pages/Register'));
+const Unauthorized = React.lazy(() => import('./pages/Unauthorized'));
+const AuthCallback = React.lazy(() => import('./pages/AuthCallback'));
 
 const TermsOfService   = React.lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy    = React.lazy(() => import('./pages/PrivacyPolicy'));
@@ -100,6 +102,34 @@ const Spinner: React.FC = () => (
 );
 
 // ── Helpers ───────────────────────────────────────────────────────────────
+const DeferredCookieConsent: React.FC = () => {
+  const [ready, setReady] = React.useState(false);
+
+  useEffect(() => {
+    const show = () => setReady(true);
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(show, { timeout: 2500 });
+    } else {
+      timeoutId = setTimeout(show, 1200);
+    }
+
+    return () => {
+      if (idleId !== undefined && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
+  }, []);
+
+  if (!ready) return null;
+  return (
+    <Suspense fallback={null}>
+      <CookieConsent />
+    </Suspense>
+  );
+};
+
 const CustomerShell: React.FC = () => {
   useEffect(() => {
     const run = () => prefetchCommonRoutes();
@@ -119,33 +149,47 @@ const CustomerShell: React.FC = () => {
   }, []);
 
   return (
-    <MaintenanceGuard>
-      <CustomerRoute>
-        <AccountStatusGuard>
-          <Layout><Outlet /></Layout>
-        </AccountStatusGuard>
-      </CustomerRoute>
-    </MaintenanceGuard>
+    <Suspense fallback={null}>
+      <MaintenanceGuard>
+        <CustomerRoute>
+          <AccountStatusGuard>
+            <AppDataProviders>
+              <Layout><Outlet /></Layout>
+            </AppDataProviders>
+          </AccountStatusGuard>
+        </CustomerRoute>
+      </MaintenanceGuard>
+    </Suspense>
   );
 };
 
+const ProtectedAppData: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <AppDataProviders>{children}</AppDataProviders>
+);
+
 const SA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <SuperAdminRoute>{children}</SuperAdminRoute>
+  <Suspense fallback={null}>
+    <SuperAdminRoute><ProtectedAppData>{children}</ProtectedAppData></SuperAdminRoute>
+  </Suspense>
 );
 
 const STA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <StoreAdminRoute>{children}</StoreAdminRoute>
+  <Suspense fallback={null}>
+    <StoreAdminRoute><ProtectedAppData>{children}</ProtectedAppData></StoreAdminRoute>
+  </Suspense>
 );
 
 const CA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <CashierRoute>{children}</CashierRoute>
+  <Suspense fallback={null}>
+    <CashierRoute><ProtectedAppData>{children}</ProtectedAppData></CashierRoute>
+  </Suspense>
 );
 
 const AuthenticatedShell: React.FC = () => (
   <Suspense fallback={null}>
-    <AppProviders>
+    <AuthProviders>
       <Outlet />
-    </AppProviders>
+    </AuthProviders>
   </Suspense>
 );
 
@@ -194,9 +238,7 @@ function App() {
     <ThemeProvider>
     <HashRouter>
         <OAuthErrorInterceptor />
-        <Suspense fallback={null}>
-          <CookieConsent />
-        </Suspense>
+        <DeferredCookieConsent />
         <Suspense fallback={<Spinner />}>
           <Routes>
 

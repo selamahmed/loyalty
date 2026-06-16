@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import jsQR from 'jsqr';
 import CashierLayout from './CashierLayout';
 import { getRedemptionByCode, markRedemptionUsedByCode } from '../../../services/redemptions';
 import { activityLogService } from '../../../lib/activityLogger';
 import { useAuth } from '../../../context/AuthContext';
 import { useRealtimeTable } from '../../../hooks/useRealtime';
+import { parseQRPayload, isInventoryQR, isStoreQR } from '../../../lib/qrUtils';
 import {
   Search, CheckCircle, XCircle, AlertCircle, Package,
   Tag, Ticket, Gift, RefreshCw, Clock, History, Loader2,
+  Camera, Keyboard, ScanLine, StopCircle,
 } from 'lucide-react';
 
 type CheckStatus = 'idle' | 'found_valid' | 'found_expired' | 'found_used' | 'not_found' | 'loading';
@@ -27,6 +30,13 @@ const typeConfig: Record<string, { color: string; bg: string; icon: React.Elemen
 
 function daysLeft(expires: string) { return Math.max(0, Math.ceil((new Date(expires).getTime() - Date.now()) / 86400000)); }
 
+function extractRedemptionCode(raw: string): string {
+  const parsed = parseQRPayload(raw);
+  if (isInventoryQR(parsed)) return parsed.item_code.trim().toUpperCase();
+  if (isStoreQR(parsed)) return parsed.code.trim().toUpperCase();
+  return ('raw' in parsed ? parsed.raw : raw).trim().toUpperCase();
+}
+
 const card = {
   background: 'var(--card-bg)',
   border: '3px solid var(--dark-border)',
@@ -44,15 +54,33 @@ const CashierRedeem: React.FC = () => {
   const [confirming, setConfirming] = useState(false);
   const [done, setDone]           = useState(false);
   const [log, setLog]             = useState<RedeemRecord[]>([]);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerActive, setScannerActive] = useState(false);
+  const [scannerError, setScannerError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number>(0);
+  const scanningRef = useRef(false);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  const handleCheck = useCallback(async () => {
-    const trimmed = code.trim().toUpperCase();
+  const stopScanner = useCallback(() => {
+    scanningRef.current = false;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    setScannerActive(false);
+  }, []);
+
+  const lookupCode = useCallback(async (rawCode: string) => {
+    const trimmed = extractRedemptionCode(rawCode);
     if (!trimmed) return;
+    setCode(trimmed);
     setStatus('loading');
     setFoundItem(null);
+    setDone(false);
     try {
       const item = await getRedemptionByCode(trimmed);
       if (!item) { setStatus('not_found'); return; }
@@ -67,7 +95,82 @@ const CashierRedeem: React.FC = () => {
       console.error('[CashierRedeem] lookup:', e);
       setStatus('not_found');
     }
-  }, [code]);
+  }, []);
+
+  const handleCheck = useCallback(async () => {
+    await lookupCode(code);
+  }, [code, lookupCode]);
+
+  const scanFrame = useCallback(() => {
+    if (!scanningRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState < 2) {
+      rafRef.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) {
+      rafRef.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const qr = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+
+    if (qr?.data) {
+      stopScanner();
+      setScannerOpen(false);
+      void lookupCode(qr.data);
+      return;
+    }
+
+    rafRef.current = requestAnimationFrame(scanFrame);
+  }, [lookupCode, stopScanner]);
+
+  const startScanner = useCallback(async () => {
+    setScannerOpen(true);
+    setScannerError('');
+    setStatus('idle');
+    setFoundItem(null);
+    setDone(false);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setScannerError('Bu cihazda kamera desteği bulunamadı. Kodu manuel girebilirsiniz.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      scanningRef.current = true;
+      setScannerActive(true);
+      rafRef.current = requestAnimationFrame(scanFrame);
+    } catch {
+      setScannerError('Kamera izni alınamadı. Tarayıcı izinlerini kontrol edin veya kodu manuel girin.');
+      setScannerActive(false);
+    }
+  }, [scanFrame]);
+
+  const closeScanner = useCallback(() => {
+    stopScanner();
+    setScannerOpen(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, [stopScanner]);
+
+  useEffect(() => () => stopScanner(), [stopScanner]);
 
   useRealtimeTable('redemptions', () => {
     if (code.trim()) void handleCheck();
@@ -115,6 +218,8 @@ const CashierRedeem: React.FC = () => {
   };
 
   const handleReset = () => {
+    stopScanner();
+    setScannerOpen(false);
     setCode(''); setStatus('idle'); setFoundItem(null); setDone(false);
     setTimeout(() => inputRef.current?.focus(), 100);
   };
@@ -127,6 +232,52 @@ const CashierRedeem: React.FC = () => {
 
   return (
     <CashierLayout>
+      {scannerOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ ...card, width: 'min(520px,100%)', padding: 16, background: 'var(--card-bg)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 14, background: 'linear-gradient(180deg,#22c55e,#16a34a)', border: '2.5px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 0 var(--dark-border)' }}>
+                  <ScanLine size={20} color="white" />
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 900, color: 'var(--text-dark)', fontSize: 15 }}>Bilet QR Tara</p>
+                  <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: 12, fontWeight: 700 }}>Müşterinin envanter QR kodunu kameraya gösterin</p>
+                </div>
+              </div>
+              <button onClick={closeScanner} style={{ width: 40, height: 40, borderRadius: 14, border: '2.5px solid var(--dark-border)', background: 'var(--tab-bg)', color: 'var(--text-dark)', boxShadow: '0 3px 0 var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <StopCircle size={18} />
+              </button>
+            </div>
+
+            <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', border: '3px solid var(--dark-border)', background: '#050816', aspectRatio: '4 / 3', boxShadow: 'inset 0 0 0 2px rgba(34,197,94,0.22)' }}>
+              <video ref={videoRef} playsInline muted autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover', display: scannerActive ? 'block' : 'none' }} />
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+              <div style={{ position: 'absolute', inset: 28, border: '3px solid #22c55e', borderRadius: 18, boxShadow: '0 0 0 999px rgba(0,0,0,0.28)' }} />
+              <div style={{ position: 'absolute', left: 42, right: 42, top: '50%', height: 3, borderRadius: 999, background: 'linear-gradient(90deg,transparent,#22c55e,transparent)', animation: scannerActive ? 'scanSweep 1.8s ease-in-out infinite' : 'none' }} />
+              {!scannerActive && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10, color: 'white', padding: 24, textAlign: 'center' }}>
+                  <Loader2 size={28} className="animate-spin" />
+                  <p style={{ margin: 0, fontWeight: 900 }}>{scannerError || 'Kamera başlatılıyor...'}</p>
+                </div>
+              )}
+            </div>
+
+            {scannerError && (
+              <div style={{ padding: 12, borderRadius: 14, background: 'rgba(239,68,68,0.12)', border: '2px solid #ef4444', color: '#ef4444', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>{scannerError}</span>
+              </div>
+            )}
+
+            <button onClick={closeScanner} style={{ padding: '13px', borderRadius: 14, fontWeight: 900, fontSize: 14, background: 'var(--tab-bg)', color: 'var(--text-dark)', border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <Keyboard size={16} /> Manuel Koda Dön
+            </button>
+          </div>
+          <style>{`@keyframes scanSweep { 0%,100% { transform: translateY(-92px); opacity: .25; } 50% { transform: translateY(92px); opacity: 1; } }`}</style>
+        </div>
+      )}
+
       <div style={{ padding: 'clamp(16px,4vw,24px)', paddingBottom: 32, maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* Header */}
@@ -141,7 +292,23 @@ const CashierRedeem: React.FC = () => {
 
         {/* Code entry */}
         <div style={{ ...card, padding: 22 }}>
-          <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 14px' }}>Ödül / Kupon Kodu Girin</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+            <div>
+              <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 3px' }}>Ödül / Kupon Kodu Girin</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, fontWeight: 700 }}>QR tara veya kodu manuel yaz</p>
+            </div>
+            <button
+              onClick={() => void startScanner()}
+              style={{
+                padding: '10px 14px', borderRadius: 14, fontWeight: 900, fontSize: 13,
+                background: 'linear-gradient(180deg,#8b5cf6,#7c3aed)', color: 'white',
+                border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7,
+              }}
+            >
+              <Camera size={15} /> QR Tara
+            </button>
+          </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />

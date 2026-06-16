@@ -83,7 +83,6 @@ const Login: React.FC = () => {
       actionType: 'login',
       details: { method: 'email', restricted: result.restricted ?? false },
     });
-    navigate(dashboardPath, { replace: true });
   };
 
   const handleGoogle = async () => {
@@ -106,11 +105,10 @@ const Login: React.FC = () => {
           {/* Logo */}
           <div className="auth-brand flex flex-col items-center gap-3">
             <AppLogo
-              size={64}
-              style={{ border: '3px solid var(--dark-border)', boxShadow: '0px 6px 0px var(--dark-border)', borderRadius: 18 }}
+              size={72}
             />
             <div className="text-center">
-              <h1 className="auth-brand__title font-black text-xl" style={{ color: 'var(--text-dark)' }}>NexReward</h1>
+              <h1 className="auth-brand__title font-black text-xl" style={{ color: 'var(--text-dark)' }}>NEŞVENEXT</h1>
               <p className="auth-brand__subtitle text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Sadakat Platformu</p>
             </div>
           </div>

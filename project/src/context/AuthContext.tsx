@@ -33,7 +33,7 @@ interface AuthContextType {
   loading: boolean;
   profileLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; restricted?: boolean }>;
-  register: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string; signedIn?: boolean }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -182,16 +182,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [sessionUser?.id, invalidateProfile]);
 
   const register = useCallback(async (email: string, password: string, username: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email, password,
       options: { data: { full_name: username, username, role: 'customer' } },
     });
-    return error ? { success: false, error: error.message } : { success: true };
-  }, []);
+    if (error) return { success: false, error: error.message };
+
+    if (data.session) setSession(data.session);
+    if (data.session && data.user) {
+      await syncAuthUser(data.user, 'active');
+    }
+
+    return { success: true, signedIn: Boolean(data.session) };
+  }, [syncAuthUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { success: false, error: error.message };
+    if (data.session) setSession(data.session);
     if (data.user) {
       const status = await fetchMyAccountStatus(data.user.id);
       if (status === 'deleted') {
