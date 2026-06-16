@@ -798,6 +798,25 @@ export async function getCashierQRCodes(limit = 20) {
   return data ?? [];
 }
 
+function isMissingCashierQRFunction(error: { code?: string; message?: string } | null): boolean {
+  return Boolean(
+    error &&
+    (error.code === 'PGRST202' ||
+      error.message?.toLowerCase().includes('could not find the function') ||
+      error.message?.toLowerCase().includes('function public.create_cashier_qr')),
+  );
+}
+
+function cashierQRRlsError(error: { message?: string }): Error {
+  if (error.message?.toLowerCase().includes('row-level security')) {
+    return new Error(
+      'Cashier QR creation is blocked by Supabase RLS. Run supabase/migrations/20260615000002_realtime_cashier_qr_ranking.sql in Supabase SQL Editor.',
+    );
+  }
+
+  return new Error(error.message ?? 'Cashier QR could not be created.');
+}
+
 /** @deprecated Use claimQrScan from earn.ts — server validates QR */
 export async function recordQRScan(
   _userId: string,
@@ -819,10 +838,23 @@ export async function createCashierQR(payload: {
   cashierUserId: string;
   expiresAt: string;
 }) {
+  const normalizedCode = payload.code.trim().toUpperCase();
+  const { data: rpcData, error: rpcError } = await supabase.rpc('create_cashier_qr', {
+    p_code: normalizedCode,
+    p_points: payload.points,
+    p_amount: payload.amount,
+    p_expires_at: payload.expiresAt,
+  });
+
+  if (!rpcError && rpcData) return rpcData;
+  if (rpcError && !isMissingCashierQRFunction(rpcError)) {
+    throw cashierQRRlsError(rpcError);
+  }
+
   const { data, error } = await supabase
     .from('qr_codes')
     .insert({
-      code: payload.code,
+      code: normalizedCode,
       store_id: payload.cashierUserId,
       points: payload.points,
       label: `Cashier QR - TRY ${payload.amount}`,
@@ -833,7 +865,7 @@ export async function createCashierQR(payload: {
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) throw cashierQRRlsError(error);
   return data;
 }
 

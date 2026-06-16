@@ -6,7 +6,9 @@ const CashierRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const { isAuthenticated, isLoading, role } = useAuth();
   if (isLoading) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (role !== 'cashier') return <Navigate to="/unauthorized" replace />;
+  if (!['cashier', 'store_admin', 'super_admin'].includes(role ?? '')) {
+    return <Navigate to="/unauthorized" replace />;
+  }
   return <>{children}</>;
 };
 

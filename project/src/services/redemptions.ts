@@ -25,6 +25,16 @@ export async function getActiveRedemptions(userId: string): Promise<Redemption[]
   return data ?? [];
 }
 
+export async function getInventoryRedemptions(userId: string): Promise<Redemption[]> {
+  const { data, error } = await supabase
+    .from('redemptions')
+    .select('*, rewards(title, image, category, description, points)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 function generateCode(): string {
   return Math.random().toString(36).substring(2, 10).toUpperCase();
 }
@@ -57,9 +67,10 @@ export async function redeemReward(
 }
 
 export async function markRedemptionUsed(id: string, userId?: string): Promise<void> {
+  const usedAt = new Date().toISOString();
   let q = supabase
     .from('redemptions')
-    .update({ used: true, used_at: new Date().toISOString() })
+    .update({ used: true, used_at: usedAt, expires_at: usedAt })
     .eq('id', id);
   if (userId) q = q.eq('user_id', userId);
   const { error } = await q;

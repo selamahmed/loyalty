@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
-import { getActiveRedemptions, markRedemptionUsed } from '../services/redemptions';
+import { supabase } from '../lib/supabase';
+import { getInventoryRedemptions, markRedemptionUsed } from '../services/redemptions';
 
 export type InventoryItemType = 'coupon' | 'ticket' | 'reward';
 
@@ -41,7 +42,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     setIsLoading(true);
     try {
-      const redemptions = await getActiveRedemptions(authUser.id);
+      const redemptions = await getInventoryRedemptions(authUser.id);
       const mapped: InventoryItem[] = redemptions.map((r) => {
         const reward = (r as unknown as { rewards?: { title?: string; image?: string; category?: string; description?: string; points?: number } }).rewards;
         return {
@@ -95,11 +96,34 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, [isAuthenticated, reload]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !authUser?.id) return;
+
+    const channel = supabase
+      .channel(`inventory-redemptions-${authUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'redemptions',
+          filter: `user_id=eq.${authUser.id}`,
+        },
+        () => { void reload(); },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [authUser?.id, isAuthenticated, reload]);
+
   const markUsed = useCallback(async (id: string) => {
     if (!authUser?.id) return;
     try {
       await markRedemptionUsed(id, authUser.id);
-      setItems(prev => prev.map(i => i.id === id ? { ...i, used: true, quantity: 0 } : i));
+      const now = new Date().toISOString();
+      setItems(prev => prev.map(i => i.id === id ? { ...i, used: true, expires: now, quantity: 0 } : i));
     } catch (err) {
       console.error('Failed to mark used:', err);
     }

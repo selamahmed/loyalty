@@ -21,7 +21,7 @@ interface InventoryWalletCardProps {
 
 const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick, dimmed, compact }) => {
   const cfg = inventoryTypeConfig[item.type] || inventoryTypeConfig.reward;
-  const expired = new Date(item.expires) < new Date();
+  const expired = item.used || new Date(item.expires) < new Date();
   const days = getDaysLeft(item.expires);
   const urgency = !expired && !item.used && days <= 3;
 
@@ -63,12 +63,14 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
             {cfg.emoji}
           </div>
         )}
-        {expired && !item.used && (
+        {expired && (
           <div style={{
             position: 'absolute', inset: 0, background: 'rgba(239,68,68,0.5)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <span style={{ fontSize: 8, fontWeight: 900, color: 'white', background: '#ef4444', padding: '2px 6px', borderRadius: 4 }}>DOLDU</span>
+            <span style={{ fontSize: 8, fontWeight: 900, color: 'white', background: '#ef4444', padding: '2px 6px', borderRadius: 4 }}>
+              {item.used ? 'KULLANILDI' : 'DOLDU'}
+            </span>
           </div>
         )}
       </div>

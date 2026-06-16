@@ -304,6 +304,15 @@ export type Database = {
         Args: { p_code: string };
         Returns: Record<string, unknown>;
       };
+      create_cashier_qr: {
+        Args: {
+          p_code: string;
+          p_points: number;
+          p_amount: number;
+          p_expires_at: string;
+        };
+        Returns: Database['public']['Tables']['qr_codes']['Row'];
+      };
       claim_daily_streak: {
         Args: Record<string, never>;
         Returns: Record<string, unknown>;
