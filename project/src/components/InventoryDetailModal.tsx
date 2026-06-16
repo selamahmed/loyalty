@@ -71,6 +71,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
 
   return createPortal(
     <div
+      className="inventory-detail-overlay"
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -82,7 +83,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{
+      <div className="inventory-detail-sheet" style={{
         background: 'var(--card-bg)',
         border: brutal.border,
         boxShadow: brutal.shadow,
@@ -96,17 +97,18 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
           <div style={{ width: 36, height: 4, borderRadius: 99, background: 'var(--dark-border)', opacity: 0.2 }} />
         </div>
 
-        <div style={{ padding: '12px 18px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="inventory-detail-content" style={{ padding: '12px 18px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* ── Ticket card ── */}
-          <div style={{
+          <div className="inventory-detail-ticket" style={{
             borderRadius: brutal.radius, overflow: 'visible',
             background: 'var(--card-bg)',
-            border: `3px solid ${accent}`,
+            border: brutal.border,
             boxShadow: `0 6px 0 ${isActive ? accent : '#dc2626'}`,
             position: 'relative',
           }}>
             <button
+              className="inventory-detail-close"
               onClick={onClose}
               aria-label="Kapat"
               style={{
@@ -122,20 +124,20 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
             </button>
 
             {/* Hero image */}
-            <div style={{
+            <div className="inventory-detail-hero" style={{
               position: 'relative', height: 148,
               borderTopLeftRadius: 17, borderTopRightRadius: 17, overflow: 'hidden',
               borderBottom: `2px dashed ${accent}`,
             }}>
               {item.image ? (
-                <img src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: isActive ? 1 : 0.4 }} />
+                <img className="inventory-detail-hero__img" src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: isActive ? 1 : 0.4 }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {isActive ? <span style={{ fontSize: 52 }}>🎫</span> : <Package size={48} color="var(--text-muted)" />}
                 </div>
               )}
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)' }} />
-              <span style={{
+              <div className="inventory-detail-hero__shade" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)' }} />
+              <span className="inventory-detail-badge" style={{
                 position: 'absolute', top: 10, left: 10,
                 padding: '4px 10px', borderRadius: 99,
                 background: accent, color: '#fff',
@@ -145,7 +147,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
               }}>
                 <IconComp size={10} color="#fff" /> {cfg.label}
               </span>
-              <p className="font-display" style={{
+              <p className="font-display inventory-detail-title" style={{
                 position: 'absolute', bottom: 12, left: 14, right: 14,
                 fontWeight: 900, fontSize: 19, color: '#fff', margin: 0, lineHeight: 1.15,
               }}>
@@ -165,27 +167,27 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
             </div>
 
             {/* Ticket notches */}
-            <div style={{ position: 'relative', height: 0, overflow: 'visible', zIndex: 3 }}>
-              <div style={{ position: 'absolute', left: -12, top: -12, width: 24, height: 24, borderRadius: '50%', background: 'var(--bg-color)', border: `2px solid ${accent}` }} />
-              <div style={{ position: 'absolute', right: -12, top: -12, width: 24, height: 24, borderRadius: '50%', background: 'var(--bg-color)', border: `2px solid ${accent}` }} />
+            <div className="inventory-detail-notches" style={{ position: 'relative', height: 0, overflow: 'visible', zIndex: 3 }}>
+              <div className="inventory-detail-notch inventory-detail-notch--left" style={{ position: 'absolute', left: -12, top: -12, width: 24, height: 24, borderRadius: '50%', background: 'var(--bg-color)', border: '2px solid var(--dark-border)' }} />
+              <div className="inventory-detail-notch inventory-detail-notch--right" style={{ position: 'absolute', right: -12, top: -12, width: 24, height: 24, borderRadius: '50%', background: 'var(--bg-color)', border: '2px solid var(--dark-border)' }} />
             </div>
 
             {/* QR + Code redeem area */}
-            <div style={{ padding: '16px 14px 14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12, justifyContent: 'center' }}>
+            <div className="inventory-detail-redeem" style={{ padding: '16px 14px 14px' }}>
+              <div className="inventory-detail-redeem__eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12, justifyContent: 'center' }}>
                 <QrCode size={13} color={accent} />
                 <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
                   {isActive ? 'Kasiyere Göster' : isUsed ? 'Kullanıldı' : 'Süresi Doldu'}
                 </p>
               </div>
 
-              <div style={{
+              <div className="inventory-detail-redeem__grid" style={{
                 display: 'flex', gap: 12, alignItems: 'stretch',
                 flexDirection: 'row',
               }}>
                 {/* QR — always visible when active */}
                 {isActive && (
-                  <div style={{
+                  <div className="inventory-detail-qr-card" style={{
                     flexShrink: 0, background: '#fff', padding: 8,
                     borderRadius: 14, border: brutal.border, boxShadow: brutal.shadowSm,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -195,13 +197,23 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
                 )}
 
                 {/* Code */}
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div className="inventory-detail-code-wrap" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div
+                    role={isActive ? 'button' : undefined}
+                    tabIndex={isActive ? 0 : undefined}
+                    aria-label={isActive ? `Kodu kopyala: ${item.code}` : undefined}
+                    className="inventory-detail-code-button"
                     onClick={isActive ? handleCopy : undefined}
+                    onKeyDown={e => {
+                      if (isActive && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        handleCopy();
+                      }
+                    }}
                     style={{
                       padding: '14px 12px', borderRadius: 14,
                       background: isActive ? 'var(--tab-bg)' : 'var(--card-bg)',
-                      border: isActive ? `2.5px dashed ${accent}` : `2px solid var(--dark-border)`,
+                      border: isActive ? `2.5px solid ${accent}` : `2px solid var(--dark-border)`,
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
                       cursor: isActive ? 'pointer' : 'default',
                       transition: 'transform 0.12s',
@@ -209,7 +221,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
                     onMouseDown={e => { if (isActive) e.currentTarget.style.transform = 'translateY(1px)'; }}
                     onMouseUp={e => { e.currentTarget.style.transform = ''; }}
                   >
-                    <span style={{
+                    <span className="inventory-detail-code-text" style={{
                       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                       fontSize: 16, fontWeight: 800,
                       color: isActive ? 'var(--text-dark)' : 'var(--text-muted)',
@@ -219,7 +231,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
                       {item.code}
                     </span>
                     {isActive && (
-                      <div style={{
+                      <div className="inventory-detail-copy-icon" style={{
                         width: 34, height: 34, borderRadius: 9, flexShrink: 0,
                         background: copied ? 'rgba(34,197,94,0.15)' : cfg.bg,
                         border: `2px solid ${copied ? '#22c55e' : accent}`,
@@ -231,8 +243,8 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
                     )}
                   </div>
                   {isActive && (
-                    <p style={{ fontSize: 10, color: accent, fontWeight: 600, textAlign: 'center', margin: '8px 0 0', lineHeight: 1.4 }}>
-                      QR tara veya koda dokunarak kopyala
+                    <p className="inventory-detail-copy-hint" style={{ fontSize: 10, color: accent, fontWeight: 600, textAlign: 'center', margin: '8px 0 0', lineHeight: 1.4 }}>
+                      {copied ? 'Kod kopyalandı' : 'QR tara veya koda dokunarak kopyala'}
                     </p>
                   )}
                 </div>

@@ -1690,6 +1690,189 @@ body::before {
     var(--card-bg) !important;
 }
 
+/* Inventory detail modal */
+.inventory-detail-overlay {
+  padding: 12px !important;
+}
+
+.inventory-detail-sheet {
+  width: min(100%, 520px) !important;
+  max-height: calc(100dvh - 24px) !important;
+  border-radius: 24px !important;
+  border-bottom: 3px solid var(--dark-border) !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(123, 110, 246, 0.6) transparent;
+}
+
+.inventory-detail-sheet::-webkit-scrollbar {
+  width: 6px;
+}
+
+.inventory-detail-sheet::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(123, 110, 246, 0.6);
+}
+
+.inventory-detail-content {
+  gap: 16px !important;
+}
+
+.inventory-detail-ticket {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(59, 130, 246, 0.07)),
+    var(--card-bg) !important;
+}
+
+.inventory-detail-close {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.inventory-detail-close:hover {
+  background: var(--tab-bg) !important;
+  transform: translateY(-1px);
+}
+
+.inventory-detail-close:active {
+  box-shadow: 1px 1px 0 var(--dark-border) !important;
+  transform: translateY(2px);
+}
+
+.inventory-detail-hero {
+  min-height: 146px;
+}
+
+.inventory-detail-hero__img {
+  filter: saturate(1.04) contrast(1.02);
+}
+
+.inventory-detail-hero__shade {
+  background:
+    linear-gradient(to top, rgba(16, 12, 42, 0.72) 0%, rgba(16, 12, 42, 0.18) 52%, transparent 100%) !important;
+}
+
+.inventory-detail-title {
+  max-width: calc(100% - 24px);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.inventory-detail-badge {
+  backdrop-filter: blur(8px);
+}
+
+.inventory-detail-hero {
+  border-bottom: 2px solid rgba(34, 197, 94, 0.45) !important;
+}
+
+.inventory-detail-notch {
+  box-shadow: inset 0 0 0 4px var(--card-bg), 0 2px 0 rgba(0, 0, 0, 0.16);
+  opacity: 0.82;
+}
+
+.inventory-detail-redeem {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(34, 197, 94, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(123, 110, 246, 0.05), transparent);
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 18px;
+}
+
+.inventory-detail-redeem__eyebrow {
+  padding: 4px 10px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 999px;
+  background: rgba(123, 110, 246, 0.1);
+  border: 1px solid rgba(123, 110, 246, 0.18);
+}
+
+.inventory-detail-redeem__grid {
+  align-items: center !important;
+}
+
+.inventory-detail-qr-card {
+  width: 148px;
+  min-height: 148px;
+  border-radius: 18px !important;
+  box-shadow: 0 4px 0 var(--dark-border), 0 0 0 4px rgba(255, 255, 255, 0.04) !important;
+}
+
+.inventory-detail-code-wrap {
+  align-self: stretch;
+}
+
+.inventory-detail-code-button {
+  min-height: 86px;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.inventory-detail-code-button:hover {
+  background: color-mix(in srgb, var(--tab-bg) 86%, white 14%) !important;
+}
+
+.inventory-detail-code-button:focus-visible {
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.inventory-detail-code-text {
+  font-size: clamp(14px, 4vw, 18px) !important;
+}
+
+.inventory-detail-copy-icon {
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.inventory-detail-copy-hint {
+  font-weight: 800 !important;
+}
+
+@media (max-width: 520px) {
+  .inventory-detail-overlay {
+    align-items: flex-end !important;
+    padding: 8px !important;
+  }
+
+  .inventory-detail-sheet {
+    width: 100% !important;
+    max-height: calc(100dvh - 16px) !important;
+    border-radius: 22px 22px 0 0 !important;
+    border-bottom: none !important;
+  }
+
+  .inventory-detail-content {
+    padding: 10px 14px 28px !important;
+  }
+
+  .inventory-detail-redeem__grid {
+    gap: 10px !important;
+  }
+
+  .inventory-detail-qr-card {
+    width: 136px;
+    min-height: 136px;
+  }
+
+  .inventory-detail-code-button {
+    min-height: 76px;
+    padding: 12px 10px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .inventory-detail-redeem__grid {
+    flex-direction: column !important;
+  }
+
+  .inventory-detail-qr-card {
+    width: min(100%, 176px);
+  }
+
+  .inventory-detail-code-wrap {
+    width: 100%;
+  }
+}
+
 @media (max-width: 640px) {
   .inventory-header {
     flex-direction: column;
