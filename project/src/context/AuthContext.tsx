@@ -58,7 +58,7 @@ function mapSupabaseUser(user: User, dbRole?: UserRole | null): AuthUser {
     name: meta.full_name ?? meta.name ?? meta.username ?? user.email?.split('@')[0] ?? 'User',
     username: meta.username ?? undefined,
     email: user.email ?? '',
-    role: dbRole ?? (meta.role as UserRole) ?? 'customer',
+    role: dbRole ?? 'customer',
     avatar: meta.avatar_url ?? meta.picture ?? undefined,
     provider: user.app_metadata?.provider ?? 'email',
   };

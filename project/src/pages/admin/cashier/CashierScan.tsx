@@ -11,6 +11,7 @@ import {
   User, Star, Clock, XCircle, ChevronRight, Banknote, Zap, Loader2
 } from 'lucide-react';
 import NeoAvatar from '../../../components/NeoAvatar';
+import { ilikeOrFilter } from '../../../lib/postgrestSearch';
 
 const ACCENT        = '#f59e0b';
 const POINTS_PER_TL = 10;
@@ -428,8 +429,9 @@ const ManualSearchTab: React.FC = () => {
         .order('username')
         .limit(30);
 
-      if (q.trim()) {
-        dbQ = dbQ.or(`username.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`);
+      const searchFilter = ilikeOrFilter(['username', 'email', 'phone'], q);
+      if (searchFilter) {
+        dbQ = dbQ.or(searchFilter);
       }
 
       const { data, error } = await dbQ;

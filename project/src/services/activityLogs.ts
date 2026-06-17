@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/supabase';
+import { ilikeOrFilter } from '../lib/postgrestSearch';
 
 export type ActivityLog = Database['public']['Tables']['activity_logs']['Row'];
 
@@ -24,8 +25,9 @@ export async function getActivityLogs(
   if (userId) query = query.eq('user_id', userId);
   if (actionType) query = query.eq('action_type', actionType);
   if (riskLevel) query = query.eq('risk_level', riskLevel);
-  if (search) {
-    query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%,ip_address.ilike.%${search}%,city.ilike.%${search}%`);
+  const searchFilter = search ? ilikeOrFilter(['username', 'email', 'ip_address', 'city'], search) : null;
+  if (searchFilter) {
+    query = query.or(searchFilter);
   }
 
   const { data, error } = await query;

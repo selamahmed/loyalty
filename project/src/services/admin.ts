@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/supabase';
+import { ilikeOrFilter } from '../lib/postgrestSearch';
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -10,8 +11,9 @@ export async function getAllUsers(page = 0, pageSize = 20, search?: string): Pro
     .order('created_at', { ascending: false })
     .range(page * pageSize, (page + 1) * pageSize - 1);
 
-  if (search) {
-    query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%`);
+  const searchFilter = search ? ilikeOrFilter(['username', 'email'], search) : null;
+  if (searchFilter) {
+    query = query.or(searchFilter);
   }
 
   const { data, error } = await query;
@@ -105,8 +107,9 @@ export async function getAllUsersUnpaged(search?: string): Promise<Profile[]> {
     .from('profiles')
     .select('*')
     .order('updated_at', { ascending: false });
-  if (search) {
-    query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+  const searchFilter = search ? ilikeOrFilter(['username', 'email', 'phone'], search) : null;
+  if (searchFilter) {
+    query = query.or(searchFilter);
   }
   const { data, error } = await query;
   if (error) throw error;
@@ -235,10 +238,13 @@ export async function getQRScans(qrCodeId?: string, page = 0, pageSize = 50) {
 }
 
 export async function updateUserRole(userId: string, role: string): Promise<void> {
-  const { error } = await supabase
-    .from('profiles')
-    .update({ role: role as Profile['role'], updated_at: new Date().toISOString() })
-    .eq('id', userId);
+  const allowedRoles: Profile['role'][] = ['customer', 'cashier', 'store_admin', 'super_admin'];
+  if (!allowedRoles.includes(role as Profile['role'])) throw new Error('Invalid role.');
+
+  const { error } = await supabase.rpc('admin_set_user_role', {
+    p_user_id: userId,
+    p_role: role as Profile['role'],
+  });
   if (error) throw error;
 }
 
@@ -249,7 +255,11 @@ export async function adminAddPoints(
   category = 'admin_adjustment',
   referenceId?: string,
 ): Promise<void> {
-  const { error } = await supabase.rpc('add_points', {
+  if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount === 0) {
+    throw new Error('Point adjustment must be a non-zero integer.');
+  }
+
+  const { error } = await supabase.rpc('admin_adjust_points', {
     p_user_id: userId,
     p_amount: amount,
     p_description: description,

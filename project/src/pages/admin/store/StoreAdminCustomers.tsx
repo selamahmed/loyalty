@@ -5,6 +5,7 @@ import { adminAddPoints } from '../../../services/admin';
 import { useRealtimeTable } from '../../../hooks/useRealtime';
 import { Search, User, Star, TrendingUp, Loader2, X, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import NeoAvatar from '../../../components/NeoAvatar';
+import { ilikeOrFilter } from '../../../lib/postgrestSearch';
 
 interface Customer {
   id: string;
@@ -104,8 +105,9 @@ const StoreAdminCustomers: React.FC = () => {
         .order('total_points', { ascending: false })
         .limit(100);
 
-      if (search.trim()) {
-        q = q.or(`username.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      const searchFilter = ilikeOrFilter(['username', 'email', 'phone'], search);
+      if (searchFilter) {
+        q = q.or(searchFilter);
       }
 
       const { data, error } = await q;

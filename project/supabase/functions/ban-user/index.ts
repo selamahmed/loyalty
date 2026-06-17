@@ -28,11 +28,15 @@ Deno.serve(async (req) => {
 
     const { data: callerProfile } = await supabaseAdmin
       .from('profiles')
-      .select('role')
+      .select('role,status')
       .eq('id', caller.id)
       .maybeSingle();
 
-    if (!callerProfile || !['super_admin', 'store_admin'].includes(callerProfile.role)) {
+    if (
+      !callerProfile ||
+      callerProfile.status !== 'active' ||
+      !['super_admin', 'store_admin'].includes(callerProfile.role)
+    ) {
       throw new Error('Forbidden');
     }
 
@@ -40,6 +44,22 @@ Deno.serve(async (req) => {
     if (!userId) throw new Error('userId required');
 
     const targetStatus = status ?? 'deleted';
+    if (!['deleted', 'suspended', 'active'].includes(targetStatus)) throw new Error('Invalid status');
+    if (userId === caller.id) throw new Error('Cannot change your own account status');
+
+    const { data: targetProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('role,status')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!targetProfile) throw new Error('Target user not found');
+    if (callerProfile.role !== 'super_admin') {
+      if (targetStatus === 'deleted') throw new Error('Only super admins can delete users');
+      if (!['customer', 'cashier'].includes(targetProfile.role)) {
+        throw new Error('Store admins cannot modify admin accounts');
+      }
+    }
 
     await supabaseAdmin.rpc('admin_set_user_status', {
       p_user_id: userId,

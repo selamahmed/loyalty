@@ -21,7 +21,7 @@ export async function addPoints(
   category: string,
   referenceId?: string
 ): Promise<void> {
-  const { error } = await supabase.rpc('add_points', {
+  const { error } = await supabase.rpc('admin_adjust_points', {
     p_user_id: userId,
     p_amount: amount,
     p_description: description,
@@ -37,13 +37,11 @@ export async function spendPoints(
   description: string,
   referenceId?: string
 ): Promise<void> {
-  const { error } = await supabase.rpc('spend_points', {
-    p_user_id: userId,
-    p_amount: amount,
-    p_description: description,
-    p_reference_id: referenceId ?? null,
-  });
-  if (error) throw error;
+  void userId;
+  void amount;
+  void description;
+  void referenceId;
+  throw new Error('Use purchaseReward for customer reward purchases; direct point spending is disabled.');
 }
 
 export type LeaderboardEntry = {

@@ -4,8 +4,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
 import { getRewards } from '../services/rewards';
-import { redeemReward } from '../services/redemptions';
-import { spendPoints as spendPointsService } from '../services/points';
+import { purchaseReward } from '../services/redemptions';
 import type { Reward } from '../services/rewards';
 import { playSound } from '../lib/sounds';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -140,13 +139,10 @@ const RewardsShop: React.FC = () => {
 
   const handleBuy = async () => {
     if (!selectedReward || !authUser?.id || buyLoading) return;
-    const spent = spendPoints(selectedReward.points);
-    if (!spent) return;
     setBuyLoading(true);
     try {
-      const expiryDate = selectedReward.expires_at ?? new Date(Date.now() + 90 * 86400000).toISOString();
-      await spendPointsService(authUser.id, selectedReward.points, `Ödül: ${selectedReward.title}`, selectedReward.id);
-      const redemption = await redeemReward(authUser.id, selectedReward.id, selectedReward.points, expiryDate);
+      const redemption = await purchaseReward(selectedReward.id);
+      spendPoints(selectedReward.points);
       await reloadInventory();
       setSuccess(selectedReward.title);
       setShowParticles(true);

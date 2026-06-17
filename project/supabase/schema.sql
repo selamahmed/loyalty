@@ -79,7 +79,7 @@ begin
     new.id,
     new.email,
     v_username,
-    coalesce((new.raw_user_meta_data->>'role')::user_role, 'customer')
+    'customer'
   );
 
   -- Welcome notification

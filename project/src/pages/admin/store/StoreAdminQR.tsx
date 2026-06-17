@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../context/AuthContext';
 import { useRealtimeTable } from '../../../hooks/useRealtime';
 import { QrCode, Plus, Trash2, ToggleLeft, ToggleRight, Copy, Check, Loader2, Search, RefreshCw, X } from 'lucide-react';
+import { ilikeOrFilter } from '../../../lib/postgrestSearch';
 
 interface QRCode {
   id: string;
@@ -159,7 +160,8 @@ const StoreAdminQR: React.FC = () => {
     setLoading(true);
     try {
       let q = supabase.from('qr_codes').select('*').order('created_at', { ascending: false }).limit(100);
-      if (search.trim()) q = q.or(`code.ilike.%${search}%,label.ilike.%${search}%`);
+      const searchFilter = ilikeOrFilter(['code', 'label'], search);
+      if (searchFilter) q = q.or(searchFilter);
       const { data, error } = await q;
       if (error) throw error;
       setQrCodes((data ?? []) as QRCode[]);

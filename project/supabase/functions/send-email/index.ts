@@ -13,6 +13,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface EmailRequest {
   to: string | string[];
@@ -25,6 +26,37 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+async function requireAdmin(req: Request) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) throw new Error('Unauthorized');
+
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+  if (authErr || !user) throw new Error('Unauthorized');
+
+  const { data: profile, error: profileErr } = await supabaseAdmin
+    .from('profiles')
+    .select('role,status')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (
+    profileErr ||
+    !profile ||
+    profile.status !== 'active' ||
+    !['super_admin', 'store_admin'].includes(profile.role)
+  ) {
+    throw new Error('Forbidden');
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -42,8 +74,17 @@ serve(async (req) => {
       );
     }
 
+    await requireAdmin(req);
+
     const body: EmailRequest = await req.json();
-    const toList = Array.isArray(body.to) ? body.to : [body.to];
+    const toList = (Array.isArray(body.to) ? body.to : [body.to])
+      .map((to) => String(to ?? '').trim().toLowerCase())
+      .filter((to) => EMAIL_RE.test(to));
+
+    if (toList.length === 0) throw new Error('At least one valid recipient is required');
+    if (toList.length > 200) throw new Error('Recipient limit exceeded');
+    if (!body.subject || body.subject.length > 160) throw new Error('Invalid subject');
+    if (!body.html || body.html.length > 100_000) throw new Error('Invalid html body');
 
     // Resend supports up to 50 recipients per call; chunk larger lists.
     const CHUNK_SIZE = 50;
