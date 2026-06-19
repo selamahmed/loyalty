@@ -8,7 +8,7 @@ const AuthPageShell: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     style={{ position: 'relative', overflow: 'hidden' }}
   >
     <PageStickerBackdrop preset="auth" />
-    <div className="w-full max-w-sm auth-shell__content" style={{ position: 'relative', zIndex: 1 }}>
+    <div className="w-full max-w-[430px] auth-shell__content" style={{ position: 'relative', zIndex: 1 }}>
       {children}
     </div>
   </div>

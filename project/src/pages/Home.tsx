@@ -123,7 +123,7 @@ const Home: React.FC = () => {
     <div className="home-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
 
       {/* Ghost watermark */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+      <div className="home-ghost-watermark" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{
           position: 'absolute', top: '8%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
           fontSize: 'clamp(60px,15vw,180px)', fontWeight: 900, color: 'var(--dark-border)',
