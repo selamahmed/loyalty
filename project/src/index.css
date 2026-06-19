@@ -6130,6 +6130,7 @@ body::before {
 
 .profile-auth-content {
   width: min(100%, 640px);
+  position: relative;
   border: 3px solid var(--dark-border);
   border-radius: 34px;
   background:
@@ -6139,6 +6140,11 @@ body::before {
     0 26px 50px rgba(0, 0, 0, 0.26);
   backdrop-filter: blur(18px);
   overflow: visible;
+}
+
+.profile-auth-content > * {
+  position: relative;
+  z-index: 1;
 }
 
 .profile-auth-content::before {
@@ -6152,6 +6158,20 @@ body::before {
   background: rgba(0, 0, 0, 0.16);
   transform: translateX(-50%);
   pointer-events: none;
+}
+
+.profile-auth-content::after {
+  content: '';
+  position: absolute;
+  inset: 18px;
+  z-index: 0;
+  border-radius: 28px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 88% 9%, rgba(255, 255, 255, 0.16), transparent 22%),
+    radial-gradient(circle at 12% 58%, rgba(255, 255, 255, 0.08), transparent 20%),
+    linear-gradient(140deg, rgba(255, 255, 255, 0.05), transparent 42%);
+  opacity: 0.9;
 }
 
 .profile-auth-content .profile-hero-card {
@@ -6198,6 +6218,130 @@ body::before {
   box-shadow: 0 5px 0 var(--dark-border) !important;
 }
 
+.profile-auth-content .profile-stat-card__value {
+  letter-spacing: -0.04em;
+}
+
+.profile-points-card {
+  isolation: isolate;
+  border-radius: 28px !important;
+  background:
+    radial-gradient(circle at 86% 8%, rgba(255, 255, 255, 0.14), transparent 24%),
+    linear-gradient(135deg, rgba(123, 110, 246, 0.18), rgba(167, 139, 250, 0.08)) !important;
+  box-shadow:
+    0 7px 0 var(--dark-border),
+    0 20px 38px rgba(0, 0, 0, 0.18) !important;
+}
+
+.profile-points-card::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  z-index: -1;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 48%);
+  pointer-events: none;
+}
+
+.profile-points-card__copy {
+  min-width: 0;
+}
+
+.profile-points-card__value span {
+  letter-spacing: -0.07em;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+}
+
+.profile-points-card__button {
+  border-radius: 18px !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #8b5cf6 82%, #ffffff 18%), #7B6EF6) !important;
+  box-shadow:
+    0 5px 0 var(--dark-border),
+    0 12px 24px rgba(123, 110, 246, 0.24) !important;
+}
+
+.profile-setting-button,
+.profile-menu-trigger,
+.profile-logout-button {
+  border-radius: 24px !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--card-bg) 94%, #ffffff 6%), color-mix(in srgb, var(--card-bg) 87%, var(--primary-blue) 13%)) !important;
+  box-shadow:
+    0 7px 0 var(--dark-border),
+    0 18px 34px rgba(0, 0, 0, 0.18) !important;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    filter 0.16s ease !important;
+}
+
+.profile-setting-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-setting-button::before {
+  content: '';
+  position: absolute;
+  inset: 10px 10px auto auto;
+  width: 28px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.profile-setting-button:hover,
+.profile-menu-trigger:hover,
+.profile-logout-button:hover {
+  transform: translateY(-2px);
+  filter: saturate(1.06);
+}
+
+.profile-setting-button:active,
+.profile-menu-trigger:active,
+.profile-logout-button:active {
+  transform: translateY(4px);
+  box-shadow:
+    0 3px 0 var(--dark-border),
+    0 10px 22px rgba(0, 0, 0, 0.16) !important;
+}
+
+.profile-setting-button > div {
+  box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.profile-setting-button--large {
+  min-height: 112px !important;
+}
+
+.profile-quick-actions {
+  gap: 12px !important;
+}
+
+.profile-menu-trigger {
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-menu-trigger::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 50%);
+  pointer-events: none;
+}
+
+.profile-logout-button {
+  background:
+    linear-gradient(180deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03)) !important;
+}
+
 .profile-auth-content .section-label {
   color: var(--primary-blue);
 }
@@ -6226,6 +6370,33 @@ body::before {
   .profile-auth-content {
     border-radius: 30px;
     box-shadow: 0 7px 0 var(--dark-border), 0 20px 38px rgba(0, 0, 0, 0.24);
+  }
+
+  .profile-points-card {
+    padding: 18px !important;
+  }
+
+  .profile-points-card__button {
+    padding-inline: 18px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .profile-points-card {
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+
+  .profile-points-card__button {
+    width: 100%;
+  }
+
+  .profile-quick-actions {
+    gap: 9px !important;
+  }
+
+  .profile-setting-button--large {
+    min-height: 104px !important;
   }
 }
 

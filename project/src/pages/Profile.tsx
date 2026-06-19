@@ -52,7 +52,7 @@ const SettingButton: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className="press-card"
+    className={`press-card profile-setting-button${large ? ' profile-setting-button--large' : ''}`}
     style={{
       ...card,
       padding: large ? '18px 10px' : '12px 8px',
@@ -265,21 +265,22 @@ const Profile: React.FC = () => {
         </div>
 
         {/* ── Points card ── */}
-        <div style={{
+        <div className="profile-points-card" style={{
           ...card,
           background: 'linear-gradient(135deg,rgba(123,110,246,0.14) 0%,rgba(167,139,250,0.07) 100%)',
           border: '3px solid #7B6EF6', boxShadow: '0 6px 0 var(--dark-border)',
           padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16,
           position: 'relative', overflow: 'visible',
         }}>
-          <div style={{ flex: 1 }}>
+          <div className="profile-points-card__copy" style={{ flex: 1 }}>
             <p style={{ fontSize: 10, fontWeight: 900, color: '#a78bfa', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{tr.profile.availablePoints}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="profile-points-card__value" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Star size={26} fill="#a78bfa" color="#a78bfa" />
               <span style={{ fontSize: 36, fontWeight: 900, color: 'var(--text-dark)', lineHeight: 1 }}>{points.toLocaleString()}</span>
             </div>
           </div>
           <button
+            className="profile-points-card__button"
             onClick={() => navigate('/shop')}
             style={{
               padding: '12px 20px', borderRadius: 14, fontWeight: 900, fontSize: 14,
@@ -334,7 +335,7 @@ const Profile: React.FC = () => {
         {/* ── Quick actions ── */}
         <div>
           <SectionHeader micro="HIZLI" title="Hızlı Erişim" />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          <div className="profile-quick-actions" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {quickActions.map(action => (
               <SettingButton
                 key={action.path}
@@ -354,7 +355,7 @@ const Profile: React.FC = () => {
           <button
             type="button"
             onClick={() => { playSound('click'); setMenuOpen(open => !open); }}
-            className="press-card"
+            className="press-card profile-menu-trigger"
             style={{
               ...card,
               width: '100%',
@@ -419,6 +420,7 @@ const Profile: React.FC = () => {
         <button
           type="button"
           onClick={() => { playSound('click'); logout().then(() => navigate('/login', { replace: true })).catch(() => navigate('/login', { replace: true })); }}
+          className="profile-logout-button"
           style={{
             ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
             cursor: 'pointer', border: '3px solid #ef4444', boxShadow: '0 6px 0 #dc2626',
