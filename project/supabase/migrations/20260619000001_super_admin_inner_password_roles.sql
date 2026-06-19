@@ -235,21 +235,10 @@ $$;
 revoke all on function public.admin_set_user_role(uuid, text, text) from public;
 grant execute on function public.admin_set_user_role(uuid, text, text) to authenticated;
 
--- Compatibility wrapper for promote actions that do not need inner password.
-create or replace function public.admin_set_user_role(
-  p_user_id uuid,
-  p_role text
-)
-returns void
-language sql
-security definer
-set search_path = public
-as $$
-  select public.admin_set_user_role(p_user_id, p_role, null);
-$$;
-
-revoke all on function public.admin_set_user_role(uuid, text) from public;
-grant execute on function public.admin_set_user_role(uuid, text) to authenticated;
+-- Keep one RPC signature only. PostgREST can return 400 when overloaded RPCs
+-- share the same name, so the frontend always sends p_inner_password as null
+-- for promote actions and a real value for revokes.
+drop function if exists public.admin_set_user_role(uuid, text);
 
 -- One-time owner bootstrap through the same privileged trigger flag.
 do $$
@@ -288,3 +277,5 @@ exception
     perform set_config('app.allow_profile_privileged_update', '', true);
     raise;
 end $$;
+
+notify pgrst, 'reload schema';

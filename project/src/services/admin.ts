@@ -249,12 +249,17 @@ export async function updateUserRole(userId: string, role: string, innerPassword
   const normalizedRole = roleAliases[role];
   if (!normalizedRole) throw new Error('Invalid role.');
 
-  const args = innerPassword
-    ? { p_user_id: userId, p_role: normalizedRole, p_inner_password: innerPassword }
-    : { p_user_id: userId, p_role: normalizedRole };
-
-  const { error } = await supabase.rpc('admin_set_user_role', args);
-  if (error) throw error;
+  const { error } = await supabase.rpc('admin_set_user_role', {
+    p_user_id: userId,
+    p_role: normalizedRole,
+    p_inner_password: innerPassword ?? null,
+  });
+  if (error) {
+    if (error.code === 'PGRST202' || error.message?.includes('function') || error.message?.includes('schema cache')) {
+      throw new Error('Role RPC is missing in Supabase. Run supabase/migrations/20260619000001_super_admin_inner_password_roles.sql in the Supabase SQL Editor, then refresh the app.');
+    }
+    throw error;
+  }
 }
 
 export async function setSuperAdminInnerPassword(password: string): Promise<void> {
@@ -265,7 +270,12 @@ export async function setSuperAdminInnerPassword(password: string): Promise<void
   const { error } = await supabase.rpc('super_admin_set_inner_password', {
     p_password: password,
   });
-  if (error) throw error;
+  if (error) {
+    if (error.code === 'PGRST202' || error.message?.includes('function') || error.message?.includes('schema cache')) {
+      throw new Error('Inner-password RPC is missing in Supabase. Run supabase/migrations/20260619000001_super_admin_inner_password_roles.sql in the Supabase SQL Editor, then refresh the app.');
+    }
+    throw error;
+  }
 }
 
 export async function adminAddPoints(
