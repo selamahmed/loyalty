@@ -331,13 +331,6 @@ export type Database = {
         Args: {
           p_user_id: string;
           p_role: string;
-          p_inner_password?: string | null;
-        };
-        Returns: void;
-      };
-      super_admin_set_inner_password: {
-        Args: {
-          p_password: string;
         };
         Returns: void;
       };

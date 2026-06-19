@@ -237,7 +237,7 @@ export async function getQRScans(qrCodeId?: string, page = 0, pageSize = 50) {
   return data ?? [];
 }
 
-export async function updateUserRole(userId: string, role: string, innerPassword?: string): Promise<void> {
+export async function updateUserRole(userId: string, role: string): Promise<void> {
   const roleAliases: Record<string, Profile['role']> = {
     user: 'customer',
     admin: 'store_admin',
@@ -252,27 +252,10 @@ export async function updateUserRole(userId: string, role: string, innerPassword
   const { error } = await supabase.rpc('admin_set_user_role', {
     p_user_id: userId,
     p_role: normalizedRole,
-    p_inner_password: innerPassword ?? null,
   });
   if (error) {
     if (error.code === 'PGRST202' || error.message?.includes('function') || error.message?.includes('schema cache')) {
-      throw new Error('Role RPC is missing in Supabase. Run supabase/migrations/20260619000001_super_admin_inner_password_roles.sql in the Supabase SQL Editor, then refresh the app.');
-    }
-    throw error;
-  }
-}
-
-export async function setSuperAdminInnerPassword(password: string): Promise<void> {
-  if (password.length < 8 || password.length > 128) {
-    throw new Error('Inner password must be between 8 and 128 characters.');
-  }
-
-  const { error } = await supabase.rpc('super_admin_set_inner_password', {
-    p_password: password,
-  });
-  if (error) {
-    if (error.code === 'PGRST202' || error.message?.includes('function') || error.message?.includes('schema cache')) {
-      throw new Error('Inner-password RPC is missing in Supabase. Run supabase/migrations/20260619000001_super_admin_inner_password_roles.sql in the Supabase SQL Editor, then refresh the app.');
+      throw new Error('Role RPC is missing in Supabase. Run supabase/migrations/20260618000002_role_system_fix.sql in the Supabase SQL Editor, then refresh the app.');
     }
     throw error;
   }

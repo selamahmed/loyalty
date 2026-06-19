@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import {
   getAllUsersUnpaged, suspendUser, activateUser, deleteUser,
   adminAddPoints, getUserDetailStats, saveAdminNote,
-  broadcastNotification, setSuperAdminInnerPassword, updateUserRole,
+  broadcastNotification, updateUserRole,
 } from '../../services/admin';
 import { getActivityLogs } from '../../services/activityLogs';
 import { useRealtimeTable } from '../../hooks/useRealtime';
@@ -95,9 +95,6 @@ const AdminUsers: React.FC = () => {
   const [feedback,     setFeedback]    = useState('');
   const [showRoleModal,setShowRoleModal] = useState(false);
   const [newRole,      setNewRole]     = useState<RoleType>('customer');
-  const [innerPassword, setInnerPassword] = useState('');
-  const [revokePassword, setRevokePassword] = useState('');
-  const [savingInnerPassword, setSavingInnerPassword] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 300);
 
   /* ── Load ── */
@@ -256,40 +253,14 @@ const AdminUsers: React.FC = () => {
   const doChangeRole = async () => {
     if (!selected) return; setWorking(true);
     try {
-      const requiresInnerPassword = newRole === 'customer' && selected.role !== 'customer';
-      if (requiresInnerPassword && !revokePassword.trim()) {
-        toast('Revoking requires the super admin inner password');
-        setWorking(false);
-        return;
-      }
-
-      await updateUserRole(selected.id, newRole, requiresInnerPassword ? revokePassword : undefined);
+      await updateUserRole(selected.id, newRole);
       const u = { ...selected, role: newRole };
       setSelected(u); setUsers(prev => prev.map(p => p.id === selected.id ? u : p));
       setShowRoleModal(false);
-      setRevokePassword('');
       toast('Rol güncellendi');
       logAdminAction('admin_action', `Admin rol değiştirdi: ${selected.username ?? selected.email} → ${newRole}`, { targetUserId: selected.id, oldRole: selected.role, newRole }, 'high');
     } catch (err) { toast(err instanceof Error ? err.message : 'Rol güncellenemedi'); }
     finally { setWorking(false); }
-  };
-
-  const doSaveInnerPassword = async () => {
-    if (innerPassword.length < 8) {
-      toast('Inner password en az 8 karakter olmalı');
-      return;
-    }
-
-    setSavingInnerPassword(true);
-    try {
-      await setSuperAdminInnerPassword(innerPassword);
-      setInnerPassword('');
-      toast('Inner password kaydedildi');
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Inner password kaydedilemedi');
-    } finally {
-      setSavingInnerPassword(false);
-    }
   };
 
   const exportCSV = () => {
@@ -513,7 +484,7 @@ const AdminUsers: React.FC = () => {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${STATUS_COLOR[selected.status] ?? ''}`}>
                       {selected.status === 'active' ? 'Aktif' : selected.status === 'suspended' ? 'Askıda' : 'Yasaklı'}
                     </span>
-                    <button onClick={() => { setNewRole(selected.role as RoleType); setRevokePassword(''); setShowRoleModal(true); }} className={`px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${ROLE_COLOR[selected.role as RoleType] ?? ''}`}>
+                    <button onClick={() => { setNewRole(selected.role as RoleType); setShowRoleModal(true); }} className={`px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${ROLE_COLOR[selected.role as RoleType] ?? ''}`}>
                       {ROLE_LABEL[selected.role as RoleType] ?? selected.role} <ChevronDown size={10}/>
                     </button>
                     <span className="text-xs text-gray-400">Lv.{selected.level}</span>
@@ -536,37 +507,8 @@ const AdminUsers: React.FC = () => {
                       {ROLE_LABEL[r]}
                     </button>
                   ))}
-                  <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-3 space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Super admin inner password</p>
-                    <input
-                      type="password"
-                      value={innerPassword}
-                      onChange={(e) => setInnerPassword(e.target.value)}
-                      placeholder="Set / update password"
-                      className="w-full px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-[#7B6EF6]"
-                    />
-                    <button
-                      onClick={doSaveInnerPassword}
-                      disabled={savingInnerPassword || innerPassword.length < 8}
-                      className="w-full py-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-xs border-2 border-black disabled:opacity-50"
-                    >
-                      {savingInnerPassword ? <Loader size={14} className="mx-auto animate-spin" /> : 'Save inner password'}
-                    </button>
-                  </div>
-                  {newRole === 'customer' && selected.role !== 'customer' && (
-                    <div className="rounded-xl border-2 border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 p-3 space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-red-600 dark:text-red-300">Revoke password required</p>
-                      <input
-                        type="password"
-                        value={revokePassword}
-                        onChange={(e) => setRevokePassword(e.target.value)}
-                        placeholder="Enter inner password"
-                        className="w-full px-3 py-2 rounded-xl border-2 border-red-200 dark:border-red-900 bg-white dark:bg-gray-900 text-sm font-bold text-gray-900 dark:text-white outline-none focus:border-red-500"
-                      />
-                    </div>
-                  )}
                   <div className="flex gap-2">
-                    <button onClick={() => { setShowRoleModal(false); setRevokePassword(''); }} className="flex-1 py-2 rounded-xl border-2 border-gray-300 font-bold text-gray-600 text-sm">İptal</button>
+                    <button onClick={() => setShowRoleModal(false)} className="flex-1 py-2 rounded-xl border-2 border-gray-300 font-bold text-gray-600 text-sm">İptal</button>
                     <button onClick={doChangeRole} disabled={working} className="flex-1 py-2 rounded-xl bg-[#7B6EF6] text-white font-bold text-sm border-2 border-black disabled:opacity-50">
                       {working ? <Loader size={14} className="mx-auto animate-spin" /> : 'Kaydet'}
                     </button>
