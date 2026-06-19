@@ -72,6 +72,7 @@ begin
   end if;
 end $$;
 
+drop function if exists public.admin_set_user_role(uuid, text, text);
 drop function if exists public.admin_set_user_role(uuid, text);
 
 create or replace function public.admin_set_user_role(
@@ -128,6 +129,10 @@ begin
     and a.attname = 'role'
     and not a.attisdropped;
 
+  if v_role_type is null then
+    raise exception 'profiles.role column not found';
+  end if;
+
   select array_agg(e.enumlabel::text order by e.enumsortorder)
     into v_enum_labels
   from pg_attribute a
@@ -162,8 +167,8 @@ begin
     raise exception 'Role % is not available in profiles.role enum', v_role;
   end if;
 
-  perform set_config('app.profile_privileged_rpc', 'on', false);
-  perform set_config('app.allow_profile_privileged_update', 'on', false);
+  perform set_config('app.profile_privileged_rpc', 'on', true);
+  perform set_config('app.allow_profile_privileged_update', 'on', true);
 
   execute format(
     'update public.profiles set role = $1::%s, updated_at = now() where id = $2',
@@ -171,12 +176,12 @@ begin
   )
   using v_role, p_user_id;
 
-  perform set_config('app.profile_privileged_rpc', '', false);
-  perform set_config('app.allow_profile_privileged_update', '', false);
+  perform set_config('app.profile_privileged_rpc', '', true);
+  perform set_config('app.allow_profile_privileged_update', '', true);
 exception
   when others then
-    perform set_config('app.profile_privileged_rpc', '', false);
-    perform set_config('app.allow_profile_privileged_update', '', false);
+    perform set_config('app.profile_privileged_rpc', '', true);
+    perform set_config('app.allow_profile_privileged_update', '', true);
     raise;
 end;
 $$;
@@ -219,9 +224,13 @@ begin
     and a.attname = 'role'
     and not a.attisdropped;
 
+  if v_role_type is null then
+    raise exception 'profiles.role column not found';
+  end if;
+
   if exists (select 1 from public.profiles where id = v_owner_id) then
-    perform set_config('app.profile_privileged_rpc', 'on', false);
-    perform set_config('app.allow_profile_privileged_update', 'on', false);
+    perform set_config('app.profile_privileged_rpc', 'on', true);
+    perform set_config('app.allow_profile_privileged_update', 'on', true);
 
     execute format(
       'update public.profiles set role = $1::%s, updated_at = now() where id = $2',
@@ -229,12 +238,14 @@ begin
     )
     using 'super_admin', v_owner_id;
 
-    perform set_config('app.profile_privileged_rpc', '', false);
-    perform set_config('app.allow_profile_privileged_update', '', false);
+    perform set_config('app.profile_privileged_rpc', '', true);
+    perform set_config('app.allow_profile_privileged_update', '', true);
   end if;
 exception
   when others then
-    perform set_config('app.profile_privileged_rpc', '', false);
-    perform set_config('app.allow_profile_privileged_update', '', false);
+    perform set_config('app.profile_privileged_rpc', '', true);
+    perform set_config('app.allow_profile_privileged_update', '', true);
     raise;
 end $$;
+
+notify pgrst, 'reload schema';

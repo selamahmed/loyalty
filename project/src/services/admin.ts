@@ -254,8 +254,33 @@ export async function updateUserRole(userId: string, role: string): Promise<void
     p_role: normalizedRole,
   });
   if (error) {
-    if (error.code === 'PGRST202' || error.message?.includes('function') || error.message?.includes('schema cache')) {
-      throw new Error('Role RPC is missing in Supabase. Run supabase/migrations/20260618000002_role_system_fix.sql in the Supabase SQL Editor, then refresh the app.');
+    const message = error.message ?? '';
+    const details = error.details ?? '';
+    const hint = error.hint ?? '';
+    const rpcLooksMissing =
+      error.code === 'PGRST202'
+      || error.code === '404'
+      || message.includes('function')
+      || message.includes('schema cache')
+      || details.includes('function')
+      || hint.includes('schema cache');
+    const rpcLooksAmbiguous =
+      message.includes('Could not choose the best candidate function')
+      || details.includes('Could not choose the best candidate function')
+      || hint.includes('Try renaming the parameters')
+      || hint.includes('parameter names');
+
+    if (rpcLooksMissing || rpcLooksAmbiguous) {
+      throw new Error('Role management SQL is not installed or Supabase cache is stale. Run supabase/migrations/20260618000002_role_system_fix.sql in the Supabase SQL Editor, wait a few seconds, then refresh the app.');
+    }
+    if (message.includes('Only active super admins')) {
+      throw new Error('Only an active super admin can change user roles.');
+    }
+    if (message.includes('Cannot change your own role')) {
+      throw new Error('You cannot change your own role.');
+    }
+    if (message.includes('Invalid role')) {
+      throw new Error('This role is not allowed.');
     }
     throw error;
   }
