@@ -26,9 +26,10 @@ interface BuyModalProps {
   onClose: () => void;
   canAfford: boolean;
   submitting?: boolean;
+  error?: string | null;
 }
 
-const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAfford, submitting = false }) => (
+const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAfford, submitting = false, error }) => (
   <div
     style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)' }}
     onClick={e => { if (e.target === e.currentTarget) onClose(); }}
@@ -81,6 +82,12 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
         </p>
       )}
 
+      {error && (
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#ef4444', fontWeight: 800, margin: '0 0 12px', lineHeight: 1.45 }}>
+          {error}
+        </p>
+      )}
+
       <div style={{ display: 'flex', gap: 10 }}>
         <button
           onClick={onClose}
@@ -111,7 +118,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
 /* ── Main page ── */
 const RewardsShop: React.FC = () => {
   const { points, spendPoints, showRewardPopup, soundEnabled } = useApp();
-  const { authUser, profile } = useAuth();
+  const { authUser, profile, refreshProfile } = useAuth();
   const { reload: reloadInventory } = useInventory();
   const [search, setSearch]             = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
@@ -121,6 +128,7 @@ const RewardsShop: React.FC = () => {
   const [rewards, setRewards]           = useState<Reward[]>([]);
   const [isLoading, setIsLoading]       = useState(true);
   const [buyLoading, setBuyLoading]     = useState(false);
+  const [buyError, setBuyError]         = useState<string | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -140,10 +148,11 @@ const RewardsShop: React.FC = () => {
   const handleBuy = async () => {
     if (!selectedReward || !authUser?.id || buyLoading) return;
     setBuyLoading(true);
+    setBuyError(null);
     try {
       const redemption = await purchaseReward(selectedReward.id);
       spendPoints(selectedReward.points);
-      await reloadInventory();
+      await Promise.all([reloadInventory(), refreshProfile()]);
       setSuccess(selectedReward.title);
       setShowParticles(true);
       // Audit log
@@ -167,6 +176,7 @@ const RewardsShop: React.FC = () => {
       setTimeout(() => { setShowParticles(false); setSuccess(null); }, 3000);
     } catch (err) {
       console.error('Purchase failed:', err);
+      setBuyError((err as Error).message ?? 'Ödül satın alınamadı.');
     } finally {
       setBuyLoading(false);
     }
@@ -183,9 +193,14 @@ const RewardsShop: React.FC = () => {
         <BuyModal
           reward={selectedReward}
           onConfirm={() => void handleBuy()}
-          onClose={() => !buyLoading && setSelectedReward(null)}
+          onClose={() => {
+            if (buyLoading) return;
+            setBuyError(null);
+            setSelectedReward(null);
+          }}
           canAfford={points >= selectedReward.points}
           submitting={buyLoading}
+          error={buyError}
         />
       )}
 
@@ -320,11 +335,12 @@ const RewardsShop: React.FC = () => {
               return (
                 <div
                   key={reward.id}
-                  onClick={() => { playClick(); setSelectedReward(reward); }}
+                  onClick={() => { playClick(); setBuyError(null); setSelectedReward(reward); }}
                   onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       playClick();
+                      setBuyError(null);
                       setSelectedReward(reward);
                     }
                   }}

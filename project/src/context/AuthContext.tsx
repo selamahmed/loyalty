@@ -51,6 +51,28 @@ export const getDashboardPath = (role: UserRole | string | null): string => {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const DB_ROLES: readonly UserRole[] = ['customer', 'super_admin', 'store_admin', 'cashier'];
+
+function normalizeDbRole(role: string | null | undefined): UserRole {
+  if (role === 'user') return 'customer';
+  if (role === 'admin') return 'store_admin';
+  return DB_ROLES.includes(role as UserRole) ? (role as UserRole) : 'customer';
+}
+
+async function fetchCurrentProfileRole(expectedUserId: string): Promise<UserRole | null> {
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user || user.id !== expectedUserId) return null;
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('id, role')
+    .eq('id', user.id)
+    .single();
+
+  if (error || !profile) return null;
+  return normalizeDbRole(profile.role);
+}
+
 function mapSupabaseUser(user: User, dbRole?: UserRole | null): AuthUser {
   const meta = user.user_metadata ?? {};
   return {
@@ -68,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [sessionUser, setSessionUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authBootLoading, setAuthBootLoading] = useState(true);
+  const [profileRoles, setProfileRoles] = useState<Record<string, UserRole>>({});
   const sessionRef = useRef<Session | null>(null);
   sessionRef.current = session;
   const invalidateProfile = useInvalidateProfile();
@@ -81,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOutBannedUser = useCallback(async () => {
     syncedUserIdRef.current = null;
+    setProfileRoles({});
     setSessionUser(null);
     setSession(null);
     try {
@@ -97,6 +121,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       accountStatus = await fetchMyAccountStatus(user.id);
     }
     if (fetchId !== profileFetchId.current) return;
+
+    const dbRole = await fetchCurrentProfileRole(user.id);
+    if (fetchId !== profileFetchId.current) return;
+
+    if (dbRole) {
+      setProfileRoles(prev => (
+        prev[user.id] === dbRole ? prev : { ...prev, [user.id]: dbRole }
+      ));
+    }
 
     if (accountStatus === 'deleted') {
       await signOutBannedUser();
@@ -161,17 +194,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const authUser = useMemo((): AuthUser | null => {
     if (!sessionUser) return null;
-    const base = mapSupabaseUser(sessionUser, (canonicalProfile?.role as UserRole) ?? undefined);
+    const directDbRole = profileRoles[sessionUser.id] ?? null;
+    const canonicalDbRole = canonicalProfile?.role ? normalizeDbRole(canonicalProfile.role) : null;
+    const base = mapSupabaseUser(sessionUser, canonicalDbRole ?? directDbRole);
     if (!canonicalProfile) return base;
     return {
       ...base,
       name: canonicalProfile.username ?? base.name,
       username: canonicalProfile.username ?? base.username,
       avatar: canonicalProfile.avatar_url ?? base.avatar,
-      role: (canonicalProfile.role as UserRole) ?? base.role,
+      role: canonicalDbRole ?? directDbRole ?? base.role,
       avatar_seed: canonicalProfile.avatar_seed ?? base.avatar_seed,
     };
-  }, [sessionUser, canonicalProfile]);
+  }, [sessionUser, canonicalProfile, profileRoles]);
 
   const role = authUser?.role ?? null;
   const isAuthenticated = authUser !== null && session !== null;
@@ -184,7 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = useCallback(async (email: string, password: string, username: string) => {
     const { data, error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { full_name: username, username, role: 'customer' } },
+      options: { data: { full_name: username, username } },
     });
     if (error) return { success: false, error: error.message };
 
@@ -233,6 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
     syncedUserIdRef.current = null;
+    setProfileRoles({});
     setSessionUser(null);
     setSession(null);
     try { await supabase.auth.signOut(); } catch { /* ignore */ }

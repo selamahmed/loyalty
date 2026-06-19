@@ -237,13 +237,33 @@ export async function getQRScans(qrCodeId?: string, page = 0, pageSize = 50) {
   return data ?? [];
 }
 
-export async function updateUserRole(userId: string, role: string): Promise<void> {
-  const allowedRoles: Profile['role'][] = ['customer', 'cashier', 'store_admin', 'super_admin'];
-  if (!allowedRoles.includes(role as Profile['role'])) throw new Error('Invalid role.');
+export async function updateUserRole(userId: string, role: string, innerPassword?: string): Promise<void> {
+  const roleAliases: Record<string, Profile['role']> = {
+    user: 'customer',
+    admin: 'store_admin',
+    customer: 'customer',
+    cashier: 'cashier',
+    store_admin: 'store_admin',
+    super_admin: 'super_admin',
+  };
+  const normalizedRole = roleAliases[role];
+  if (!normalizedRole) throw new Error('Invalid role.');
 
   const { error } = await supabase.rpc('admin_set_user_role', {
     p_user_id: userId,
-    p_role: role as Profile['role'],
+    p_role: normalizedRole,
+    p_inner_password: innerPassword ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function setSuperAdminInnerPassword(password: string): Promise<void> {
+  if (password.length < 8 || password.length > 128) {
+    throw new Error('Inner password must be between 8 and 128 characters.');
+  }
+
+  const { error } = await supabase.rpc('super_admin_set_inner_password', {
+    p_password: password,
   });
   if (error) throw error;
 }

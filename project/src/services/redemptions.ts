@@ -3,6 +3,34 @@ import type { Database } from '../lib/supabase';
 
 export type Redemption = Database['public']['Tables']['redemptions']['Row'];
 
+type SupabaseServiceError = {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+};
+
+function purchaseRewardError(error: SupabaseServiceError): Error {
+  const text = [error.message, error.details, error.hint].filter(Boolean).join(' ');
+  const lower = text.toLowerCase();
+
+  if (
+    error.code === 'PGRST202' ||
+    lower.includes('could not find the function') ||
+    lower.includes('purchase_reward')
+  ) {
+    return new Error('Reward purchase is not connected yet. Run supabase/migrations/20260617000001_security_hardening.sql in Supabase, then refresh the app.');
+  }
+
+  if (lower.includes('insufficient points')) return new Error('Yeterli puanın yok.');
+  if (lower.includes('reward out of stock')) return new Error('Bu ödülün stoğu kalmadı.');
+  if (lower.includes('reward expired')) return new Error('Bu ödülün süresi dolmuş.');
+  if (lower.includes('not authenticated')) return new Error('Satın almak için tekrar giriş yap.');
+  if (lower.includes('account is not active')) return new Error('Hesabın aktif değil.');
+
+  return new Error(text || 'Ödül satın alınamadı.');
+}
+
 export async function getUserRedemptions(userId: string, page = 0, pageSize = 20): Promise<Redemption[]> {
   const { data, error } = await supabase
     .from('redemptions')
@@ -39,7 +67,8 @@ export async function purchaseReward(rewardId: string): Promise<Redemption> {
   const { data, error } = await supabase.rpc('purchase_reward', {
     p_reward_id: rewardId,
   });
-  if (error) throw error;
+  if (error) throw purchaseRewardError(error);
+  if (!data || typeof data !== 'object') throw new Error('Ödül satın alındı ama bilet bilgisi alınamadı. Lütfen envanteri yenile.');
   return data as unknown as Redemption;
 }
 

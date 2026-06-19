@@ -313,6 +313,34 @@ export type Database = {
         };
         Returns: Database['public']['Tables']['qr_codes']['Row'];
       };
+      purchase_reward: {
+        Args: { p_reward_id: string };
+        Returns: Database['public']['Tables']['redemptions']['Row'];
+      };
+      admin_adjust_points: {
+        Args: {
+          p_user_id: string;
+          p_amount: number;
+          p_description: string;
+          p_category?: string | null;
+          p_reference_id?: string | null;
+        };
+        Returns: void;
+      };
+      admin_set_user_role: {
+        Args: {
+          p_user_id: string;
+          p_role: string;
+          p_inner_password?: string | null;
+        };
+        Returns: void;
+      };
+      super_admin_set_inner_password: {
+        Args: {
+          p_password: string;
+        };
+        Returns: void;
+      };
       claim_daily_streak: {
         Args: Record<string, never>;
         Returns: Record<string, unknown>;

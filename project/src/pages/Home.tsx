@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Bell, Box, ChevronRight, QrCode, Star, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -13,16 +13,14 @@ import { DailyRewardModal, useDailyReward } from '../components/DailyRewardModal
 import LevelBadge from '../components/LevelBadge';
 import NeoAvatar from '../components/NeoAvatar';
 import { useXpProgress } from '../hooks/useXpProgress';
+import { useRealtimeTable } from '../hooks/useRealtime';
 import PageMainSticker from '../components/PageMainSticker';
 import StickerDecorImg from '../components/StickerDecorImg';
 import { colorfulSticker } from '../lib/stickerCatalog';
+import { getMyAlltimeRank } from '../services/points';
+import { onLeaderboardRefresh } from '../lib/leaderboardRefresh';
 
 const homePromoSticker = colorfulSticker('Group 62.svg');
-
-const HOME_STAT_STICKERS = {
-  rank: colorfulSticker('TROPHY.svg'),
-  inventory: colorfulSticker('TICKETS.svg'),
-} as const;
 
 /** Home quick-action stickers — curated for action meaning, not page defaults */
 const HOME_QUICK_STICKERS = {
@@ -86,8 +84,33 @@ const Home: React.FC = () => {
   const [showParticles, setShowParticles] = useState(false);
   const { show: showDailyReward, setShow: setShowDailyReward } = useDailyReward();
   const xpProgress = useXpProgress(user.xp, user.level);
+  const [myRank, setMyRank] = useState<number | null>(null);
 
   const [unreadNotifs, setUnreadNotifs] = useState<Notification[]>([]);
+
+  const refreshMyRank = useCallback(async () => {
+    if (!authUser?.id) {
+      setMyRank(null);
+      return;
+    }
+
+    try {
+      const entry = await getMyAlltimeRank();
+      setMyRank(entry?.rank ?? null);
+    } catch {
+      setMyRank(null);
+    }
+  }, [authUser?.id]);
+
+  useEffect(() => {
+    void refreshMyRank();
+  }, [refreshMyRank, points, user.totalPoints]);
+
+  useRealtimeTable('leaderboard_signals', refreshMyRank, Boolean(authUser?.id));
+  useRealtimeTable('profiles', refreshMyRank, Boolean(authUser?.id));
+  useRealtimeTable('points_transactions', refreshMyRank, Boolean(authUser?.id));
+
+  useEffect(() => onLeaderboardRefresh(refreshMyRank), [refreshMyRank]);
 
   useEffect(() => {
     if (!authUser?.id) return;
@@ -200,22 +223,11 @@ const Home: React.FC = () => {
         {/* ── Stats row — rank & active inventory (streak lives in hero) ── */}
         <div className="home-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
           {[
-            { id: 'rank', sticker: HOME_STAT_STICKERS.rank, value: `#${user.rank}`, label: tr.home.rank, color: '#f59e0b', rotate: -8, icon: Trophy },
-            { id: 'inventory', sticker: HOME_STAT_STICKERS.inventory, value: activeInventoryCount, label: tr.profile.myInventory, color: '#7B6EF6', rotate: 6, icon: Box },
+            { id: 'rank', value: myRank ? `#${myRank}` : '—', label: tr.home.rank, color: '#f59e0b', icon: Trophy },
+            { id: 'inventory', value: activeInventoryCount, label: tr.profile.myInventory, color: '#7B6EF6', icon: Box },
           ].map((s) => (
-            <div key={s.label} className={`home-stat-card home-stat-card--${s.id}`} style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'visible' }}>
+            <div key={s.label} className={`home-stat-card home-stat-card--${s.id} home-stat-card--quiet`} style={{ ...card, padding: '16px 10px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
               <s.icon className="home-stat-card__icon" size={18} style={{ color: s.color }} />
-              {s.sticker?.url && (
-                <div className="home-stat-shape" style={{ transform: `rotate(${s.rotate}deg)` }} aria-hidden>
-                  <StickerDecorImg
-                    src={s.sticker.url}
-                    width={120}
-                    height={120}
-                    loading="lazy"
-                    className="home-stat-shape__img"
-                  />
-                </div>
-              )}
               <div className="home-stat-card__content">
                 <p className="home-stat-card__value" style={{ fontWeight: 900, fontSize: 22, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
                 <p className="home-stat-card__label" style={{ color: 'var(--text-muted)', fontSize: 9, fontWeight: 900, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</p>
