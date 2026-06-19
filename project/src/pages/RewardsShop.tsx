@@ -31,10 +31,11 @@ interface BuyModalProps {
 
 const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAfford, submitting = false, error }) => (
   <div
+    className="shop-buy-modal-overlay"
     style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)' }}
     onClick={e => { if (e.target === e.currentTarget) onClose(); }}
   >
-    <div style={{ ...card, maxWidth: 380, width: '100%', padding: 24, animation: 'modalPop 0.22s cubic-bezier(0.34,1.56,0.64,1)' }}>
+    <div className="shop-buy-modal" style={{ ...card, maxWidth: 380, width: '100%', padding: 24, animation: 'modalPop 0.22s cubic-bezier(0.34,1.56,0.64,1)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
         <div>
@@ -50,7 +51,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
       </div>
 
       {/* Product image */}
-      <div style={{ height: 160, borderRadius: 14, overflow: 'hidden', border: '3px solid var(--dark-border)', marginBottom: 16, boxShadow: '0 4px 0 var(--dark-border)' }}>
+      <div className="shop-buy-modal__media" style={{ height: 160, borderRadius: 14, overflow: 'hidden', border: '3px solid var(--dark-border)', marginBottom: 16, boxShadow: '0 4px 0 var(--dark-border)' }}>
         {reward.image ? (
           <img src={reward.image} alt={reward.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
@@ -62,13 +63,13 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
       <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 14px', lineHeight: 1.55 }}>{reward.description}</p>
 
       {/* Ticket notice */}
-      <div style={{ padding: '10px 14px', background: 'rgba(34,197,94,0.07)', border: '2px solid #22c55e', borderRadius: 12, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="shop-buy-modal__notice" style={{ padding: '10px 14px', background: 'rgba(34,197,94,0.07)', border: '2px solid #22c55e', borderRadius: 12, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
         <Package size={14} color="#16a34a" />
         <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a' }}>Bilet olarak envanterine eklenir</span>
       </div>
 
       {/* Cost */}
-      <div style={{ padding: '12px 16px', background: 'rgba(245,158,11,0.08)', border: '2.5px solid #f59e0b', borderRadius: 14, marginBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="shop-buy-modal__cost" style={{ padding: '12px 16px', background: 'rgba(245,158,11,0.08)', border: '2.5px solid #f59e0b', borderRadius: 14, marginBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontWeight: 700, fontSize: 13, color: '#d97706' }}>Puan Maliyeti</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <Star size={16} fill="#f59e0b" color="#f59e0b" />
@@ -88,7 +89,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div className="shop-buy-modal__actions" style={{ display: 'flex', gap: 10 }}>
         <button
           onClick={onClose}
           style={{ flex: 1, padding: '13px', borderRadius: 14, fontWeight: 900, fontSize: 14, background: 'var(--card-bg)', color: 'var(--text-dark)', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer' }}
@@ -183,8 +184,8 @@ const RewardsShop: React.FC = () => {
   };
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
+    <div className="shop-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
+      <div className="shop-ghost-watermark" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>MAĞAZA</div>
       </div>
 
@@ -205,7 +206,7 @@ const RewardsShop: React.FC = () => {
       )}
 
       <div
-        className="page-enter"
+        className="page-enter shop-auth-content"
         style={{ padding: 'clamp(12px,4vw,24px)', paddingBottom: 32, maxWidth: 768, margin: '0 auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}
       >
 
