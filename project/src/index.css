@@ -2181,6 +2181,164 @@ body::before {
   border-radius: 18px !important;
 }
 
+.redeem-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  padding: 20px;
+}
+
+.redeem-celebration__halo {
+  position: absolute;
+  width: min(72vw, 420px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 229, 0, 0.34), rgba(123, 110, 246, 0.14) 42%, transparent 70%);
+  animation: redeemHalo 1.2s ease-out both;
+}
+
+.redeem-celebration__ticket {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(92vw, 420px);
+  padding: 18px 20px;
+  border: 3px solid var(--dark-border);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, #FFE500 0%, #C8FF00 44%, #8B5CF6 100%);
+  box-shadow:
+    0 10px 0 var(--dark-border),
+    0 30px 70px rgba(0, 0, 0, 0.36);
+  color: #0b1020;
+  overflow: hidden;
+  animation: redeemTicketPop 0.72s cubic-bezier(0.2, 1.35, 0.35, 1) both;
+}
+
+.redeem-celebration__ticket::after {
+  content: '';
+  position: absolute;
+  inset: -40% auto -40% -30%;
+  width: 42%;
+  transform: rotate(18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.58), transparent);
+  animation: redeemTicketShine 1.35s ease-out 0.16s both;
+}
+
+.redeem-celebration__emoji {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  border: 3px solid var(--dark-border);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 5px 0 var(--dark-border);
+  font-size: 30px;
+}
+
+.redeem-celebration__ticket h3,
+.redeem-celebration__eyebrow,
+.redeem-celebration__code {
+  position: relative;
+  z-index: 1;
+}
+
+.redeem-celebration__ticket h3 {
+  margin: 2px 0;
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.redeem-celebration__eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.redeem-celebration__code {
+  display: inline-flex;
+  margin: 5px 0 0;
+  padding: 4px 10px;
+  border: 2px dashed rgba(11, 16, 32, 0.7);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.redeem-celebration__spark {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  right: 14px;
+  font-size: 24px;
+  animation: redeemSpark 0.8s ease-in-out infinite alternate;
+}
+
+.redeem-celebration__coins {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 96px);
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+  animation: redeemCoinsFloat 0.9s ease-out 0.16s both;
+}
+
+.redeem-celebration__coins span {
+  padding: 8px 12px;
+  border: 2px solid var(--dark-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card-bg) 92%, #ffffff 8%);
+  box-shadow: 0 4px 0 var(--dark-border);
+  color: var(--text-dark);
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+@keyframes redeemTicketPop {
+  0% { opacity: 0; transform: translateY(28px) scale(0.72) rotate(-8deg); }
+  58% { opacity: 1; transform: translateY(-8px) scale(1.04) rotate(2deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(-1deg); }
+}
+
+@keyframes redeemTicketShine {
+  from { transform: translateX(0) rotate(18deg); opacity: 0; }
+  25% { opacity: 1; }
+  to { transform: translateX(360%) rotate(18deg); opacity: 0; }
+}
+
+@keyframes redeemHalo {
+  from { opacity: 0; transform: scale(0.4); }
+  40% { opacity: 1; }
+  to { opacity: 0; transform: scale(1.25); }
+}
+
+@keyframes redeemSpark {
+  from { transform: scale(0.86) rotate(-8deg); }
+  to { transform: scale(1.12) rotate(8deg); }
+}
+
+@keyframes redeemCoinsFloat {
+  from { opacity: 0; transform: translate(-50%, 18px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
 .customer-shell:has(.shop-auth-page) .customer-bottom-nav {
   border-radius: 30px;
   background:

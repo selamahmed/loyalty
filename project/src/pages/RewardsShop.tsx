@@ -29,6 +29,12 @@ interface BuyModalProps {
   error?: string | null;
 }
 
+interface CelebrationState {
+  title: string;
+  code: string;
+  points: number;
+}
+
 const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAfford, submitting = false, error }) => (
   <div
     className="shop-buy-modal-overlay"
@@ -126,6 +132,7 @@ const RewardsShop: React.FC = () => {
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [success, setSuccess]           = useState<string | null>(null);
   const [showParticles, setShowParticles] = useState(false);
+  const [celebration, setCelebration]   = useState<CelebrationState | null>(null);
   const [rewards, setRewards]           = useState<Reward[]>([]);
   const [isLoading, setIsLoading]       = useState(true);
   const [buyLoading, setBuyLoading]     = useState(false);
@@ -155,7 +162,23 @@ const RewardsShop: React.FC = () => {
       spendPoints(selectedReward.points);
       await Promise.all([reloadInventory(), refreshProfile()]);
       setSuccess(selectedReward.title);
-      setShowParticles(true);
+      setCelebration({
+        title: selectedReward.title,
+        code: redemption.code,
+        points: selectedReward.points,
+      });
+      setShowParticles(false);
+      window.setTimeout(() => setShowParticles(true), 20);
+      if (soundEnabled) {
+        playSound('redeem');
+        window.setTimeout(() => playSound('reward'), 180);
+        window.setTimeout(() => playSound('success'), 420);
+      }
+      showRewardPopup({
+        type: 'redeem',
+        title: 'Bilet hazır!',
+        subtitle: `${selectedReward.title} envanterine eklendi. Kod: ${redemption.code}`,
+      });
       // Audit log
       void activityLogService.logActivity({
         userId: authUser.id,
@@ -174,9 +197,14 @@ const RewardsShop: React.FC = () => {
         amount: selectedReward.points,
       });
       setSelectedReward(null);
-      setTimeout(() => { setShowParticles(false); setSuccess(null); }, 3000);
+      setTimeout(() => {
+        setShowParticles(false);
+        setSuccess(null);
+        setCelebration(null);
+      }, 3600);
     } catch (err) {
       console.error('Purchase failed:', err);
+      if (soundEnabled) playSound('error');
       setBuyError((err as Error).message ?? 'Ödül satın alınamadı.');
     } finally {
       setBuyLoading(false);
@@ -190,6 +218,25 @@ const RewardsShop: React.FC = () => {
       </div>
 
       <WinningParticles trigger={showParticles} emoji="🛍️" />
+      <WinningParticles trigger={showParticles} emoji="🎟️" count={72} intensity="mega" />
+      {celebration && (
+        <div className="redeem-celebration" aria-live="polite">
+          <div className="redeem-celebration__halo" />
+          <div className="redeem-celebration__ticket">
+            <span className="redeem-celebration__emoji">🎟️</span>
+            <div>
+              <p className="redeem-celebration__eyebrow">Ticket unlocked</p>
+              <h3>{celebration.title}</h3>
+              <p className="redeem-celebration__code">{celebration.code}</p>
+            </div>
+            <span className="redeem-celebration__spark">✨</span>
+          </div>
+          <div className="redeem-celebration__coins">
+            <span>-{celebration.points.toLocaleString()} pts</span>
+            <span>Envantere eklendi</span>
+          </div>
+        </div>
+      )}
         {selectedReward && (
         <BuyModal
           reward={selectedReward}

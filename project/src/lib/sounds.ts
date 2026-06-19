@@ -14,11 +14,34 @@ function getAudioContext(): AudioContext | null {
   }
 }
 
-export const playSound = (type: 'click' | 'success' | 'error' | 'notification' | 'reward' | 'level-up') => {
+export const playSound = (type: 'click' | 'success' | 'error' | 'notification' | 'reward' | 'level-up' | 'redeem') => {
   const audioContext = getAudioContext();
   if (!audioContext) return;
 
   try {
+    if (type === 'redeem') {
+      [
+        { frequency: 523, delay: 0, duration: 0.08 },
+        { frequency: 659, delay: 0.08, duration: 0.09 },
+        { frequency: 784, delay: 0.17, duration: 0.11 },
+        { frequency: 1047, delay: 0.29, duration: 0.16 },
+      ].forEach(note => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.type = 'triangle';
+        oscillator.frequency.value = note.frequency;
+        const start = audioContext.currentTime + note.delay;
+        gainNode.gain.setValueAtTime(0.001, start);
+        gainNode.gain.exponentialRampToValueAtTime(0.22, start + 0.012);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, start + note.duration);
+        oscillator.start(start);
+        oscillator.stop(start + note.duration + 0.02);
+      });
+      return;
+    }
+
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
