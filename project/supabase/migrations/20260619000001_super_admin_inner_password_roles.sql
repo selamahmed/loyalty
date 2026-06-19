@@ -99,6 +99,8 @@ begin
   end if;
 end $$;
 
+notify pgrst, 'reload schema';
+
 drop function if exists public.admin_set_user_role(uuid, text);
 drop function if exists public.admin_set_user_role(uuid, text, text);
 

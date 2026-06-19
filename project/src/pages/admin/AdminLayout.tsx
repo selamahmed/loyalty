@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, UserCog, Gift, QrCode, Gamepad2, BarChart2,
+  LayoutDashboard, Users, Gift, QrCode, Gamepad2, BarChart2,
   Megaphone, Menu, X, Shield, Bell, Moon, Sun, Settings,
   Activity, Zap, FileText, Trophy, Package, ScanLine, Calendar, LogOut, MessageSquare
 } from 'lucide-react';
@@ -13,7 +13,6 @@ const adminNavItems = [
   { path: '/admin/dashboard-v2',  icon: Activity,        label: 'Panel V2'              },
   { path: '/admin/analytics',     icon: BarChart2,       label: 'Analitik'              },
   { path: '/admin/users',         icon: Users,           label: 'Kullanıcı Yönetimi'    },
-  { path: '/admin/roles',         icon: UserCog,         label: 'Rol Yönetimi'          },
   { path: '/admin/rewards',       icon: Gift,            label: 'Ürün Mağazası'         },
   { path: '/admin/reward-events', icon: Trophy,          label: 'Ödül Etkinlikleri'     },
   { path: '/admin/events',        icon: Bell,            label: 'Etkinlikler'           },

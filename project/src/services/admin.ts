@@ -249,11 +249,11 @@ export async function updateUserRole(userId: string, role: string, innerPassword
   const normalizedRole = roleAliases[role];
   if (!normalizedRole) throw new Error('Invalid role.');
 
-  const { error } = await supabase.rpc('admin_set_user_role', {
-    p_user_id: userId,
-    p_role: normalizedRole,
-    p_inner_password: innerPassword ?? null,
-  });
+  const args = innerPassword
+    ? { p_user_id: userId, p_role: normalizedRole, p_inner_password: innerPassword }
+    : { p_user_id: userId, p_role: normalizedRole };
+
+  const { error } = await supabase.rpc('admin_set_user_role', args);
   if (error) throw error;
 }
 
