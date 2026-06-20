@@ -18,7 +18,11 @@ export function useLevelConfig() {
   return levels;
 }
 
-export function useXpProgress(totalXp: number, userLevel: number): XpProgress {
+export function useXpProgress(
+  totalXp: number,
+  userLevel: number,
+  xpToNext?: number | null,
+): XpProgress {
   const levels = useLevelConfig();
-  return calcXpProgress(totalXp, userLevel, levels);
+  return calcXpProgress(totalXp, userLevel, levels, xpToNext);
 }

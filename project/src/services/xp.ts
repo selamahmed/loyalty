@@ -70,18 +70,28 @@ export type XpProgress = {
   nextTitle: string | null;
 };
 
+const finiteNumber = (value: number | null | undefined) =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
 export function calcXpProgress(
   totalXp: number,
   userLevel: number,
   levels: LevelConfig[],
+  xpToNext?: number | null,
 ): XpProgress {
   const sorted = [...levels].sort((a, b) => a.level - b.level);
   const current = sorted.find(l => l.level === userLevel) ?? sorted[0];
   const next = sorted.find(l => l.level > userLevel);
+  const safeTotalXp = Math.max(0, finiteNumber(totalXp) ?? 0);
+  const safeXpToNext = finiteNumber(xpToNext);
+  const floor = current?.xp_required ?? 0;
 
   if (!next) {
     return {
-      inLevel: totalXp - (current?.xp_required ?? 0),
+      inLevel: Math.max(0, safeTotalXp - floor),
       needed: 0,
       pct: 100,
       remaining: 0,
@@ -91,15 +101,49 @@ export function calcXpProgress(
     };
   }
 
-  const floor = current?.xp_required ?? 0;
-  const inLevel = Math.max(0, totalXp - floor);
-  const needed = Math.max(1, next.xp_required - floor);
-  const remaining = Math.max(0, next.xp_required - totalXp);
+  const levelSpan = Math.max(1, next.xp_required - floor);
+
+  if (safeXpToNext !== null && safeXpToNext >= 0) {
+    const remaining = safeXpToNext;
+    const cumulativeInLevel = safeTotalXp - floor;
+
+    if (cumulativeInLevel >= 0) {
+      const inLevel = clamp(levelSpan - remaining, 0, levelSpan);
+
+      return {
+        inLevel,
+        needed: levelSpan,
+        pct: Math.min(100, Math.round((inLevel / levelSpan) * 100)),
+        remaining,
+        isMaxLevel: false,
+        currentTitle: current?.title ?? 'Acemi',
+        nextTitle: next.title,
+      };
+    }
+
+    // Some deployments store profiles.xp as current-level XP, not lifetime XP.
+    // In that shape, xp_to_next gives the missing half of the same progress bar.
+    const needed = Math.max(1, safeTotalXp + remaining);
+    const inLevel = clamp(safeTotalXp, 0, needed);
+
+    return {
+      inLevel,
+      needed,
+      pct: Math.min(100, Math.round((inLevel / needed) * 100)),
+      remaining,
+      isMaxLevel: false,
+      currentTitle: current?.title ?? 'Acemi',
+      nextTitle: next.title,
+    };
+  }
+
+  const inLevel = Math.max(0, safeTotalXp - floor);
+  const remaining = Math.max(0, next.xp_required - safeTotalXp);
 
   return {
     inLevel,
-    needed,
-    pct: Math.min(100, Math.round((inLevel / needed) * 100)),
+    needed: levelSpan,
+    pct: Math.min(100, Math.round((inLevel / levelSpan) * 100)),
     remaining,
     isMaxLevel: false,
     currentTitle: current?.title ?? 'Acemi',

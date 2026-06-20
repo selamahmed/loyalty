@@ -126,7 +126,7 @@ const Profile: React.FC = () => {
   const [showAllInventory, setShowAllInventory] = useState(false);
   const [selectedInventoryId, setSelectedInventoryId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const xpProgress = useXpProgress(user.xp, user.level);
+  const xpProgress = useXpProgress(user.xp, user.level, user.xpToNext);
 
   const handleNavigate = (path: string) => {
     playSound('click');

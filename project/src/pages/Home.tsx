@@ -83,7 +83,7 @@ const Home: React.FC = () => {
   ).length;
   const [showParticles, setShowParticles] = useState(false);
   const { show: showDailyReward, setShow: setShowDailyReward } = useDailyReward();
-  const xpProgress = useXpProgress(user.xp, user.level);
+  const xpProgress = useXpProgress(user.xp, user.level, user.xpToNext);
   const [myRank, setMyRank] = useState<number | null>(null);
 
   const [unreadNotifs, setUnreadNotifs] = useState<Notification[]>([]);
