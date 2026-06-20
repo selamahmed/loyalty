@@ -419,7 +419,7 @@ const QRScanner: React.FC = () => {
   ).length;
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
+    <div className="qr-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
       {inventoryMatch && <InventoryDetailModal item={inventoryMatch} onClose={() => setInventoryMatch(undefined)} />}
 
       {/* Ghost watermark */}

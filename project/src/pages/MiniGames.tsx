@@ -998,7 +998,7 @@ const MiniGames: React.FC = () => {
   if (activeGame) {
     const game = gamesList.find(g => g.id === activeGame)!;
     return (
-      <div style={{ position: 'relative', minHeight: '100vh' }}>
+      <div className="games-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
           <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>OYUN</div>
         </div>
@@ -1028,7 +1028,7 @@ const MiniGames: React.FC = () => {
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
+    <div className="games-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
       {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>MİNİ OYUN</div>

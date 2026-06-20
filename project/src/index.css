@@ -7487,3 +7487,58 @@ body::before {
     height: 118px;
   }
 }
+
+/* Match QR, leaderboard, and games headers to the polished home-page shell. */
+.customer-shell:has(.qr-auth-page),
+.customer-shell:has(.games-auth-page),
+.customer-shell:has(.lb-page) {
+  background:
+    radial-gradient(circle at 50% -6%, color-mix(in srgb, var(--primary-blue) 34%, transparent), transparent 38%),
+    radial-gradient(circle at 8% 78%, color-mix(in srgb, var(--neo-pink) 13%, transparent), transparent 28%),
+    radial-gradient(circle at 92% 18%, color-mix(in srgb, var(--neo-sky) 12%, transparent), transparent 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-color) 88%, #ffffff 12%), var(--bg-color));
+}
+
+.customer-shell:has(.qr-auth-page) .customer-app-header,
+.customer-shell:has(.games-auth-page) .customer-app-header,
+.customer-shell:has(.lb-page) .customer-app-header {
+  width: min(100% - 24px, 960px);
+  margin: 12px auto 0;
+  border-radius: 32px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--card-bg) 90%, #ffffff 10%), color-mix(in srgb, var(--card-bg) 84%, var(--primary-blue) 16%)) !important;
+  box-shadow:
+    0 8px 0 var(--dark-border),
+    0 24px 58px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(22px) saturate(1.18);
+}
+
+@media (min-width: 760px) {
+  .customer-shell:has(.qr-auth-page) .customer-app-header,
+  .customer-shell:has(.games-auth-page) .customer-app-header,
+  .customer-shell:has(.lb-page) .customer-app-header {
+    width: min(100% - 48px, 960px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .customer-shell:has(.qr-auth-page) .customer-app-header,
+  .customer-shell:has(.games-auth-page) .customer-app-header,
+  .customer-shell:has(.lb-page) .customer-app-header {
+    width: min(100% - 64px, 980px);
+  }
+}
+
+@media (max-width: 640px) {
+  .customer-shell:has(.qr-auth-page) .customer-app-header,
+  .customer-shell:has(.games-auth-page) .customer-app-header,
+  .customer-shell:has(.lb-page) .customer-app-header {
+    width: min(100% - 20px, 640px);
+    border-radius: 28px;
+    box-shadow:
+      0 7px 0 var(--dark-border),
+      0 20px 42px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+}
