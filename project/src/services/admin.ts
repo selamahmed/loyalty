@@ -220,6 +220,35 @@ export async function updateRedemptionCode(id: string, code: string) {
   return data;
 }
 
+export async function updateRedemptionAdmin(id: string, updates: {
+  code?: string;
+  used?: boolean;
+  expires_at?: string | null;
+}): Promise<void> {
+  const payload: Record<string, unknown> = {};
+  if (updates.code !== undefined) {
+    const normalizedCode = updates.code.trim().toUpperCase();
+    if (!normalizedCode) throw new Error('Redemption code cannot be empty.');
+    payload.code = normalizedCode;
+  }
+  if (updates.used !== undefined) {
+    payload.used = updates.used;
+    payload.used_at = updates.used ? new Date().toISOString() : null;
+  }
+  if (updates.expires_at !== undefined) payload.expires_at = updates.expires_at;
+
+  const { error } = await supabase
+    .from('redemptions')
+    .update(payload)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteRedemptionAdmin(id: string): Promise<void> {
+  const { error } = await supabase.from('redemptions').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export async function deleteQRCode(id: string): Promise<void> {
   const { error } = await supabase.from('qr_codes').delete().eq('id', id);
   if (error) throw error;
