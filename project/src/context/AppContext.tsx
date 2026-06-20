@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
@@ -176,6 +176,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
+  const lastSeenLevelRef = useRef<number | null>(null);
+
 
 
   useEffect(() => {
@@ -184,9 +186,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const appUser = canonicalToAppUser(profile);
 
+      const previousLevel = lastSeenLevelRef.current;
+      const currentLevel = Number(appUser.level || 1);
+
       setUser(appUser);
 
       setPoints(appUser.currentPoints);
+
+      if (previousLevel !== null && currentLevel > previousLevel) {
+        if (soundEnabled) playSound('level-up');
+        setRewardPopup({
+          type: 'levelup',
+          title: `SEVİYE ${currentLevel}!`,
+          subtitle: `Harika! Lv.${previousLevel} seviyesinden Lv.${currentLevel} seviyesine çıktın.`,
+          level: currentLevel,
+          icon: '⚡',
+        });
+      }
+
+      lastSeenLevelRef.current = currentLevel;
 
       setPrivacySettings({
 
@@ -208,11 +226,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       setPoints(0);
 
+      lastSeenLevelRef.current = null;
+
       setPrivacySettings(defaultPrivacySettings);
 
     }
 
-  }, [profile, isAuthenticated]);
+  }, [profile, isAuthenticated, soundEnabled]);
 
 
 
