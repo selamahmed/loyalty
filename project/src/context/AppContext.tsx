@@ -13,6 +13,7 @@ import { canonicalToAppUser } from '../hooks/useCanonicalProfile';
 import { resolveAvatarSrc } from '../lib/avatarCatalog';
 
 import { captureError } from '../lib/monitoring';
+import { playSound } from '../lib/sounds';
 
 
 
@@ -93,6 +94,8 @@ export interface RewardPopupData {
   points?: number;
 
   icon?: string;
+
+  level?: number;
 
 }
 
@@ -230,6 +233,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (result.leveledUp) {
 
+        if (soundEnabled) playSound('level-up');
+
         setRewardPopup({
 
           type: 'levelup',
@@ -243,6 +248,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             : 'Yeni seviyeye ulaştın!',
 
           points: result.bonusPoints || undefined,
+
+          level: result.level,
 
           icon: '🏆',
 
@@ -260,7 +267,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     }
 
-  }, [authUser?.id, refreshProfile]);
+  }, [authUser?.id, refreshProfile, soundEnabled]);
 
   const updateUser = useCallback(async (data: Partial<AppUser>) => {
     const cleanData = data.avatar !== undefined
@@ -366,4 +373,3 @@ export const useApp = () => {
   return ctx;
 
 };
-

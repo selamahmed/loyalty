@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { X, Star, Trophy, Zap, Gift } from 'lucide-react';
 import { RewardPopupData } from '../context/AppContext';
+import LevelBadge from './LevelBadge';
+import WinningParticles from './WinningParticles';
 
 interface RewardPopupProps {
   data: RewardPopupData;
@@ -17,11 +19,63 @@ const popupConfig = {
 const RewardPopup: React.FC<RewardPopupProps> = ({ data, onDismiss }) => {
   const config = popupConfig[data.type];
   const IconComp = config.icon;
+  const level = data.level ?? Number(data.title.match(/\d+/)?.[0] ?? 1);
 
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 4000);
+    const timer = setTimeout(onDismiss, data.type === 'levelup' ? 5200 : 4000);
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+  }, [data.type, onDismiss]);
+
+  if (data.type === 'levelup') {
+    return (
+      <div className="level-up-overlay" role="dialog" aria-label="Level up celebration">
+        <WinningParticles trigger emoji="⚡" count={90} intensity="mega" />
+        <div className="level-up-orbit level-up-orbit--one" />
+        <div className="level-up-orbit level-up-orbit--two" />
+        <div className="level-up-stars" aria-hidden="true">
+          {['✦', '★', '✧', '✦', '★', '✧'].map((star, i) => <span key={i}>{star}</span>)}
+        </div>
+
+        <div className="level-up-card">
+          <button onClick={onDismiss} className="level-up-close" aria-label="Close level up">
+            <X size={18} />
+          </button>
+
+          <div className="level-up-card__beam" />
+          <p className="level-up-card__eyebrow">LEVEL REACHED</p>
+
+          <div className="level-up-badge-wrap">
+            <div className="level-up-badge-ring" />
+            <LevelBadge level={level} width={118} className="level-up-badge" />
+          </div>
+
+          <h2>{data.title}</h2>
+          <p className="level-up-subtitle">{data.subtitle}</p>
+
+          <div className="level-up-progress-flash">
+            <span />
+          </div>
+
+          {data.points ? (
+            <div className="level-up-bonus">
+              <Star size={18} fill="currentColor" />
+              <strong>+{data.points.toLocaleString()}</strong>
+              <span>bonus points</span>
+            </div>
+          ) : (
+            <div className="level-up-bonus level-up-bonus--soft">
+              <Trophy size={18} />
+              <span>Yeni avantajlar açıldı</span>
+            </div>
+          )}
+
+          <button onClick={onDismiss} className="level-up-action">
+            Devam et
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(11, 12, 16, 0.8)' }}>

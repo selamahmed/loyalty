@@ -19,22 +19,32 @@ export const playSound = (type: 'click' | 'success' | 'error' | 'notification' |
   if (!audioContext) return;
 
   try {
-    if (type === 'redeem') {
-      [
+    if (type === 'redeem' || type === 'level-up') {
+      const notes = type === 'level-up'
+        ? [
+          { frequency: 392, delay: 0, duration: 0.08 },
+          { frequency: 523, delay: 0.08, duration: 0.09 },
+          { frequency: 659, delay: 0.17, duration: 0.1 },
+          { frequency: 784, delay: 0.28, duration: 0.12 },
+          { frequency: 1175, delay: 0.43, duration: 0.18 },
+        ]
+        : [
         { frequency: 523, delay: 0, duration: 0.08 },
         { frequency: 659, delay: 0.08, duration: 0.09 },
         { frequency: 784, delay: 0.17, duration: 0.11 },
         { frequency: 1047, delay: 0.29, duration: 0.16 },
-      ].forEach(note => {
+      ];
+
+      notes.forEach(note => {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
-        oscillator.type = 'triangle';
+        oscillator.type = type === 'level-up' ? 'sine' : 'triangle';
         oscillator.frequency.value = note.frequency;
         const start = audioContext.currentTime + note.delay;
         gainNode.gain.setValueAtTime(0.001, start);
-        gainNode.gain.exponentialRampToValueAtTime(0.22, start + 0.012);
+        gainNode.gain.exponentialRampToValueAtTime(type === 'level-up' ? 0.26 : 0.22, start + 0.012);
         gainNode.gain.exponentialRampToValueAtTime(0.01, start + note.duration);
         oscillator.start(start);
         oscillator.stop(start + note.duration + 0.02);
@@ -71,10 +81,6 @@ export const playSound = (type: 'click' | 'success' | 'error' | 'notification' |
       case 'reward':
         frequency = 900;
         duration = 0.25;
-        break;
-      case 'level-up':
-        frequency = 1047;
-        duration = 0.3;
         break;
     }
 
