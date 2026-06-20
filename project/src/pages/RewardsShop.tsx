@@ -124,7 +124,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
 
 /* ── Main page ── */
 const RewardsShop: React.FC = () => {
-  const { points, spendPoints, showRewardPopup, soundEnabled } = useApp();
+  const { points, spendPoints, soundEnabled } = useApp();
   const { authUser, profile, refreshProfile } = useAuth();
   const { reload: reloadInventory } = useInventory();
   const [search, setSearch]             = useState('');
@@ -174,11 +174,6 @@ const RewardsShop: React.FC = () => {
         window.setTimeout(() => playSound('reward'), 180);
         window.setTimeout(() => playSound('success'), 420);
       }
-      showRewardPopup({
-        type: 'redeem',
-        title: 'Bilet hazır!',
-        subtitle: `${selectedReward.title} envanterine eklendi. Kod: ${redemption.code}`,
-      });
       // Audit log
       void activityLogService.logActivity({
         userId: authUser.id,
