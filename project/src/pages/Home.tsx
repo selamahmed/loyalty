@@ -205,7 +205,7 @@ const Home: React.FC = () => {
             </div>
 
             {/* XP bar */}
-            <div>
+            <div className="home-hero-xp">
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.65)', marginBottom: 6, fontWeight: 700 }}>
                 <span>Lv.{user.level}{xpProgress.nextTitle ? ` → ${user.level + 1}` : ''}</span>
                 <span>{xpProgress.inLevel.toLocaleString()} / {xpProgress.isMaxLevel ? 'MAX' : xpProgress.needed.toLocaleString()} XP</span>
