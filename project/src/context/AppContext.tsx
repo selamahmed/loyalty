@@ -11,6 +11,7 @@ import { updateUserSettings } from '../services/userSettings';
 
 import { canonicalToAppUser } from '../hooks/useCanonicalProfile';
 import { resolveAvatarSrc } from '../lib/avatarCatalog';
+import { supabase } from '../lib/supabase';
 
 import { captureError } from '../lib/monitoring';
 import { playSound } from '../lib/sounds';
@@ -277,13 +278,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser(prev => ({ ...prev, ...cleanData }));
     if (authUser?.id) {
       try {
-        await updateProfile(authUser.id, {
+        const savedProfile = await updateProfile(authUser.id, {
           username: cleanData.username,
           avatar_url: cleanData.avatar,
           avatar_seed: cleanData.avatarSeed,
           phone: cleanData.phone ?? null,
           bio: cleanData.bio ?? null,
         });
+
+        if (savedProfile.status === 'deleted') {
+          await supabase.auth.signOut();
+          return;
+        }
+
         await refreshProfile();
       } catch (err) {
         captureError(err, { context: 'updateUser' });

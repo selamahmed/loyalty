@@ -225,11 +225,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (data.session) setSession(data.session);
     if (data.session && data.user) {
-      await syncAuthUser(data.user, 'active');
+      const status = await fetchMyAccountStatus(data.user.id);
+      if (status === 'deleted') {
+        await signOutBannedUser();
+        return { success: false, error: 'Hesabiniz profil icerigi nedeniyle yasaklandi.' };
+      }
+      await syncAuthUser(data.user, status);
     }
 
     return { success: true, signedIn: Boolean(data.session) };
-  }, [syncAuthUser]);
+  }, [signOutBannedUser, syncAuthUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
