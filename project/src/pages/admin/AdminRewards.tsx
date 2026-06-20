@@ -296,9 +296,15 @@ const AdminRewards: React.FC = () => {
 
   const handleSave = async (data: Partial<Reward>) => {
     try {
+      const rewardPayload = {
+        ...data,
+        active: data.available !== false,
+        image: data.imageUrl ?? data.image ?? null,
+      };
+
       if (modal.reward?.id) {
-        const updated = await updateReward(modal.reward.id, { ...data, image: data.imageUrl ?? null });
-        setRewards(prev => prev.map(r => r.id === modal.reward!.id ? { ...r, ...updated } : r));
+        const updated = await updateReward(modal.reward.id, rewardPayload);
+        setRewards(prev => prev.map(r => r.id === modal.reward!.id ? { ...r, ...updated, available: updated.active, imageUrl: updated.image ?? '' } : r));
       } else {
         const created = await createReward({
           title: data.title ?? '',
@@ -310,9 +316,9 @@ const AdminRewards: React.FC = () => {
           limited: data.limited ?? false,
           stock: data.stock ?? 100,
           expires_at: data.expires_at ?? null,
-          active: true,
+          active: data.available !== false,
         });
-        setRewards(prev => [...prev, { ...created, available: true, imageUrl: created.image ?? '' }]);
+        setRewards(prev => [...prev, { ...created, available: created.active, imageUrl: created.image ?? '' }]);
       }
     } catch (err) {
       console.error('Failed to save reward:', err);
@@ -327,8 +333,18 @@ const AdminRewards: React.FC = () => {
     }).catch(() => {}).finally(() => setDeleting(null));
   };
 
-  const toggleAvailable = (id: string) => {
-    setRewards(prev => prev.map(r => r.id === id ? { ...r, available: !r.available } : r));
+  const toggleAvailable = async (id: string) => {
+    const reward = rewards.find(r => r.id === id);
+    if (!reward) return;
+    const nextActive = reward.available === false;
+    setRewards(prev => prev.map(r => r.id === id ? { ...r, available: nextActive, active: nextActive } : r));
+    try {
+      const updated = await updateReward(id, { active: nextActive });
+      setRewards(prev => prev.map(r => r.id === id ? { ...r, ...updated, available: updated.active, imageUrl: updated.image ?? '' } : r));
+    } catch (err) {
+      console.error('Failed to toggle reward:', err);
+      setRewards(prev => prev.map(r => r.id === id ? { ...r, available: reward.available, active: reward.active } : r));
+    }
   };
 
   const handleCsvFile = async (file: File) => {
