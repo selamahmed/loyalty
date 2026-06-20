@@ -304,6 +304,10 @@ export type Database = {
         Args: { p_code: string };
         Returns: Record<string, unknown>;
       };
+      preview_qr_scan: {
+        Args: { p_code: string };
+        Returns: Record<string, unknown> | null;
+      };
       create_cashier_qr: {
         Args: {
           p_code: string;

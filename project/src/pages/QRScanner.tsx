@@ -15,8 +15,7 @@ import {
   isQRExpired, msRemaining,
   type CashierQRPayload,
 } from '../lib/qrUtils';
-import { claimQrScan } from '../services/earn';
-import { lookupStoreQR } from '../services/admin';
+import { claimQrScan, previewQrScan } from '../services/earn';
 import { activityLogService } from '../lib/activityLogger';
 import StickerAccent from '../components/StickerAccent';
 
@@ -178,39 +177,38 @@ const QRScanner: React.FC = () => {
     const invItem = getByCode(lookupCode);
     if (invItem) { setInventoryMatch(invItem); return; }
 
-    // ── Look up in qr_codes table ──
+    // ── Look up in qr_codes through secure preview RPC ──
     try {
-      const dbQR = await lookupStoreQR(lookupCode);
+      const dbQR = await previewQrScan(lookupCode);
       if (dbQR) {
         // Cashier-generated QR: single-use (max_uses=1) with expiry
         // Reconstruct the full CashierQRPayload so the user sees amount + countdown
-        if (dbQR.max_uses === 1 && dbQR.expires_at) {
-          const amountMatch = (dbQR.label ?? '').match(/(?:TRY|₺)\s*([\d.]+)/i);
-          const amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
-          const isUsed = (dbQR.uses_count ?? 0) >= (dbQR.max_uses ?? 1);
+        if (dbQR.isCashier && dbQR.expiresAt) {
           setCashierQRResult({
             type: 'cashier_purchase',
             qr_id: dbQR.code,
-            amount,
+            amount: dbQR.amount ?? 0,
             points: dbQR.points,
-            merchant_id: dbQR.store_id ?? '',
-            issued_at: dbQR.created_at ?? new Date().toISOString(),
-            expires_at: dbQR.expires_at,
-            status: isUsed ? 'used' : 'pending',
+            merchant_id: dbQR.location,
+            issued_at: dbQR.issuedAt ?? new Date().toISOString(),
+            expires_at: dbQR.expiresAt,
+            status: dbQR.status === 'expired' ? 'expired' : dbQR.status !== 'pending' || dbQR.alreadyScanned ? 'used' : 'pending',
           });
           return;
         }
         // Regular multi-use store QR
         setResult({
           code: dbQR.code,
-          title: dbQR.label ?? 'Mağaza QR Kodu',
+          title: dbQR.title,
           points: dbQR.points,
-          location: dbQR.store_id ? `Mağaza #${dbQR.store_id}` : 'Mağaza',
-          dbQrId: dbQR.id,
+          location: dbQR.location,
         });
         return;
       }
-    } catch { /* ignore lookup errors */ }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'QR kodu kontrol edilemedi');
+      return;
+    }
 
     // ── Not found anywhere ──
     setResult({ code: lookupCode, title: 'QR Kodu Tanınmadı', points: 0, location: 'Bilinmeyen' });
@@ -402,9 +400,9 @@ const QRScanner: React.FC = () => {
   const handleManualSubmit = async () => {
     const trimmed = manualCode.trim();
     if (!trimmed) return;
+    setError('');
     await handleDecodedQR(trimmed);
     setManualCode('');
-    setError('');
     setMode('idle');
   };
 
