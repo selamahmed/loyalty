@@ -1,14 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+const DEFAULT_SUPABASE_URL = 'https://wtzqqhbeokpuhudkkcyz.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0enFxaGJlb2twdWh1ZGtrY3l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzE1MDAsImV4cCI6MjA5Njg0NzUwMH0.rH_OKQgZgB5r4jNxl9MUx0lD-woT3fcStmPhXz5V7AI';
+
+const configuredSupabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
 
 // Support both the legacy JWT anon key (VITE_SUPABASE_ANON_KEY) and the newer
 // publishable key format (VITE_SUPABASE_PUBLISHABLE_KEY).  The anon key takes
 // priority because it works with all PostgREST versions without extra steps.
-const supabaseKey: string =
-  (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ||
-  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string) ||
-  '';
+const configuredSupabaseKey: string =
+  ((import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
+    '').trim();
+
+const supabaseUrl = configuredSupabaseUrl || DEFAULT_SUPABASE_URL;
+const supabaseKey = configuredSupabaseKey || DEFAULT_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || supabaseUrl.trim() === '') {
   console.error('[Supabase] VITE_SUPABASE_URL is missing — check your .env.local');
@@ -19,7 +26,7 @@ if (!supabaseKey || supabaseKey.trim() === '') {
   );
 }
 
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder', {
+export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
