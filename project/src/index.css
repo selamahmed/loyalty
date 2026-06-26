@@ -2114,6 +2114,8 @@ body::before {
 
 .shop-products-grid {
   align-items: stretch;
+  content-visibility: auto;
+  contain: layout paint style;
 }
 
 .shop-product-card {
@@ -2123,6 +2125,9 @@ body::before {
     var(--card-bg) !important;
   outline: none;
   transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  contain: layout paint style;
 }
 
 .shop-product-card:hover,
@@ -2148,6 +2153,7 @@ body::before {
 
 .shop-product-card__media img {
   transition: transform 0.32s ease, filter 0.32s ease;
+  backface-visibility: hidden;
 }
 
 .shop-product-card:hover .shop-product-card__media img,
@@ -2498,6 +2504,37 @@ body::before {
 
 .shop-auth-content .shop-product-card--locked .shop-product-card__media img {
   filter: saturate(0.72) brightness(0.78);
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .shop-product-card,
+  .shop-auth-content .shop-product-card,
+  .shop-product-card__media img,
+  .shop-product-card__cta {
+    transition: none !important;
+  }
+
+  .shop-product-card,
+  .shop-auth-content .shop-product-card,
+  .shop-product-card:hover,
+  .shop-product-card:focus-visible,
+  .shop-auth-content .shop-product-card:hover,
+  .shop-auth-content .shop-product-card:focus-visible {
+    transform: none !important;
+  }
+
+  .shop-product-card:hover .shop-product-card__media img,
+  .shop-product-card:focus-visible .shop-product-card__media img {
+    transform: none !important;
+  }
+
+  .shop-auth-content .shop-product-card__badge,
+  .shop-auth-content .shop-product-card__lock span,
+  .shop-buy-modal-overlay,
+  .shop-auth-content,
+  .customer-shell:has(.shop-auth-page) .customer-app-header {
+    backdrop-filter: none !important;
+  }
 }
 
 .shop-buy-modal-overlay {

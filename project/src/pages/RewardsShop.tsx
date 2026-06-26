@@ -19,6 +19,12 @@ const card = {
   borderRadius: 20,
 };
 
+const productCardContainment: React.CSSProperties = {
+  contentVisibility: 'auto',
+  containIntrinsicSize: '294px 180px',
+  contain: 'layout paint style',
+};
+
 /* ── Buy modal ── */
 interface BuyModalProps {
   reward: Reward;
@@ -392,14 +398,17 @@ const RewardsShop: React.FC = () => {
                   aria-label={`${reward.title}, ${reward.points.toLocaleString()} puan`}
                   className={`press-card shop-product-card ${canAfford ? 'shop-product-card--available' : 'shop-product-card--locked'}`}
                   style={{
-                    ...card, overflow: 'hidden', cursor: 'pointer',
-                    animation: `shopFadeIn 0.3s ease-out ${index * 0.03}s both`,
+                    ...card,
+                    ...productCardContainment,
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    animation: index < 12 ? `shopFadeIn 0.24s ease-out ${index * 0.018}s both` : 'none',
                   }}
                 >
                   {/* Product image */}
                   <div className="shop-product-card__media" style={{ position: 'relative', height: 130, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)' }}>
                     {reward.image ? (
-                      <img src={reward.image} alt={reward.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={reward.image} alt={reward.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🎁</div>
                     )}
