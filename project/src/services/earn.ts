@@ -24,6 +24,19 @@ export type EarnResult = {
   streakDay?: number;
 };
 
+export type QRClaimPreview = {
+  code: string;
+  title: string;
+  points: number;
+  location: string;
+  amount: number | null;
+  expiresAt: string | null;
+  issuedAt: string | null;
+  status: 'pending' | 'used' | 'expired' | 'inactive';
+  isCashier: boolean;
+  alreadyScanned: boolean;
+};
+
 export type PerformOptions = {
   referenceId?: string;
 };
@@ -80,6 +93,27 @@ export async function claimQrScan(code: string): Promise<EarnResult> {
     notifyLeaderboardRefresh();
   }
   return result;
+}
+
+/** Preview QR code info without claiming it. Claim still happens only through claim_qr_scan. */
+export async function previewQrScan(code: string): Promise<QRClaimPreview | null> {
+  const { data, error } = await supabase.rpc('preview_qr_scan', { p_code: code });
+  if (error) throw error;
+  if (!data) return null;
+
+  const r = data as Record<string, unknown>;
+  return {
+    code: String(r.code ?? ''),
+    title: String(r.title ?? 'Mağaza QR Kodu'),
+    points: Number(r.points ?? 0),
+    location: String(r.location ?? 'Mağaza'),
+    amount: r.amount == null ? null : Number(r.amount),
+    expiresAt: r.expires_at == null ? null : String(r.expires_at),
+    issuedAt: r.issued_at == null ? null : String(r.issued_at),
+    status: String(r.status ?? 'inactive') as QRClaimPreview['status'],
+    isCashier: Boolean(r.is_cashier),
+    alreadyScanned: Boolean(r.already_scanned),
+  };
 }
 
 /** Claim daily streak reward */

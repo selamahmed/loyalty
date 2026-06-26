@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Copy, Check, RefreshCw, QrCode, Package, Search, Tag, Ticket, Gift, ArrowLeft, User, ChevronRight } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getAllUsers } from '../../services/admin';
+import { deleteRedemptionAdmin, getAllUsers, updateRedemptionAdmin } from '../../services/admin';
 import { getUserRedemptions } from '../../services/redemptions';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 import NeoAvatar from '../../components/NeoAvatar';
@@ -401,11 +401,29 @@ const AdminInventory: React.FC = () => {
     // Redemptions are created via the reward shop
   };
 
-  const handleUpdate = (_id: string, _form: InvItemForm) => { /* read-only from DB */ };
+  const handleUpdate = async (id: string, form: InvItemForm) => {
+    if (!selectedUser) return;
+    await updateRedemptionAdmin(id, {
+      code: form.code,
+      used: form.used,
+      expires_at: form.expires ? new Date(form.expires).toISOString() : null,
+    });
+    await loadUserRedemptions(selectedUser.id);
+  };
 
-  const handleDelete = (_id: string) => { /* redemption deletion not supported */ };
+  const handleDelete = async (id: string) => {
+    if (!selectedUser) return;
+    await deleteRedemptionAdmin(id);
+    await loadUserRedemptions(selectedUser.id);
+  };
 
-  const handleToggleUsed = (_id: string) => { /* managed via markRedemptionUsed service */ };
+  const handleToggleUsed = async (id: string) => {
+    if (!selectedUser) return;
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    await updateRedemptionAdmin(id, { used: !item.used });
+    await loadUserRedemptions(selectedUser.id);
+  };
 
   return (
     <AdminLayout>

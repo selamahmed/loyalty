@@ -254,10 +254,25 @@ export async function getGamesConfig(): Promise<GameConfig[]> {
   return data ?? [];
 }
 
+export async function createGameConfig(input: Omit<GameConfig, 'id' | 'created_at' | 'updated_at'>): Promise<GameConfig> {
+  const { data, error } = await supabase
+    .from('games_config')
+    .insert(input)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function updateGameConfig(id: string, updates: Partial<GameConfig>): Promise<void> {
   const { error } = await supabase
     .from('games_config')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteGameConfig(id: string): Promise<void> {
+  const { error } = await supabase.from('games_config').delete().eq('id', id);
   if (error) throw error;
 }

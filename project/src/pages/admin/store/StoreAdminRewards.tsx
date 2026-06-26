@@ -1,21 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import StoreAdminLayout from './StoreAdminLayout';
-import { supabase } from '../../../lib/supabase';
+import { createReward, deleteReward, getAdminRewards, updateReward, type Reward } from '../../../services/rewards';
 import { useRealtimeTable } from '../../../hooks/useRealtime';
 import { Plus, Pencil, Trash2, Check, X, Star, Search, Loader2, ToggleLeft, ToggleRight, ShoppingBag } from 'lucide-react';
-
-interface Reward {
-  id: string;
-  title: string;
-  description: string | null;
-  points: number;
-  category: string | null;
-  image: string | null;
-  active: boolean;
-  limited: boolean;
-  limited_quantity: number | null;
-  created_at: string;
-}
 
 const CATEGORIES = ['Yiyecek & İçecek', 'Giyim', 'Elektronik', 'Sağlık & Güzellik', 'Eğlence', 'Diğer'];
 
@@ -26,7 +13,7 @@ const card = {
   borderRadius: 20,
 };
 
-const EMPTY: Partial<Reward> = { title: '', description: '', points: 100, category: 'Diğer', image: '', active: true, limited: false, limited_quantity: null };
+const EMPTY: Partial<Reward> = { title: '', description: '', points: 100, category: 'Diğer', image: '', active: true, limited: false, stock: 100, featured: false, expires_at: null };
 
 const StoreAdminRewards: React.FC = () => {
   const [rewards, setRewards]   = useState<Reward[]>([]);
@@ -39,11 +26,9 @@ const StoreAdminRewards: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      let q = supabase.from('rewards').select('*').order('created_at', { ascending: false });
-      if (search.trim()) q = q.ilike('title', `%${search}%`);
-      const { data, error } = await q;
-      if (error) throw error;
-      setRewards((data ?? []) as Reward[]);
+      const data = await getAdminRewards();
+      const term = search.trim().toLowerCase();
+      setRewards(term ? data.filter(r => r.title.toLowerCase().includes(term)) : data);
     } catch (e) { console.error('[StoreAdminRewards]', e); }
     finally { setLoading(false); }
   }, [search]);
@@ -55,13 +40,22 @@ const StoreAdminRewards: React.FC = () => {
     if (!editing?.title || !editing.points) { setSaveError('Başlık ve puan zorunlu'); return; }
     setSaving(true); setSaveError('');
     try {
-      const { id, ...rest } = editing as Reward;
+      const id = editing.id;
       if (id) {
-        const { error } = await supabase.from('rewards').update(rest).eq('id', id);
-        if (error) throw error;
+        await updateReward(id, editing);
       } else {
-        const { error } = await supabase.from('rewards').insert(rest);
-        if (error) throw error;
+        await createReward({
+          title: editing.title ?? '',
+          description: editing.description ?? '',
+          points: editing.points ?? 100,
+          category: editing.category ?? 'Diğer',
+          image: editing.image ?? null,
+          featured: editing.featured ?? false,
+          limited: editing.limited ?? false,
+          stock: editing.stock ?? 100,
+          expires_at: editing.expires_at ?? null,
+          active: editing.active ?? true,
+        });
       }
       setEditing(null);
       load();
@@ -73,13 +67,13 @@ const StoreAdminRewards: React.FC = () => {
   };
 
   const toggleActive = async (r: Reward) => {
-    await supabase.from('rewards').update({ active: !r.active }).eq('id', r.id);
+    await updateReward(r.id, { active: !r.active });
     load();
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Bu ödülü silmek istediğinize emin misiniz?')) return;
-    await supabase.from('rewards').delete().eq('id', id);
+    await deleteReward(id);
     load();
   };
 

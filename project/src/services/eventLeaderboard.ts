@@ -125,15 +125,6 @@ async function queryActiveEvents(withPublished: boolean, recentCutoff?: string) 
 export async function checkLeaderboardDb(): Promise<LeaderboardDbStatus> {
   const missing: string[] = [];
 
-  const rpc = await supabase.rpc('get_event_leaderboard', {
-    p_event_id: '00000000-0000-0000-0000-000000000000',
-    p_limit: 1,
-  });
-  if (isMissingRpc(rpc.error ?? {})) missing.push('get_event_leaderboard');
-
-  const sync = await supabase.rpc('sync_event_status', { p_event_id: null });
-  if (isMissingRpc(sync.error ?? {})) missing.push('sync_event_status');
-
   const table = await supabase.from('event_participants').select('id', { head: true, count: 'exact' });
   if (isMissingTable(table.error ?? {})) missing.push('event_participants');
 
@@ -229,7 +220,8 @@ export async function getEventLeaderboard(
 
   if (!error) return parseEventBoard(data);
 
-  if (isMissingRpc(error)) {
+  if (isMissingRpc(error) || error.code === 'PGRST202' || error.code?.startsWith('P')) {
+    console.warn('[eventLeaderboard] RPC failed; using table fallback:', error.message);
     return getEventLeaderboardFallback(eventId, limit);
   }
 

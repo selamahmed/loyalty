@@ -59,6 +59,12 @@ const ROLE_COLOR: Record<RoleType, string> = {
   cashier:     'bg-blue-100  dark:bg-blue-900/30  text-blue-700  dark:text-blue-400',
   super_admin: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
 };
+const ROLE_OPTIONS: { value: RoleType; label: string; description: string; tone: string }[] = [
+  { value: 'customer', label: 'Customer', description: 'Normal app user. No admin or cashier access.', tone: 'border-gray-300 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-300' },
+  { value: 'cashier', label: 'Cashier', description: 'Can create checkout QR codes and redeem tickets.', tone: 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300' },
+  { value: 'store_admin', label: 'Admin', description: 'Can access admin/store tools, but cannot change roles.', tone: 'border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300' },
+  { value: 'super_admin', label: 'Super admin', description: 'Full access, including promoting and revoking roles.', tone: 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-300' },
+];
 const STATUS_COLOR: Record<string, string> = {
   active:    'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
   suspended: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
@@ -96,6 +102,8 @@ const AdminUsers: React.FC = () => {
   const [showRoleModal,setShowRoleModal] = useState(false);
   const [newRole,      setNewRole]     = useState<RoleType>('customer');
   const debouncedSearch = useDebouncedValue(search, 300);
+  const isSuperAdmin = adminUser?.role === 'super_admin';
+  const selectedIsSelf = Boolean(selected && adminUser?.id === selected.id);
 
   /* ── Load ── */
   const load = useCallback(async (searchOverride?: string) => {
@@ -251,7 +259,13 @@ const AdminUsers: React.FC = () => {
   };
 
   const doChangeRole = async () => {
-    if (!selected) return; setWorking(true);
+    if (!selected) return;
+    if (!isSuperAdmin) { toast('Only super admins can change roles'); return; }
+    if (selectedIsSelf) { toast('You cannot change your own role'); return; }
+    if (newRole === selected.role) { setShowRoleModal(false); return; }
+    const targetName = selected.username ?? selected.email;
+    if (!window.confirm(`Change ${targetName} role to ${ROLE_OPTIONS.find(r => r.value === newRole)?.label ?? newRole}?`)) return;
+    setWorking(true);
     try {
       await updateUserRole(selected.id, newRole);
       const u = { ...selected, role: newRole };
@@ -259,7 +273,7 @@ const AdminUsers: React.FC = () => {
       setShowRoleModal(false);
       toast('Rol güncellendi');
       logAdminAction('admin_action', `Admin rol değiştirdi: ${selected.username ?? selected.email} → ${newRole}`, { targetUserId: selected.id, oldRole: selected.role, newRole }, 'high');
-    } catch { toast('Rol güncellenemedi'); }
+    } catch (err) { toast(err instanceof Error ? err.message : 'Rol güncellenemedi'); }
     finally { setWorking(false); }
   };
 
@@ -484,8 +498,16 @@ const AdminUsers: React.FC = () => {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${STATUS_COLOR[selected.status] ?? ''}`}>
                       {selected.status === 'active' ? 'Aktif' : selected.status === 'suspended' ? 'Askıda' : 'Yasaklı'}
                     </span>
-                    <button onClick={() => { setNewRole(selected.role as RoleType); setShowRoleModal(true); }} className={`px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${ROLE_COLOR[selected.role as RoleType] ?? ''}`}>
-                      {ROLE_LABEL[selected.role as RoleType] ?? selected.role} <ChevronDown size={10}/>
+                    <button
+                      onClick={() => {
+                        if (!isSuperAdmin) { toast('Only super admins can change roles'); return; }
+                        setNewRole(selected.role as RoleType);
+                        setShowRoleModal(true);
+                      }}
+                      className={`px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${ROLE_COLOR[selected.role as RoleType] ?? ''} ${isSuperAdmin ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'}`}
+                      title={isSuperAdmin ? 'Change role' : 'Only super admins can change roles'}
+                    >
+                      {ROLE_LABEL[selected.role as RoleType] ?? selected.role} {isSuperAdmin && <ChevronDown size={10}/>}
                     </button>
                     <span className="text-xs text-gray-400">Lv.{selected.level}</span>
                     {selected.riskScore >= 5 && <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1"><AlertTriangle size={10}/> Yüksek Risk</span>}
@@ -500,16 +522,39 @@ const AdminUsers: React.FC = () => {
             {/* Role Change Modal */}
             {showRoleModal && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 rounded-3xl">
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-black p-5 w-72 space-y-4">
+                <div className="bg-white dark:bg-gray-800 rounded-3xl border-2 border-black p-5 w-full max-w-md space-y-4 shadow-2xl">
                   <h3 className="font-black text-gray-900 dark:text-white">Rol Değiştir</h3>
-                  {(['customer','cashier','store_admin','super_admin'] as RoleType[]).map(r => (
-                    <button key={r} onClick={() => setNewRole(r)} className={`w-full text-left px-4 py-2.5 rounded-xl border-2 font-bold text-sm transition-all ${newRole === r ? 'border-[#7B6EF6] bg-[#7B6EF6]/10 text-[#7B6EF6]' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
-                      {ROLE_LABEL[r]}
-                    </button>
-                  ))}
+                  <p className="text-xs text-gray-500 -mt-2">
+                    Roles are saved through Supabase security rules. Direct table edits stay blocked.
+                  </p>
+                  {selectedIsSelf && (
+                    <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-3 text-xs font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                      You are viewing your own account. Self role changes are blocked for safety.
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    {ROLE_OPTIONS.map(r => {
+                      const active = newRole === r.value;
+                      const current = selected.role === r.value;
+                      return (
+                        <button
+                          key={r.value}
+                          onClick={() => setNewRole(r.value)}
+                          disabled={working || selectedIsSelf}
+                          className={`w-full text-left px-4 py-3 rounded-2xl border-2 font-bold text-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 ${active ? 'border-[#7B6EF6] bg-[#7B6EF6]/10 text-[#7B6EF6] shadow-lg shadow-[#7B6EF6]/10' : r.tone}`}
+                        >
+                          <span className="flex items-center justify-between gap-3">
+                            <span>{r.label}</span>
+                            {current && <span className="rounded-full bg-black/10 px-2 py-0.5 text-[10px] uppercase tracking-widest">Current</span>}
+                          </span>
+                          <span className="mt-1 block text-xs font-semibold opacity-75">{r.description}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={() => setShowRoleModal(false)} className="flex-1 py-2 rounded-xl border-2 border-gray-300 font-bold text-gray-600 text-sm">İptal</button>
-                    <button onClick={doChangeRole} disabled={working} className="flex-1 py-2 rounded-xl bg-[#7B6EF6] text-white font-bold text-sm border-2 border-black disabled:opacity-50">
+                    <button onClick={doChangeRole} disabled={working || selectedIsSelf || newRole === selected.role} className="flex-1 py-2 rounded-xl bg-[#7B6EF6] text-white font-bold text-sm border-2 border-black disabled:opacity-50">
                       {working ? <Loader size={14} className="mx-auto animate-spin" /> : 'Kaydet'}
                     </button>
                   </div>
@@ -689,6 +734,40 @@ const AdminUsers: React.FC = () => {
               {/* YÖNET */}
               {tab === 'actions' && (
                 <div className="space-y-5">
+                  {/* Role Management */}
+                  <div className="p-4 bg-[#7B6EF6]/10 border-2 border-[#7B6EF6]/30 rounded-2xl space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold flex items-center gap-2 text-[#7B6EF6]"><Shield size={16}/> Role Management</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Current role: <strong>{ROLE_OPTIONS.find(r => r.value === selected.role)?.label ?? selected.role}</strong>
+                        </p>
+                      </div>
+                      {!isSuperAdmin && (
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black text-amber-700">Super admin only</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {ROLE_OPTIONS.map(r => {
+                        const current = selected.role === r.value;
+                        return (
+                          <button
+                            key={r.value}
+                            onClick={() => { setNewRole(r.value); setShowRoleModal(true); }}
+                            disabled={!isSuperAdmin || selectedIsSelf || current || working}
+                            className={`rounded-2xl border-2 px-3 py-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50 ${current ? 'border-[#7B6EF6] bg-[#7B6EF6]/10 text-[#7B6EF6]' : r.tone}`}
+                          >
+                            <span className="block text-sm font-black">{current ? 'Current: ' : ''}{r.label}</span>
+                            <span className="mt-1 block text-xs font-semibold opacity-75">{r.description}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedIsSelf && (
+                      <p className="text-xs font-bold text-amber-600">Self role changes are blocked. Use another super admin account if you need to change this account.</p>
+                    )}
+                  </div>
+
                   {/* Puan Ayarla */}
                   <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-800 rounded-2xl space-y-3">
                     <h3 className="font-bold flex items-center gap-2 text-amber-700 dark:text-amber-400"><Zap size={16}/> Puan Ayarla</h3>

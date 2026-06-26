@@ -220,6 +220,35 @@ export async function updateRedemptionCode(id: string, code: string) {
   return data;
 }
 
+export async function updateRedemptionAdmin(id: string, updates: {
+  code?: string;
+  used?: boolean;
+  expires_at?: string | null;
+}): Promise<void> {
+  const payload: Record<string, unknown> = {};
+  if (updates.code !== undefined) {
+    const normalizedCode = updates.code.trim().toUpperCase();
+    if (!normalizedCode) throw new Error('Redemption code cannot be empty.');
+    payload.code = normalizedCode;
+  }
+  if (updates.used !== undefined) {
+    payload.used = updates.used;
+    payload.used_at = updates.used ? new Date().toISOString() : null;
+  }
+  if (updates.expires_at !== undefined) payload.expires_at = updates.expires_at;
+
+  const { error } = await supabase
+    .from('redemptions')
+    .update(payload)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteRedemptionAdmin(id: string): Promise<void> {
+  const { error } = await supabase.from('redemptions').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export async function deleteQRCode(id: string): Promise<void> {
   const { error } = await supabase.from('qr_codes').delete().eq('id', id);
   if (error) throw error;
@@ -238,14 +267,52 @@ export async function getQRScans(qrCodeId?: string, page = 0, pageSize = 50) {
 }
 
 export async function updateUserRole(userId: string, role: string): Promise<void> {
-  const allowedRoles: Profile['role'][] = ['customer', 'cashier', 'store_admin', 'super_admin'];
-  if (!allowedRoles.includes(role as Profile['role'])) throw new Error('Invalid role.');
+  const roleAliases: Record<string, Profile['role']> = {
+    user: 'customer',
+    admin: 'store_admin',
+    customer: 'customer',
+    cashier: 'cashier',
+    store_admin: 'store_admin',
+    super_admin: 'super_admin',
+  };
+  const normalizedRole = roleAliases[role];
+  if (!normalizedRole) throw new Error('Invalid role.');
 
   const { error } = await supabase.rpc('admin_set_user_role', {
     p_user_id: userId,
-    p_role: role as Profile['role'],
+    p_role: normalizedRole,
   });
-  if (error) throw error;
+  if (error) {
+    const message = error.message ?? '';
+    const details = error.details ?? '';
+    const hint = error.hint ?? '';
+    const rpcLooksMissing =
+      error.code === 'PGRST202'
+      || error.code === '404'
+      || message.includes('function')
+      || message.includes('schema cache')
+      || details.includes('function')
+      || hint.includes('schema cache');
+    const rpcLooksAmbiguous =
+      message.includes('Could not choose the best candidate function')
+      || details.includes('Could not choose the best candidate function')
+      || hint.includes('Try renaming the parameters')
+      || hint.includes('parameter names');
+
+    if (rpcLooksMissing || rpcLooksAmbiguous) {
+      throw new Error('Role management SQL is not installed or Supabase cache is stale. Run supabase/migrations/20260618000002_role_system_fix.sql in the Supabase SQL Editor, wait a few seconds, then refresh the app.');
+    }
+    if (message.includes('Only active super admins')) {
+      throw new Error('Only an active super admin can change user roles.');
+    }
+    if (message.includes('Cannot change your own role')) {
+      throw new Error('You cannot change your own role.');
+    }
+    if (message.includes('Invalid role')) {
+      throw new Error('This role is not allowed.');
+    }
+    throw error;
+  }
 }
 
 export async function adminAddPoints(

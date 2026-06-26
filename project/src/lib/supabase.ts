@@ -1,14 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+const DEFAULT_SUPABASE_URL = 'https://wtzqqhbeokpuhudkkcyz.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0enFxaGJlb2twdWh1ZGtrY3l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzE1MDAsImV4cCI6MjA5Njg0NzUwMH0.rH_OKQgZgB5r4jNxl9MUx0lD-woT3fcStmPhXz5V7AI';
+
+const configuredSupabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
 
 // Support both the legacy JWT anon key (VITE_SUPABASE_ANON_KEY) and the newer
 // publishable key format (VITE_SUPABASE_PUBLISHABLE_KEY).  The anon key takes
 // priority because it works with all PostgREST versions without extra steps.
-const supabaseKey: string =
-  (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ||
-  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string) ||
-  '';
+const configuredSupabaseKey: string =
+  ((import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
+    '').trim();
+
+const supabaseUrl = configuredSupabaseUrl || DEFAULT_SUPABASE_URL;
+const supabaseKey = configuredSupabaseKey || DEFAULT_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || supabaseUrl.trim() === '') {
   console.error('[Supabase] VITE_SUPABASE_URL is missing — check your .env.local');
@@ -19,7 +26,7 @@ if (!supabaseKey || supabaseKey.trim() === '') {
   );
 }
 
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder', {
+export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -304,6 +311,10 @@ export type Database = {
         Args: { p_code: string };
         Returns: Record<string, unknown>;
       };
+      preview_qr_scan: {
+        Args: { p_code: string };
+        Returns: Record<string, unknown> | null;
+      };
       create_cashier_qr: {
         Args: {
           p_code: string;
@@ -312,6 +323,27 @@ export type Database = {
           p_expires_at: string;
         };
         Returns: Database['public']['Tables']['qr_codes']['Row'];
+      };
+      purchase_reward: {
+        Args: { p_reward_id: string };
+        Returns: Database['public']['Tables']['redemptions']['Row'];
+      };
+      admin_adjust_points: {
+        Args: {
+          p_user_id: string;
+          p_amount: number;
+          p_description: string;
+          p_category?: string | null;
+          p_reference_id?: string | null;
+        };
+        Returns: void;
+      };
+      admin_set_user_role: {
+        Args: {
+          p_user_id: string;
+          p_role: string;
+        };
+        Returns: void;
       };
       claim_daily_streak: {
         Args: Record<string, never>;

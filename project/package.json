@@ -12,7 +12,7 @@
     "copy:critical-fonts": "node scripts/copy-critical-fonts.mjs",
     "copy:hero-assets": "node scripts/copy-hero-assets.mjs",
     "prebuild": "npm run copy:critical-fonts && npm run copy:hero-assets",
-    "build": "vite build",
+    "build": "node ./node_modules/vite/bin/vite.js build",
     "preview": "vite preview --host 0.0.0.0 --port 5000",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "lint": "eslint src --max-warnings 0",

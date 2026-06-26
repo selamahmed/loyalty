@@ -2,6 +2,7 @@
 -- Run this in Supabase SQL Editor after the existing migrations.
 
 create extension if not exists "uuid-ossp";
+create extension if not exists pgcrypto;
 
 create or replace function public.is_super_admin()
 returns boolean
@@ -515,7 +516,7 @@ begin
 
   loop
     v_try := v_try + 1;
-    v_code := upper(replace(substr(uuid_generate_v4()::text, 1, 13), '-', ''));
+    v_code := upper(replace(substr(gen_random_uuid()::text, 1, 13), '-', ''));
     v_barcode := lpad(floor(random() * 10000000000000)::bigint::text, 13, '0');
 
     begin

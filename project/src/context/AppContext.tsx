@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
@@ -11,8 +11,10 @@ import { updateUserSettings } from '../services/userSettings';
 
 import { canonicalToAppUser } from '../hooks/useCanonicalProfile';
 import { resolveAvatarSrc } from '../lib/avatarCatalog';
+import { supabase } from '../lib/supabase';
 
 import { captureError } from '../lib/monitoring';
+import { playSound } from '../lib/sounds';
 
 
 
@@ -94,6 +96,8 @@ export interface RewardPopupData {
 
   icon?: string;
 
+  level?: number;
+
 }
 
 
@@ -172,6 +176,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
+  const lastSeenLevelRef = useRef<number | null>(null);
+
 
 
   useEffect(() => {
@@ -180,9 +186,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const appUser = canonicalToAppUser(profile);
 
+      const previousLevel = lastSeenLevelRef.current;
+      const currentLevel = Number(appUser.level || 1);
+
       setUser(appUser);
 
       setPoints(appUser.currentPoints);
+
+      if (previousLevel !== null && currentLevel > previousLevel) {
+        if (soundEnabled) playSound('level-up');
+        setRewardPopup({
+          type: 'levelup',
+          title: `SEVİYE ${currentLevel}!`,
+          subtitle: `Harika! Lv.${previousLevel} seviyesinden Lv.${currentLevel} seviyesine çıktın.`,
+          level: currentLevel,
+          icon: '⚡',
+        });
+      }
+
+      lastSeenLevelRef.current = currentLevel;
 
       setPrivacySettings({
 
@@ -204,11 +226,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       setPoints(0);
 
+      lastSeenLevelRef.current = null;
+
       setPrivacySettings(defaultPrivacySettings);
 
     }
 
-  }, [profile, isAuthenticated]);
+  }, [profile, isAuthenticated, soundEnabled]);
 
 
 
@@ -230,6 +254,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (result.leveledUp) {
 
+        if (soundEnabled) playSound('level-up');
+
         setRewardPopup({
 
           type: 'levelup',
@@ -243,6 +269,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             : 'Yeni seviyeye ulaştın!',
 
           points: result.bonusPoints || undefined,
+
+          level: result.level,
 
           icon: '🏆',
 
@@ -260,7 +288,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     }
 
-  }, [authUser?.id, refreshProfile]);
+  }, [authUser?.id, refreshProfile, soundEnabled]);
 
   const updateUser = useCallback(async (data: Partial<AppUser>) => {
     const cleanData = data.avatar !== undefined
@@ -270,13 +298,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser(prev => ({ ...prev, ...cleanData }));
     if (authUser?.id) {
       try {
-        await updateProfile(authUser.id, {
+        const savedProfile = await updateProfile(authUser.id, {
           username: cleanData.username,
           avatar_url: cleanData.avatar,
           avatar_seed: cleanData.avatarSeed,
           phone: cleanData.phone ?? null,
           bio: cleanData.bio ?? null,
         });
+
+        if (savedProfile.status === 'deleted') {
+          await supabase.auth.signOut();
+          return;
+        }
+
         await refreshProfile();
       } catch (err) {
         captureError(err, { context: 'updateUser' });
@@ -366,4 +400,3 @@ export const useApp = () => {
   return ctx;
 
 };
-

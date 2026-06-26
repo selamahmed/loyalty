@@ -104,6 +104,8 @@ const Register: React.FC = () => {
           <div className="auth-brand flex flex-col items-center gap-3">
             <AppLogo
               size={72}
+              className="auth-brand__logo"
+              priority
             />
             <div className="text-center">
               <h1 className="auth-brand__title font-black text-xl" style={{ color: 'var(--text-dark)' }}>NEŞVENEXT</h1>

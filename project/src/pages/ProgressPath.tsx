@@ -45,6 +45,7 @@ const ProgressPath: React.FC = () => {
   const [levelConfig, setLevelConfig] = useState<LevelConfig[]>(DEFAULT_LEVELS);
   const [liveXp, setLiveXp] = useState<number | null>(null);
   const [liveLevel, setLiveLevel] = useState<number | null>(null);
+  const [liveXpToNext, setLiveXpToNext] = useState<number | null>(null);
   const [rtBadge, setRtBadge] = useState(false);
   const [animXp, setAnimXp] = useState(0);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
@@ -64,8 +65,9 @@ const ProgressPath: React.FC = () => {
 
   const userXp = liveXp ?? profile?.xp ?? 0;
   const userLevel = liveLevel ?? profile?.level ?? 1;
+  const userXpToNext = liveXpToNext ?? profile?.xp_to_next ?? null;
 
-  const xpProgress = calcXpProgress(userXp, userLevel, levelConfig);
+  const xpProgress = calcXpProgress(userXp, userLevel, levelConfig, userXpToNext);
   const currentLvl = getLvlData(levelRows, userLevel);
   const nextLvl = getNextLvlData(levelRows, userLevel);
   const xpPct = xpProgress.pct;
@@ -101,9 +103,10 @@ const ProgressPath: React.FC = () => {
         event: 'UPDATE', schema: 'public', table: 'profiles',
         filter: `id=eq.${profile.id}`,
       }, (payload) => {
-        const p = payload.new as { xp?: number; level?: number };
+        const p = payload.new as { xp?: number; level?: number; xp_to_next?: number };
         if (p.xp !== undefined) setLiveXp(p.xp);
         if (p.level !== undefined) setLiveLevel(p.level);
+        if (p.xp_to_next !== undefined) setLiveXpToNext(p.xp_to_next);
         setRtBadge(true);
         setTimeout(() => setRtBadge(false), 3000);
       })

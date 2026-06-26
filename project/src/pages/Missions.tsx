@@ -50,7 +50,6 @@ const Missions: React.FC = () => {
       if (allCompleted) { setShowParticles(true); playSound('success'); setTimeout(() => setShowParticles(false), 2000); }
       return next;
     });
-    playSound('level-up');
     void earnReward('mission_complete', { referenceId: id }).then(result => {
       if (result && result.points > 0) {
         showRewardPopup({ type: 'reward', title: 'Mission Complete!', subtitle: mission.title, points: result.points });

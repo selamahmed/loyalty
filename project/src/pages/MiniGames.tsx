@@ -6,6 +6,8 @@ import { tr } from '../lib/tr';
 import StickerAccent from '../components/StickerAccent';
 import StickerHero from '../components/StickerHero';
 import { GAME_LOSE_STICKER, GAME_WIN_STICKER } from '../lib/pageStickers';
+import { getGamesConfig, type GameConfig } from '../services/config';
+import { useRealtimeTable } from '../hooks/useRealtime';
 
 const GameOutcomeSticker: React.FC<{ won: boolean; size?: number }> = ({ won, size = 88 }) => (
   <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -966,7 +968,7 @@ const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
   );
 };
 
-const gamesList = [
+const defaultGamesList = [
   { id: 'spin',   label: 'Spin Wheel',  emoji: '🎰', desc: 'Spin to win up to 200 pts',   points: '5-200', color: '#7B6EF6' },
   { id: 'memory', label: 'Memory Game', emoji: '🧩', desc: 'Match pairs to win',          points: '50-200', color: '#22c55e' },
   { id: 'catch',  label: 'Catch Game',  emoji: '🎁', desc: 'Catch gifts, avoid bombs',    points: '0-100', color: '#ef4444' },
@@ -974,10 +976,56 @@ const gamesList = [
   { id: 'snake',  label: 'Snake',       emoji: '🐍', desc: 'Eat apples and grow longer',  points: '0-150', color: '#22c55e' },
 ];
 
+function getGameIdFromConfig(game: GameConfig): string {
+  const raw = game.config?.game_id;
+  if (typeof raw === 'string' && defaultGamesList.some(g => g.id === raw)) return raw;
+  const name = game.name.toLowerCase();
+  if (name.includes('memory') || name.includes('haf')) return 'memory';
+  if (name.includes('catch') || name.includes('gift')) return 'catch';
+  if (name.includes('flappy') || name.includes('bird')) return 'flappy';
+  if (name.includes('snake') || name.includes('yilan') || name.includes('yılan')) return 'snake';
+  return 'spin';
+}
+
+function mapConfigToGame(game: GameConfig) {
+  const id = getGameIdFromConfig(game);
+  const fallback = defaultGamesList.find(g => g.id === id) ?? defaultGamesList[0];
+  const fallbackMax = Number.parseInt(String(fallback.points).split('-').pop() || '0', 10);
+  const maxPoints = Math.max(0, game.max_points_per_play || fallbackMax);
+  return {
+    id,
+    label: game.name || fallback.label,
+    emoji: game.icon || fallback.emoji,
+    desc: game.description || fallback.desc,
+    points: `0-${maxPoints}`,
+    color: game.color || fallback.color,
+    maxPoints,
+    maxPlays: Math.max(0, game.max_plays_per_day || 0),
+  };
+}
+
 const MiniGames: React.FC = () => {
   const { earnReward, showRewardPopup } = useApp();
   const { authUser } = useAuth();
   const [activeGame, setActiveGame] = useState<string | null>(null);
+  const [gamesList, setGamesList] = useState(defaultGamesList);
+  const [gamesLoading, setGamesLoading] = useState(true);
+
+  const loadGames = useCallback(async () => {
+    try {
+      const rows = await getGamesConfig();
+      const enabled = rows.filter(g => g.enabled).map(mapConfigToGame);
+      setGamesList(enabled.length ? enabled : defaultGamesList);
+    } catch (err) {
+      console.warn('[MiniGames] Falling back to local game config:', err);
+      setGamesList(defaultGamesList);
+    } finally {
+      setGamesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadGames(); }, [loadGames]);
+  useRealtimeTable('games_config', loadGames);
 
   const handleWin = (gameId: string) => {
     if (!authUser?.id) return;
@@ -996,9 +1044,9 @@ const MiniGames: React.FC = () => {
   };
 
   if (activeGame) {
-    const game = gamesList.find(g => g.id === activeGame)!;
+    const game = gamesList.find(g => g.id === activeGame) ?? defaultGamesList.find(g => g.id === activeGame)!;
     return (
-      <div style={{ position: 'relative', minHeight: '100vh' }}>
+      <div className="games-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
           <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>OYUN</div>
         </div>
@@ -1028,7 +1076,7 @@ const MiniGames: React.FC = () => {
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
+    <div className="games-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
       {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(50px,14vw,180px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>MİNİ OYUN</div>
@@ -1057,6 +1105,11 @@ const MiniGames: React.FC = () => {
         />
 
         {/* Game list */}
+        {gamesLoading && (
+          <div style={{ ...cardStyle, padding: 18, color: 'var(--text-muted)', fontWeight: 900 }}>
+            Oyun ayarları Supabase'den yükleniyor...
+          </div>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {gamesList.map((game, index) => (
             <button
