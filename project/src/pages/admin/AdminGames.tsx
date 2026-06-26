@@ -61,6 +61,16 @@ function getGameId(game: GameConfig): string {
   return 'spin';
 }
 
+function dedupeGamesByType(games: GameConfig[]): GameConfig[] {
+  const seen = new Set<string>();
+  return games.filter(game => {
+    const gameId = getGameId(game);
+    if (seen.has(gameId)) return false;
+    seen.add(gameId);
+    return true;
+  });
+}
+
 function toForm(game: GameConfig): GameForm {
   return {
     name: game.name,
@@ -98,7 +108,7 @@ const AdminGames: React.FC = () => {
 
   const loadGames = useCallback(async () => {
     try {
-      setGames(await getGamesConfig());
+      setGames(dedupeGamesByType(await getGamesConfig()));
     } catch (err) {
       console.error(err);
       setFeedback('Oyunlar yüklenemedi. Supabase RLS / games_config kontrol edin.');
