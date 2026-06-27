@@ -1053,17 +1053,6 @@ const MiniGames: React.FC = () => {
     });
   };
 
-  const handleLevelDemo = () => {
-    showRewardPopup({
-      type: 'levelup',
-      title: 'SEVIYE DEMO',
-      subtitle: 'Demo modu: bu animasyon sadece test icin acildi, XP veya puan yazmaz.',
-      level: 8,
-      points: 250,
-      icon: 'demo',
-    });
-  };
-
   const cardStyle = {
     background: 'var(--card-bg)',
     border: '3px solid var(--dark-border)',
@@ -1132,16 +1121,6 @@ const MiniGames: React.FC = () => {
           highlightColor="#C8FF00"
           className="games-hero-card"
         />
-
-        <button
-          type="button"
-          onClick={handleLevelDemo}
-          className="level-up-demo-button"
-          aria-label="Demo level up animation"
-        >
-          <span>LEVEL UP DEMO</span>
-          <strong>Test animasyonu</strong>
-        </button>
 
         {/* Game list */}
         {gamesLoading && (
