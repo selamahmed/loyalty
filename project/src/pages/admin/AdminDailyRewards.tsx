@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Save, RotateCcw, CheckCircle, ToggleLeft, ToggleRight, Flame, Calendar, Crown, AlertTriangle } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { DEFAULT_REWARDS, DayReward } from '../../components/DailyRewardModal';
-import { getDailyRewardConfig, upsertDailyRewardDay } from '../../services/config';
+import { getDailyRewardAdminStats, getDailyRewardConfig, upsertDailyRewardDay } from '../../services/config';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 
 const DAY_COLORS  = ['rgba(123,110,246,0.18)','rgba(34,197,94,0.15)','rgba(6,182,212,0.15)','rgba(245,158,11,0.15)','rgba(239,68,68,0.15)','rgba(236,72,153,0.15)','rgba(255,229,0,0.18)'];
@@ -17,11 +17,14 @@ const AdminDailyRewards: React.FC = () => {
   const [dirty, setDirty]       = useState(false);
   const [showEmoji, setShowEmoji] = useState<number | null>(null);
   const [dbLoaded, setDbLoaded] = useState(false);
-
-  const stateCounts = { streakDay: 0, lastClaim: 'Veritabanından yüklendi' };
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [stats, setStats] = useState({ totalPointsAwarded: 0, activeStreakUsers: 0, lastClaimLabel: 'Yükleniyor' });
 
   const loadFromDB = useCallback(async () => {
     try {
+      setLoadError(null);
       const rows = await getDailyRewardConfig();
       if (rows.length > 0) {
         const mapped: DayReward[] = rows.map(r => ({
@@ -36,13 +39,20 @@ const AdminDailyRewards: React.FC = () => {
         setRewards(allDays);
         setEnabled(rows.some(r => r.enabled));
       }
-    } catch { /* keep defaults */ } finally { setDbLoaded(true); }
+      setStats(await getDailyRewardAdminStats());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Supabase bağlantısı kurulamadı';
+      setLoadError(message);
+    } finally { setDbLoaded(true); }
   }, []);
 
   useEffect(() => { loadFromDB(); }, [loadFromDB]);
   useRealtimeTable('daily_reward_config', loadFromDB);
 
   const saveAll = async () => {
+    if (saving) return;
+    setSaving(true);
+    setSaveError(null);
     try {
       // Save all rewards to DB
       await Promise.all(rewards.map(r =>
@@ -57,8 +67,15 @@ const AdminDailyRewards: React.FC = () => {
       ));
       setDirty(false);
       setSaved(true);
+      await loadFromDB();
       setTimeout(() => setSaved(false), 2500);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Kaydetme başarısız oldu';
+      setSaveError(message);
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const resetToDefaults = () => { setRewards(DEFAULT_REWARDS); setDirty(true); };
@@ -89,13 +106,22 @@ const AdminDailyRewards: React.FC = () => {
               onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #000'; }}>
               <RotateCcw size={13} /> Varsayılan
             </button>
-            <button onClick={saveAll} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: '2.5px solid #000', background: saved ? '#4ade80' : '#7B6EF6', fontWeight: 900, fontSize: 12, cursor: 'pointer', boxShadow: saved ? '0 3px 0 #16a34a' : '0 3px 0 #000', color: '#fff' }}
+            <button onClick={saveAll} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, border: '2.5px solid #000', background: saved ? '#4ade80' : '#7B6EF6', fontWeight: 900, fontSize: 12, cursor: saving ? 'not-allowed' : 'pointer', boxShadow: saved ? '0 3px 0 #16a34a' : '0 3px 0 #000', color: '#fff', opacity: saving ? 0.7 : 1 }}
               onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 #000'; }}
               onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 3px 0 #000'; }}>
-              {saved ? <><CheckCircle size={13} /> Kaydedildi</> : <><Save size={13} /> Kaydet</>}
+              {saving ? 'Kaydediliyor...' : saved ? <><CheckCircle size={13} /> Kaydedildi</> : <><Save size={13} /> Kaydet</>}
             </button>
           </div>
         </div>
+
+        {(loadError || saveError) && (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 14px', borderRadius: 12, background: '#fee2e2', border: '2.5px solid #ef4444', boxShadow: '0 3px 0 #991b1b' }}>
+            <AlertTriangle size={15} color="#991b1b" style={{ marginTop: 1, flexShrink: 0 }} />
+            <span style={{ fontWeight: 900, fontSize: 12, color: '#991b1b', lineHeight: 1.45 }}>
+              {saveError ?? loadError}
+            </span>
+          </div>
+        )}
 
         {/* Feature toggle */}
         <div style={{ borderRadius: 18, border: '3px solid #000', background: 'var(--card-bg)', boxShadow: '0 4px 0 #000', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -116,8 +142,8 @@ const AdminDailyRewards: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
             { emoji: '🏆', label: 'Toplam Puan', value: totalPoints.toLocaleString('tr-TR'), color: '#f59e0b' },
-            { emoji: '🔥', label: 'Son Seri Günü', value: `Gün ${stateCounts.streakDay}`, color: '#ef4444' },
-            { emoji: '📅', label: 'Son Giriş', value: stateCounts.lastClaim === 'Hiç' ? '—' : stateCounts.lastClaim, color: '#3b82f6' },
+            { emoji: '🔥', label: 'Aktif Seri', value: stats.activeStreakUsers.toLocaleString('tr-TR'), color: '#ef4444' },
+            { emoji: '📅', label: 'Son Giriş', value: stats.lastClaimLabel, color: '#3b82f6' },
           ].map(s => (
             <div key={s.label} style={{ borderRadius: 16, border: '2.5px solid #000', background: 'var(--card-bg)', boxShadow: '0 3px 0 #000', padding: '14px 12px', textAlign: 'center' }}>
               <span style={{ fontSize: 22 }}>{s.emoji}</span>

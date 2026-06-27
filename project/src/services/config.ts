@@ -214,6 +214,12 @@ export type DailyRewardConfig = {
   updated_at: string;
 };
 
+export type DailyRewardAdminStats = {
+  totalPointsAwarded: number;
+  activeStreakUsers: number;
+  lastClaimLabel: string;
+};
+
 export async function getDailyRewardConfig(): Promise<DailyRewardConfig[]> {
   const { data, error } = await supabase
     .from('daily_reward_config')
@@ -221,6 +227,39 @@ export async function getDailyRewardConfig(): Promise<DailyRewardConfig[]> {
     .order('day_number');
   if (error) throw error;
   return data ?? [];
+}
+
+export async function getDailyRewardAdminStats(): Promise<DailyRewardAdminStats> {
+  const [{ data: txRows }, { count: streakCount }, { data: lastStreak }] = await Promise.all([
+    supabase
+      .from('points_transactions')
+      .select('amount')
+      .eq('type', 'earned')
+      .eq('category', 'daily_login')
+      .limit(1000),
+    supabase
+      .from('user_streaks')
+      .select('user_id', { count: 'exact', head: true })
+      .gt('current_streak', 0),
+    supabase
+      .from('user_streaks')
+      .select('last_claim_date')
+      .not('last_claim_date', 'is', null)
+      .order('last_claim_date', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const totalPointsAwarded = (txRows ?? []).reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+  const lastClaimDate = lastStreak?.last_claim_date;
+
+  return {
+    totalPointsAwarded,
+    activeStreakUsers: streakCount ?? 0,
+    lastClaimLabel: lastClaimDate
+      ? new Date(`${lastClaimDate}T12:00:00`).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })
+      : 'Henüz yok',
+  };
 }
 
 export async function upsertDailyRewardDay(day: Partial<DailyRewardConfig> & { day_number: number }): Promise<DailyRewardConfig> {

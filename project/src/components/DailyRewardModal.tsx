@@ -3,6 +3,7 @@ import { X, Check, Flame, Gift, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { isStreakClaimedToday, nextStreakDay } from '../services/streaks';
+import { getDailyRewardConfig, type DailyRewardConfig } from '../services/config';
 
 /* ─────────────────────────────────────────────
    Shared config type — also used by AdminDailyRewards
@@ -35,13 +36,25 @@ const DAY_THEME = [
   { bg: 'var(--neo-yellow)',     text: '#000', accent: '#D4B800' },
 ];
 
-const CONFIG_KEY = 'nexreward_daily_config';
-
 function today() { return new Date().toISOString().slice(0, 10); }
 
-function loadConfig(): DayReward[] {
-  try { const r = localStorage.getItem(CONFIG_KEY); if (r) return JSON.parse(r); } catch {}
-  return DEFAULT_REWARDS;
+function mapConfigRows(rows: DailyRewardConfig[]): DayReward[] {
+  if (!rows.length) return DEFAULT_REWARDS;
+
+  const mapped = rows
+    .filter(row => row.day_number >= 1 && row.day_number <= 7)
+    .map(row => {
+      const bonus = (row.bonus_value ?? {}) as Record<string, unknown>;
+      return {
+        day: row.day_number,
+        emoji: typeof bonus.emoji === 'string' && bonus.emoji.trim() ? bonus.emoji : '🎁',
+        label: typeof bonus.label === 'string' && bonus.label.trim() ? bonus.label : `Gün ${row.day_number}`,
+        points: Number(row.points ?? 0),
+        isBig: Boolean(row.is_special),
+      };
+    });
+
+  return DEFAULT_REWARDS.map(defaultReward => mapped.find(row => row.day === defaultReward.day) ?? defaultReward);
 }
 
 const brutal = {
@@ -122,10 +135,33 @@ const DayCard: React.FC<{ reward: DayReward; status: 'past' | 'today' | 'future'
 export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { earnReward, reloadProfile } = useApp();
   const { profile } = useAuth();
-  const [rewards] = useState<DayReward[]>(loadConfig);
+  const [rewards, setRewards] = useState<DayReward[]>(DEFAULT_REWARDS);
+  const [configEnabled, setConfigEnabled] = useState(true);
+  const [configLoading, setConfigLoading] = useState(true);
   const [claimed, setClaimed] = useState(false);
   const [claimAnim, setClaimAnim] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getDailyRewardConfig()
+      .then(rows => {
+        if (cancelled) return;
+        if (rows.length > 0) {
+          setRewards(mapConfigRows(rows));
+          setConfigEnabled(rows.some(row => row.enabled));
+        }
+      })
+      .catch(error => {
+        console.warn('Failed to load daily reward config, using defaults', error);
+      })
+      .finally(() => {
+        if (!cancelled) setConfigLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   const streakInfo = profile ? {
     current_streak: profile.current_streak,
@@ -153,7 +189,7 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
   };
 
   const handleClaim = () => {
-    if (alreadyClaimed || claimed) return;
+    if (alreadyClaimed || claimed || !configEnabled) return;
     void earnReward('daily_login').then(result => {
       if (result) {
         setEarnedPoints(result.points);
@@ -265,7 +301,7 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
               7 GÜNLÜK SERİ
             </span>
             <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-dark)' }}>
-              Gün {currentDay}/7
+              {configLoading ? 'Yükleniyor' : `Gün ${currentDay}/7`}
             </span>
           </div>
 
@@ -341,7 +377,18 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
 
         {/* ── CTA ── */}
         <div style={{ padding: '0 18px 22px' }}>
-          {isDone ? (
+          {!configEnabled ? (
+            <div style={{
+              textAlign: 'center', padding: '15px 16px',
+              background: 'var(--tab-bg)',
+              border: brutal.border, borderRadius: 16,
+              boxShadow: brutal.shadowSm,
+            }}>
+              <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-dark)' }}>
+                Günlük ödül sistemi şu anda pasif
+              </span>
+            </div>
+          ) : isDone ? (
             <div style={{
               textAlign: 'center', padding: '15px 16px',
               background: 'var(--tab-bg)',
