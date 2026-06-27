@@ -251,18 +251,6 @@ const LandingPage: React.FC = () => {
             {/* Art — Group sticker cluster (star centerpiece) */}
             <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,24px)' }}>
               <HeroGroupComposition />
-              <div className="hero-live-panel" style={{ background: t.cardBg, color: t.textPrimary }}>
-                <div className="hero-live-panel__header">
-                  <span style={{ color: t.textMuted }}>Bugünkü kazanç</span>
-                  <strong>1.840 puan</strong>
-                </div>
-                <div className="hero-live-progress"><span /></div>
-                <div className="hero-live-list">
-                  <div><span style={{ background: '#56C8FF' }}>QR</span><strong>QR tara</strong><small style={{ color: t.textMuted }}>+75 puan</small></div>
-                  <div><span style={{ background: '#C8FF00' }}>G</span><strong>Görev</strong><small style={{ color: t.textMuted }}>+120 puan</small></div>
-                  <div><span style={{ background: '#FF3E9D', color: '#fff' }}>Ö</span><strong>Ödül</strong><small style={{ color: t.textMuted }}>Kupon açıldı</small></div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -385,42 +373,6 @@ const LandingPage: React.FC = () => {
           display:grid; place-items:center; filter:drop-shadow(0 12px 0 rgba(0,0,0,0.16));
         }
         .hero-group-composition__star { width:min(78%,300px); height:auto; }
-        .hero-live-panel {
-          position:absolute; left:50%; bottom:clamp(4px,1vw,14px); transform:translateX(-50%);
-          width:min(92%,310px); border:3px solid #000; border-radius:18px; box-shadow:7px 7px 0 #000;
-          padding:14px; z-index:4;
-        }
-        .hero-live-panel__header {
-          display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;
-        }
-        .hero-live-panel__header span {
-          display:block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
-        }
-        .hero-live-panel__header strong { display:block; font-size:20px; font-weight:900; line-height:1; }
-        .hero-live-progress {
-          height:10px; border:2px solid #000; border-radius:999px; background:rgba(0,0,0,.08); overflow:hidden; margin-bottom:10px;
-        }
-        .hero-live-progress span { display:block; width:72%; height:100%; background:linear-gradient(90deg,#C8FF00,#56C8FF); }
-        .hero-live-list { display:grid; gap:7px; }
-        .hero-live-list div {
-          display:grid; grid-template-columns:30px 1fr auto; align-items:center; gap:9px; min-width:0;
-          padding:7px; border:2px solid rgba(0,0,0,.16); border-radius:12px;
-        }
-        .hero-live-list span {
-          width:30px; height:30px; border:2px solid #000; border-radius:10px; display:grid; place-items:center;
-          font-size:11px; font-weight:900; color:#000; box-shadow:2px 2px 0 #000;
-        }
-        .hero-live-list strong { font-size:12px; font-weight:900; white-space:nowrap; }
-        .hero-live-list small { font-size:11px; font-weight:800; white-space:nowrap; }
-        @media (min-width:900px) {
-          .hero-live-panel { left:auto; right:0; bottom:4%; transform:none; }
-        }
-        @media (max-width:520px) {
-          .hero-live-panel { position:relative; left:auto; bottom:auto; transform:none; margin:-32px auto 0; width:min(100%,310px); }
-          .hero-live-list div { grid-template-columns:30px 1fr; }
-          .hero-live-list small { grid-column:2; }
-        }
-
         /* ── Nav buttons ── */
         .lbtn-hero-primary {
           display:inline-flex; align-items:center; gap:8px;
