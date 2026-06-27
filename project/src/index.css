@@ -1364,13 +1364,23 @@ body::before {
 .games-hero-card {
   overflow: visible !important;
   isolation: isolate;
+  height: clamp(156px, 38vw, 174px) !important;
+  border-radius: 28px !important;
+  background:
+    radial-gradient(circle at 78% 24%, rgba(255, 255, 255, 0.26), transparent 18%),
+    radial-gradient(circle at 18% 76%, rgba(200, 255, 0, 0.18), transparent 24%),
+    linear-gradient(135deg, #FF3E9D 0%, #9B35FF 46%, #4F8EF7 100%) !important;
+  box-shadow:
+    0 8px 0 var(--dark-border),
+    0 24px 52px rgba(79, 142, 247, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
 }
 
 .games-hero-card .page-main-sticker--hero-inline {
-  right: -22px;
-  top: 38%;
+  right: -12px;
+  top: 46%;
   z-index: 3;
-  transform: translateY(-50%) rotate(calc(var(--pms-rotate, 0deg) - 4deg)) scale(1.08);
+  transform: translateY(-50%) rotate(calc(var(--pms-rotate, 0deg) - 3deg)) scale(1.16);
   filter:
     drop-shadow(0 0 2px rgba(255, 255, 255, 0.94))
     drop-shadow(0 7px 0 rgba(0, 0, 0, 0.23))
@@ -1398,6 +1408,89 @@ body::before {
 
 .games-hero-card .page-main-sticker__img {
   transform-origin: 54% 48%;
+}
+
+.games-hero-card::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  z-index: 0;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 42%),
+    radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.18), transparent 24%);
+  pointer-events: none;
+}
+
+.games-hero-card::after {
+  content: '';
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  width: 68px;
+  height: 10px;
+  border: 2px solid var(--dark-border);
+  border-radius: 999px;
+  background: rgba(200, 255, 0, 0.54);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.22);
+  transform: rotate(-5deg);
+  pointer-events: none;
+}
+
+.games-hero-card .sticker-hero__copy {
+  padding: 22px;
+  padding-right: clamp(154px, 42vw, 220px);
+  justify-content: center;
+  max-width: none;
+}
+
+.games-hero-card .sticker-hero__badge {
+  margin-bottom: 10px;
+  padding: 5px 12px;
+  background: #0b1020;
+  box-shadow:
+    0 4px 0 var(--dark-border),
+    0 10px 22px rgba(0, 0, 0, 0.2);
+}
+
+.games-hero-card .sticker-hero__title {
+  font-size: clamp(20px, 5.4vw, 30px);
+  max-width: 150px;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+}
+
+.games-hero-card .sticker-hero__highlight {
+  max-width: 155px;
+  font-size: clamp(18px, 5vw, 26px);
+  line-height: 0.98;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.14);
+}
+
+@media (max-width: 460px) {
+  .games-hero-card {
+    height: 170px !important;
+  }
+
+  .games-hero-card .sticker-hero__copy {
+    padding: 20px;
+    padding-right: 170px;
+  }
+
+  .games-hero-card .page-main-sticker--hero-inline {
+    right: -8px;
+    top: 48%;
+    transform: translateY(-50%) rotate(calc(var(--pms-rotate, 0deg) - 2deg)) scale(1.1);
+  }
+
+  .games-hero-card .sticker-hero__title,
+  .games-hero-card .sticker-hero__highlight {
+    max-width: 130px;
+  }
+
+  .games-hero-card .sticker-hero__badge {
+    margin-bottom: 8px;
+    font-size: 8px;
+  }
 }
 
 .inventory-hero-card {
