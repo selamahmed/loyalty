@@ -82,6 +82,12 @@ const SeasonalEvents: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<EventLeaderboardEntry[]>([]);
   const [winners, setWinners] = useState<EventWinner[]>([]);
   const [joining, setJoining] = useState(false);
+  const eventLoadRef = React.useRef<{ key: string; loading: boolean; queued: boolean }>({
+    key: '',
+    loading: false,
+    queued: false,
+  });
+  const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -102,6 +108,13 @@ const SeasonalEvents: React.FC = () => {
   const countdown = useCountdown(selectedEvent?.end_date ?? '', status === 'active');
 
   const loadEventData = useCallback(async (eventId: string, evStatus: EventStatus) => {
+    if (!eventId) return;
+    const loadKey = `${eventId}:${evStatus}:${authUser?.id ?? 'anon'}`;
+    if (eventLoadRef.current.loading && eventLoadRef.current.key === loadKey) {
+      eventLoadRef.current.queued = true;
+      return;
+    }
+    eventLoadRef.current = { key: loadKey, loading: true, queued: false };
     try {
       if (evStatus === 'ended' || evStatus === 'distributed') {
         setWinners(await getEventWinners(eventId));
@@ -118,8 +131,20 @@ const SeasonalEvents: React.FC = () => {
     } catch {
       setLeaderboard([]);
       setWinners([]);
+    } finally {
+      const shouldReload = eventLoadRef.current.key === loadKey && eventLoadRef.current.queued;
+      eventLoadRef.current.loading = false;
+      eventLoadRef.current.queued = false;
+      if (shouldReload) {
+        refreshTimerRef.current = setTimeout(() => { void loadEventData(eventId, evStatus); }, 150);
+      }
     }
   }, [authUser?.id]);
+
+  const refreshEventData = useCallback((eventId: string, evStatus: EventStatus) => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => { void loadEventData(eventId, evStatus); }, 200);
+  }, [loadEventData]);
 
   useEffect(() => {
     if (!selectedEvent?.id) return;
@@ -133,10 +158,14 @@ const SeasonalEvents: React.FC = () => {
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'event_participants',
         filter: `event_id=eq.${selectedEvent.id}`,
-      }, () => { void loadEventData(selectedEvent.id, status); })
+      }, () => refreshEventData(selectedEvent.id, status))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [selectedEvent?.id, status, loadEventData]);
+  }, [selectedEvent?.id, status, refreshEventData]);
+
+  useEffect(() => () => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+  }, []);
 
   const handleJoin = async () => {
     if (!selectedEvent || joining || !authUser) return;

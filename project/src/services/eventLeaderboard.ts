@@ -60,6 +60,34 @@ const RECENT_EVENT_MS = 14 * 24 * 60 * 60 * 1000;
 
 const RPC_MISSING = 'PGRST202';
 const TABLE_MISSING = '42P01';
+const EVENT_LEADERBOARD_CACHE_MS = 2000;
+const EVENT_PARTICIPATION_CACHE_MS = 2000;
+
+type CachedValue<T> = { expiresAt: number; value: T };
+
+const leaderboardCache = new Map<string, CachedValue<EventLeaderboardEntry[]>>();
+const leaderboardInFlight = new Map<string, Promise<EventLeaderboardEntry[]>>();
+const participationCache = new Map<string, CachedValue<EventParticipation>>();
+const participationInFlight = new Map<string, Promise<EventParticipation>>();
+
+function cacheKey(parts: Array<string | number | null | undefined>): string {
+  return parts.map(part => String(part ?? '')).join(':');
+}
+
+function readCache<T>(cache: Map<string, CachedValue<T>>, key: string): T | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.value;
+}
+
+function writeCache<T>(cache: Map<string, CachedValue<T>>, key: string, value: T, ttlMs: number): T {
+  cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+  return value;
+}
 
 function isMissingRpc(error: { code?: string; message?: string }): boolean {
   return error.code === RPC_MISSING
@@ -213,19 +241,36 @@ export async function getEventLeaderboard(
   eventId: string,
   limit = 50,
 ): Promise<EventLeaderboardEntry[]> {
-  const { data, error } = await supabase.rpc('get_event_leaderboard', {
-    p_event_id: eventId,
-    p_limit: limit,
+  if (!eventId) return [];
+  const safeLimit = Math.min(Math.max(Math.floor(limit) || 20, 1), 50);
+  const key = cacheKey(['event-board', eventId, safeLimit]);
+  const cached = readCache(leaderboardCache, key);
+  if (cached) return cached;
+
+  const existing = leaderboardInFlight.get(key);
+  if (existing) return existing;
+
+  const request = (async () => {
+    const { data, error } = await supabase.rpc('get_event_leaderboard', {
+      p_event_id: eventId,
+      p_limit: safeLimit,
+    });
+
+    if (!error) return writeCache(leaderboardCache, key, parseEventBoard(data), EVENT_LEADERBOARD_CACHE_MS);
+
+    if (isMissingRpc(error) || error.code === 'PGRST202' || error.code?.startsWith('P')) {
+      console.warn('[eventLeaderboard] RPC failed; using table fallback:', error.message);
+      const fallback = await getEventLeaderboardFallback(eventId, safeLimit);
+      return writeCache(leaderboardCache, key, fallback, EVENT_LEADERBOARD_CACHE_MS);
+    }
+
+    throw error;
+  })().finally(() => {
+    leaderboardInFlight.delete(key);
   });
 
-  if (!error) return parseEventBoard(data);
-
-  if (isMissingRpc(error) || error.code === 'PGRST202' || error.code?.startsWith('P')) {
-    console.warn('[eventLeaderboard] RPC failed; using table fallback:', error.message);
-    return getEventLeaderboardFallback(eventId, limit);
-  }
-
-  throw error;
+  leaderboardInFlight.set(key, request);
+  return request;
 }
 
 async function getMyEventParticipationFallback(eventId: string): Promise<EventParticipation> {
@@ -250,17 +295,36 @@ async function getMyEventParticipationFallback(eventId: string): Promise<EventPa
 }
 
 export async function getMyEventParticipation(eventId: string): Promise<EventParticipation> {
-  const { data, error } = await supabase.rpc('get_my_event_participation', {
-    p_event_id: eventId,
+  if (!eventId) return { joined: false };
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (!userId) return { joined: false };
+  const key = cacheKey(['event-participation', eventId, userId]);
+  const cached = readCache(participationCache, key);
+  if (cached) return cached;
+
+  const existing = participationInFlight.get(key);
+  if (existing) return existing;
+
+  const request = (async () => {
+    const { data, error } = await supabase.rpc('get_my_event_participation', {
+      p_event_id: eventId,
+    });
+
+    if (!error) return writeCache(participationCache, key, parseParticipation(data), EVENT_PARTICIPATION_CACHE_MS);
+
+    if (isMissingRpc(error)) {
+      const fallback = await getMyEventParticipationFallback(eventId);
+      return writeCache(participationCache, key, fallback, EVENT_PARTICIPATION_CACHE_MS);
+    }
+
+    throw error;
+  })().finally(() => {
+    participationInFlight.delete(key);
   });
 
-  if (!error) return parseParticipation(data);
-
-  if (isMissingRpc(error)) {
-    return getMyEventParticipationFallback(eventId);
-  }
-
-  throw error;
+  participationInFlight.set(key, request);
+  return request;
 }
 
 export async function joinEvent(eventId: string): Promise<EventParticipation> {
@@ -271,11 +335,15 @@ export async function joinEvent(eventId: string): Promise<EventParticipation> {
     }
     throw error;
   }
-  return {
+  const participation = {
     joined: true,
     points: (data as { points?: number })?.points ?? 0,
     rank: (data as { rank?: number | null })?.rank ?? null,
   };
+  const { data: { session } } = await supabase.auth.getSession();
+  participationCache.delete(cacheKey(['event-participation', eventId, session?.user?.id]));
+  leaderboardCache.delete(cacheKey(['event-board', eventId, 50]));
+  return participation;
 }
 
 export async function getEventWinners(eventId: string): Promise<EventWinner[]> {

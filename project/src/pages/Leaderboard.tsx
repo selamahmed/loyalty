@@ -428,8 +428,17 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
   const [finalWinners, setFinalWinners] = React.useState<EventWinner[]>([]);
   const [participation, setParticipation] = React.useState<EventParticipation | null>(null);
   const [joining, setJoining] = React.useState(false);
+  const loadingRef = React.useRef(false);
+  const queuedRef = React.useRef(false);
+  const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadEventBoard = React.useCallback(async () => {
+    if (!event.id) return;
+    if (loadingRef.current) {
+      queuedRef.current = true;
+      return;
+    }
+    loadingRef.current = true;
     try {
       if (ended) {
         setFinalWinners(await getEventWinners(event.id));
@@ -442,6 +451,13 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
         setParticipation(await getMyEventParticipation(event.id));
       }
     } catch { /* keep stale */ }
+    finally {
+      loadingRef.current = false;
+      if (queuedRef.current) {
+        queuedRef.current = false;
+        refreshTimerRef.current = setTimeout(() => { void loadEventBoard(); }, 150);
+      }
+    }
   }, [event.id, ended, authUser?.id, showUserCard]);
 
   const handleJoin = async () => {
@@ -458,11 +474,11 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
   React.useEffect(() => { void loadEventBoard(); }, [loadEventBoard]);
 
   const refreshEventBoard = React.useCallback(() => {
-    void loadEventBoard();
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => { void loadEventBoard(); }, 200);
   }, [loadEventBoard]);
 
   useRealtimeTable('leaderboard_signals', refreshEventBoard, !ended);
-  useRealtimeTable('event_participants', refreshEventBoard, !ended);
 
   React.useEffect(() => onLeaderboardRefresh(refreshEventBoard), [refreshEventBoard]);
 
@@ -473,15 +489,18 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'event_participants',
         filter: `event_id=eq.${event.id}`,
-      }, () => { void loadEventBoard(); })
+      }, refreshEventBoard)
       .subscribe();
-    const poll = setInterval(() => { void loadEventBoard(); }, 5000);
-    return () => { supabase.removeChannel(channel); clearInterval(poll); };
-  }, [event.id, ended, loadEventBoard]);
+    return () => { supabase.removeChannel(channel); };
+  }, [event.id, ended, refreshEventBoard]);
 
   React.useEffect(() => {
     if (cd.ended && !ended) void syncEventStatuses().then(() => loadEventBoard());
   }, [cd.ended, ended, loadEventBoard]);
+
+  React.useEffect(() => () => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+  }, []);
 
   const displayPlayers = ended ? [] : topPlayers;
   const sortedWinners = [...(ended ? finalWinners : [])].sort((a, b) => a.final_rank - b.final_rank);
