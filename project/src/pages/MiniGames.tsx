@@ -540,10 +540,17 @@ const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
   useEffect(() => {
     if (phase !== 'playing') return;
 
+    // Fixed-timestep loop driven by requestAnimationFrame. The physics still
+    // advances in discrete 1/60s steps (identical feel to the old setInterval),
+    // but it is now vsync-aligned and immune to timer drift / background-tab
+    // throttling, and we trigger at most one React render per painted frame.
+    const STEP_MS = 1000 / 60;
+    let rafId = 0;
+    let last = performance.now();
+    let acc = 0;
     let spawnTimer = 0;
-    const loop = setInterval(() => {
-      if (!activeRef.current) return;
 
+    const advance = () => {
       const bird = birdRef.current;
       bird.vy = Math.min(bird.vy + 0.38, 8);
       bird.y += bird.vy;
@@ -575,7 +582,7 @@ const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
 
       if (birdBottom >= FLAPPY_H - 8 || birdTop <= 0) {
         endGame();
-        return;
+        return false;
       }
 
       for (const p of pipesRef.current) {
@@ -587,14 +594,31 @@ const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
         const overlapX = birdRight > pipeLeft + 4 && birdLeft < pipeRight - 4;
         if (overlapX && (birdTop < gapTop || birdBottom > gapBottom)) {
           endGame();
-          return;
+          return false;
         }
       }
+      return true;
+    };
+
+    const loop = (now: number) => {
+      if (!activeRef.current) return;
+      // Clamp to avoid a "spiral of death" after a long stall (e.g. tab blur).
+      acc += Math.min(now - last, 250);
+      last = now;
+
+      let stillRunning = true;
+      while (acc >= STEP_MS && stillRunning) {
+        acc -= STEP_MS;
+        stillRunning = advance();
+      }
+      if (!stillRunning) return;
 
       setRenderTick(t => t + 1);
-    }, 1000 / 60);
+      rafId = requestAnimationFrame(loop);
+    };
 
-    return () => clearInterval(loop);
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
   }, [phase, endGame]);
 
   void renderTick;

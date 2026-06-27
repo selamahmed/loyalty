@@ -1228,7 +1228,6 @@ body::before {
   background-image: url('/assets/images/nesve-next-watermark.svg');
   background-repeat: repeat;
   background-size: 420px 420px;
-  will-change: transform;
 }
 
 [data-theme="dark"] body::before {
