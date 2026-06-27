@@ -34,7 +34,7 @@ function purchaseRewardError(error: SupabaseServiceError): Error {
 export async function getUserRedemptions(userId: string, page = 0, pageSize = 20): Promise<Redemption[]> {
   const { data, error } = await supabase
     .from('redemptions')
-    .select('*, rewards(title, image, category)')
+    .select('*, rewards(title, description, image, category, points)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .range(page * pageSize, (page + 1) * pageSize - 1);

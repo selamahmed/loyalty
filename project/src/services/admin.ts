@@ -266,6 +266,60 @@ export async function updateRedemptionAdmin(id: string, updates: {
   if (error) throw error;
 }
 
+export async function createInventoryItemAdmin(input: {
+  userId: string;
+  type: string;
+  title: string;
+  description?: string;
+  code: string;
+  points: number;
+  image?: string;
+  expiresAt?: string | null;
+  barcode?: string;
+}) {
+  const { data, error } = await supabase.rpc('admin_create_inventory_item', {
+    p_user_id: input.userId,
+    p_type: input.type,
+    p_title: input.title,
+    p_description: input.description ?? null,
+    p_code: input.code,
+    p_points: input.points,
+    p_image: input.image ?? null,
+    p_expires_at: input.expiresAt ?? null,
+    p_barcode: input.barcode ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateInventoryItemAdmin(input: {
+  redemptionId: string;
+  type: string;
+  title: string;
+  description?: string;
+  code: string;
+  used: boolean;
+  points: number;
+  image?: string;
+  expiresAt?: string | null;
+  barcode?: string;
+}) {
+  const { data, error } = await supabase.rpc('admin_update_inventory_item', {
+    p_redemption_id: input.redemptionId,
+    p_type: input.type,
+    p_title: input.title,
+    p_description: input.description ?? null,
+    p_code: input.code,
+    p_used: input.used,
+    p_points: input.points,
+    p_image: input.image ?? null,
+    p_expires_at: input.expiresAt ?? null,
+    p_barcode: input.barcode ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteRedemptionAdmin(id: string): Promise<void> {
   const { error } = await supabase.from('redemptions').delete().eq('id', id);
   if (error) throw error;
