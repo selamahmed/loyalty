@@ -13,6 +13,8 @@ type DBQRCode = { id: string; code: string; label: string | null; points: number
 
 type InvItem = { id: string; title: string; description: string; points: number; category: string; image: string | null | undefined; code: string; type?: string; used?: boolean; expires?: string };
 type TabType = 'purchase' | 'inventory' | 'store';
+type JoinedReward = { title?: string | null; description?: string | null; category?: string | null; image?: string | null; points?: number | null };
+type RedemptionAdminRow = Record<string, unknown> & { rewards?: JoinedReward | JoinedReward[] | null };
 
 const typeColor: Record<string, string> = { coupon: '#3b82f6', ticket: '#f59e0b', reward: '#22c55e' };
 const typeLabel: Record<string, string> = { coupon: 'Kupon', ticket: 'Bilet', reward: 'Ödül' };
@@ -126,6 +128,12 @@ function generateInventoryCode(type: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
+function normalizeJoinedReward(row: RedemptionAdminRow): JoinedReward {
+  const reward = row.rewards;
+  if (Array.isArray(reward)) return reward[0] ?? {};
+  return reward ?? {};
+}
+
 const AdminQR: React.FC = () => {
   const { authUser } = useAuth();
   const [tab, setTab] = useState<TabType>('purchase');
@@ -193,18 +201,21 @@ const AdminQR: React.FC = () => {
     setInvLoading(true);
     try {
       const data = await getRedemptionsAdmin(0, 100);
-      setInvItems(data.map((r: Record<string, unknown>) => ({
-        id: r.id as string,
-        title: (r.rewards as Record<string, unknown>)?.title as string ?? 'Ödül',
-        description: '',
-        points: r.points_spent as number ?? 0,
-        category: (r.rewards as Record<string, unknown>)?.category as string ?? '',
-        image: null,
-        code: r.code as string,
-        used: r.used as boolean,
-        expires: r.expires_at as string | undefined,
-        type: 'reward',
-      })));
+      setInvItems((data as RedemptionAdminRow[]).map((r) => {
+        const reward = normalizeJoinedReward(r);
+        return {
+          id: String(r.id),
+          title: reward.title ?? 'Ödül',
+          description: reward.description ?? '',
+          points: Number(r.points_spent ?? reward.points ?? 0),
+          category: reward.category ?? '',
+          image: reward.image ?? null,
+          code: String(r.code ?? ''),
+          used: Boolean(r.used),
+          expires: r.expires_at ? String(r.expires_at) : undefined,
+          type: reward.category ?? 'reward',
+        };
+      }));
     } catch { setInvItems([]); } finally { setInvLoading(false); }
   }, []);
 
@@ -619,14 +630,24 @@ const AdminQR: React.FC = () => {
                 return (
                   <div key={item.id} className={`${card} p-4`}>
                     <div className="flex items-start gap-4">
-                      <img src={item.image ?? undefined} alt={item.title} className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border-2 border-black dark:border-gray-600" style={{ opacity: item.used ? 0.5 : 1 }} />
+                      {item.image ? (
+                        <img src={item.image} alt={item.title} className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border-2 border-black dark:border-gray-600" style={{ opacity: item.used ? 0.5 : 1 }} />
+                      ) : (
+                        <div className="w-14 h-14 rounded-xl flex-shrink-0 border-2 border-black dark:border-gray-600 flex items-center justify-center text-2xl" style={{ background: `${color}18`, opacity: item.used ? 0.5 : 1 }}>
+                          🎁
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <p className="font-black text-sm" style={{ textDecoration: item.used ? 'line-through' : 'none', opacity: item.used ? 0.6 : 1 }}>{item.title}</p>
                           <span className="text-xs font-black px-2 py-0.5 rounded-full border" style={{ color, borderColor: color, background: `${color}18` }}>{label}</span>
                           {item.used && <span className="text-xs font-black px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500">Kullanıldı</span>}
                         </div>
-                        <p className="text-xs text-gray-400 mb-2">Son kullanım: {item.expires ? new Date(item.expires).toLocaleDateString('tr-TR') : 'N/A'}</p>
+                        {item.description && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 line-clamp-1">{item.description}</p>}
+                        <p className="text-xs text-gray-400 mb-2">
+                          {item.points > 0 && <span className="font-bold text-amber-500 mr-2">{item.points.toLocaleString('tr-TR')} pts</span>}
+                          Son kullanım: {item.expires ? new Date(item.expires).toLocaleDateString('tr-TR') : 'N/A'}
+                        </p>
                         {isEditing ? (
                           <div className="flex gap-2 items-center">
                             <input value={editCode} onChange={e => setEditCode(e.target.value.toUpperCase())} onKeyDown={e => { if (e.key === 'Enter') void saveEdit(item.id); }}
