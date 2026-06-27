@@ -4950,7 +4950,7 @@ body::before {
   flex-shrink: 0;
   background: rgba(0, 0, 0, 0.88);
   border-radius: 14px;
-  padding: 8px 10px;
+  padding: 8px;
 }
 
 .event-lb__countdown-label {
@@ -4966,12 +4966,13 @@ body::before {
 }
 
 .event-lb__countdown-units {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(28px, 1fr));
   gap: 4px;
 }
 
 .event-lb__countdown-unit {
-  min-width: 30px;
+  min-width: 28px;
   padding: 4px 5px;
   border-radius: 8px;
   background: #ffe500;
@@ -5544,6 +5545,11 @@ body::before {
 
   .event-lb__countdown {
     align-self: flex-start;
+  }
+
+  .event-lb__countdown-unit {
+    min-width: 27px;
+    padding-inline: 4px;
   }
 
   .event-lb__you-grid {

@@ -579,7 +579,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
             <div className="event-lb__countdown">
               <p className="event-lb__countdown-label"><Timer size={10} /> Bitiş</p>
               <div className="event-lb__countdown-units">
-                {[{ v: cd.days, l: 'G' }, { v: cd.hours, l: 'S' }, { v: cd.mins, l: 'D' }].map(u => (
+                {[{ v: cd.days, l: 'G' }, { v: cd.hours, l: 'S' }, { v: cd.mins, l: 'D' }, { v: cd.secs, l: 'SN' }].map(u => (
                   <div key={u.l} className="event-lb__countdown-unit">
                     <strong>{String(u.v).padStart(2, '0')}</strong>
                     <span>{u.l}</span>
