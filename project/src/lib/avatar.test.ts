@@ -50,6 +50,19 @@ describe('avatar URLs', () => {
     expect(queryKeys(url)).toEqual(ACCESSORY_ALLOWED_PARAMS);
   });
 
+  it('omits accessories params for no-glasses so the base avatar stays stable', () => {
+    const url = buildAvatarUrl({
+      seed: 'ahmed',
+      accessories: 'blank',
+      accessoriesProbability: 100,
+    });
+    const parsed = new URL(url);
+
+    expect(parsed.searchParams.get('accessories')).toBeNull();
+    expect(parsed.searchParams.get('accessoriesProbability')).toBeNull();
+    expect(queryKeys(url)).toEqual(BASE_ALLOWED_PARAMS);
+  });
+
   it('uses single color values when no colors are provided', () => {
     const url = buildAvatarUrl({ seed: 'ahmed' });
     const parsed = new URL(url);

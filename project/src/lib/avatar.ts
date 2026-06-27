@@ -93,6 +93,21 @@ export const ALLOWED_CLOTHING_COLORS = [
   '7c3aed',
 ];
 
+const FRIENDLY_AVATAR_SEEDS = [
+  'nesve-happy-ali',
+  'nesve-happy-deniz',
+  'nesve-happy-lina',
+  'nesve-happy-mira',
+  'nesve-happy-selin',
+  'nesve-happy-tuna',
+  'nesve-happy-yasmin',
+  'nesve-happy-zara',
+  'nesve-soft-ahmed',
+  'nesve-soft-star',
+  'nesve-soft-smile',
+  'nesve-soft-friend',
+];
+
 export const buildAvatarUrl = (options: AvatarOptions | string): string => {
   const opts: AvatarOptions =
     typeof options === 'string' ? { seed: options } : options;
@@ -109,7 +124,7 @@ export const buildAvatarUrl = (options: AvatarOptions | string): string => {
   const accessories = normalizeAvatarAccessory(opts.accessories);
   const accessoriesProbability = normalizeProbability(opts.accessoriesProbability);
 
-  if (accessories) {
+  if (accessories && accessories !== 'blank') {
     params.set('accessories', accessories);
     params.set('accessoriesProbability', String(accessoriesProbability ?? 100));
   }
@@ -139,9 +154,7 @@ export const getDefaultAvatarSeed = (options: {
 };
 
 export const randomAvatarSeed = (): string => {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  return `avatar-${timestamp}-${random}`;
+  return FRIENDLY_AVATAR_SEEDS[Math.floor(Math.random() * FRIENDLY_AVATAR_SEEDS.length)];
 };
 
 export const isValidSeed = (seed: string | null | undefined): boolean => {
