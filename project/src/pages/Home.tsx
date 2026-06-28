@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Bell, Box, ChevronRight, QrCode, Star, Trophy } from 'lucide-react';
+import { ArrowRight, Bell, Box, ChevronRight, Info, QrCode, Star, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
@@ -135,11 +135,14 @@ const Home: React.FC = () => {
       .catch(() => setUnreadNotifs([]));
   }, [authUser?.id]);
 
+  const [showLimitInfo, setShowLimitInfo] = useState(false);
+
   const maxPointsLimit = Math.max(1, Math.round(loyaltySettings.max_points_limit || DEFAULT_SYSTEM_SETTINGS.loyalty.max_points_limit));
   const limitEnabled = loyaltySettings.points_limit_enabled;
   const limitPct = Math.min(100, Math.round((points / maxPointsLimit) * 100));
   const reachedLimit = limitEnabled && points >= maxPointsLimit;
-  const nearLimit = limitEnabled && !reachedLimit && points >= maxPointsLimit * 0.85;
+  const nearLimit = limitEnabled && !reachedLimit && limitPct >= 85;
+  const showLimitCard = limitEnabled && limitPct >= 75;
 
   return (
     <div className="home-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
@@ -242,7 +245,7 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        {limitEnabled && (
+        {showLimitCard && (
           <div
             className={`home-loyalty-limit-card ${reachedLimit ? 'home-loyalty-limit-card--blocked' : nearLimit ? 'home-loyalty-limit-card--warning' : ''}`}
             style={{
@@ -257,16 +260,35 @@ const Home: React.FC = () => {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
-              <div>
-                <p style={{ margin: 0, fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: reachedLimit ? '#dc2626' : nearLimit ? '#d97706' : '#0891b2' }}>
-                  Loyalty Limit
-                </p>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: reachedLimit ? '#dc2626' : nearLimit ? '#d97706' : '#0891b2' }}>
+                    Sadakat Limiti
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowLimitInfo(v => !v)}
+                    aria-expanded={showLimitInfo}
+                    aria-label={showLimitInfo ? 'Limit bilgisini gizle' : 'Limit hakkında bilgi göster'}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '3px 8px', borderRadius: 999,
+                      border: '2px solid #111827', background: '#fff',
+                      boxShadow: '2px 2px 0 #111827', cursor: 'pointer',
+                      fontSize: 10, fontWeight: 900, fontFamily: 'inherit',
+                      color: reachedLimit ? '#dc2626' : nearLimit ? '#d97706' : '#0891b2',
+                    }}
+                  >
+                    <Info size={12} aria-hidden />
+                    Bilgi
+                  </button>
+                </div>
                 <h2 style={{ margin: '3px 0 0', fontSize: 'clamp(18px,4vw,24px)', fontWeight: 900, lineHeight: 1.05 }}>
-                  {points.toLocaleString('tr-TR')} / {maxPointsLimit.toLocaleString('tr-TR')} points
+                  {points.toLocaleString('tr-TR')} / {maxPointsLimit.toLocaleString('tr-TR')} puan
                 </h2>
               </div>
-              <span style={{ padding: '7px 10px', borderRadius: 999, border: '2px solid #111827', boxShadow: '2px 2px 0 #111827', fontSize: 12, fontWeight: 900, background: '#fff' }}>
-                {limitPct}%
+              <span style={{ padding: '7px 10px', borderRadius: 999, border: '2px solid #111827', boxShadow: '2px 2px 0 #111827', fontSize: 12, fontWeight: 900, background: '#fff', flexShrink: 0 }}>
+                %{limitPct}
               </span>
             </div>
             <div style={{ height: 12, borderRadius: 999, border: '2px solid #111827', background: 'rgba(255,255,255,0.7)', overflow: 'hidden' }}>
@@ -279,12 +301,30 @@ const Home: React.FC = () => {
                 }}
               />
             </div>
-            {(reachedLimit || nearLimit) && (
-              <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 900, color: reachedLimit ? '#991b1b' : '#92400e' }}>
-                {reachedLimit
-                  ? `You have reached the maximum loyalty points limit of ${maxPointsLimit.toLocaleString('tr-TR')} points. You cannot claim more points at this time.`
-                  : 'You are close to reaching your maximum loyalty points limit.'}
-              </p>
+            <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 900, color: reachedLimit ? '#991b1b' : nearLimit ? '#92400e' : '#0e7490' }}>
+              {reachedLimit
+                ? `Maksimum sadakat puanı limitine (${maxPointsLimit.toLocaleString('tr-TR')} puan) ulaştın. Şu an yeni puan kazanamazsın; mevcut puanlarınla ödül almaya devam edebilirsin.`
+                : nearLimit
+                  ? 'Sadakat puanı limitine çok yaklaştın. Limit dolduğunda QR, oyun ve görevlerden yeni puan kazanamazsın.'
+                  : 'Sadakat puanı limitinin %75’ine ulaştın. Limite yaklaştıkça bu alan seni bilgilendirecek.'}
+            </p>
+            {showLimitInfo && (
+              <div
+                style={{
+                  marginTop: 12, padding: '12px 14px', borderRadius: 14,
+                  border: '2px solid #111827', background: 'rgba(255,255,255,0.72)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
+                }}
+              >
+                <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 800, color: '#111827' }}>
+                  Sadakat limiti nedir?
+                </p>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, fontWeight: 600, color: '#374151', lineHeight: 1.55 }}>
+                  <li>Hesabında biriktirebileceğin en yüksek puan miktarıdır (şu an {maxPointsLimit.toLocaleString('tr-TR')} puan).</li>
+                  <li>Limit dolduğunda yeni puan kazanamazsın; elindeki puanlarla mağazadan ödül almaya devam edebilirsin.</li>
+                  <li>Limit, yönetici tarafından güncellenebilir. Güncelleme olursa burada yeni değeri görürsün.</li>
+                </ul>
+              </div>
             )}
           </div>
         )}
