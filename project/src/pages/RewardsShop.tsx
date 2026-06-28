@@ -1,28 +1,22 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Search, Star, ShoppingCart, X, Check, ArrowRight, Package } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
-import { getRewards } from '../services/rewards';
 import { purchaseReward } from '../services/redemptions';
 import type { Reward } from '../services/rewards';
 import { playSound } from '../lib/sounds';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useShopRewards } from '../hooks/useShopRewards';
 import { WinningParticles } from '../components/WinningParticles';
 import PageMainSticker from '../components/PageMainSticker';
 import { activityLogService } from '../lib/activityLogger';
 
-const card = {
+const cardStyle: React.CSSProperties = {
   background: 'var(--card-bg)',
   border: '3px solid var(--dark-border)',
   boxShadow: '0px 6px 0px var(--dark-border)',
   borderRadius: 20,
-};
-
-const productCardContainment: React.CSSProperties = {
-  contentVisibility: 'auto',
-  containIntrinsicSize: '294px 180px',
-  contain: 'layout paint style',
 };
 
 /* ── Buy modal ── */
@@ -47,7 +41,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
     style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)' }}
     onClick={e => { if (e.target === e.currentTarget) onClose(); }}
   >
-    <div className="shop-buy-modal" style={{ ...card, maxWidth: 380, width: '100%', padding: 24, animation: 'modalPop 0.22s cubic-bezier(0.34,1.56,0.64,1)' }}>
+    <div className="shop-buy-modal" style={{ ...cardStyle, maxWidth: 380, width: '100%', padding: 24, animation: 'modalPop 0.22s cubic-bezier(0.34,1.56,0.64,1)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
         <div>
@@ -128,26 +122,109 @@ const BuyModal: React.FC<BuyModalProps> = ({ reward, onConfirm, onClose, canAffo
   </div>
 );
 
+interface ShopProductCardProps {
+  reward: Reward;
+  canAfford: boolean;
+  onSelect: (reward: Reward) => void;
+}
+
+const ShopProductCard = React.memo(function ShopProductCard({
+  reward,
+  canAfford,
+  onSelect,
+}: ShopProductCardProps) {
+  const handleActivate = useCallback(() => onSelect(reward), [onSelect, reward]);
+
+  return (
+    <div
+      onClick={handleActivate}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleActivate();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${reward.title}, ${reward.points.toLocaleString()} puan`}
+      className={`press-card shop-product-card ${canAfford ? 'shop-product-card--available' : 'shop-product-card--locked'}`}
+      style={{
+        ...cardStyle,
+        overflow: 'hidden',
+        cursor: 'pointer',
+      }}
+    >
+      <div className="shop-product-card__media" style={{ position: 'relative', height: 130, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)' }}>
+        {reward.image ? (
+          <img
+            src={reward.image}
+            alt={reward.title}
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+            width={340}
+            height={260}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🎁</div>
+        )}
+        {reward.limited && (
+          <span className="shop-product-card__badge">SINIRLI</span>
+        )}
+        {!canAfford && (
+          <div className="shop-product-card__lock">
+            <span>Yetersiz Puan</span>
+          </div>
+        )}
+      </div>
+
+      <div className="shop-product-card__body" style={{ padding: '12px 14px 14px' }}>
+        <p className="shop-product-card__title" style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 4px', lineHeight: 1.25 }}>{reward.title}</p>
+        <p className="shop-product-card__desc" style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 10px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{reward.description}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Star size={13} fill="#f59e0b" color="#f59e0b" />
+            <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>{reward.points.toLocaleString()}</span>
+          </div>
+          <div className="shop-product-card__cta" style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: canAfford ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--tab-bg)',
+            border: '2px solid var(--dark-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ArrowRight size={13} color={canAfford ? 'white' : 'var(--text-muted)'} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 /* ── Main page ── */
 const RewardsShop: React.FC = () => {
   const { points, spendPoints, soundEnabled } = useApp();
   const { authUser, profile, refreshProfile } = useAuth();
   const { reload: reloadInventory } = useInventory();
+  const { data: rewards = [], isLoading } = useShopRewards();
   const [search, setSearch]             = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [success, setSuccess]           = useState<string | null>(null);
   const [showParticles, setShowParticles] = useState(false);
   const [celebration, setCelebration]   = useState<CelebrationState | null>(null);
-  const [rewards, setRewards]           = useState<Reward[]>([]);
-  const [isLoading, setIsLoading]       = useState(true);
   const [buyLoading, setBuyLoading]     = useState(false);
   const [buyError, setBuyError]         = useState<string | null>(null);
 
-  useEffect(() => {
-    setIsLoading(true);
-    getRewards().then(setRewards).catch(() => setRewards([])).finally(() => setIsLoading(false));
-  }, []);
+  const playClick = useCallback(() => {
+    if (soundEnabled) playSound('click');
+  }, [soundEnabled]);
+
+  const handleSelectReward = useCallback((reward: Reward) => {
+    playClick();
+    setBuyError(null);
+    setSelectedReward(reward);
+  }, [playClick]);
 
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
@@ -156,8 +233,6 @@ const RewardsShop: React.FC = () => {
 
   const affordableCount = useMemo(() => filtered.filter(r => points >= r.points).length, [filtered, points]);
   const limitedCount = useMemo(() => filtered.filter(r => r.limited).length, [filtered]);
-
-  const playClick = () => { if (soundEnabled) playSound('click'); };
 
   const handleBuy = async () => {
     if (!selectedReward || !authUser?.id || buyLoading) return;
@@ -218,8 +293,12 @@ const RewardsShop: React.FC = () => {
         <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>MAĞAZA</div>
       </div>
 
-      <WinningParticles trigger={showParticles} emoji="🛍️" />
-      <WinningParticles trigger={showParticles} emoji="🎟️" count={72} intensity="mega" />
+      {showParticles && (
+        <>
+          <WinningParticles trigger emoji="🛍️" />
+          <WinningParticles trigger emoji="🎟️" count={72} intensity="mega" />
+        </>
+      )}
       {celebration && (
         <div className="redeem-celebration" aria-live="polite">
           <div className="redeem-celebration__halo" />
@@ -315,7 +394,7 @@ const RewardsShop: React.FC = () => {
 
         {/* ── Success toast ── */}
         {success && (
-          <div style={{ ...card, border: '3px solid #22c55e', boxShadow: '0 6px 0 #16a34a', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(34,197,94,0.06)', animation: 'modalPop 0.2s ease-out' }}>
+          <div style={{ ...cardStyle, border: '3px solid #22c55e', boxShadow: '0 6px 0 #16a34a', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(34,197,94,0.06)', animation: 'modalPop 0.2s ease-out' }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, background: '#22c55e', border: '2px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Check size={20} color="white" />
             </div>
@@ -367,89 +446,31 @@ const RewardsShop: React.FC = () => {
 
         {/* ── Products grid ── */}
         {isLoading ? (
-          <div style={{ ...card, padding: '56px 24px', textAlign: 'center' }}>
+          <div style={{ ...cardStyle, padding: '56px 24px', textAlign: 'center' }}>
             <div className="w-8 h-8 rounded-full border-4 border-violet-400 border-t-transparent animate-spin mx-auto mb-3" />
             <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Yükleniyor...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ ...card, padding: '56px 24px', textAlign: 'center' }}>
+          <div style={{ ...cardStyle, padding: '56px 24px', textAlign: 'center' }}>
             <p style={{ fontSize: 48, margin: '0 0 12px' }}>🔍</p>
             <p style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-dark)', margin: '0 0 6px' }}>Ürün bulunamadı</p>
             <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Farklı bir arama dene</p>
           </div>
         ) : (
           <div className="shop-products-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 14 }}>
-            {filtered.map((reward, index) => {
-              const canAfford = points >= reward.points;
-              return (
-                <div
-                  key={reward.id}
-                  onClick={() => { playClick(); setBuyError(null); setSelectedReward(reward); }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      playClick();
-                      setBuyError(null);
-                      setSelectedReward(reward);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${reward.title}, ${reward.points.toLocaleString()} puan`}
-                  className={`press-card shop-product-card ${canAfford ? 'shop-product-card--available' : 'shop-product-card--locked'}`}
-                  style={{
-                    ...card,
-                    ...productCardContainment,
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    animation: index < 12 ? `shopFadeIn 0.24s ease-out ${index * 0.018}s both` : 'none',
-                  }}
-                >
-                  {/* Product image */}
-                  <div className="shop-product-card__media" style={{ position: 'relative', height: 130, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)' }}>
-                    {reward.image ? (
-                      <img src={reward.image} alt={reward.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', background: 'var(--tab-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🎁</div>
-                    )}
-                    {reward.limited && (
-                      <span className="shop-product-card__badge">SINIRLI</span>
-                    )}
-                    {!canAfford && (
-                      <div className="shop-product-card__lock">
-                        <span>Yetersiz Puan</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Product info */}
-                  <div className="shop-product-card__body" style={{ padding: '12px 14px 14px' }}>
-                    <p className="shop-product-card__title" style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 4px', lineHeight: 1.25 }}>{reward.title}</p>
-                    <p className="shop-product-card__desc" style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 10px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{reward.description}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Star size={13} fill="#f59e0b" color="#f59e0b" />
-                        <span style={{ fontWeight: 900, fontSize: 14, color: '#f59e0b' }}>{reward.points.toLocaleString()}</span>
-                      </div>
-                      <div className="shop-product-card__cta" style={{
-                        width: 28, height: 28, borderRadius: 8,
-                        background: canAfford ? 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))' : 'var(--tab-bg)',
-                        border: '2px solid var(--dark-border)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <ArrowRight size={13} color={canAfford ? 'white' : 'var(--text-muted)'} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {filtered.map(reward => (
+              <ShopProductCard
+                key={reward.id}
+                reward={reward}
+                canAfford={points >= reward.points}
+                onSelect={handleSelectReward}
+              />
+            ))}
           </div>
         )}
       </div>
 
       <style>{`
-        @keyframes shopFadeIn { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes modalPop   { from { opacity: 0; transform: scale(0.92) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
       `}</style>
     </div>

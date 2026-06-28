@@ -2371,8 +2371,6 @@ body::before {
 
 .shop-products-grid {
   align-items: stretch;
-  content-visibility: auto;
-  contain: layout paint style;
 }
 
 .shop-product-card {
