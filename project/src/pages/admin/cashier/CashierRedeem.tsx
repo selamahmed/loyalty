@@ -422,7 +422,7 @@ const CashierRedeem: React.FC = () => {
         {status === 'found_expired' && foundItem && (
           <div style={{ ...card, padding: 22, border: '3px solid #f59e0b', boxShadow: '0 5px 0 #d97706', textAlign: 'center' }}>
             <Clock size={36} color="#f59e0b" style={{ margin: '0 auto 12px' }} />
-            <p style={{ fontWeight: 900, fontSize: 16, color: '#d97706', margin: '0 0 6px' }}>Kodun Süresi Dolmuş</p>
+            <p style={{ fontWeight: 900, fontSize: 16, color: '#d97706', margin: '0 0 6px' }}>This ticket has expired and can no longer be used.</p>
             <p style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-muted)', margin: '0 0 16px' }}>{foundItem.code}</p>
             <button onClick={handleReset} style={{ padding: '11px 22px', borderRadius: 12, fontWeight: 900, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2.5px solid var(--dark-border)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <RefreshCw size={14} /> Yeni Sorgulama

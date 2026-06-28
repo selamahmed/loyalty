@@ -76,7 +76,7 @@ export async function performAction(
     p_metadata: {},
   });
 
-  if (error) throw error;
+  if (error) throw normalizeClaimError(error);
   const result = parseEarnResult(data);
   if (result.points > 0 || result.bonusPoints > 0) {
     notifyLeaderboardRefresh();
@@ -87,7 +87,7 @@ export async function performAction(
 /** Claim QR scan — server validates code, usage, expiry, and points */
 export async function claimQrScan(code: string): Promise<EarnResult> {
   const { data, error } = await supabase.rpc('claim_qr_scan', { p_code: code });
-  if (error) throw error;
+  if (error) throw normalizeClaimError(error);
   const result = parseEarnResult(data);
   if (result.points > 0 || result.bonusPoints > 0) {
     notifyLeaderboardRefresh();
@@ -98,7 +98,7 @@ export async function claimQrScan(code: string): Promise<EarnResult> {
 /** Preview QR code info without claiming it. Claim still happens only through claim_qr_scan. */
 export async function previewQrScan(code: string): Promise<QRClaimPreview | null> {
   const { data, error } = await supabase.rpc('preview_qr_scan', { p_code: code });
-  if (error) throw error;
+  if (error) throw normalizeClaimError(error);
   if (!data) return null;
 
   const r = data as Record<string, unknown>;
@@ -116,10 +116,28 @@ export async function previewQrScan(code: string): Promise<QRClaimPreview | null
   };
 }
 
+function normalizeClaimError(error: unknown): Error {
+  const source = error as { message?: string; details?: string; hint?: string };
+  const text = [source?.message, source?.details, source?.hint].filter(Boolean).join(' ');
+  const lower = text.toLowerCase();
+
+  if (lower.includes('maximum loyalty points limit') || lower.includes('exceed the maximum')) {
+    return new Error(text || 'You have reached the maximum loyalty points limit. You cannot claim more points at this time.');
+  }
+  if (lower.includes('qr code expired') || lower.includes('ticket has expired')) {
+    return new Error('This ticket has expired and can no longer be used.');
+  }
+  if (lower.includes('already scanned') || lower.includes('already used')) {
+    return new Error('This code has already been used.');
+  }
+
+  return error instanceof Error ? error : new Error(text || 'Claim failed.');
+}
+
 /** Claim daily streak reward */
 export async function claimDailyStreak(): Promise<EarnResult> {
   const { data, error } = await supabase.rpc('claim_daily_streak');
-  if (error) throw error;
+  if (error) throw normalizeClaimError(error);
   const result = parseEarnResult(data);
   if (result.points > 0 || result.bonusPoints > 0) {
     notifyLeaderboardRefresh();

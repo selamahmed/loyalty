@@ -384,6 +384,7 @@ const AdminSettings: React.FC = () => {
   const setEco = useCallback((patch: Partial<AllSettings['economy']>) => setDraft(d => ({ ...d, economy: { ...d.economy, ...patch } })), []);
   const setMul = useCallback((patch: Partial<AllSettings['multipliers']>) => setDraft(d => ({ ...d, multipliers: { ...d.multipliers, ...patch } })), []);
   const setLim = useCallback((patch: Partial<AllSettings['limits']>) => setDraft(d => ({ ...d, limits: { ...d.limits, ...patch } })), []);
+  const setLoyalty = useCallback((patch: Partial<AllSettings['loyalty']>) => setDraft(d => ({ ...d, loyalty: { ...d.loyalty, ...patch } })), []);
   const setFlag = useCallback((patch: Partial<AllSettings['flags']>) => setDraft(d => ({ ...d, flags: { ...d.flags, ...patch } })), []);
 
   const handleSave = async () => {
@@ -391,6 +392,8 @@ const AdminSettings: React.FC = () => {
     setSaveError('');
     setSaved2(false);
     try {
+      if (draft.loyalty.max_points_limit < 1) throw new Error('Maksimum puan limiti 1 veya daha buyuk olmali.');
+      if (draft.loyalty.ticket_valid_for < 1) throw new Error('Bilet gecerlilik suresi 1 veya daha buyuk olmali.');
       await saveSystemSettings(draft);
       setSaved(draft);
       setSaved2(true);
@@ -413,7 +416,7 @@ const AdminSettings: React.FC = () => {
 
   const handleDiscard = () => setDraft(saved);
 
-  const { economy: eco, multipliers: mul, limits: lim, flags } = draft;
+  const { economy: eco, multipliers: mul, limits: lim, loyalty, flags } = draft;
 
   return (
     <AdminLayout>
@@ -467,6 +470,61 @@ const AdminSettings: React.FC = () => {
 
         {/* ── 0. Maintenance Mode ── */}
         <MaintenancePanel />
+
+        <Section icon={ShieldCheck} title="Loyalty Settings" subtitle="Puan claim limiti ve bilet gecerlilik suresini yonetin" color="#06b6d4">
+          <FlagRow
+            label="Points Limit Enabled"
+            sub="Acik ise kullanici bakiyesi maksimum claim limitini asamaz"
+            value={loyalty.points_limit_enabled}
+            color="#06b6d4"
+            onChange={v => setLoyalty({ points_limit_enabled: v })}
+          />
+          <SliderControl
+            label="Max Points Limit"
+            description="Kullanicinin claim ederek ulasabilecegi maksimum puan bakiyesi"
+            value={loyalty.max_points_limit}
+            min={100}
+            max={100000}
+            step={50}
+            unit="puan"
+            color="#06b6d4"
+            preview={`${loyalty.max_points_limit.toLocaleString('tr-TR')} puandan sonra claim islemleri engellenir`}
+            onChange={v => setLoyalty({ max_points_limit: v })}
+          />
+          <SliderControl
+            label="Ticket Valid For"
+            description="Magazadan alinan biletlerin varsayilan gecerlilik suresi"
+            value={loyalty.ticket_valid_for}
+            min={1}
+            max={365}
+            step={1}
+            unit={loyalty.ticket_time_unit}
+            color="#f59e0b"
+            preview={`Yeni biletler ${loyalty.ticket_valid_for} ${loyalty.ticket_time_unit} boyunca aktif kalir`}
+            onChange={v => setLoyalty({ ticket_valid_for: v })}
+          />
+          <div style={{ padding: '18px 20px', borderBottom: '2px solid var(--dark-border)' }}>
+            <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 8px' }}>Ticket Time Unit</p>
+            <select
+              value={loyalty.ticket_time_unit}
+              onChange={e => setLoyalty({ ticket_time_unit: e.target.value as AllSettings['loyalty']['ticket_time_unit'] })}
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: 14,
+                border: '2.5px solid var(--dark-border)',
+                background: 'var(--card-bg)',
+                color: 'var(--text-dark)',
+                fontWeight: 900,
+                outline: 'none',
+              }}
+            >
+              <option value="minutes">Minutes</option>
+              <option value="hours">Hours</option>
+              <option value="days">Days</option>
+            </select>
+          </div>
+        </Section>
 
         {/* ── 1. Puan Ekonomisi ── */}
         <Section icon={TrendingUp} title="Puan Ekonomisi" subtitle="TL ↔ Puan dönüşüm oranlarını ayarlayın (ondalık değer desteklenir)" color="#7B6EF6">

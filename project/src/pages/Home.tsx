@@ -19,6 +19,7 @@ import StickerDecorImg from '../components/StickerDecorImg';
 import { colorfulSticker } from '../lib/stickerCatalog';
 import { getMyAlltimeRank } from '../services/points';
 import { onLeaderboardRefresh } from '../lib/leaderboardRefresh';
+import { DEFAULT_SYSTEM_SETTINGS, getLoyaltySettings, type LoyaltySettings } from '../services/config';
 
 const homePromoSticker = colorfulSticker('Group 62.svg');
 
@@ -85,8 +86,17 @@ const Home: React.FC = () => {
   const { show: showDailyReward, setShow: setShowDailyReward } = useDailyReward();
   const xpProgress = useXpProgress(user.xp, user.level, user.xpToNext);
   const [myRank, setMyRank] = useState<number | null>(null);
+  const [loyaltySettings, setLoyaltySettings] = useState<LoyaltySettings>(DEFAULT_SYSTEM_SETTINGS.loyalty);
 
   const [unreadNotifs, setUnreadNotifs] = useState<Notification[]>([]);
+
+  const refreshLoyaltySettings = useCallback(async () => {
+    try {
+      setLoyaltySettings(await getLoyaltySettings());
+    } catch {
+      setLoyaltySettings(DEFAULT_SYSTEM_SETTINGS.loyalty);
+    }
+  }, []);
 
   const refreshMyRank = useCallback(async () => {
     if (!authUser?.id) {
@@ -113,11 +123,23 @@ const Home: React.FC = () => {
   useEffect(() => onLeaderboardRefresh(refreshMyRank), [refreshMyRank]);
 
   useEffect(() => {
+    void refreshLoyaltySettings();
+  }, [refreshLoyaltySettings]);
+
+  useRealtimeTable('app_settings', refreshLoyaltySettings);
+
+  useEffect(() => {
     if (!authUser?.id) return;
     getNotifications(authUser.id, 0, 5)
       .then(all => setUnreadNotifs(all.filter(n => !n.read).slice(0, 2)))
       .catch(() => setUnreadNotifs([]));
   }, [authUser?.id]);
+
+  const maxPointsLimit = Math.max(1, Math.round(loyaltySettings.max_points_limit || DEFAULT_SYSTEM_SETTINGS.loyalty.max_points_limit));
+  const limitEnabled = loyaltySettings.points_limit_enabled;
+  const limitPct = Math.min(100, Math.round((points / maxPointsLimit) * 100));
+  const reachedLimit = limitEnabled && points >= maxPointsLimit;
+  const nearLimit = limitEnabled && !reachedLimit && points >= maxPointsLimit * 0.85;
 
   return (
     <div className="home-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
@@ -219,6 +241,53 @@ const Home: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {limitEnabled && (
+          <div
+            className={`home-loyalty-limit-card ${reachedLimit ? 'home-loyalty-limit-card--blocked' : nearLimit ? 'home-loyalty-limit-card--warning' : ''}`}
+            style={{
+              ...card,
+              padding: '16px 18px',
+              background: reachedLimit
+                ? 'linear-gradient(135deg,#fee2e2,#fecaca)'
+                : nearLimit
+                  ? 'linear-gradient(135deg,#fff7ed,#fed7aa)'
+                  : 'linear-gradient(135deg,#ecfeff,#cffafe)',
+              color: '#111827',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: reachedLimit ? '#dc2626' : nearLimit ? '#d97706' : '#0891b2' }}>
+                  Loyalty Limit
+                </p>
+                <h2 style={{ margin: '3px 0 0', fontSize: 'clamp(18px,4vw,24px)', fontWeight: 900, lineHeight: 1.05 }}>
+                  {points.toLocaleString('tr-TR')} / {maxPointsLimit.toLocaleString('tr-TR')} points
+                </h2>
+              </div>
+              <span style={{ padding: '7px 10px', borderRadius: 999, border: '2px solid #111827', boxShadow: '2px 2px 0 #111827', fontSize: 12, fontWeight: 900, background: '#fff' }}>
+                {limitPct}%
+              </span>
+            </div>
+            <div style={{ height: 12, borderRadius: 999, border: '2px solid #111827', background: 'rgba(255,255,255,0.7)', overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: `${limitPct}%`,
+                  background: reachedLimit ? '#ef4444' : nearLimit ? '#f59e0b' : '#06b6d4',
+                  transition: 'width 0.45s cubic-bezier(0.22,1,0.36,1)',
+                }}
+              />
+            </div>
+            {(reachedLimit || nearLimit) && (
+              <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 900, color: reachedLimit ? '#991b1b' : '#92400e' }}>
+                {reachedLimit
+                  ? `You have reached the maximum loyalty points limit of ${maxPointsLimit.toLocaleString('tr-TR')} points. You cannot claim more points at this time.`
+                  : 'You are close to reaching your maximum loyalty points limit.'}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ── Stats row — rank & active inventory (streak lives in hero) ── */}
         <div className="home-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
