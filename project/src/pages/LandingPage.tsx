@@ -2,11 +2,13 @@ import React, { Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sun, Moon, Menu, X } from 'lucide-react';
 import AppLogo from '../components/AppLogo';
-import HeroGroupComposition from '../components/HeroGroupComposition';
-import { LANDING_HERO_CENTER_URL } from '../lib/landingHeroAssets';
+import { LANDING_HERO_HEADLINE_SHAPE_URLS } from '../lib/landingHeroAssets';
 import { useTheme } from '../context/ThemeContext';
 
 const LandingBelowFold = React.lazy(() => import('./LandingBelowFold'));
+
+const HEADLINE_STICKER_ROTATIONS = [-10, 12, -8] as const;
+const HEADLINE_STICKER_SIZES = [30, 28, 32] as const;
 
 /* ─── Main component ────────────────────────────────────────── */
 const LandingPage: React.FC = () => {
@@ -14,16 +16,6 @@ const LandingPage: React.FC = () => {
   const { isDarkMode: isDark, toggleTheme } = useTheme();
   const [hovered, setHovered] = React.useState<number | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = LANDING_HERO_CENTER_URL;
-    link.type = 'image/svg+xml';
-    document.head.appendChild(link);
-    return () => { document.head.removeChild(link); };
-  }, []);
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
@@ -77,7 +69,6 @@ const LandingPage: React.FC = () => {
             {/* Logo */}
             <div className="landing-nav-logo">
               <AppLogo size={36} priority />
-              <span className="landing-nav-logo__text" style={{ color: t.textPrimary }}>NexReward</span>
             </div>
 
             {/* Desktop nav links */}
@@ -153,24 +144,65 @@ const LandingPage: React.FC = () => {
         <section className="landing-hero-shell">
           <div className="hero-layout" style={{ padding: '0 clamp(20px,5vw,80px)', position: 'relative', zIndex: 1 }}>
             <div className="hero-copy hero-copy-card lp-hero-stagger">
+              <div className="hero-live-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#C8FF00', color: '#000', border: '2.5px solid #000', borderRadius: 999, padding: '6px 16px', fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', boxShadow: '3px 3px 0 #000', marginBottom: 28, transform: 'rotate(-1.5deg)' }}>
+                <span className="hero-live-dot" aria-hidden /> WE ARE LIVE!
+              </div>
               <h1 className="hero-headline font-display">
-                <span className="hero-headline-line">ALIŞVERİŞ</span>
-                <span className="hero-headline-line hero-headline-line--accent" style={{ color: '#9122FF' }}>
+                <span className="hero-headline-line">
+                  ALIŞVERİŞ
+                  <img
+                    src={LANDING_HERO_HEADLINE_SHAPE_URLS[0]}
+                    alt=""
+                    aria-hidden
+                    width={HEADLINE_STICKER_SIZES[0]}
+                    height={HEADLINE_STICKER_SIZES[0]}
+                    className="hero-headline-sticker"
+                    decoding="async"
+                    style={{ transform: `rotate(${HEADLINE_STICKER_ROTATIONS[0]}deg)` }}
+                  />
+                </span>
+                <span className="hero-headline-line hero-headline-line--accent" style={{ color: '#9122FF', WebkitTextStroke: isDark ? '2px #C8FF00' : 'none' }}>
+                  <img
+                    src={LANDING_HERO_HEADLINE_SHAPE_URLS[1]}
+                    alt=""
+                    aria-hidden
+                    width={HEADLINE_STICKER_SIZES[1]}
+                    height={HEADLINE_STICKER_SIZES[1]}
+                    className="hero-headline-sticker"
+                    decoding="async"
+                    style={{ transform: `rotate(${HEADLINE_STICKER_ROTATIONS[1]}deg)` }}
+                  />
                   YAPARKEN
                 </span>
-                <span className="hero-headline-line">PUAN KAZAN</span>
+                <span className="hero-headline-line">
+                  PUAN KAZAN
+                  <img
+                    src={LANDING_HERO_HEADLINE_SHAPE_URLS[2]}
+                    alt=""
+                    aria-hidden
+                    width={HEADLINE_STICKER_SIZES[2]}
+                    height={HEADLINE_STICKER_SIZES[2]}
+                    className="hero-headline-sticker"
+                    decoding="async"
+                    style={{ transform: `rotate(${HEADLINE_STICKER_ROTATIONS[2]}deg)` }}
+                  />
+                </span>
               </h1>
               <p style={{ marginTop: 20, color: t.textSecondary, fontWeight: 600, fontSize: 'clamp(14px,1.6vw,18px)', maxWidth: 480, lineHeight: 1.65 }}>
-                Puan kazan, ödülleri aç.
+                Binlerce kullanıcıyla birlikte puan kazan, özel ödüller aç ve her gün eğlen.
               </p>
               <div className="hero-cta-row" style={{ marginTop: 28, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
                 <button onClick={() => navigate('/register')} className="lbtn-hero-primary">Hemen Başlayın <ArrowRight size={16} /></button>
                 <button onClick={() => navigate('/login')} className="lbtn-hero-secondary">Giriş Yap</button>
               </div>
-            </div>
-            {/* Art — Group sticker cluster (star centerpiece) */}
-            <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,24px)' }}>
-              <HeroGroupComposition />
+              <div className="hero-stat-row" style={{ marginTop: 28, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {[['50K+', 'Kullanıcı', '#9122FF'], ['2M+', 'Puan', '#FF3E9D'], ['10K+', 'Ödül', '#FF6B35']].map(([num, label, color]) => (
+                  <div className="hero-stat-chip" key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, background: t.cardBg, border: '2.5px solid #000', borderRadius: 14, padding: '7px 14px', boxShadow: '3px 3px 0 #000' }}>
+                    <span style={{ fontWeight: 900, fontSize: 16, color }}>{num}</span>
+                    <span style={{ fontWeight: 600, fontSize: 12, color: t.textMuted }}>{label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -194,27 +226,46 @@ const LandingPage: React.FC = () => {
 
         @keyframes modalPop   { from { opacity: 0; transform: scale(0.92) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         @keyframes lpFadeUp { from { opacity:0; transform:translate3d(0,18px,0); } to { opacity:1; transform:none; } }
-        @keyframes lpFadeIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:none; } }
         .lp-hero-stagger > * { animation: lpFadeUp .62s cubic-bezier(.22,1,.36,1) both; }
         .lp-hero-stagger > *:nth-child(1){ animation-delay:.04s; }
         .lp-hero-stagger > *:nth-child(2){ animation-delay:.12s; }
         .lp-hero-stagger > *:nth-child(3){ animation-delay:.20s; }
-        .hero-art { animation: lpFadeIn .7s cubic-bezier(.22,1,.36,1) .26s both; }
+        .lp-hero-stagger > *:nth-child(4){ animation-delay:.28s; }
+        .lp-hero-stagger > *:nth-child(5){ animation-delay:.36s; }
+
+        .hero-live-dot {
+          width:9px; height:9px; border-radius:50%; flex-shrink:0;
+          background:#16a34a; box-shadow:0 0 0 0 rgba(22,163,74,.55);
+          animation: lpLivePulse 1.9s ease-out infinite;
+        }
+        @keyframes lpLivePulse {
+          0%   { box-shadow:0 0 0 0 rgba(22,163,74,.55); }
+          70%  { box-shadow:0 0 0 7px rgba(22,163,74,0); }
+          100% { box-shadow:0 0 0 0 rgba(22,163,74,0); }
+        }
 
         @media (prefers-reduced-motion: reduce) {
-          .lp-hero-stagger > *, .hero-art {
+          .lp-hero-stagger > *, .hero-live-dot {
             animation: none !important; opacity: 1 !important; transform: none !important;
           }
         }
 
         /* ── Hero ── */
         .landing-hero-shell {
-          min-height: min(720px, calc(100vh - 60px));
+          min-height: min(820px, calc(100vh - 60px));
           display:flex; flex-direction:column; justify-content:center;
-          position:relative; padding:clamp(32px,5vh,56px) 0 clamp(20px,4vh,40px);
-          overflow:hidden; border-bottom:2px solid rgba(0,0,0,0.06);
+          position:relative; padding:clamp(36px,6vh,72px) 0 clamp(24px,5vh,48px);
+          overflow:hidden; border-bottom:3px solid rgba(0,0,0,0.08);
           background:
-            radial-gradient(circle at 50% 4%, ${isDark ? 'rgba(145,34,255,.16)' : 'rgba(145,34,255,.10)'}, transparent 34%);
+            radial-gradient(circle at 50% 4%, ${isDark ? 'rgba(145,34,255,.24)' : 'rgba(145,34,255,.16)'}, transparent 34%),
+            radial-gradient(circle at 12% 26%, rgba(200,255,0,.12), transparent 22%),
+            linear-gradient(180deg, ${isDark ? 'rgba(255,255,255,.025)' : 'rgba(255,255,255,.5)'}, transparent 48%);
+        }
+        .landing-hero-shell::before {
+          content:""; position:absolute; inset:14px clamp(10px,2vw,20px) 18px;
+          border-radius:clamp(28px,4vw,46px); pointer-events:none;
+          background:${isDark ? 'rgba(255,255,255,.018)' : 'rgba(255,255,255,.24)'};
+          opacity:.72;
         }
         .landing-premium-nav {
           padding:10px clamp(8px,2vw,16px);
@@ -230,65 +281,119 @@ const LandingPage: React.FC = () => {
         .hero-copy  { max-width:640px; min-width:0; }
         .hero-copy-card {
           position:relative;
-          padding:clamp(20px,3.5vw,32px);
-          border:2.5px solid #000;
-          border-radius:clamp(22px,3vw,32px);
-          background:${isDark ? 'rgba(30,15,56,.78)' : 'rgba(255,255,255,.92)'};
-          box-shadow:0 6px 0 #000;
+          padding:clamp(22px,4vw,38px);
+          border:3px solid #000;
+          border-radius:clamp(28px,4vw,38px);
+          background:
+            linear-gradient(180deg, ${isDark ? 'rgba(42,21,80,.82)' : 'rgba(255,255,255,.88)'}, ${isDark ? 'rgba(30,15,56,.72)' : 'rgba(245,240,255,.76)'});
+          box-shadow:
+            0 10px 0 #000,
+            0 26px 58px ${isDark ? 'rgba(0,0,0,.34)' : 'rgba(15,7,32,.16)'};
+          backdrop-filter:blur(18px);
         }
-        .hero-art   { width:100%; max-width:320px; min-height:clamp(260px,44vw,380px); min-width:0; isolation:isolate; }
+        .hero-copy-card::before {
+          content:""; position:absolute; inset:10px;
+          border-radius:clamp(20px,3vw,28px); pointer-events:none;
+        }
+        .hero-copy-card::after {
+          content:""; position:absolute; top:11px; left:50%; transform:translateX(-50%);
+          width:46px; height:5px; border-radius:999px;
+          background:${isDark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.12)'};
+        }
+        .hero-live-badge {
+          box-shadow:0 5px 0 #000, 0 12px 26px rgba(200,255,0,.22) !important;
+        }
+        .hero-copy > div:first-child { margin-bottom:clamp(16px,3vw,24px) !important; }
         .hero-copy > p { margin-top:clamp(14px,2.5vw,18px) !important; max-width:560px !important; }
-        .hero-copy > div { margin-top:clamp(18px,3vw,24px) !important; }
+        .hero-copy > div:nth-of-type(2) { margin-top:clamp(18px,3vw,24px) !important; }
+        .hero-copy > div:nth-of-type(3) { margin-top:clamp(18px,3vw,24px) !important; }
         @media (min-width: 900px) {
-          .hero-layout { flex-direction:row; align-items:center; justify-content:space-between; text-align:left; gap:clamp(36px,5vw,72px); }
+          .hero-layout { flex-direction:row; align-items:center; justify-content:center; text-align:left; gap:clamp(36px,5vw,72px); }
           .hero-copy   { flex:1; max-width:none; }
-          .hero-art    { flex:0 0 min(40%, 460px); max-width:460px; }
         }
 
         .hero-headline {
-          font-weight:900; font-size:clamp(36px,6.5vw,76px);
-          line-height:0.95; letter-spacing:-0.025em;
+          font-weight:900; font-size:clamp(40px,7.2vw,88px);
+          line-height:0.92; letter-spacing:-0.025em;
           color:${t.heroText}; text-transform:uppercase; margin:0; text-wrap:balance;
+          text-shadow:${isDark ? '0 5px 0 rgba(0,0,0,.24)' : '0 4px 0 rgba(0,0,0,.08)'};
         }
         .hero-headline-line {
-          display:block;
+          display:flex; align-items:center; justify-content:center;
+          gap:clamp(6px,1.5vw,14px); min-width:0;
+        }
+        .hero-headline-sticker { flex-shrink:0; width:clamp(20px,2.2vw,30px); height:auto; }
+        @media (min-width:900px) {
+          .hero-headline-line { justify-content:flex-start; }
         }
         @media (max-width:520px) {
           .landing-hero-shell { min-height:auto; padding-top:24px; }
-          .hero-copy-card { padding:20px 16px; border-radius:24px; }
-          .hero-headline { font-size:clamp(34px,12vw,52px); }
-          .hero-art { min-height:0; }
+          .landing-hero-shell::before { inset:8px 6px 12px; border-radius:28px; }
+          .hero-copy-card { padding:22px 16px 20px; border-radius:28px; box-shadow:0 7px 0 #000, 0 20px 38px rgba(0,0,0,.24); }
+          .hero-copy-card::before { inset:8px; border-radius:20px; }
+          .hero-headline { font-size:clamp(38px,14vw,58px); line-height:.95; }
+          .hero-copy > div:first-child { transform:none !important; }
+          .hero-copy > div:nth-of-type(2),
+          .hero-copy > div:nth-of-type(3) { justify-content:center; }
+          .hero-copy > div:nth-of-type(3) > div {
+            flex:1 1 calc(33.333% - 8px); min-width:92px; justify-content:center; padding-inline:8px !important;
+          }
         }
 
-        .hero-group-composition {
-          position:relative; width:min(100%,360px); aspect-ratio:1; margin-inline:auto;
-          display:grid; place-items:center; filter:drop-shadow(0 12px 0 rgba(0,0,0,0.16));
-        }
-        .hero-group-composition__star { width:min(78%,300px); height:auto; }
-        /* ── Nav buttons ── */
         .lbtn-hero-primary {
+          position:relative; overflow:hidden;
           display:inline-flex; align-items:center; gap:8px;
           background:linear-gradient(180deg,#B44AFF,#9122FF); color:#C8FF00; font-weight:900; font-family:inherit;
-          border:2.5px solid #000; border-radius:16px; padding:13px 26px; font-size:15px;
-          box-shadow:0 5px 0 #000; cursor:pointer; transition:transform 0.14s,box-shadow 0.14s; white-space:nowrap;
+          border:3px solid #000; border-radius:20px; padding:14px 28px; font-size:15px;
+          box-shadow:0 7px 0 #000, 0 16px 34px rgba(145,34,255,.28); cursor:pointer; transition:transform 0.14s,box-shadow 0.14s; white-space:nowrap;
+        }
+        .lbtn-hero-primary > * { position:relative; z-index:1; }
+        .lbtn-hero-primary::after {
+          content:""; position:absolute; top:0; left:0; width:45%; height:100%; z-index:0;
+          background:linear-gradient(110deg, transparent, rgba(255,255,255,.5), transparent);
+          transform:translateX(-220%) skewX(-18deg); pointer-events:none; opacity:0;
         }
         .lbtn-hero-primary:hover { transform:translateY(-1px); }
-        .lbtn-hero-primary:active { transform:translateY(3px); box-shadow:0 1px 0 #000; }
+        .lbtn-hero-primary:hover::after { animation: lpShine .75s ease; }
+        .lbtn-hero-primary:active { transform:translateY(4px); box-shadow:0 1px 0 #000; }
+        @keyframes lpShine {
+          0%   { transform:translateX(-220%) skewX(-18deg); opacity:0; }
+          22%  { opacity:1; }
+          100% { transform:translateX(340%) skewX(-18deg); opacity:0; }
+        }
 
         .lbtn-hero-secondary {
           display:inline-flex; align-items:center; gap:8px;
           background:${t.cardBg}; color:${t.textPrimary}; font-weight:900; font-family:inherit;
-          border:2.5px solid #000; border-radius:16px; padding:13px 26px; font-size:15px;
-          box-shadow:0 5px 0 #000; cursor:pointer; transition:transform 0.14s,box-shadow 0.14s; white-space:nowrap;
+          border:3px solid #000; border-radius:20px; padding:14px 28px; font-size:15px;
+          box-shadow:0 7px 0 #000, inset 0 1px 0 rgba(255,255,255,.14); cursor:pointer; transition:transform 0.14s,box-shadow 0.14s; white-space:nowrap;
         }
         .lbtn-hero-secondary:hover { transform:translateY(-1px); }
-        .lbtn-hero-secondary:active { transform:translateY(3px); box-shadow:0 1px 0 #000; }
+        .lbtn-hero-secondary:active { transform:translateY(4px); box-shadow:0 1px 0 #000; }
 
-        /* ── Keyboard accessibility: consistent focus rings ── */
+        .hero-stat-row { justify-content:center; }
+        .hero-stat-chip {
+          border-radius:18px !important;
+          padding:9px 16px !important;
+          box-shadow:0 5px 0 #000, inset 0 1px 0 rgba(255,255,255,.12) !important;
+          backdrop-filter:blur(10px);
+          transition:transform .16s ease, box-shadow .16s ease;
+        }
+        .hero-stat-chip:hover {
+          transform:translateY(-3px);
+          box-shadow:0 8px 0 #000, inset 0 1px 0 rgba(255,255,255,.14) !important;
+        }
+        @media (min-width:900px) { .hero-stat-row { justify-content:flex-start; } }
+
         .landing-premium-nav button:focus-visible,
         .lbtn-hero-primary:focus-visible,
-        .lbtn-hero-secondary:focus-visible {
+        .lbtn-hero-secondary:focus-visible,
+        .hero-stat-chip:focus-visible {
           outline:3px solid #9122FF; outline-offset:3px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lbtn-hero-primary::after { animation:none !important; opacity:0 !important; }
+          .hero-stat-chip { transition:none !important; }
         }
 
         .lbtn-primary-sm {
