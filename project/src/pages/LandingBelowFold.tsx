@@ -28,6 +28,30 @@ type Props = {
 const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovered, scrollTo }) => {
   const navigate = useNavigate();
 
+  // Reveal section headers as they scroll into view (one-shot, GPU-only).
+  React.useEffect(() => {
+    const els = Array.from(document.querySelectorAll<HTMLElement>('[data-lp-reveal]'));
+    if (els.length === 0) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      els.forEach(el => el.classList.add('lp-in'));
+      return;
+    }
+    const io = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('lp-in');
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { rootMargin: '0px 0px -10% 0px', threshold: 0.12 },
+    );
+    els.forEach(el => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
   return (
     <>
         {/* ══ TICKER 1 ══ */}
@@ -38,7 +62,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
         {/* ══ AVANTAJLAR (stacking banners — NO rotation on mobile) ══ */}
         <SectionStickerDecor preset="landing-banners">
         <section id="banners" className="landing-section-frame landing-section-frame--banners" style={{ padding: '72px clamp(16px,4vw,64px)', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+          <div data-lp-reveal style={{ textAlign: 'center', marginBottom: 8 }}>
             <SectionBadge label="AVANTAJLAR" bg="#FFE500" />
             <h2 className="font-display" style={{ fontSize: 'clamp(26px,4.5vw,56px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
               NEDEN <span style={{ color: '#FF3E9D' }}>NEXREWARD?</span>
@@ -103,7 +127,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
         {/* ══ FEATURES ══ */}
         <SectionStickerDecor preset="landing-features">
         <section id="features" className="landing-section-frame landing-section-frame--features" style={{ padding: '72px clamp(16px,4vw,64px)', maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 52 }}>
+          <div data-lp-reveal style={{ textAlign: 'center', marginBottom: 52 }}>
             <SectionBadge label="ÖZELLİKLER" bg="#56C8FF" />
             <h2 className="font-display" style={{ fontSize: 'clamp(28px,5vw,60px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, lineHeight: 1.1, textTransform: 'uppercase' }}>
               NEDEN BİZİ <span style={{ color: '#FF3E9D' }}>SEVECEKSİNİZ</span>
@@ -160,7 +184,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
         {/* ══ HOW IT WORKS ══ */}
         <section id="how" className="landing-how-section" style={{ padding: '80px clamp(16px,4vw,64px)', background: t.howBg, borderTop: '3px solid #000', borderBottom: '3px solid #000', transition: 'background 0.3s' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: 52 }}>
+            <div data-lp-reveal style={{ textAlign: 'center', marginBottom: 52 }}>
               <SectionBadge label="NASIL ÇALIŞIR" bg="#9122FF" color="#C8FF00" />
               <h2 className="font-display" style={{ fontSize: 'clamp(26px,4.5vw,56px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
                 4 ADIMDA <span style={{ color: '#9122FF' }}>BAŞLA</span>
@@ -190,7 +214,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
 
         {/* ══ TESTIMONIALS ══ */}
         <section id="testimonials" className="landing-section-frame landing-testimonials-section" style={{ padding: '80px clamp(16px,4vw,64px)', maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 52 }}>
+          <div data-lp-reveal style={{ textAlign: 'center', marginBottom: 52 }}>
             <SectionBadge label="YORUMLAR" bg={isDark ? '#9122FF' : '#FFE500'} color={isDark ? '#C8FF00' : '#000'} />
             <h2 className="font-display" style={{ fontSize: 'clamp(26px,4.5vw,56px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
               KULLANICILARIMIZ <span style={{ color: '#9122FF' }}>NE DİYOR?</span>
@@ -266,7 +290,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
 
         {/* ══ LIFESTYLE GRID ══ */}
         <section style={{ padding: '0 clamp(16px,4vw,64px) 80px', maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <div data-lp-reveal style={{ textAlign: 'center', marginBottom: 48 }}>
             <SectionBadge label="YAŞAM TARZI" bg="#FFE500" />
             <h2 className="font-display" style={{ fontSize: 'clamp(26px,4.5vw,54px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
               KAZANMAK BİR <span style={{ color: '#9122FF' }}>YAŞAM BİÇİMİ</span>
@@ -404,6 +428,36 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
           </div>
         </footer>
         <style>{`
+          /* ── Scroll-reveal for section headers (one-shot, transform + opacity) ── */
+          [data-lp-reveal] {
+            opacity: 0;
+            transform: translateY(22px);
+            transition: opacity .6s cubic-bezier(.22,1,.36,1), transform .6s cubic-bezier(.22,1,.36,1);
+            will-change: opacity, transform;
+          }
+          [data-lp-reveal].lp-in {
+            opacity: 1;
+            transform: none;
+            will-change: auto;
+          }
+
+          /* ── Keyboard accessibility: focus rings on below-fold buttons ── */
+          .landing-section-frame button:focus-visible,
+          .landing-how-section button:focus-visible,
+          .landing-final-cta-card button:focus-visible,
+          .lifestyle-card button:focus-visible {
+            outline: 3px solid #9122FF;
+            outline-offset: 3px;
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            [data-lp-reveal] {
+              opacity: 1 !important;
+              transform: none !important;
+              transition: none !important;
+            }
+          }
+
           .landing-section-frame {
             position: relative;
             border: 3px solid #000;

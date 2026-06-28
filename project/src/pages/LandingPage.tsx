@@ -186,9 +186,9 @@ const LandingPage: React.FC = () => {
           <DoodleField opacity={isDark ? 0.4 : 0.65} />
           <div className="hero-layout" style={{ padding: '0 clamp(20px,5vw,80px)', position: 'relative', zIndex: 1 }}>
             {/* Copy */}
-            <div className="hero-copy hero-copy-card">
-              <div className="hero-live-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8FF00', color: '#000', border: '2.5px solid #000', borderRadius: 999, padding: '6px 16px', fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', boxShadow: '3px 3px 0 #000', marginBottom: 28, transform: 'rotate(-1.5deg)' }}>
-                🎉 WE ARE LIVE!
+            <div className="hero-copy hero-copy-card lp-hero-stagger">
+              <div className="hero-live-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#C8FF00', color: '#000', border: '2.5px solid #000', borderRadius: 999, padding: '6px 16px', fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', boxShadow: '3px 3px 0 #000', marginBottom: 28, transform: 'rotate(-1.5deg)' }}>
+                <span className="hero-live-dot" aria-hidden /> WE ARE LIVE!
               </div>
               <h1 className="hero-headline font-display">
                 <span className="hero-headline-line">
@@ -274,6 +274,35 @@ const LandingPage: React.FC = () => {
 
         @keyframes tickerLeft  { from{transform:translateX(0)} to{transform:translateX(calc(-100% / 3))} }
         @keyframes tickerRight { from{transform:translateX(calc(-100% / 3))} to{transform:translateX(0)} }
+
+        /* ── Hero entrance choreography (compositor-only: transform + opacity) ── */
+        @keyframes lpFadeUp { from { opacity:0; transform:translate3d(0,18px,0); } to { opacity:1; transform:none; } }
+        @keyframes lpFadeIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:none; } }
+        .lp-hero-stagger > * { animation: lpFadeUp .62s cubic-bezier(.22,1,.36,1) both; }
+        .lp-hero-stagger > *:nth-child(1){ animation-delay:.04s; }
+        .lp-hero-stagger > *:nth-child(2){ animation-delay:.12s; }
+        .lp-hero-stagger > *:nth-child(3){ animation-delay:.20s; }
+        .lp-hero-stagger > *:nth-child(4){ animation-delay:.28s; }
+        .lp-hero-stagger > *:nth-child(5){ animation-delay:.36s; }
+        .hero-art { animation: lpFadeIn .7s cubic-bezier(.22,1,.36,1) .26s both; }
+
+        /* ── Live pulse indicator ── */
+        .hero-live-dot {
+          width:9px; height:9px; border-radius:50%; flex-shrink:0;
+          background:#16a34a; box-shadow:0 0 0 0 rgba(22,163,74,.55);
+          animation: lpLivePulse 1.9s ease-out infinite;
+        }
+        @keyframes lpLivePulse {
+          0%   { box-shadow:0 0 0 0 rgba(22,163,74,.55); }
+          70%  { box-shadow:0 0 0 7px rgba(22,163,74,0); }
+          100% { box-shadow:0 0 0 0 rgba(22,163,74,0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .lp-hero-stagger > *, .hero-art, .hero-live-dot {
+            animation: none !important; opacity: 1 !important; transform: none !important;
+          }
+        }
 
         /* ── Hero ── */
         .landing-hero-shell {
@@ -375,13 +404,26 @@ const LandingPage: React.FC = () => {
         .hero-group-composition__star { width:min(78%,300px); height:auto; }
         /* ── Nav buttons ── */
         .lbtn-hero-primary {
+          position:relative; overflow:hidden;
           display:inline-flex; align-items:center; gap:8px;
           background:linear-gradient(180deg,#B44AFF,#9122FF); color:#C8FF00; font-weight:900; font-family:inherit;
           border:3px solid #000; border-radius:20px; padding:14px 28px; font-size:15px;
           box-shadow:0 7px 0 #000, 0 16px 34px rgba(145,34,255,.28); cursor:pointer; transition:transform 0.14s,box-shadow 0.14s; white-space:nowrap;
         }
+        .lbtn-hero-primary > * { position:relative; z-index:1; }
+        .lbtn-hero-primary::after {
+          content:""; position:absolute; top:0; left:0; width:45%; height:100%; z-index:0;
+          background:linear-gradient(110deg, transparent, rgba(255,255,255,.5), transparent);
+          transform:translateX(-220%) skewX(-18deg); pointer-events:none; opacity:0;
+        }
         .lbtn-hero-primary:hover { transform:translateY(-1px); }
+        .lbtn-hero-primary:hover::after { animation: lpShine .75s ease; }
         .lbtn-hero-primary:active { transform:translateY(4px); box-shadow:0 1px 0 #000; }
+        @keyframes lpShine {
+          0%   { transform:translateX(-220%) skewX(-18deg); opacity:0; }
+          22%  { opacity:1; }
+          100% { transform:translateX(340%) skewX(-18deg); opacity:0; }
+        }
 
         .lbtn-hero-secondary {
           display:inline-flex; align-items:center; gap:8px;
@@ -398,8 +440,25 @@ const LandingPage: React.FC = () => {
           padding:9px 16px !important;
           box-shadow:0 5px 0 #000, inset 0 1px 0 rgba(255,255,255,.12) !important;
           backdrop-filter:blur(10px);
+          transition:transform .16s ease, box-shadow .16s ease;
+        }
+        .hero-stat-chip:hover {
+          transform:translateY(-3px);
+          box-shadow:0 8px 0 #000, inset 0 1px 0 rgba(255,255,255,.14) !important;
         }
         @media (min-width:900px) { .hero-stat-row { justify-content:flex-start; } }
+
+        /* ── Keyboard accessibility: consistent focus rings ── */
+        .landing-premium-nav button:focus-visible,
+        .lbtn-hero-primary:focus-visible,
+        .lbtn-hero-secondary:focus-visible,
+        .hero-stat-chip:focus-visible {
+          outline:3px solid #9122FF; outline-offset:3px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lbtn-hero-primary::after { animation:none !important; opacity:0 !important; }
+          .hero-stat-chip { transition:none !important; }
+        }
 
         .lbtn-primary-sm {
           display:inline-flex; align-items:center; gap:5px;
