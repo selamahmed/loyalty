@@ -6,6 +6,7 @@ import { activityLogService } from '../../../lib/activityLogger';
 import { useAuth } from '../../../context/AuthContext';
 import { useRealtimeTable } from '../../../hooks/useRealtime';
 import { parseQRPayload, isInventoryQR, isStoreQR } from '../../../lib/qrUtils';
+import { normalizeRedemptionCode } from '../../../lib/redemptionCode';
 import {
   Search, CheckCircle, XCircle, AlertCircle, Package,
   Tag, Ticket, Gift, RefreshCw, Clock, History, Loader2,
@@ -32,9 +33,9 @@ function daysLeft(expires: string) { return Math.max(0, Math.ceil((new Date(expi
 
 function extractRedemptionCode(raw: string): string {
   const parsed = parseQRPayload(raw);
-  if (isInventoryQR(parsed)) return parsed.item_code.trim().toUpperCase();
-  if (isStoreQR(parsed)) return parsed.code.trim().toUpperCase();
-  return ('raw' in parsed ? parsed.raw : raw).trim().toUpperCase();
+  if (isInventoryQR(parsed)) return normalizeRedemptionCode(parsed.item_code);
+  if (isStoreQR(parsed)) return normalizeRedemptionCode(parsed.code);
+  return normalizeRedemptionCode('raw' in parsed ? parsed.raw : raw);
 }
 
 const card = {
@@ -52,6 +53,7 @@ const CashierRedeem: React.FC = () => {
   const [status, setStatus]       = useState<CheckStatus>('idle');
   const [foundItem, setFoundItem] = useState<DBRedemption>(null);
   const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState('');
   const [done, setDone]           = useState(false);
   const [log, setLog]             = useState<RedeemRecord[]>([]);
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -81,6 +83,7 @@ const CashierRedeem: React.FC = () => {
     setStatus('loading');
     setFoundItem(null);
     setDone(false);
+    setConfirmError('');
     try {
       const item = await getRedemptionByCode(trimmed);
       if (!item) { setStatus('not_found'); return; }
@@ -179,8 +182,8 @@ const CashierRedeem: React.FC = () => {
   const handleConfirm = async () => {
     if (!foundItem) return;
     setConfirming(true);
+    setConfirmError('');
     try {
-      // Use the security-definer RPC so cashiers can mark any user's redemption
       await markRedemptionUsedByCode(foundItem.code);
       const ts = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
       const rewardData = (foundItem as { rewards?: { title: string; image?: string } }).rewards;
@@ -212,6 +215,7 @@ const CashierRedeem: React.FC = () => {
       setDone(true);
     } catch (e: unknown) {
       console.error('[CashierRedeem] confirm:', e);
+      setConfirmError(e instanceof Error ? e.message : 'Bilet işlenemedi. Tekrar deneyin.');
     } finally {
       setConfirming(false);
     }
@@ -220,7 +224,7 @@ const CashierRedeem: React.FC = () => {
   const handleReset = () => {
     stopScanner();
     setScannerOpen(false);
-    setCode(''); setStatus('idle'); setFoundItem(null); setDone(false);
+    setCode(''); setStatus('idle'); setFoundItem(null); setDone(false); setConfirmError('');
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
@@ -317,7 +321,7 @@ const CashierRedeem: React.FC = () => {
                 value={code}
                 onChange={e => { setCode(e.target.value); setStatus('idle'); setFoundItem(null); setDone(false); }}
                 onKeyDown={e => e.key === 'Enter' && handleCheck()}
-                placeholder="ESPRESSO2024..."
+                placeholder="K3M9P2"
                 style={{
                   width: '100%', paddingLeft: 42, paddingRight: 16, paddingTop: 14, paddingBottom: 14,
                   borderRadius: 14, fontFamily: 'monospace', fontSize: 15, fontWeight: 900,
@@ -370,6 +374,12 @@ const CashierRedeem: React.FC = () => {
                 )}
               </div>
             </div>
+            {confirmError && (
+              <div style={{ padding: 12, borderRadius: 14, background: 'rgba(239,68,68,0.12)', border: '2px solid #ef4444', color: '#ef4444', fontSize: 12, fontWeight: 800, marginBottom: 12, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>{confirmError}</span>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={handleReset} style={{ flex: 1, padding: '13px', borderRadius: 14, fontWeight: 900, fontSize: 13, background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2.5px solid var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <XCircle size={15} /> İptal

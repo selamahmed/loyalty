@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight, Clock } from 'lucide-react';
 import type { InventoryItem } from '../context/InventoryContext';
+import { formatRedemptionCode } from '../lib/redemptionCode';
 import { playSound } from '../lib/sounds';
 
 export const inventoryTypeConfig: Record<string, { color: string; bg: string; label: string; emoji: string }> = {
@@ -103,7 +104,7 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
           fontFamily: 'monospace', fontSize: 10, color: cfg.color, fontWeight: 700, margin: '0 0 4px',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
-          {item.code}
+          {formatRedemptionCode(item.code)}
         </p>
         <div className="inventory-wallet-card__meta-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
           <span className="inventory-wallet-card__time" style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>

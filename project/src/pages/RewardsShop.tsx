@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Search, Star, ShoppingCart, X, Check, ArrowRight, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Star, ShoppingCart, X, Check, ArrowRight, Package, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
@@ -204,9 +205,10 @@ const ShopProductCard = React.memo(function ShopProductCard({
 
 /* ── Main page ── */
 const RewardsShop: React.FC = () => {
+  const navigate = useNavigate();
   const { points, spendPoints, soundEnabled } = useApp();
   const { authUser, profile, refreshProfile } = useAuth();
-  const { reload: reloadInventory } = useInventory();
+  const { items: inventoryItems, reload: reloadInventory } = useInventory();
   const { data: rewards = [], isLoading } = useShopRewards();
   const [search, setSearch]             = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
@@ -238,6 +240,15 @@ const RewardsShop: React.FC = () => {
 
   const affordableCount = useMemo(() => filtered.filter(r => points >= r.points).length, [filtered, points]);
   const limitedCount = useMemo(() => filtered.filter(r => r.limited).length, [filtered]);
+  const activeInventoryCount = useMemo(
+    () => inventoryItems.filter(i => !i.used && new Date(i.expires) >= new Date()).length,
+    [inventoryItems],
+  );
+
+  const goToInventory = useCallback(() => {
+    playClick();
+    navigate('/inventory');
+  }, [navigate, playClick]);
 
   const handleBuy = async () => {
     if (!selectedReward || !authUser?.id || buyLoading) return;
@@ -392,6 +403,23 @@ const RewardsShop: React.FC = () => {
               <p style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, lineHeight: 1 }}>
                 {points.toLocaleString()} <span style={{ fontSize: 14, opacity: 0.8, fontWeight: 700 }}>pts</span>
               </p>
+              <button
+                type="button"
+                className="shop-inventory-btn"
+                onClick={goToInventory}
+                aria-label={
+                  activeInventoryCount > 0
+                    ? `Envantere git, ${activeInventoryCount} aktif bilet`
+                    : 'Envantere git, biletlerini gör'
+                }
+              >
+                <Package size={14} strokeWidth={2.5} />
+                <span>Envanter</span>
+                {activeInventoryCount > 0 && (
+                  <span className="shop-inventory-btn__badge">{activeInventoryCount}</span>
+                )}
+                <ChevronRight size={14} strokeWidth={2.75} aria-hidden />
+              </button>
             </div>
           </div>
           <PageMainSticker page="shop" variant="hero-inline" />

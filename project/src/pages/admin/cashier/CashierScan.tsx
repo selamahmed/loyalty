@@ -4,6 +4,8 @@ import QRCodeLib from 'qrcode';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../context/AuthContext';
 import { adminAddPoints, createCashierQR, getQRCodeById } from '../../../services/admin';
+import { spendAmountToPoints } from '../../../services/config';
+import { useSystemSettings } from '../../../context/SystemSettingsContext';
 import { activityLogService } from '../../../lib/activityLogger';
 import { useRealtimeTable } from '../../../hooks/useRealtime';
 import {
@@ -14,7 +16,6 @@ import NeoAvatar from '../../../components/NeoAvatar';
 import { ilikeOrFilter } from '../../../lib/postgrestSearch';
 
 const ACCENT        = '#f59e0b';
-const POINTS_PER_TL = 10;
 const QR_TTL_SEC    = 7 * 60;
 
 interface ActiveQR {
@@ -106,6 +107,8 @@ const CashierQRCodeImage: React.FC<{
 /* ─── QR section (amount → QR) ─── */
 const AmountQRTab: React.FC = () => {
   const { authUser } = useAuth();
+  const { settings } = useSystemSettings();
+  const pointsPerTl = settings.economy.spend_to_points;
   const [amount, setAmount]           = useState('');
   const [activeQR, setActiveQR]       = useState<ActiveQR | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -115,7 +118,7 @@ const AmountQRTab: React.FC = () => {
   const [generating, setGenerating]   = useState(false);
   const [genError, setGenError]       = useState('');
 
-  const pts = Math.round((parseFloat(amount) || 0) * POINTS_PER_TL);
+  const pts = spendAmountToPoints(parseFloat(amount) || 0, pointsPerTl);
 
   /* Countdown ticker */
   useEffect(() => {
@@ -165,7 +168,7 @@ const AmountQRTab: React.FC = () => {
     const now        = Date.now();
     const code       = generateCode();
     const expiresAt  = new Date(now + QR_TTL_SEC * 1000).toISOString();
-    const pointsVal  = Math.round(amtNum * POINTS_PER_TL);
+    const pointsVal  = spendAmountToPoints(amtNum, pointsPerTl);
 
     try {
       const row = await createCashierQR({
@@ -241,6 +244,9 @@ const AmountQRTab: React.FC = () => {
       {!activeQR && (
         <div className="p-5 rounded-2xl space-y-4" style={{ background: 'var(--card-bg)', border: '2.5px solid var(--dark-border)', boxShadow: '0px 4px 0px var(--dark-border)' }}>
           <p className="font-black text-sm" style={{ color: 'var(--text-dark)' }}>Harcama Tutarını Gir</p>
+          <p className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>
+            Oran: 1 ₺ = {pointsPerTl} puan (Admin ayarlarından)
+          </p>
           <div>
             <label className="text-xs font-black mb-2 block" style={{ color: 'var(--text-muted)' }}>HARCAMA MİKTARI (₺)</label>
             <div className="flex gap-3 items-center">
@@ -407,6 +413,8 @@ interface DBCustomer {
 
 const ManualSearchTab: React.FC = () => {
   const { authUser, profile } = useAuth();
+  const { settings } = useSystemSettings();
+  const pointsPerTl = settings.economy.spend_to_points;
   const [query, setQuery]             = useState('');
   const [customers, setCustomers]     = useState<DBCustomer[]>([]);
   const [loading, setLoading]         = useState(false);
@@ -452,7 +460,7 @@ const ManualSearchTab: React.FC = () => {
   const selected = customers.find(c => c.id === selectedId);
 
   const calcPoints = () => {
-    if (mode === 'amount') return Math.round((parseFloat(amount) || 0) * POINTS_PER_TL);
+    if (mode === 'amount') return spendAmountToPoints(parseFloat(amount) || 0, pointsPerTl);
     return parseInt(customPts, 10) || 0;
   };
   const ptsToGive = calcPoints();
@@ -584,6 +592,9 @@ const ManualSearchTab: React.FC = () => {
 
             {mode === 'amount' ? (
               <div>
+                <p className="text-xs font-bold mb-2" style={{ color: 'var(--text-muted)' }}>
+                  Oran: 1 ₺ = {pointsPerTl} puan
+                </p>
                 <label className="text-xs font-black mb-1.5 block" style={{ color: 'var(--text-muted)' }}>HARCAMA TUTARI (₺)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black" style={{ color: 'var(--text-muted)' }}>₺</span>

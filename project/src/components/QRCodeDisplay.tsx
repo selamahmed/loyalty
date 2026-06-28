@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
-import { createInventoryQRPayload } from '../lib/qrUtils';
+import { normalizeRedemptionCode } from '../lib/redemptionCode';
 
 interface InventoryQRItem {
   id: string;
@@ -23,8 +23,8 @@ interface Props {
  */
 export const InventoryQRCode: React.FC<Props> = ({ item, size = 160, style }) => {
   const qrData = useMemo(
-    () => JSON.stringify(createInventoryQRPayload(item)),
-    [item.id, item.code, item.title, item.type, item.expires],
+    () => normalizeRedemptionCode(item.code),
+    [item.code],
   );
 
   const [dataUrl, setDataUrl] = useState<string | null>(null);

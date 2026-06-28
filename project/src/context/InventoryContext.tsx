@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 import { getInventoryRedemptions, markRedemptionUsed } from '../services/redemptions';
+import { normalizeRedemptionCode } from '../lib/redemptionCode';
 
 export type InventoryItemType = 'coupon' | 'ticket' | 'reward';
 
@@ -130,7 +131,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [authUser?.id]);
 
   const getByCode = useCallback(
-    (code: string) => items.find(i => i.code.toUpperCase() === code.toUpperCase().trim()),
+    (code: string) => items.find(i => normalizeRedemptionCode(i.code) === normalizeRedemptionCode(code)),
     [items],
   );
 

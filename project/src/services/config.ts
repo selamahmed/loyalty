@@ -262,6 +262,12 @@ export async function restoreSystemSettingsToDefaults(): Promise<SystemSettings>
   return { ...DEFAULT_SYSTEM_SETTINGS };
 }
 
+export function spendAmountToPoints(amount: number, pointsPerCurrency: number): number {
+  const safeAmount = Number.isFinite(amount) ? Math.max(0, amount) : 0;
+  const safeRate = Number.isFinite(pointsPerCurrency) ? Math.max(0, pointsPerCurrency) : 0;
+  return Math.round(safeAmount * safeRate);
+}
+
 export type LoyaltySettings = SystemSettings['loyalty'];
 
 export async function getMissionsEnabled(): Promise<boolean> {

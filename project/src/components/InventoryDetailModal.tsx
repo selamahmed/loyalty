@@ -4,6 +4,7 @@ import { X, Copy, Check, Clock, Tag, Ticket, Gift, Package, AlertCircle, QrCode 
 import type { LucideIcon } from 'lucide-react';
 import { InventoryItem } from '../context/InventoryContext';
 import { InventoryQRCode } from './QRCodeDisplay';
+import { formatRedemptionCode, normalizeRedemptionCode } from '../lib/redemptionCode';
 
 const brutal = {
   border: '3px solid var(--dark-border)',
@@ -54,7 +55,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
   }, []);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(item.code).catch(() => {});
+    navigator.clipboard.writeText(normalizeRedemptionCode(item.code)).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -219,12 +220,13 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
                   >
                     <span className="inventory-detail-code-text" style={{
                       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                      fontSize: 16, fontWeight: 800,
+                      fontSize: formatRedemptionCode(item.code).length <= 8 ? 22 : 16,
+                      fontWeight: 800,
                       color: isActive ? 'var(--text-dark)' : 'var(--text-muted)',
-                      letterSpacing: '0.08em', flex: 1, textAlign: 'center',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      letterSpacing: formatRedemptionCode(item.code).length <= 8 ? '0.14em' : '0.06em',
+                      flex: 1, textAlign: 'center',
                     }}>
-                      {item.code}
+                      {formatRedemptionCode(item.code)}
                     </span>
                     {isActive && (
                       <div className="inventory-detail-copy-icon" style={{

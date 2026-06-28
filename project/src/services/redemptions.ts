@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/supabase';
+import { normalizeRedemptionCode } from '../lib/redemptionCode';
 
 export type Redemption = Database['public']['Tables']['redemptions']['Row'];
 
@@ -98,27 +99,38 @@ export async function markRedemptionUsed(id: string, userId?: string): Promise<v
  * Falls back to direct query (for the owner themselves).
  */
 export async function getRedemptionByCode(code: string): Promise<Redemption | null> {
-  // Try the security-definer RPC first (works for cashier/admin roles)
-  const { data: rpcData, error: rpcError } = await supabase
-    .rpc('lookup_redemption_by_code', { p_code: code.toUpperCase() });
-  if (!rpcError && rpcData) return rpcData as unknown as Redemption;
+  const normalized = normalizeRedemptionCode(code);
+  if (normalized.length < 4) return null;
 
-  // Fallback: direct query (works if the caller is the redemption owner)
+  const { data: rpcData, error: rpcError } = await supabase
+    .rpc('lookup_redemption_by_code', { p_code: normalized });
+  if (rpcError) {
+    const msg = (rpcError.message ?? '').toLowerCase();
+    if (msg.includes('invalid redemption code')) return null;
+    throw rpcError;
+  }
+  if (rpcData) return rpcData as unknown as Redemption;
+
   const { data, error } = await supabase
     .from('redemptions')
-    .select('*, profiles(username, email), rewards(title, image)')
-    .eq('code', code.toUpperCase())
+    .select('*, profiles(username, email), rewards(title, image, category, description, points)')
+    .eq('code', normalized)
     .maybeSingle();
   if (error) throw error;
   return data;
 }
 
-/**
- * Mark a redemption as used — uses a security-definer RPC so cashiers can update
- * redemptions that belong to other users.
- */
 export async function markRedemptionUsedByCode(code: string): Promise<void> {
+  const normalized = normalizeRedemptionCode(code);
+  if (normalized.length < 4) throw new Error('Geçersiz bilet kodu');
+
   const { error } = await supabase
-    .rpc('mark_redemption_used_by_code', { p_code: code.toUpperCase() });
-  if (error) throw error;
+    .rpc('mark_redemption_used_by_code', { p_code: normalized });
+  if (error) {
+    const msg = (error.message ?? '').toLowerCase();
+    if (msg.includes('not found')) throw new Error('Bilet kodu bulunamadı');
+    if (msg.includes('already used')) throw new Error('Bu bilet zaten kullanıldı');
+    if (msg.includes('only active cashiers')) throw new Error('Bu işlem için kasa yetkisi gerekli');
+    throw error;
+  }
 }

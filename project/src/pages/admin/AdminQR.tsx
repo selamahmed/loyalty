@@ -3,6 +3,8 @@ import { QrCode, Plus, Trash2, X, Check, Copy, Edit2, Save, RefreshCw, ToggleLef
 import AdminLayout from './AdminLayout';
 import { getQRCodes, createQRCode, toggleQRCode, deleteQRCode, getRedemptionsAdmin, updateRedemptionCode, createCashierQR, getCashierQRCodes } from '../../services/admin';
 import { useAuth } from '../../context/AuthContext';
+import { useSystemSettings } from '../../context/SystemSettingsContext';
+import { spendAmountToPoints } from '../../services/config';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 import {
   isQRExpired, msRemaining, appendAuditLog,
@@ -90,7 +92,6 @@ const StatusBadge: React.FC<{ qr: CashierQRPayload }> = ({ qr }) => {
 };
 
 const CASHIER_QR_TTL_MS = 7 * 60 * 1000;
-const CASHIER_POINTS_PER_TL = 10;
 
 function generateCashierCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -136,6 +137,8 @@ function normalizeJoinedReward(row: RedemptionAdminRow): JoinedReward {
 
 const AdminQR: React.FC = () => {
   const { authUser } = useAuth();
+  const { settings } = useSystemSettings();
+  const pointsPerTl = settings.economy.spend_to_points;
   const [tab, setTab] = useState<TabType>('purchase');
 
   /* ── Cashier purchase QR state ── */
@@ -225,7 +228,7 @@ const AdminQR: React.FC = () => {
   useRealtimeTable('redemptions', loadInventory, tab === 'inventory');
 
   const parsedAmount = parseFloat(amount) || 0;
-  const estimatedPoints = Math.round(parsedAmount * CASHIER_POINTS_PER_TL);
+  const estimatedPoints = spendAmountToPoints(parsedAmount, pointsPerTl);
 
   const handleGenerate = async () => {
     if (parsedAmount <= 0) return;
