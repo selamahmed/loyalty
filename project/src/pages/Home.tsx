@@ -19,7 +19,8 @@ import StickerDecorImg from '../components/StickerDecorImg';
 import { colorfulSticker } from '../lib/stickerCatalog';
 import { getMyAlltimeRank } from '../services/points';
 import { onLeaderboardRefresh } from '../lib/leaderboardRefresh';
-import { DEFAULT_SYSTEM_SETTINGS, getLoyaltySettings, type LoyaltySettings } from '../services/config';
+import { useFeatureFlags, useLoyaltySettings } from '../context/SystemSettingsContext';
+import { DEFAULT_SYSTEM_SETTINGS } from '../services/config';
 
 const homePromoSticker = colorfulSticker('Group 62.svg');
 
@@ -82,21 +83,20 @@ const Home: React.FC = () => {
   const activeInventoryCount = inventoryItems.filter(
     i => !i.used && new Date(i.expires) >= new Date(),
   ).length;
+  const flags = useFeatureFlags();
+  const loyaltySettings = useLoyaltySettings();
   const [showParticles, setShowParticles] = useState(false);
-  const { show: showDailyReward, setShow: setShowDailyReward } = useDailyReward();
+  const { show: showDailyRewardRaw, setShow: setShowDailyReward } = useDailyReward();
+  const showDailyReward = flags.streak_enabled && showDailyRewardRaw;
   const xpProgress = useXpProgress(user.xp, user.level, user.xpToNext);
   const [myRank, setMyRank] = useState<number | null>(null);
-  const [loyaltySettings, setLoyaltySettings] = useState<LoyaltySettings>(DEFAULT_SYSTEM_SETTINGS.loyalty);
-
   const [unreadNotifs, setUnreadNotifs] = useState<Notification[]>([]);
 
-  const refreshLoyaltySettings = useCallback(async () => {
-    try {
-      setLoyaltySettings(await getLoyaltySettings());
-    } catch {
-      setLoyaltySettings(DEFAULT_SYSTEM_SETTINGS.loyalty);
-    }
-  }, []);
+  const visibleQuickActions = quickActions.filter(action => {
+    if (action.path === '/qr') return flags.qr_enabled;
+    if (action.path === '/games') return flags.games_enabled;
+    return true;
+  });
 
   const refreshMyRank = useCallback(async () => {
     if (!authUser?.id) {
@@ -121,12 +121,6 @@ const Home: React.FC = () => {
   useRealtimeTable('points_transactions', refreshMyRank, Boolean(authUser?.id));
 
   useEffect(() => onLeaderboardRefresh(refreshMyRank), [refreshMyRank]);
-
-  useEffect(() => {
-    void refreshLoyaltySettings();
-  }, [refreshLoyaltySettings]);
-
-  useRealtimeTable('app_settings', refreshLoyaltySettings);
 
   useEffect(() => {
     if (!authUser?.id) return;
@@ -368,9 +362,15 @@ const Home: React.FC = () => {
             <p className="font-display" style={{ color: '#fff', fontSize: 'clamp(18px,4vw,24px)', fontWeight: 900, margin: 0, lineHeight: 1.2, textTransform: 'uppercase', maxWidth: '55%' }}>
               Alışveriş yap,<br />puan topla!
             </p>
+            {flags.qr_enabled ? (
             <button type="button" className="home-promo-banner__cta" onClick={() => navigate('/qr')}>
               QR Tara <QrCode size={14} />
             </button>
+            ) : (
+            <button type="button" className="home-promo-banner__cta" onClick={() => navigate('/shop')}>
+              Mağazaya Git <ArrowRight size={14} />
+            </button>
+            )}
           </div>
         </div>
 
@@ -378,7 +378,7 @@ const Home: React.FC = () => {
         <div className="home-quick-section">
           <SectionHeader micro="HIZLI ERİŞİM" title={tr.home.quickActions} />
           <div className="home-quick-actions" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-            {quickActions.map(action => {
+            {visibleQuickActions.map(action => {
               const sticker = colorfulSticker(action.sticker);
               return (
                 <button

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Search, Star, ShoppingCart, X, Check, ArrowRight, Package } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,7 @@ import { useShopRewards } from '../hooks/useShopRewards';
 import { WinningParticles } from '../components/WinningParticles';
 import PageMainSticker from '../components/PageMainSticker';
 import { activityLogService } from '../lib/activityLogger';
+import { markMissionPageVisit } from '../lib/missionVisitTracker';
 
 const cardStyle: React.CSSProperties = {
   background: 'var(--card-bg)',
@@ -215,6 +216,10 @@ const RewardsShop: React.FC = () => {
   const [celebration, setCelebration]   = useState<CelebrationState | null>(null);
   const [buyLoading, setBuyLoading]     = useState(false);
   const [buyError, setBuyError]         = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authUser?.id) markMissionPageVisit('shop_visit', authUser.id);
+  }, [authUser?.id]);
 
   const playClick = useCallback(() => {
     if (soundEnabled) playSound('click');

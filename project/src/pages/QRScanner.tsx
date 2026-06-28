@@ -18,6 +18,8 @@ import {
 import { claimQrScan, previewQrScan } from '../services/earn';
 import { activityLogService } from '../lib/activityLogger';
 import StickerAccent from '../components/StickerAccent';
+import { useFeatureFlags } from '../context/SystemSettingsContext';
+import ModuleDisabledScreen from '../components/ModuleDisabledScreen';
 
 const inventoryLinkSticker = colorfulSticker('cardboardbox.svg');
 const qrIdleSticker = colorfulSticker(pageGroup('qr'));
@@ -124,6 +126,7 @@ const QRScanner: React.FC = () => {
   const { showRewardPopup } = useApp();
   const { getByCode, items } = useInventory();
   const { authUser, profile } = useAuth();
+  const { qr_enabled: qrEnabled } = useFeatureFlags();
 
   const [mode, setMode]         = useState<'idle' | 'camera' | 'manual'>('idle');
   const [cameraReady, setCameraReady] = useState(false);   // true once video is actually playing
@@ -415,6 +418,15 @@ const QRScanner: React.FC = () => {
   const activeInventoryCount = items.filter(
     i => !i.used && new Date(i.expires) >= new Date(),
   ).length;
+
+  if (!qrEnabled) {
+    return (
+      <ModuleDisabledScreen
+        title="QR tarama kapalı"
+        message="Yönetici QR modülünü devre dışı bıraktı."
+      />
+    );
+  }
 
   return (
     <div className="qr-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>

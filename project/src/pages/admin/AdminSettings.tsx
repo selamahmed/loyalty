@@ -1,21 +1,40 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Settings, Save, CheckCircle, Loader, Zap, ToggleLeft, ToggleRight, TrendingUp, ShieldCheck, Sliders, AlertTriangle, Wrench, Power, X, Clock, RefreshCw } from 'lucide-react';
+import { Settings, Save, CheckCircle, Loader, Zap, ToggleLeft, ToggleRight, TrendingUp, ShieldCheck, Sliders, AlertTriangle, Wrench, Power, X, Clock, RefreshCw, RotateCcw, Database } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import {
   getMaintenanceStatus,
   setMaintenanceMode,
   getSystemSettings,
   saveSystemSettings,
+  restoreSystemSettingsToDefaults,
+  ensureAppSettingsSeeded,
+  countSettingsDiffFromDefaults,
   DEFAULT_SYSTEM_SETTINGS,
   type MaintenanceStatus,
   type SystemSettings,
 } from '../../services/config';
+import { useSystemSettings } from '../../context/SystemSettingsContext';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 
 type AllSettings = SystemSettings;
-const DEFAULTS = DEFAULT_SYSTEM_SETTINGS;
 
-/* ─── Slider control ─── */
+/* ─── Unsaved banner ─── */
+const UnsavedBanner: React.FC<{ onSave: () => void; onDiscard: () => void; onRestore: () => void; saving: boolean }> = ({ onSave, onDiscard, onRestore, saving }) => (
+  <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 100, display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderRadius: 18, background: 'var(--card-bg)', border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)', animation: 'slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)', maxWidth: 'calc(100vw - 24px)', flexWrap: 'wrap', justifyContent: 'center' }}>
+    <AlertTriangle size={16} color="#f59e0b" />
+    <span style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)' }}>Kaydedilmemiş değişiklikler</span>
+    <button type="button" onClick={onRestore} style={{ padding: '7px 12px', borderRadius: 10, fontWeight: 900, fontSize: 12, background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '2px solid #fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+      <RotateCcw size={12} /> Varsayılan
+    </button>
+    <button type="button" onClick={onDiscard} style={{ padding: '7px 14px', borderRadius: 10, fontWeight: 900, fontSize: 12, background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2px solid var(--dark-border)', cursor: 'pointer' }}>
+      Geri Al
+    </button>
+    <button type="button" onClick={onSave} disabled={saving} style={{ padding: '7px 16px', borderRadius: 10, fontWeight: 900, fontSize: 12, background: saving ? '#a78bfa' : 'linear-gradient(180deg,#a78bfa,#6d28d9)', color: 'white', border: '2px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+      {saving ? <Loader size={12} style={{ animation: 'spin 0.7s linear infinite' }} /> : <Save size={12} />}
+      {saving ? 'Kaydediliyor…' : 'Kaydet'}
+    </button>
+  </div>
+);
 const SliderControl: React.FC<{
   label: string;
   description: string;
@@ -107,21 +126,6 @@ const Section: React.FC<{ icon: React.ElementType; title: string; subtitle: stri
       {children}
     </div>
   );
-
-/* ─── Unsaved banner ─── */
-const UnsavedBanner: React.FC<{ onSave: () => void; onDiscard: () => void; saving: boolean }> = ({ onSave, onDiscard, saving }) => (
-  <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 100, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px', borderRadius: 18, background: 'var(--card-bg)', border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)', animation: 'slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)', maxWidth: 'calc(100vw - 32px)' }}>
-    <AlertTriangle size={16} color="#f59e0b" />
-    <span style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)' }}>Kaydedilmemiş değişiklikler</span>
-    <button onClick={onDiscard} style={{ padding: '7px 14px', borderRadius: 10, fontWeight: 900, fontSize: 12, background: 'var(--tab-bg)', color: 'var(--text-muted)', border: '2px solid var(--dark-border)', cursor: 'pointer' }}>
-      Geri Al
-    </button>
-    <button onClick={onSave} disabled={saving} style={{ padding: '7px 16px', borderRadius: 10, fontWeight: 900, fontSize: 12, background: saving ? '#a78bfa' : 'linear-gradient(180deg,#a78bfa,#6d28d9)', color: 'white', border: '2px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-      {saving ? <Loader size={12} style={{ animation: 'spin 0.7s linear infinite' }} /> : <Save size={12} />}
-      {saving ? 'Kaydediliyor…' : 'Kaydet'}
-    </button>
-  </div>
-);
 
 /* ─── Maintenance Mode Panel ─── */
 const MaintenancePanel: React.FC = () => {
@@ -346,23 +350,33 @@ const MaintenancePanel: React.FC = () => {
 
 /* ─── Main component ─── */
 const AdminSettings: React.FC = () => {
-  const [saved, setSaved]       = useState<AllSettings>(DEFAULTS);
-  const [draft, setDraft]       = useState<AllSettings>(DEFAULTS);
+  const { refresh: refreshGlobalSettings } = useSystemSettings();
+  const [saved, setSaved]       = useState<AllSettings>(DEFAULT_SYSTEM_SETTINGS);
+  const [draft, setDraft]       = useState<AllSettings>(DEFAULT_SYSTEM_SETTINGS);
   const [saving, setSaving]     = useState(false);
   const [saved2, setSaved2]     = useState(false);
   const [saveError, setSaveError] = useState('');
   const [dbLoaded, setDbLoaded] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [seedInfo, setSeedInfo] = useState('');
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
 
   const loadSettings = useCallback(async (silent = false) => {
     if (!silent) setDbLoaded(false);
     else setRefreshing(true);
     setLoadError('');
     try {
+      const added = await ensureAppSettingsSeeded();
+      if (added > 0) {
+        setSeedInfo(`${added} eksik ayar Supabase'e eklendi.`);
+      }
       const settings = await getSystemSettings();
       setSaved(settings);
       setDraft(settings);
+      setLastSyncedAt(new Date());
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : 'Ayarlar yüklenemedi');
     } finally {
@@ -392,11 +406,13 @@ const AdminSettings: React.FC = () => {
     setSaveError('');
     setSaved2(false);
     try {
-      if (draft.loyalty.max_points_limit < 1) throw new Error('Maksimum puan limiti 1 veya daha buyuk olmali.');
-      if (draft.loyalty.ticket_valid_for < 1) throw new Error('Bilet gecerlilik suresi 1 veya daha buyuk olmali.');
+      if (draft.loyalty.max_points_limit < 1) throw new Error('Maksimum puan limiti 1 veya daha büyük olmalı.');
+      if (draft.loyalty.ticket_valid_for < 1) throw new Error('Bilet geçerlilik süresi 1 veya daha büyük olmalı.');
       await saveSystemSettings(draft);
       setSaved(draft);
       setSaved2(true);
+      setLastSyncedAt(new Date());
+      await refreshGlobalSettings();
       setTimeout(() => setSaved2(false), 2500);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Kaydedilemedi');
@@ -404,6 +420,28 @@ const AdminSettings: React.FC = () => {
       setSaving(false);
     }
   };
+
+  const handleRestoreDefaults = async () => {
+    setRestoring(true);
+    setSaveError('');
+    try {
+      const defaults = await restoreSystemSettingsToDefaults();
+      setSaved(defaults);
+      setDraft(defaults);
+      setLastSyncedAt(new Date());
+      setShowRestoreConfirm(false);
+      setSaved2(true);
+      await refreshGlobalSettings();
+      setTimeout(() => setSaved2(false), 2500);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Varsayılanlara dönülemedi');
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleDiscardDraftToSaved = () => setDraft(saved);
+  const handleRestoreDraftToDefaults = () => setDraft({ ...DEFAULT_SYSTEM_SETTINGS });
 
   if (!dbLoaded) return (
     <AdminLayout>
@@ -414,47 +452,101 @@ const AdminSettings: React.FC = () => {
     </AdminLayout>
   );
 
-  const handleDiscard = () => setDraft(saved);
-
+  const diffCount = countSettingsDiffFromDefaults(draft);
   const { economy: eco, multipliers: mul, limits: lim, loyalty, flags } = draft;
 
   return (
     <AdminLayout>
-      {isDirty && <UnsavedBanner onSave={handleSave} onDiscard={handleDiscard} saving={saving} />}
+      {isDirty && (
+        <UnsavedBanner
+          onSave={handleSave}
+          onDiscard={handleDiscardDraftToSaved}
+          onRestore={handleRestoreDraftToDefaults}
+          saving={saving}
+        />
+      )}
 
-      <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto" style={{ paddingBottom: isDirty ? 100 : undefined }}>
+      <div className="p-4 lg:p-6 space-y-6 max-w-4xl mx-auto" style={{ paddingBottom: isDirty ? 100 : undefined }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', border: '2.5px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Sliders size={22} color="white" />
           </div>
-          <div style={{ flex: 1, minWidth: 160 }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
             <h1 style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)', margin: 0 }}>Sistem Ayarları</h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Değerleri gerçek zamanlı olarak yapılandırın</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>
+              Tüm değerler Supabase <code>app_settings</code> tablosundan okunur ve site geneline uygulanır.
+            </p>
+            {lastSyncedAt && (
+              <p style={{ fontSize: 11, color: '#16a34a', fontWeight: 800, margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Database size={12} />
+                Son senkron: {lastSyncedAt.toLocaleTimeString('tr-TR')}
+                {diffCount > 0 ? ` · ${diffCount} alan varsayılandan farklı` : ' · varsayılanlarla aynı'}
+              </p>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={() => loadSettings(true)}
-            disabled={refreshing}
-            style={{
-              padding: '8px 14px', borderRadius: 12, fontWeight: 900, fontSize: 12,
-              background: 'var(--card-bg)', color: 'var(--text-dark)',
-              border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-              opacity: refreshing ? 0.6 : 1,
-            }}
-          >
-            <RefreshCw size={14} style={refreshing ? { animation: 'spin 0.8s linear infinite' } : undefined} />
-            Yenile
-          </button>
-          {saved2 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 12, background: 'rgba(34,197,94,0.1)', border: '2px solid #22c55e' }}>
-              <CheckCircle size={14} color="#16a34a" />
-              <span style={{ fontSize: 12, fontWeight: 900, color: '#16a34a' }}>Kaydedildi</span>
-            </div>
-          )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => loadSettings(true)}
+              disabled={refreshing}
+              style={{
+                padding: '8px 14px', borderRadius: 12, fontWeight: 900, fontSize: 12,
+                background: 'var(--card-bg)', color: 'var(--text-dark)',
+                border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                opacity: refreshing ? 0.6 : 1,
+              }}
+            >
+              <RefreshCw size={14} style={refreshing ? { animation: 'spin 0.8s linear infinite' } : undefined} />
+              Yenile
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowRestoreConfirm(true)}
+              disabled={restoring}
+              style={{
+                padding: '8px 14px', borderRadius: 12, fontWeight: 900, fontSize: 12,
+                background: 'rgba(239,68,68,0.08)', color: '#dc2626',
+                border: '2.5px solid #fca5a5', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <RotateCcw size={14} />
+              Varsayılanlara Dön
+            </button>
+            {!isDirty && (
+              <button
+                type="button"
+                onClick={() => void handleSave()}
+                disabled={saving}
+                style={{
+                  padding: '8px 14px', borderRadius: 12, fontWeight: 900, fontSize: 12,
+                  background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', color: 'white',
+                  border: '2.5px solid var(--dark-border)', boxShadow: '0 3px 0 var(--dark-border)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                  opacity: saving ? 0.7 : 1,
+                }}
+              >
+                <Save size={14} />
+                Kaydet
+              </button>
+            )}
+            {saved2 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 12, background: 'rgba(34,197,94,0.1)', border: '2px solid #22c55e' }}>
+                <CheckCircle size={14} color="#16a34a" />
+                <span style={{ fontSize: 12, fontWeight: 900, color: '#16a34a' }}>Kaydedildi</span>
+              </div>
+            )}
+          </div>
         </div>
+
+        {seedInfo && (
+          <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(59,130,246,0.08)', border: '2px solid #3b82f6', color: '#2563eb', fontWeight: 800, fontSize: 12 }}>
+            {seedInfo}
+          </div>
+        )}
 
         {loadError && (
           <div style={{ padding: '12px 16px', borderRadius: 14, background: 'rgba(239,68,68,0.08)', border: '2px solid #ef4444', color: '#dc2626', fontWeight: 800, fontSize: 13 }}>
@@ -471,40 +563,40 @@ const AdminSettings: React.FC = () => {
         {/* ── 0. Maintenance Mode ── */}
         <MaintenancePanel />
 
-        <Section icon={ShieldCheck} title="Loyalty Settings" subtitle="Puan claim limiti ve bilet gecerlilik suresini yonetin" color="#06b6d4">
+        <Section icon={ShieldCheck} title="Sadakat Ayarları" subtitle="Puan claim limiti ve bilet geçerlilik süresini yönetin" color="#06b6d4">
           <FlagRow
-            label="Points Limit Enabled"
-            sub="Acik ise kullanici bakiyesi maksimum claim limitini asamaz"
+            label="Puan Limiti Aktif"
+            sub="Açık ise kullanıcı bakiyesi maksimum claim limitini aşamaz"
             value={loyalty.points_limit_enabled}
             color="#06b6d4"
             onChange={v => setLoyalty({ points_limit_enabled: v })}
           />
           <SliderControl
-            label="Max Points Limit"
-            description="Kullanicinin claim ederek ulasabilecegi maksimum puan bakiyesi"
+            label="Maksimum Puan Limiti"
+            description="Kullanıcının claim ederek ulaşabileceği maksimum puan bakiyesi"
             value={loyalty.max_points_limit}
             min={100}
             max={100000}
             step={50}
             unit="puan"
             color="#06b6d4"
-            preview={`${loyalty.max_points_limit.toLocaleString('tr-TR')} puandan sonra claim islemleri engellenir`}
+            preview={`${loyalty.max_points_limit.toLocaleString('tr-TR')} puandan sonra claim işlemleri engellenir`}
             onChange={v => setLoyalty({ max_points_limit: v })}
           />
           <SliderControl
-            label="Ticket Valid For"
-            description="Magazadan alinan biletlerin varsayilan gecerlilik suresi"
+            label="Bilet Geçerlilik Süresi"
+            description="Mağazadan alınan biletlerin varsayılan geçerlilik süresi"
             value={loyalty.ticket_valid_for}
             min={1}
             max={365}
             step={1}
-            unit={loyalty.ticket_time_unit}
+            unit={loyalty.ticket_time_unit === 'minutes' ? 'dk' : loyalty.ticket_time_unit === 'hours' ? 'saat' : 'gün'}
             color="#f59e0b"
-            preview={`Yeni biletler ${loyalty.ticket_valid_for} ${loyalty.ticket_time_unit} boyunca aktif kalir`}
+            preview={`Yeni biletler ${loyalty.ticket_valid_for} ${loyalty.ticket_time_unit} boyunca aktif kalır`}
             onChange={v => setLoyalty({ ticket_valid_for: v })}
           />
           <div style={{ padding: '18px 20px', borderBottom: '2px solid var(--dark-border)' }}>
-            <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 8px' }}>Ticket Time Unit</p>
+            <p style={{ fontWeight: 900, fontSize: 13, color: 'var(--text-dark)', margin: '0 0 8px' }}>Bilet Süre Birimi</p>
             <select
               value={loyalty.ticket_time_unit}
               onChange={e => setLoyalty({ ticket_time_unit: e.target.value as AllSettings['loyalty']['ticket_time_unit'] })}
@@ -519,9 +611,9 @@ const AdminSettings: React.FC = () => {
                 outline: 'none',
               }}
             >
-              <option value="minutes">Minutes</option>
-              <option value="hours">Hours</option>
-              <option value="days">Days</option>
+              <option value="minutes">Dakika</option>
+              <option value="hours">Saat</option>
+              <option value="days">Gün</option>
             </select>
           </div>
         </Section>
@@ -654,29 +746,52 @@ const AdminSettings: React.FC = () => {
         <Section icon={Settings} title="Özellik Anahtarları" subtitle="Sistem modüllerini açın veya kapatın" color="#ec4899">
           <FlagRow label="QR Tarama Sistemi"    sub="Kullanıcıların QR kodu taramasına izin ver"       value={flags.qr_enabled}           color="#7B6EF6" onChange={v => setFlag({ qr_enabled: v })} />
           <FlagRow label="Mini Oyunlar"         sub="Oyun modülü aktif / pasif"                        value={flags.games_enabled}         color="#f59e0b" onChange={v => setFlag({ games_enabled: v })} />
+          <FlagRow label="Görevler"             sub="Günlük / haftalık görev modülü aktif / pasif"     value={flags.missions_enabled}      color="#06b6d4" onChange={v => setFlag({ missions_enabled: v })} />
           <FlagRow label="Referral Sistemi"     sub="Davet bağlantısı ve bonus aktif / pasif"          value={flags.referral_enabled}      color="#22c55e" onChange={v => setFlag({ referral_enabled: v })} />
           <FlagRow label="Seri (Streak) Takibi" sub="Ardışık gün serisi ve bonusları"                  value={flags.streak_enabled}        color="#3b82f6" onChange={v => setFlag({ streak_enabled: v })} />
           <FlagRow label="Push Bildirimleri"    sub="Kullanıcılara anlık bildirim gönderme"             value={flags.push_notifications}    color="#ec4899" onChange={v => setFlag({ push_notifications: v })} />
           <FlagRow label="Çift Puan Etkinliği"  sub="Tüm kazanımlar 2× olur (kampanya modu)"          value={flags.double_points_events}  color="#FF6B00" onChange={v => setFlag({ double_points_events: v })} />
         </Section>
 
-        {/* Live Summary Card */}
+        {/* Preview card — reflects current draft before save */}
         <div style={{ borderRadius: 18, border: '2.5px solid var(--dark-border)', background: 'var(--tab-bg)', padding: 20 }}>
-          <p style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>📊 Canlı Özet</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <p style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Önizleme (kaydedilince uygulanır)</p>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 14px' }}>
+            QR {flags.qr_enabled ? '✓' : '✗'} · Oyun {flags.games_enabled ? '✓' : '✗'} · Görev {flags.missions_enabled ? '✓' : '✗'} · Referral {flags.referral_enabled ? '✓' : '✗'}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
             {[
-              { label: '100₺ harcama', value: `${100 * eco.spend_to_points} puan`, color: '#7B6EF6' },
+              { label: '100₺ harcama', value: `${(100 * eco.spend_to_points).toFixed(1)} puan`, color: '#7B6EF6' },
               { label: '1000 puan değeri', value: `≈${(1000 / eco.points_to_tl).toFixed(2)}₺`, color: '#4F8EF7' },
               { label: 'QR + oyun/gün', value: `${mul.qr_base_points * 5 * mul.game_multiplier} puan`, color: '#f59e0b' },
               { label: 'Günlük limit', value: `${lim.daily_earn_cap.toLocaleString('tr-TR')} puan`, color: '#22c55e' },
+              { label: 'Claim limiti', value: loyalty.points_limit_enabled ? `${loyalty.max_points_limit} puan` : 'Kapalı', color: '#06b6d4' },
+              { label: 'Görev bonusu', value: `+${mul.daily_mission_bonus} puan`, color: '#ec4899' },
             ].map(s => (
               <div key={s.label} style={{ padding: '10px 14px', borderRadius: 12, background: 'var(--card-bg)', border: '2px solid var(--dark-border)' }}>
                 <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', margin: '0 0 4px', textTransform: 'uppercase' }}>{s.label}</p>
-                <p style={{ fontSize: 18, fontWeight: 900, color: s.color, margin: 0 }}>{s.value}</p>
+                <p style={{ fontSize: 16, fontWeight: 900, color: s.color, margin: 0 }}>{s.value}</p>
               </div>
             ))}
           </div>
         </div>
+
+        {showRestoreConfirm && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', padding: 16 }}>
+            <div style={{ maxWidth: 420, width: '100%', background: 'var(--card-bg)', border: '3px solid #ef4444', boxShadow: '0 8px 0 #dc2626', borderRadius: 22, padding: 28 }}>
+              <h3 style={{ fontWeight: 900, fontSize: 18, color: 'var(--text-dark)', margin: '0 0 8px' }}>Varsayılan ayarlara dönülsün mü?</h3>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 20px' }}>
+                Ekonomi, limitler, sadakat ve özellik anahtarları fabrika varsayılanlarına sıfırlanır. Bakım modu etkilenmez. Bu işlem Supabase&apos;e yazılır ve tüm site anında güncellenir.
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" onClick={() => setShowRestoreConfirm(false)} className="btn-secondary flex-1">İptal</button>
+                <button type="button" onClick={() => void handleRestoreDefaults()} disabled={restoring} className="btn-primary flex-1" style={{ background: '#ef4444' }}>
+                  {restoring ? 'Sıfırlanıyor…' : 'Evet, varsayılanlara dön'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
 

@@ -69,6 +69,7 @@ const AdminInventory    = React.lazy(() => import('./pages/admin/AdminInventory'
 const AdminCheckout     = React.lazy(() => import('./pages/admin/AdminCheckout'));
 const AdminQR           = React.lazy(() => import('./pages/admin/AdminQR'));
 const AdminGames        = React.lazy(() => import('./pages/admin/AdminGames'));
+const AdminMissions     = React.lazy(() => import('./pages/admin/AdminMissions'));
 const AdminDailyRewards = React.lazy(() => import('./pages/admin/AdminDailyRewards'));
 const AdminPointsEconomy= React.lazy(() => import('./pages/admin/AdminPointsEconomy'));
 const AdminAuditLogs    = React.lazy(() => import('./pages/admin/AdminAuditLogs'));
@@ -299,6 +300,7 @@ function App() {
             <Route path="/admin/checkout"          element={<SA><AdminCheckout /></SA>} />
             <Route path="/admin/qr"                element={<SA><AdminQR /></SA>} />
             <Route path="/admin/games"             element={<SA><AdminGames /></SA>} />
+            <Route path="/admin/missions"          element={<SA><AdminMissions /></SA>} />
             <Route path="/admin/daily-rewards"     element={<SA><AdminDailyRewards /></SA>} />
             <Route path="/admin/points-economy"    element={<SA><AdminPointsEconomy /></SA>} />
             <Route path="/admin/audit-logs"        element={<SA><AdminAuditLogs /></SA>} />

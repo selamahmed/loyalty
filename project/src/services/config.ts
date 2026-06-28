@@ -96,6 +96,7 @@ export interface SystemSettings {
   flags: {
     qr_enabled: boolean;
     games_enabled: boolean;
+    missions_enabled: boolean;
     referral_enabled: boolean;
     streak_enabled: boolean;
     push_notifications: boolean;
@@ -111,6 +112,7 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   flags: {
     qr_enabled: true,
     games_enabled: true,
+    missions_enabled: true,
     referral_enabled: true,
     streak_enabled: true,
     push_notifications: true,
@@ -176,6 +178,7 @@ export function appSettingsToSystem(rows: AppSetting[]): SystemSettings {
     flags: {
       qr_enabled:           parseSettingBool(map.qr_enabled, d.flags.qr_enabled),
       games_enabled:        parseSettingBool(map.games_enabled, d.flags.games_enabled),
+      missions_enabled:     parseSettingBool(map.missions_enabled, d.flags.missions_enabled),
       referral_enabled:     parseSettingBool(map.referral_enabled, d.flags.referral_enabled),
       streak_enabled:       parseSettingBool(map.streak_enabled, d.flags.streak_enabled),
       push_notifications:   parseSettingBool(map.push_notifications, d.flags.push_notifications),
@@ -207,6 +210,7 @@ export function systemToAppSettingsPayload(s: SystemSettings): Record<string, un
     ticket_time_unit:         s.loyalty.ticket_time_unit,
     qr_enabled:               s.flags.qr_enabled,
     games_enabled:            s.flags.games_enabled,
+    missions_enabled:         s.flags.missions_enabled,
     referral_enabled:         s.flags.referral_enabled,
     streak_enabled:           s.flags.streak_enabled,
     push_notifications:       s.flags.push_notifications,
@@ -223,7 +227,52 @@ export async function saveSystemSettings(settings: SystemSettings): Promise<void
   await updateAppSettings(systemToAppSettingsPayload(settings));
 }
 
+/** Count how many fields differ from shipped defaults (admin UI hint). */
+export function countSettingsDiffFromDefaults(settings: SystemSettings): number {
+  let diff = 0;
+  (Object.keys(DEFAULT_SYSTEM_SETTINGS) as Array<keyof SystemSettings>).forEach(section => {
+    const current = settings[section] as Record<string, unknown>;
+    const defaults = DEFAULT_SYSTEM_SETTINGS[section] as Record<string, unknown>;
+    Object.keys(defaults).forEach(key => {
+      if (current[key] !== defaults[key]) diff += 1;
+    });
+  });
+  return diff;
+}
+
+/** Insert missing app_settings keys from defaults (admin-only write). Returns keys added. */
+export async function ensureAppSettingsSeeded(): Promise<number> {
+  const existing = await getAppSettings();
+  const existingKeys = new Set(existing.map(row => row.key));
+  const payload = systemToAppSettingsPayload(DEFAULT_SYSTEM_SETTINGS);
+  const missing: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(payload)) {
+    if (!existingKeys.has(key)) missing[key] = value;
+  }
+
+  if (Object.keys(missing).length === 0) return 0;
+  await updateAppSettings(missing);
+  return Object.keys(missing).length;
+}
+
+/** Restore economy / limits / flags / loyalty to shipped defaults (does not touch maintenance). */
+export async function restoreSystemSettingsToDefaults(): Promise<SystemSettings> {
+  await saveSystemSettings(DEFAULT_SYSTEM_SETTINGS);
+  return { ...DEFAULT_SYSTEM_SETTINGS };
+}
+
 export type LoyaltySettings = SystemSettings['loyalty'];
+
+export async function getMissionsEnabled(): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'missions_enabled')
+    .maybeSingle();
+  if (error) throw error;
+  return parseSettingBool(data?.value, DEFAULT_SYSTEM_SETTINGS.flags.missions_enabled);
+}
 
 export async function getLoyaltySettings(): Promise<LoyaltySettings> {
   const { data, error } = await supabase

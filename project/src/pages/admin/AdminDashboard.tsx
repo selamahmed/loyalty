@@ -169,7 +169,7 @@ const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: 'Aktif Ödüller',  val: extras.activeRewards,  icon: Gift,     color: '#7B6EF6', path: '/admin/rewards'  },
-            { label: 'Aktif Görevler', val: extras.activeMissions, icon: Zap,      color: '#06b6d4', path: '/admin/games'   },
+            { label: 'Aktif Görevler', val: extras.activeMissions, icon: Zap,      color: '#06b6d4', path: '/admin/missions' },
             { label: 'Aktif Etkinlik', val: extras.activeEvents,   icon: Calendar, color: '#f59e0b', path: '/admin/events'  },
             { label: 'Aktif QR Kod',   val: extras.totalQRCodes,   icon: QrCode,   color: '#22c55e', path: '/admin/qr'      },
           ].map(s => (

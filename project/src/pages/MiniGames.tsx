@@ -8,6 +8,8 @@ import StickerHero from '../components/StickerHero';
 import { GAME_LOSE_STICKER, GAME_WIN_STICKER } from '../lib/pageStickers';
 import { getGamesConfig, type GameConfig } from '../services/config';
 import { useRealtimeTable } from '../hooks/useRealtime';
+import { useFeatureFlags } from '../context/SystemSettingsContext';
+import ModuleDisabledScreen from '../components/ModuleDisabledScreen';
 
 const GameOutcomeSticker: React.FC<{ won: boolean; size?: number }> = ({ won, size = 88 }) => (
   <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -1042,6 +1044,7 @@ function dedupeGamesByType(games: ReturnType<typeof mapConfigToGame>[]) {
 const MiniGames: React.FC = () => {
   const { earnReward, showRewardPopup } = useApp();
   const { authUser } = useAuth();
+  const { games_enabled: gamesEnabled } = useFeatureFlags();
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [gamesList, setGamesList] = useState<PlayableGame[]>([]);
   const [gamesLoading, setGamesLoading] = useState(true);
@@ -1076,6 +1079,15 @@ const MiniGames: React.FC = () => {
       }
     });
   };
+
+  if (!gamesEnabled) {
+    return (
+      <ModuleDisabledScreen
+        title="Mini oyunlar kapalı"
+        message="Yönetici oyun modülünü devre dışı bıraktı."
+      />
+    );
+  }
 
   const cardStyle = {
     background: 'var(--card-bg)',
