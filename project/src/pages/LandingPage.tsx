@@ -76,7 +76,7 @@ const LandingPage: React.FC = () => {
           <div className="landing-nav-inner">
             {/* Logo */}
             <div className="landing-nav-logo">
-              <AppLogo size={36} priority style={{ borderRadius: 10, border: '2px solid #000', boxShadow: '0 2px 0 #000' }} />
+              <AppLogo size={36} priority />
               <span className="landing-nav-logo__text" style={{ color: t.textPrimary }}>NexReward</span>
             </div>
 
@@ -113,9 +113,6 @@ const LandingPage: React.FC = () => {
               {/* Desktop-only buttons */}
               <div className="nav-desktop-actions">
                 <button type="button" onClick={() => navigate('/login')} className="lbtn-secondary-sm">Giriş Yap</button>
-                <button type="button" onClick={() => navigate('/admin-login')} className="nav-admin-btn">
-                  🔐 Yönetici
-                </button>
                 <button type="button" onClick={() => navigate('/home')} className="lbtn-primary-sm">
                   Panele Gir <ArrowRight size={12} />
               </button>
@@ -141,15 +138,11 @@ const LandingPage: React.FC = () => {
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={() => { navigate('/login'); setMenuOpen(false); }} className="lbtn-secondary-sm" style={{ flex: 1, justifyContent: 'center', padding: '11px 12px' }}>Giriş Yap</button>
-                  <button onClick={() => { navigate('/register'); setMenuOpen(false); }} className="lbtn-primary-sm" style={{ flex: 1, justifyContent: 'center', padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>Kayıt Ol <ArrowRight size={13} /></button>
+                  <button onClick={() => { navigate('/register'); setMenuOpen(false); }} className="lbtn-primary-sm" style={{ flex: 1, justifyContent: 'center', padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>Hemen Başlayın <ArrowRight size={13} /></button>
                 </div>
                 <button onClick={() => { navigate('/home'); setMenuOpen(false); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 16px', borderRadius: 12, cursor: 'pointer', background: 'linear-gradient(135deg,#7B6EF6,#9122FF)', color: 'white', border: '2.5px solid #000', fontWeight: 900, fontSize: 14, boxShadow: '0 4px 0 #000', fontFamily: 'inherit' }}>
                   Panele Gir <ArrowRight size={14} />
-                </button>
-                <button onClick={() => { navigate('/admin-login'); setMenuOpen(false); }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 16px', borderRadius: 12, cursor: 'pointer', background: '#9122FF18', color: '#9122FF', border: '2.5px solid #9122FF', fontWeight: 900, fontSize: 13, boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit' }}>
-                  🔐 Yönetici Girişi
                 </button>
               </div>
             </div>
@@ -168,10 +161,10 @@ const LandingPage: React.FC = () => {
                 <span className="hero-headline-line">PUAN KAZAN</span>
               </h1>
               <p style={{ marginTop: 20, color: t.textSecondary, fontWeight: 600, fontSize: 'clamp(14px,1.6vw,18px)', maxWidth: 480, lineHeight: 1.65 }}>
-                Puan kazan, ödülleri aç, tamamen ücretsiz.
+                Puan kazan, ödülleri aç.
               </p>
               <div className="hero-cta-row" style={{ marginTop: 28, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-                <button onClick={() => navigate('/register')} className="lbtn-hero-primary">Ücretsiz Başla <ArrowRight size={16} /></button>
+                <button onClick={() => navigate('/register')} className="lbtn-hero-primary">Hemen Başlayın <ArrowRight size={16} /></button>
                 <button onClick={() => navigate('/login')} className="lbtn-hero-secondary">Giriş Yap</button>
               </div>
             </div>
@@ -334,12 +327,8 @@ const LandingPage: React.FC = () => {
         }
         .landing-nav-inner::before { content:none; }
         .landing-nav-logo {
-          display: flex; align-items: center; gap: 9px; flex-shrink: 0; min-width: 0;
+          display: flex; align-items: center; gap: 10px; flex-shrink: 0; min-width: 0;
           position:relative; z-index:1;
-          padding:5px 9px 5px 5px;
-          border-radius:16px;
-          background:${isDark ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.42)'};
-          box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
         }
         .landing-nav-logo__text {
           font-weight: 900; font-size: clamp(15px, 3.5vw, 17px); letter-spacing: -0.035em;
@@ -371,12 +360,6 @@ const LandingPage: React.FC = () => {
           font-weight: 700; font-size: 11px; letter-spacing: 0.06em; transition: color 0.15s;
           white-space: nowrap; background: none; border: none; cursor: pointer;
           font-family: inherit; padding: 0;
-        }
-        .nav-admin-btn {
-          display: inline-flex; align-items: center; gap: 5px; padding: 7px 13px; border-radius: 11px;
-          cursor: pointer; background: #9122FF18; color: #9122FF; border: 2.5px solid #9122FF;
-          font-weight: 900; font-size: 12px; box-shadow: 0 3px 0 #6b19c0; font-family: inherit;
-          white-space: nowrap;
         }
 
         .landing-premium-nav .lbtn-secondary-sm {

@@ -238,11 +238,11 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
                 KAZANMAYA HAZIR MISINIZ?
               </h2>
               <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 'clamp(14px,2vw,16px)', fontWeight: 500, marginBottom: 28, maxWidth: 400, marginInline: 'auto', lineHeight: 1.6 }}>
-                Ücretsiz kayıt ol, bugün puan toplamaya başla.
+                Kayıt ol, bugün puan toplamaya başla.
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
                 <button onClick={() => navigate('/register')} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8FF00', color: '#000', border: '2.5px solid #000', borderRadius: 14, padding: '12px 28px', fontWeight: 900, fontSize: 15, boxShadow: '0 4px 0 #000', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Ücretsiz Kayıt Ol <ArrowRight size={16} />
+                  Hemen Başlayın <ArrowRight size={16} />
                 </button>
                 <button onClick={() => navigate('/home')} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', color: '#9122FF', border: '2.5px solid #000', borderRadius: 14, padding: '12px 28px', fontWeight: 900, fontSize: 15, boxShadow: '0 4px 0 #000', cursor: 'pointer', fontFamily: 'inherit' }}>
                   Panele Gir
@@ -272,7 +272,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
                 </div>
                 <div>
                   <p style={{ fontWeight: 900, fontSize: 11, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 14, textTransform: 'uppercase' }}>Hesap</p>
-                  {[['Giriş Yap','/login'],['Kayıt Ol','/register'],['Panele Gir','/home'],['Admin Girişi','/admin-login']].map(([label,path]) => (
+                  {[['Giriş Yap','/login'],['Hemen Başlayın','/register'],['Panele Gir','/home']].map(([label,path]) => (
                     <button key={path} onClick={() => navigate(path)} style={{ display: 'block', background: 'none', border: 'none', color: 'rgba(255,255,255,0.65)', fontWeight: 600, fontSize: 13, cursor: 'pointer', padding: 0, fontFamily: 'inherit', marginBottom: 9, textAlign: 'left', transition: 'color 0.15s' }}
                       onMouseEnter={e => (e.currentTarget.style.color = '#C8FF00')}
                       onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}>{label}</button>
