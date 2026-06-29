@@ -227,8 +227,11 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
         void reloadProfile();
         setTimeout(() => setClaimAnim(false), 1000);
       })
-      .catch(() => {
-        setClaimError('Ödül alınamadı. Lütfen tekrar dene.');
+      .catch(error => {
+        const message = error instanceof Error && error.message
+          ? error.message
+          : 'Ödül alınamadı. Lütfen tekrar dene.';
+        setClaimError(message);
       })
       .finally(() => {
         setClaiming(false);

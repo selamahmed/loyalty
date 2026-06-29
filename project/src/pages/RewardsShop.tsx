@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Star, ShoppingCart, X, Check, ArrowRight, Package, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -136,6 +136,11 @@ const ShopProductCard = React.memo(function ShopProductCard({
   onSelect,
 }: ShopProductCardProps) {
   const handleActivate = useCallback(() => onSelect(reward), [onSelect, reward]);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    imageRef.current?.setAttribute('fetchpriority', 'low');
+  }, [reward.image]);
 
   return (
     <div
@@ -159,11 +164,11 @@ const ShopProductCard = React.memo(function ShopProductCard({
       <div className="shop-product-card__media" style={{ position: 'relative', height: 130, overflow: 'hidden', borderBottom: '3px solid var(--dark-border)' }}>
         {reward.image ? (
           <img
+            ref={imageRef}
             src={reward.image}
             alt={reward.title}
             loading="lazy"
             decoding="async"
-            fetchpriority="low"
             width={340}
             height={260}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
