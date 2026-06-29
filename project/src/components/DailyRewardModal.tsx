@@ -215,6 +215,13 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
         }
 
         setEarnedPoints(result.points);
+        if (result.capped) {
+          setClaimError(
+            result.points > 0
+              ? `Sadakat limitine yaklaştığın için ödül ${result.points.toLocaleString('tr-TR')} puan olarak sınırlandı.`
+              : 'Sadakat puan limitine ulaştığın için bugün yeni puan eklenmedi.',
+          );
+        }
         setClaimAnim(true);
         setClaimed(true);
         void reloadProfile();
@@ -471,7 +478,7 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
               {claiming
                 ? 'Ödül kontrol ediliyor...'
                 : claimAnim
-                ? <><Check size={18} strokeWidth={3} /> +{earnedPoints || todayReward.points} puan kazandın!</>
+                ? <><Check size={18} strokeWidth={3} /> +{earnedPoints.toLocaleString('tr-TR')} puan kazandın!</>
                 : <><Gift size={18} strokeWidth={2.5} /> Ödülü Topla</>
               }
             </button>

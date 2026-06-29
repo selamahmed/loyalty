@@ -285,6 +285,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
 
       captureError(err, { action, referenceId: options.referenceId });
+      if (action === 'daily_login') throw err;
 
       return null;
 
