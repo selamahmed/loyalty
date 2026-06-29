@@ -5,7 +5,7 @@ import { useTheme } from './ThemeContext';
 
 import { updateProfile } from '../services/profile';
 
-import { performAction, type EarnResult, type EarnAction, type PerformOptions } from '../services/earn';
+import { claimDailyStreak, performAction, type EarnResult, type EarnAction, type PerformOptions } from '../services/earn';
 
 import { updateUserSettings } from '../services/userSettings';
 
@@ -248,7 +248,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
 
-      const result = await performAction(action as EarnAction, options);
+      const result = action === 'daily_login'
+        ? await claimDailyStreak()
+        : await performAction(action as EarnAction, options);
 
       await refreshProfile();
 

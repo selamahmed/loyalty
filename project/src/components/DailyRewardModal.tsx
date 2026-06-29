@@ -139,6 +139,8 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
   const [configEnabled, setConfigEnabled] = useState(true);
   const [configLoading, setConfigLoading] = useState(true);
   const [claimed, setClaimed] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const [claimAnim, setClaimAnim] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
 
@@ -189,16 +191,41 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
   };
 
   const handleClaim = () => {
-    if (alreadyClaimed || claimed || !configEnabled) return;
-    void earnReward('daily_login').then(result => {
-      if (result) {
+    if (alreadyClaimed || claimed || claiming || !configEnabled) return;
+
+    setClaiming(true);
+    setClaimError(null);
+
+    void earnReward('daily_login')
+      .then(result => {
+        if (!result) {
+          setClaimError('Ödül alınamadı. Lütfen tekrar dene.');
+          return;
+        }
+
+        if (result.disabled) {
+          setConfigEnabled(false);
+          setClaimError('Günlük ödül sistemi şu anda pasif.');
+          return;
+        }
+
+        if (result.alreadyClaimed) {
+          setClaimed(true);
+          return;
+        }
+
         setEarnedPoints(result.points);
+        setClaimAnim(true);
+        setClaimed(true);
         void reloadProfile();
-      }
-    });
-    setClaimAnim(true);
-    setClaimed(true);
-    setTimeout(() => setClaimAnim(false), 1000);
+        setTimeout(() => setClaimAnim(false), 1000);
+      })
+      .catch(() => {
+        setClaimError('Ödül alınamadı. Lütfen tekrar dene.');
+      })
+      .finally(() => {
+        setClaiming(false);
+      });
   };
 
   const isDone = alreadyClaimed || claimed;
@@ -413,6 +440,7 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
             <button
               onClick={handleClaim}
               className="btn-primary"
+              disabled={claiming}
               style={{
                 width: '100%', padding: '15px 20px', borderRadius: 16,
                 fontWeight: 800, fontSize: 15, letterSpacing: '0.02em',
@@ -424,25 +452,37 @@ export const DailyRewardModal: React.FC<{ onClose: () => void }> = ({ onClose })
                 transform: claimAnim ? 'translateY(3px)' : undefined,
                 boxShadow: claimAnim ? '0 2px 0 var(--dark-border)' : undefined,
                 transition: 'background 0.2s, transform 0.12s, box-shadow 0.12s',
+                opacity: claiming ? 0.75 : 1,
+                cursor: claiming ? 'wait' : 'pointer',
               }}
               onMouseDown={e => {
-                if (!claimAnim) {
+                if (!claimAnim && !claiming) {
                   e.currentTarget.style.transform = 'translateY(3px)';
                   e.currentTarget.style.boxShadow = '0 2px 0 var(--dark-border)';
                 }
               }}
               onMouseUp={e => {
-                if (!claimAnim) {
+                if (!claimAnim && !claiming) {
                   e.currentTarget.style.transform = '';
                   e.currentTarget.style.boxShadow = '';
                 }
               }}
             >
-              {claimAnim
+              {claiming
+                ? 'Ödül kontrol ediliyor...'
+                : claimAnim
                 ? <><Check size={18} strokeWidth={3} /> +{earnedPoints || todayReward.points} puan kazandın!</>
                 : <><Gift size={18} strokeWidth={2.5} /> Ödülü Topla</>
               }
             </button>
+          )}
+          {claimError && (
+            <p style={{
+              textAlign: 'center', fontSize: 12, fontWeight: 800,
+              color: '#dc2626', margin: '10px 0 0', lineHeight: 1.35,
+            }}>
+              {claimError}
+            </p>
           )}
           <p style={{
             textAlign: 'center', fontSize: 11, fontWeight: 500,
@@ -469,15 +509,30 @@ export function useDailyReward() {
   const [show, setShow] = useState(false);
   const { profile } = useAuth();
   useEffect(() => {
+    let cancelled = false;
     const t = setTimeout(() => {
       const streakInfo = profile ? {
         last_claim_date: profile.last_claim_date,
         current_streak: profile.current_streak,
         longest_streak: profile.longest_streak,
       } : null;
-      if (!isStreakClaimedToday(streakInfo)) setShow(true);
+
+      if (isStreakClaimedToday(streakInfo)) return;
+
+      getDailyRewardConfig()
+        .then(rows => {
+          if (cancelled) return;
+          const enabled = rows.length === 0 || rows.some(row => row.enabled);
+          setShow(enabled);
+        })
+        .catch(() => {
+          if (!cancelled) setShow(true);
+        });
     }, 800);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [profile?.last_claim_date]);
   return { show, setShow };
 }

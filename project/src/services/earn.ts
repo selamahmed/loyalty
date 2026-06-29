@@ -19,6 +19,7 @@ export type EarnResult = {
   capped: boolean;
   xpToNext?: number;
   alreadyClaimed?: boolean;
+  disabled?: boolean;
   currentStreak?: number;
   longestStreak?: number;
   streakDay?: number;
@@ -53,6 +54,7 @@ function parseEarnResult(raw: unknown): EarnResult {
     capped: Boolean(r.capped),
     xpToNext: r.xp_to_next != null ? Number(r.xp_to_next) : undefined,
     alreadyClaimed: r.already_claimed != null ? Boolean(r.already_claimed) : undefined,
+    disabled: r.disabled != null ? Boolean(r.disabled) : undefined,
     currentStreak: r.current_streak != null ? Number(r.current_streak) : undefined,
     longestStreak: r.longest_streak != null ? Number(r.longest_streak) : undefined,
     streakDay: r.streak_day != null ? Number(r.streak_day) : undefined,
