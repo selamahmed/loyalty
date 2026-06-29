@@ -36,6 +36,21 @@ function getTimeLeft(expires: string) {
   return { expired: false, days, hours, minutes, label };
 }
 
+function getTimeProgress(createdAt: string, expires: string, now: number): number {
+  const expiryTime = new Date(expires).getTime();
+  const createdTime = new Date(createdAt).getTime();
+
+  if (!Number.isFinite(expiryTime)) return 0;
+
+  const startTime = Number.isFinite(createdTime)
+    ? Math.min(createdTime, expiryTime)
+    : now - 30 * 86400000;
+
+  const total = Math.max(1, expiryTime - startTime);
+  const remaining = Math.max(0, expiryTime - now);
+  return Math.max(0, Math.min(100, (remaining / total) * 100));
+}
+
 interface InventoryWalletCardProps {
   item: InventoryItem;
   onSelect: (id: string) => void;
@@ -47,13 +62,17 @@ const InventoryWalletCard = React.memo(function InventoryWalletCard({ item, onSe
   const cfg = inventoryTypeConfig[item.type] || inventoryTypeConfig.reward;
   const [nowTick, setNowTick] = React.useState(Date.now());
   const timeLeft = React.useMemo(() => getTimeLeft(item.expires), [item.expires, nowTick]);
+  const progressPct = React.useMemo(
+    () => getTimeProgress(item.createdAt, item.expires, nowTick),
+    [item.createdAt, item.expires, nowTick],
+  );
   const expired = item.used || timeLeft.expired;
   const days = timeLeft.days;
   const urgency = !expired && !item.used && (days <= 3 || timeLeft.hours < 24);
 
   React.useEffect(() => {
     if (item.used || timeLeft.expired) return undefined;
-    const intervalMs = timeLeft.days > 0 ? 60000 : 10000;
+    const intervalMs = timeLeft.days > 0 ? 60000 : timeLeft.hours > 0 ? 10000 : 1000;
     const timer = window.setInterval(() => setNowTick(Date.now()), intervalMs);
     return () => window.clearInterval(timer);
   }, [item.used, timeLeft.days, timeLeft.expired]);
@@ -158,7 +177,7 @@ const InventoryWalletCard = React.memo(function InventoryWalletCard({ item, onSe
           }}>
             <div style={{
               height: '100%', borderRadius: 999, transition: 'width 0.4s ease',
-              width: `${Math.min(100, (days / 30) * 100)}%`,
+              width: `${progressPct}%`,
               background: urgency ? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : `linear-gradient(90deg,${cfg.color},${cfg.color}88)`,
             }} />
           </div>

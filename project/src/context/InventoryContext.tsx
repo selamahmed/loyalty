@@ -11,6 +11,7 @@ export interface InventoryItem {
   type: InventoryItemType;
   title: string;
   description: string;
+  createdAt: string;
   expires: string;
   code: string;
   used: boolean;
@@ -40,6 +41,7 @@ function inventoryItemsEqual(a: InventoryItem[], b: InventoryItem[]): boolean {
     if (
       left.id !== right.id
       || left.used !== right.used
+      || left.createdAt !== right.createdAt
       || left.expires !== right.expires
       || left.code !== right.code
       || left.title !== right.title
@@ -72,6 +74,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           type: (reward?.category === 'ticket' ? 'ticket' : 'reward') as InventoryItemType,
           title: reward?.title ?? 'Reward',
           description: reward?.description ?? '',
+          createdAt: r.created_at ?? '',
           expires: r.expires_at ?? '',
           code: r.code,
           used: r.used,
