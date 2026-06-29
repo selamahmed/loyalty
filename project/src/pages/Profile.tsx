@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, Package, CreditCard as Edit3, Bell, HelpCircle, History, BarChart2, Gamepad2, Home, QrCode, ShoppingBag, Sun, Moon, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -134,6 +134,10 @@ const Profile: React.FC = () => {
     playSound('click');
     navigate(path);
   };
+
+  const handleSelectInventory = useCallback((id: string) => {
+    setSelectedInventoryId(id);
+  }, []);
 
   const activeInventory = inventoryItems.filter(i => !i.used && new Date(i.expires) >= new Date());
   const displayedInventory = showAllInventory ? activeInventory : activeInventory.slice(0, 3);
@@ -324,7 +328,7 @@ const Profile: React.FC = () => {
                   key={item.id}
                   item={item}
                   compact
-                  onClick={() => setSelectedInventoryId(item.id)}
+                  onSelect={handleSelectInventory}
                 />
               ))}
             </div>

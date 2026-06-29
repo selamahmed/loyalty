@@ -15,12 +15,12 @@ export const getDaysLeft = (expires: string) =>
 
 interface InventoryWalletCardProps {
   item: InventoryItem;
-  onClick: () => void;
+  onSelect: (id: string) => void;
   dimmed?: boolean;
   compact?: boolean;
 }
 
-const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick, dimmed, compact }) => {
+const InventoryWalletCard = React.memo(function InventoryWalletCard({ item, onSelect, dimmed, compact }: InventoryWalletCardProps) {
   const cfg = inventoryTypeConfig[item.type] || inventoryTypeConfig.reward;
   const expired = item.used || new Date(item.expires) < new Date();
   const days = getDaysLeft(item.expires);
@@ -30,7 +30,7 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
     <button
       type="button"
       className={`press-card inventory-wallet-card ${compact ? 'inventory-wallet-card--compact' : ''} ${dimmed ? 'inventory-wallet-card--dimmed' : ''} ${expired ? 'inventory-wallet-card--expired' : ''} ${urgency ? 'inventory-wallet-card--urgent' : ''}`}
-      onClick={() => { playSound('click'); onClick(); }}
+      onClick={() => { playSound('click'); onSelect(item.id); }}
       aria-label={`${item.title}, ${item.code}`}
       style={{
         width: '100%', display: 'flex', alignItems: 'stretch', overflow: 'hidden',
@@ -52,6 +52,10 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
           <img
             src={item.image}
             alt=""
+            loading="lazy"
+            decoding="async"
+            width={compact ? 68 : 96}
+            height={compact ? 76 : 108}
             style={{
               width: '100%', height: '100%', minHeight: compact ? 76 : 108,
               objectFit: 'cover', display: 'block', filter: dimmed ? 'grayscale(80%)' : 'none',
@@ -134,6 +138,6 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
       </div>
     </button>
   );
-};
+});
 
 export default InventoryWalletCard;

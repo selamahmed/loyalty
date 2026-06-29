@@ -2432,7 +2432,6 @@ body::before {
   transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
   backface-visibility: hidden;
   transform: translateZ(0);
-  contain: layout paint style;
 }
 
 .shop-product-card:hover,

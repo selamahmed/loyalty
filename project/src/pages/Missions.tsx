@@ -247,7 +247,7 @@ const Missions: React.FC = () => {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtered.map((mission, index) => {
+            {filtered.map(mission => {
               const isClaiming = claimingId === mission.id;
               const ctaLabel = mission.completed
                 ? null
@@ -266,7 +266,6 @@ const Missions: React.FC = () => {
                     border: mission.completed ? '3px solid #22c55e' : '3px solid var(--dark-border)',
                     boxShadow: mission.completed ? '0 6px 0 #16a34a' : '0 6px 0 var(--dark-border)',
                     background: mission.completed ? 'rgba(34,197,94,0.05)' : 'var(--card-bg)',
-                    animation: `missionSlideIn 0.3s ease-out ${index * 0.06}s both`,
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>

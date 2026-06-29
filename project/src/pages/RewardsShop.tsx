@@ -201,14 +201,18 @@ const ShopProductCard = React.memo(function ShopProductCard({
       </div>
     </div>
   );
-});
+}, (prev, next) => (
+  prev.reward.id === next.reward.id
+  && prev.canAfford === next.canAfford
+  && prev.onSelect === next.onSelect
+));
 
 /* ── Main page ── */
 const RewardsShop: React.FC = () => {
   const navigate = useNavigate();
   const { points, spendPoints, soundEnabled } = useApp();
   const { authUser, profile, refreshProfile } = useAuth();
-  const { items: inventoryItems, reload: reloadInventory } = useInventory();
+  const { reload: reloadInventory, activeCount: activeInventoryCount } = useInventory();
   const { data: rewards = [], isLoading } = useShopRewards();
   const [search, setSearch]             = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
@@ -240,11 +244,6 @@ const RewardsShop: React.FC = () => {
 
   const affordableCount = useMemo(() => filtered.filter(r => points >= r.points).length, [filtered, points]);
   const limitedCount = useMemo(() => filtered.filter(r => r.limited).length, [filtered]);
-  const activeInventoryCount = useMemo(
-    () => inventoryItems.filter(i => !i.used && new Date(i.expires) >= new Date()).length,
-    [inventoryItems],
-  );
-
   const goToInventory = useCallback(() => {
     playClick();
     navigate('/inventory');

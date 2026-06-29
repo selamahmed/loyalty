@@ -23,7 +23,7 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
   const refresh = useCallback(async () => {
     try {
       const next = await getSystemSettings();
-      setSettings(next);
+      setSettings(prev => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ayarlar yüklenemedi');
