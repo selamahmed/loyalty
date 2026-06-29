@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Gift, QrCode, Gamepad2, BarChart2,
   Megaphone, Menu, X, Shield, Bell, Moon, Sun, Settings,
-  Activity, Zap, FileText, Trophy, Package, ScanLine, Calendar, LogOut, MessageSquare
+  Activity, Zap, FileText, Trophy, Package, ScanLine, Calendar, LogOut, MessageSquare, Target
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -21,6 +21,7 @@ const adminNavItems = [
   { path: '/admin/checkout',      icon: ScanLine,        label: 'Checkout Tarayıcı'     },
   { path: '/admin/qr',            icon: QrCode,          label: 'QR Kodları'            },
   { path: '/admin/games',         icon: Gamepad2,        label: 'Oyunlar'               },
+  { path: '/admin/missions',      icon: Target,          label: 'Görevler'              },
   { path: '/admin/daily-rewards', icon: Calendar,        label: 'Günlük Ödüller'        },
   { path: '/admin/points-economy',icon: Zap,             label: 'Puan Ekonomisi'        },
   { path: '/admin/audit-logs',    icon: FileText,        label: 'Denetim Günlüğü'       },

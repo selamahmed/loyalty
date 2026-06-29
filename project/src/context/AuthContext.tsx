@@ -59,18 +59,28 @@ function normalizeDbRole(role: string | null | undefined): UserRole {
   return DB_ROLES.includes(role as UserRole) ? (role as UserRole) : 'customer';
 }
 
-async function fetchCurrentProfileRole(expectedUserId: string): Promise<UserRole | null> {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user || user.id !== expectedUserId) return null;
-
+async function fetchProfileAuthSnapshot(userId: string): Promise<{ role: UserRole | null; status: AccountStatus | null }> {
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, role')
-    .eq('id', user.id)
-    .single();
+    .select('id, role, status')
+    .eq('id', userId)
+    .maybeSingle();
 
-  if (error || !profile) return null;
-  return normalizeDbRole(profile.role);
+  if (!error && profile) {
+    return {
+      role: normalizeDbRole(profile.role),
+      status: (profile.status as AccountStatus) ?? null,
+    };
+  }
+
+  // Fallback when RLS blocks direct read — status via RPC, role unknown.
+  const { data: rpcStatus, error: rpcErr } = await supabase.rpc('get_my_account_status');
+  if (!rpcErr && rpcStatus) {
+    return { role: null, status: rpcStatus as AccountStatus };
+  }
+
+  if (error) console.error('[fetchProfileAuthSnapshot]', error.message);
+  return { role: null, status: null };
 }
 
 function mapSupabaseUser(user: User, dbRole?: UserRole | null): AuthUser {
@@ -117,12 +127,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchId = ++profileFetchId.current;
 
     let accountStatus = knownStatus ?? null;
-    if (!accountStatus) {
-      accountStatus = await fetchMyAccountStatus(user.id);
-    }
+
+    const snapshot = await fetchProfileAuthSnapshot(user.id);
     if (fetchId !== profileFetchId.current) return;
 
-    const dbRole = await fetchCurrentProfileRole(user.id);
+    if (accountStatus === null) accountStatus = snapshot.status;
+    const dbRole = snapshot.role;
+
     if (fetchId !== profileFetchId.current) return;
 
     if (dbRole) {
@@ -169,7 +180,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       if (!mounted) return;
-      if (event === 'TOKEN_REFRESHED' && s?.access_token === sessionRef.current?.access_token) return;
+      // Token refresh only updates the session — avoid duplicate profile/role fetches
+      // that invalidate React Query and re-render the whole customer shell (e.g. shop).
+      if (event === 'TOKEN_REFRESHED') {
+        if (s) setSession(s);
+        return;
+      }
       setSession(s);
       if (s?.user) void syncAuthUserRef.current(s.user);
       else setSessionUser(null);

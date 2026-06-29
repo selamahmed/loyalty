@@ -1,17 +1,11 @@
 import React, { Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sun, Moon, Menu, X } from 'lucide-react';
-import { DoodleField } from '../components/neo/NeoBrutalDecor';
 import AppLogo from '../components/AppLogo';
-import HeroGroupComposition from '../components/HeroGroupComposition';
-import { LANDING_HERO_CENTER_URL, LANDING_HERO_HEADLINE_SHAPE_URLS } from '../lib/landingHeroAssets';
+import { LANDING_HERO_HEADLINE_SHAPE_URLS } from '../lib/landingHeroAssets';
 import { useTheme } from '../context/ThemeContext';
 
 const LandingBelowFold = React.lazy(() => import('./LandingBelowFold'));
-
-const LazyPageStickerBackdrop = React.lazy(() =>
-  import('../components/StickerDecor').then(m => ({ default: m.PageStickerBackdrop })),
-);
 
 const HEADLINE_STICKER_ROTATIONS = [-10, 12, -8] as const;
 const HEADLINE_STICKER_SIZES = [30, 28, 32] as const;
@@ -22,32 +16,6 @@ const LandingPage: React.FC = () => {
   const { isDarkMode: isDark, toggleTheme } = useTheme();
   const [hovered, setHovered] = React.useState<number | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [showHeroBackdrop, setShowHeroBackdrop] = React.useState(false);
-
-  React.useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = LANDING_HERO_CENTER_URL;
-    link.type = 'image/svg+xml';
-    document.head.appendChild(link);
-    return () => { document.head.removeChild(link); };
-  }, []);
-
-  React.useEffect(() => {
-    const loadBackdrop = () => setShowHeroBackdrop(true);
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(loadBackdrop, { timeout: 1200 });
-    } else {
-      setTimeout(loadBackdrop, 150);
-    }
-  }, []);
-
-  const heroBackdrop = showHeroBackdrop ? (
-    <React.Suspense fallback={null}>
-      <LazyPageStickerBackdrop preset="landing-hero" />
-    </React.Suspense>
-  ) : null;
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
@@ -93,7 +61,6 @@ const LandingPage: React.FC = () => {
 
   return (
     <div style={{ background: t.pageBg, color: t.textPrimary, minHeight: '100vh', overflowX: 'hidden', transition: 'background 0.3s', position: 'relative', ...t.cssVars }}>
-      {heroBackdrop}
       <div style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ══ NAV ══ */}
@@ -101,13 +68,12 @@ const LandingPage: React.FC = () => {
           <div className="landing-nav-inner">
             {/* Logo */}
             <div className="landing-nav-logo">
-              <AppLogo size={36} priority style={{ borderRadius: 10, border: '2px solid #000', boxShadow: '0 2px 0 #000' }} />
-              <span className="landing-nav-logo__text" style={{ color: t.textPrimary }}>NexReward</span>
+              <AppLogo size={36} priority />
             </div>
 
             {/* Desktop nav links */}
             <div className="nav-links">
-              {[['features','Özellikler'],['banners','Avantajlar'],['how','Nasıl Çalışır'],['testimonials','Yorumlar']].map(([id, label]) => (
+              {[['features','Özellikler'],['how','Nasıl Çalışır'],['testimonials','Yorumlar']].map(([id, label]) => (
                 <button key={id} onClick={() => scrollTo(id)} aria-label={`${label} bölümüne git`}
                   className="nav-link-btn"
                   style={{ color: t.textSecondary }}
@@ -138,9 +104,6 @@ const LandingPage: React.FC = () => {
               {/* Desktop-only buttons */}
               <div className="nav-desktop-actions">
                 <button type="button" onClick={() => navigate('/login')} className="lbtn-secondary-sm">Giriş Yap</button>
-                <button type="button" onClick={() => navigate('/admin-login')} className="nav-admin-btn">
-                  🔐 Yönetici
-                </button>
                 <button type="button" onClick={() => navigate('/home')} className="lbtn-primary-sm">
                   Panele Gir <ArrowRight size={12} />
               </button>
@@ -157,7 +120,7 @@ const LandingPage: React.FC = () => {
           {/* Mobile drawer */}
           {menuOpen && (
             <div style={{ background: t.navBg, borderTop: '2.5px solid #000', padding: '8px 20px 20px', boxShadow: '0 8px 0 rgba(0,0,0,0.18)' }}>
-              {[['features','✦ Özellikler'],['banners','✦ Avantajlar'],['how','✦ Nasıl Çalışır'],['testimonials','✦ Yorumlar']].map(([id, label]) => (
+              {[['features','Özellikler'],['how','Nasıl Çalışır'],['testimonials','Yorumlar']].map(([id, label]) => (
                 <button key={id} onClick={() => scrollTo(id, true)}
                   style={{ display: 'flex', width: '100%', alignItems: 'center', padding: '13px 4px', color: t.textPrimary, fontWeight: 800, fontSize: 15, background: 'none', border: 'none', borderBottom: '1.5px solid rgba(128,128,128,0.12)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
                   {label}
@@ -166,15 +129,11 @@ const LandingPage: React.FC = () => {
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={() => { navigate('/login'); setMenuOpen(false); }} className="lbtn-secondary-sm" style={{ flex: 1, justifyContent: 'center', padding: '11px 12px' }}>Giriş Yap</button>
-                  <button onClick={() => { navigate('/register'); setMenuOpen(false); }} className="lbtn-primary-sm" style={{ flex: 1, justifyContent: 'center', padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>Kayıt Ol <ArrowRight size={13} /></button>
+                  <button onClick={() => { navigate('/register'); setMenuOpen(false); }} className="lbtn-primary-sm" style={{ flex: 1, justifyContent: 'center', padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>Hemen Başlayın <ArrowRight size={13} /></button>
                 </div>
                 <button onClick={() => { navigate('/home'); setMenuOpen(false); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 16px', borderRadius: 12, cursor: 'pointer', background: 'linear-gradient(135deg,#7B6EF6,#9122FF)', color: 'white', border: '2.5px solid #000', fontWeight: 900, fontSize: 14, boxShadow: '0 4px 0 #000', fontFamily: 'inherit' }}>
                   Panele Gir <ArrowRight size={14} />
-                </button>
-                <button onClick={() => { navigate('/admin-login'); setMenuOpen(false); }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 16px', borderRadius: 12, cursor: 'pointer', background: '#9122FF18', color: '#9122FF', border: '2.5px solid #9122FF', fontWeight: 900, fontSize: 13, boxShadow: '0 3px 0 #6b19c0', fontFamily: 'inherit' }}>
-                  🔐 Yönetici Girişi
                 </button>
               </div>
             </div>
@@ -183,12 +142,10 @@ const LandingPage: React.FC = () => {
 
         {/* ══ HERO ══ */}
         <section className="landing-hero-shell">
-          <DoodleField opacity={isDark ? 0.4 : 0.65} />
           <div className="hero-layout" style={{ padding: '0 clamp(20px,5vw,80px)', position: 'relative', zIndex: 1 }}>
-            {/* Copy */}
-            <div className="hero-copy hero-copy-card">
-              <div className="hero-live-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8FF00', color: '#000', border: '2.5px solid #000', borderRadius: 999, padding: '6px 16px', fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', boxShadow: '3px 3px 0 #000', marginBottom: 28, transform: 'rotate(-1.5deg)' }}>
-                🎉 WE ARE LIVE!
+            <div className="hero-copy hero-copy-card lp-hero-stagger">
+              <div className="hero-live-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#C8FF00', color: '#000', border: '2.5px solid #000', borderRadius: 999, padding: '6px 16px', fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', boxShadow: '3px 3px 0 #000', marginBottom: 28, transform: 'rotate(-1.5deg)' }}>
+                <span className="hero-live-dot" aria-hidden /> WE ARE LIVE!
               </div>
               <h1 className="hero-headline font-display">
                 <span className="hero-headline-line">
@@ -232,13 +189,12 @@ const LandingPage: React.FC = () => {
                 </span>
               </h1>
               <p style={{ marginTop: 20, color: t.textSecondary, fontWeight: 600, fontSize: 'clamp(14px,1.6vw,18px)', maxWidth: 480, lineHeight: 1.65 }}>
-                Binlerce kullanıcıyla birlikte puan kazan, özel ödüller aç ve her gün eğlen. Tamamen ücretsiz.
+                Binlerce kullanıcıyla birlikte puan kazan, özel ödüller aç ve her gün eğlen.
               </p>
               <div className="hero-cta-row" style={{ marginTop: 28, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-                <button onClick={() => navigate('/register')} className="lbtn-hero-primary">Ücretsiz Başla <ArrowRight size={16} /></button>
+                <button onClick={() => navigate('/register')} className="lbtn-hero-primary">Hemen Başlayın <ArrowRight size={16} /></button>
                 <button onClick={() => navigate('/login')} className="lbtn-hero-secondary">Giriş Yap</button>
               </div>
-              {/* Stats chips */}
               <div className="hero-stat-row" style={{ marginTop: 28, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {[['50K+', 'Kullanıcı', '#9122FF'], ['2M+', 'Puan', '#FF3E9D'], ['10K+', 'Ödül', '#FF6B35']].map(([num, label, color]) => (
                   <div className="hero-stat-chip" key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, background: t.cardBg, border: '2.5px solid #000', borderRadius: 14, padding: '7px 14px', boxShadow: '3px 3px 0 #000' }}>
@@ -246,22 +202,6 @@ const LandingPage: React.FC = () => {
                     <span style={{ fontWeight: 600, fontSize: 12, color: t.textMuted }}>{label}</span>
                   </div>
                 ))}
-              </div>
-            </div>
-            {/* Art — Group sticker cluster (star centerpiece) */}
-            <div className="hero-art" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,24px)' }}>
-              <HeroGroupComposition />
-              <div className="hero-live-panel" style={{ background: t.cardBg, color: t.textPrimary }}>
-                <div className="hero-live-panel__header">
-                  <span style={{ color: t.textMuted }}>Bugünkü kazanç</span>
-                  <strong>1.840 puan</strong>
-                </div>
-                <div className="hero-live-progress"><span /></div>
-                <div className="hero-live-list">
-                  <div><span style={{ background: '#56C8FF' }}>QR</span><strong>QR tara</strong><small style={{ color: t.textMuted }}>+75 puan</small></div>
-                  <div><span style={{ background: '#C8FF00' }}>G</span><strong>Görev</strong><small style={{ color: t.textMuted }}>+120 puan</small></div>
-                  <div><span style={{ background: '#FF3E9D', color: '#fff' }}>Ö</span><strong>Ödül</strong><small style={{ color: t.textMuted }}>Kupon açıldı</small></div>
-                </div>
               </div>
             </div>
           </div>
@@ -284,8 +224,31 @@ const LandingPage: React.FC = () => {
       <style>{`
         html { scroll-behavior: smooth; }
 
-        @keyframes tickerLeft  { from{transform:translateX(0)} to{transform:translateX(calc(-100% / 3))} }
-        @keyframes tickerRight { from{transform:translateX(calc(-100% / 3))} to{transform:translateX(0)} }
+        @keyframes modalPop   { from { opacity: 0; transform: scale(0.92) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes lpFadeUp { from { opacity:0; transform:translate3d(0,18px,0); } to { opacity:1; transform:none; } }
+        .lp-hero-stagger > * { animation: lpFadeUp .62s cubic-bezier(.22,1,.36,1) both; }
+        .lp-hero-stagger > *:nth-child(1){ animation-delay:.04s; }
+        .lp-hero-stagger > *:nth-child(2){ animation-delay:.12s; }
+        .lp-hero-stagger > *:nth-child(3){ animation-delay:.20s; }
+        .lp-hero-stagger > *:nth-child(4){ animation-delay:.28s; }
+        .lp-hero-stagger > *:nth-child(5){ animation-delay:.36s; }
+
+        .hero-live-dot {
+          width:9px; height:9px; border-radius:50%; flex-shrink:0;
+          background:#16a34a; box-shadow:0 0 0 0 rgba(22,163,74,.55);
+          animation: lpLivePulse 1.9s ease-out infinite;
+        }
+        @keyframes lpLivePulse {
+          0%   { box-shadow:0 0 0 0 rgba(22,163,74,.55); }
+          70%  { box-shadow:0 0 0 7px rgba(22,163,74,0); }
+          100% { box-shadow:0 0 0 0 rgba(22,163,74,0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .lp-hero-stagger > *, .hero-live-dot {
+            animation: none !important; opacity: 1 !important; transform: none !important;
+          }
+        }
 
         /* ── Hero ── */
         .landing-hero-shell {
@@ -340,15 +303,13 @@ const LandingPage: React.FC = () => {
         .hero-live-badge {
           box-shadow:0 5px 0 #000, 0 12px 26px rgba(200,255,0,.22) !important;
         }
-        .hero-art   { width:100%; max-width:360px; min-height:clamp(290px,50vw,430px); min-width:0; isolation:isolate; }
         .hero-copy > div:first-child { margin-bottom:clamp(16px,3vw,24px) !important; }
         .hero-copy > p { margin-top:clamp(14px,2.5vw,18px) !important; max-width:560px !important; }
         .hero-copy > div:nth-of-type(2) { margin-top:clamp(18px,3vw,24px) !important; }
         .hero-copy > div:nth-of-type(3) { margin-top:clamp(18px,3vw,24px) !important; }
         @media (min-width: 900px) {
-          .hero-layout { flex-direction:row; align-items:center; justify-content:space-between; text-align:left; gap:clamp(36px,5vw,72px); }
+          .hero-layout { flex-direction:row; align-items:center; justify-content:center; text-align:left; gap:clamp(36px,5vw,72px); }
           .hero-copy   { flex:1; max-width:none; }
-          .hero-art    { flex:0 0 min(40%, 460px); max-width:460px; }
         }
 
         .hero-headline {
@@ -371,7 +332,6 @@ const LandingPage: React.FC = () => {
           .hero-copy-card { padding:22px 16px 20px; border-radius:28px; box-shadow:0 7px 0 #000, 0 20px 38px rgba(0,0,0,.24); }
           .hero-copy-card::before { inset:8px; border-radius:20px; }
           .hero-headline { font-size:clamp(38px,14vw,58px); line-height:.95; }
-          .hero-art { flex-direction:column; gap:0; min-height:0; }
           .hero-copy > div:first-child { transform:none !important; }
           .hero-copy > div:nth-of-type(2),
           .hero-copy > div:nth-of-type(3) { justify-content:center; }
@@ -380,56 +340,27 @@ const LandingPage: React.FC = () => {
           }
         }
 
-        .hero-group-composition {
-          position:relative; width:min(100%,360px); aspect-ratio:1; margin-inline:auto;
-          display:grid; place-items:center; filter:drop-shadow(0 12px 0 rgba(0,0,0,0.16));
-        }
-        .hero-group-composition__star { width:min(78%,300px); height:auto; }
-        .hero-live-panel {
-          position:absolute; left:50%; bottom:clamp(4px,1vw,14px); transform:translateX(-50%);
-          width:min(92%,310px); border:3px solid #000; border-radius:18px; box-shadow:7px 7px 0 #000;
-          padding:14px; z-index:4;
-        }
-        .hero-live-panel__header {
-          display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;
-        }
-        .hero-live-panel__header span {
-          display:block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
-        }
-        .hero-live-panel__header strong { display:block; font-size:20px; font-weight:900; line-height:1; }
-        .hero-live-progress {
-          height:10px; border:2px solid #000; border-radius:999px; background:rgba(0,0,0,.08); overflow:hidden; margin-bottom:10px;
-        }
-        .hero-live-progress span { display:block; width:72%; height:100%; background:linear-gradient(90deg,#C8FF00,#56C8FF); }
-        .hero-live-list { display:grid; gap:7px; }
-        .hero-live-list div {
-          display:grid; grid-template-columns:30px 1fr auto; align-items:center; gap:9px; min-width:0;
-          padding:7px; border:2px solid rgba(0,0,0,.16); border-radius:12px;
-        }
-        .hero-live-list span {
-          width:30px; height:30px; border:2px solid #000; border-radius:10px; display:grid; place-items:center;
-          font-size:11px; font-weight:900; color:#000; box-shadow:2px 2px 0 #000;
-        }
-        .hero-live-list strong { font-size:12px; font-weight:900; white-space:nowrap; }
-        .hero-live-list small { font-size:11px; font-weight:800; white-space:nowrap; }
-        @media (min-width:900px) {
-          .hero-live-panel { left:auto; right:0; bottom:4%; transform:none; }
-        }
-        @media (max-width:520px) {
-          .hero-live-panel { position:relative; left:auto; bottom:auto; transform:none; margin:-32px auto 0; width:min(100%,310px); }
-          .hero-live-list div { grid-template-columns:30px 1fr; }
-          .hero-live-list small { grid-column:2; }
-        }
-
-        /* ── Nav buttons ── */
         .lbtn-hero-primary {
+          position:relative; overflow:hidden;
           display:inline-flex; align-items:center; gap:8px;
           background:linear-gradient(180deg,#B44AFF,#9122FF); color:#C8FF00; font-weight:900; font-family:inherit;
           border:3px solid #000; border-radius:20px; padding:14px 28px; font-size:15px;
           box-shadow:0 7px 0 #000, 0 16px 34px rgba(145,34,255,.28); cursor:pointer; transition:transform 0.14s,box-shadow 0.14s; white-space:nowrap;
         }
+        .lbtn-hero-primary > * { position:relative; z-index:1; }
+        .lbtn-hero-primary::after {
+          content:""; position:absolute; top:0; left:0; width:45%; height:100%; z-index:0;
+          background:linear-gradient(110deg, transparent, rgba(255,255,255,.5), transparent);
+          transform:translateX(-220%) skewX(-18deg); pointer-events:none; opacity:0;
+        }
         .lbtn-hero-primary:hover { transform:translateY(-1px); }
+        .lbtn-hero-primary:hover::after { animation: lpShine .75s ease; }
         .lbtn-hero-primary:active { transform:translateY(4px); box-shadow:0 1px 0 #000; }
+        @keyframes lpShine {
+          0%   { transform:translateX(-220%) skewX(-18deg); opacity:0; }
+          22%  { opacity:1; }
+          100% { transform:translateX(340%) skewX(-18deg); opacity:0; }
+        }
 
         .lbtn-hero-secondary {
           display:inline-flex; align-items:center; gap:8px;
@@ -446,8 +377,24 @@ const LandingPage: React.FC = () => {
           padding:9px 16px !important;
           box-shadow:0 5px 0 #000, inset 0 1px 0 rgba(255,255,255,.12) !important;
           backdrop-filter:blur(10px);
+          transition:transform .16s ease, box-shadow .16s ease;
+        }
+        .hero-stat-chip:hover {
+          transform:translateY(-3px);
+          box-shadow:0 8px 0 #000, inset 0 1px 0 rgba(255,255,255,.14) !important;
         }
         @media (min-width:900px) { .hero-stat-row { justify-content:flex-start; } }
+
+        .landing-premium-nav button:focus-visible,
+        .lbtn-hero-primary:focus-visible,
+        .lbtn-hero-secondary:focus-visible,
+        .hero-stat-chip:focus-visible {
+          outline:3px solid #9122FF; outline-offset:3px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lbtn-hero-primary::after { animation:none !important; opacity:0 !important; }
+          .hero-stat-chip { transition:none !important; }
+        }
 
         .lbtn-primary-sm {
           display:inline-flex; align-items:center; gap:5px;
@@ -476,30 +423,17 @@ const LandingPage: React.FC = () => {
         /* ── Nav layout ── */
         .landing-nav-inner {
           max-width: 1200px; margin: 0 auto; padding: 0 clamp(10px, 3vw, 18px);
-          height: 62px; display: flex; align-items: center; justify-content: space-between;
+          height: 58px; display: flex; align-items: center; justify-content: space-between;
           gap: clamp(8px, 2vw, 12px); min-width: 0;
-          border:3px solid #000;
-          border-radius:22px;
-          background:
-            linear-gradient(180deg, ${isDark ? 'rgba(42,21,80,.88)' : 'rgba(255,255,255,.90)'}, ${isDark ? 'rgba(30,15,56,.82)' : 'rgba(245,240,255,.82)'});
-          box-shadow:
-            0 7px 0 #000,
-            0 18px 38px ${isDark ? 'rgba(0,0,0,.32)' : 'rgba(15,7,32,.14)'};
-          backdrop-filter:blur(18px);
-          position:relative;
-          overflow:hidden;
+          border:2.5px solid #000;
+          border-radius:18px;
+          background:${isDark ? 'rgba(30,15,56,.88)' : 'rgba(255,255,255,.94)'};
+          box-shadow:0 5px 0 #000;
         }
-        .landing-nav-inner::before {
-          content:""; position:absolute; inset:7px;
-          border-radius:15px; pointer-events:none;
-        }
+        .landing-nav-inner::before { content:none; }
         .landing-nav-logo {
-          display: flex; align-items: center; gap: 9px; flex-shrink: 0; min-width: 0;
+          display: flex; align-items: center; gap: 10px; flex-shrink: 0; min-width: 0;
           position:relative; z-index:1;
-          padding:5px 9px 5px 5px;
-          border-radius:16px;
-          background:${isDark ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.42)'};
-          box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
         }
         .landing-nav-logo__text {
           font-weight: 900; font-size: clamp(15px, 3.5vw, 17px); letter-spacing: -0.035em;
@@ -531,12 +465,6 @@ const LandingPage: React.FC = () => {
           font-weight: 700; font-size: 11px; letter-spacing: 0.06em; transition: color 0.15s;
           white-space: nowrap; background: none; border: none; cursor: pointer;
           font-family: inherit; padding: 0;
-        }
-        .nav-admin-btn {
-          display: inline-flex; align-items: center; gap: 5px; padding: 7px 13px; border-radius: 11px;
-          cursor: pointer; background: #9122FF18; color: #9122FF; border: 2.5px solid #9122FF;
-          font-weight: 900; font-size: 12px; box-shadow: 0 3px 0 #6b19c0; font-family: inherit;
-          white-space: nowrap;
         }
 
         .landing-premium-nav .lbtn-secondary-sm {
@@ -570,22 +498,6 @@ const LandingPage: React.FC = () => {
         .steps-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:18px; }
         .step-arrow { display:none; }
         @media (min-width:768px) { .step-arrow { display:flex; } }
-
-        /* ── Testimonials rating divider ── */
-        @media (max-width:480px) { .rating-divider { display:none; } }
-
-        /* ── Lifestyle grid ── */
-        .lifestyle-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
-        .lifestyle-card     { min-height:190px; }
-        .lifestyle-card-tall{ grid-row:span 2; min-height:400px; }
-        @media (min-width:768px) {
-          .lifestyle-grid { grid-template-columns:5fr 4fr 3fr; grid-template-rows:1fr 1fr; }
-        }
-        @media (max-width:500px) {
-          .lifestyle-grid { grid-template-columns:1fr; }
-          .lifestyle-card-tall { grid-row:span 1; min-height:240px; }
-          .lifestyle-card      { min-height:160px; }
-        }
       `}</style>
     </div>
   );

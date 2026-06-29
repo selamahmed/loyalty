@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight, Clock } from 'lucide-react';
 import type { InventoryItem } from '../context/InventoryContext';
+import { formatRedemptionCode } from '../lib/redemptionCode';
 import { playSound } from '../lib/sounds';
 
 export const inventoryTypeConfig: Record<string, { color: string; bg: string; label: string; emoji: string }> = {
@@ -12,24 +13,75 @@ export const inventoryTypeConfig: Record<string, { color: string; bg: string; la
 export const getDaysLeft = (expires: string) =>
   Math.max(0, Math.ceil((new Date(expires).getTime() - Date.now()) / 86400000));
 
+function getTimeLeft(expires: string) {
+  const expiryTime = new Date(expires).getTime();
+  if (!Number.isFinite(expiryTime)) {
+    return { expired: true, days: 0, hours: 0, minutes: 0, label: 'Süre yok' };
+  }
+
+  const diff = expiryTime - Date.now();
+  if (diff <= 0) {
+    return { expired: true, days: 0, hours: 0, minutes: 0, label: 'Süresi doldu' };
+  }
+
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const label = days > 0
+    ? `${days} gün ${hours} sa`
+    : hours > 0
+      ? `${hours} sa ${minutes} dk`
+      : `${Math.max(1, minutes)} dk`;
+
+  return { expired: false, days, hours, minutes, label };
+}
+
+function getTimeProgress(createdAt: string, expires: string, now: number): number {
+  const expiryTime = new Date(expires).getTime();
+  const createdTime = new Date(createdAt).getTime();
+
+  if (!Number.isFinite(expiryTime)) return 0;
+
+  const startTime = Number.isFinite(createdTime)
+    ? Math.min(createdTime, expiryTime)
+    : now - 30 * 86400000;
+
+  const total = Math.max(1, expiryTime - startTime);
+  const remaining = Math.max(0, expiryTime - now);
+  return Math.max(0, Math.min(100, (remaining / total) * 100));
+}
+
 interface InventoryWalletCardProps {
   item: InventoryItem;
-  onClick: () => void;
+  onSelect: (id: string) => void;
   dimmed?: boolean;
   compact?: boolean;
 }
 
-const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick, dimmed, compact }) => {
+const InventoryWalletCard = React.memo(function InventoryWalletCard({ item, onSelect, dimmed, compact }: InventoryWalletCardProps) {
   const cfg = inventoryTypeConfig[item.type] || inventoryTypeConfig.reward;
-  const expired = item.used || new Date(item.expires) < new Date();
-  const days = getDaysLeft(item.expires);
-  const urgency = !expired && !item.used && days <= 3;
+  const [nowTick, setNowTick] = React.useState(Date.now());
+  const timeLeft = React.useMemo(() => getTimeLeft(item.expires), [item.expires, nowTick]);
+  const progressPct = React.useMemo(
+    () => getTimeProgress(item.createdAt, item.expires, nowTick),
+    [item.createdAt, item.expires, nowTick],
+  );
+  const expired = item.used || timeLeft.expired;
+  const days = timeLeft.days;
+  const urgency = !expired && !item.used && (days <= 3 || timeLeft.hours < 24);
+
+  React.useEffect(() => {
+    if (item.used || timeLeft.expired) return undefined;
+    const intervalMs = timeLeft.days > 0 ? 60000 : timeLeft.hours > 0 ? 10000 : 1000;
+    const timer = window.setInterval(() => setNowTick(Date.now()), intervalMs);
+    return () => window.clearInterval(timer);
+  }, [item.used, timeLeft.days, timeLeft.expired]);
 
   return (
     <button
       type="button"
       className={`press-card inventory-wallet-card ${compact ? 'inventory-wallet-card--compact' : ''} ${dimmed ? 'inventory-wallet-card--dimmed' : ''} ${expired ? 'inventory-wallet-card--expired' : ''} ${urgency ? 'inventory-wallet-card--urgent' : ''}`}
-      onClick={() => { playSound('click'); onClick(); }}
+      onClick={() => { playSound('click'); onSelect(item.id); }}
       aria-label={`${item.title}, ${item.code}`}
       style={{
         width: '100%', display: 'flex', alignItems: 'stretch', overflow: 'hidden',
@@ -51,6 +103,10 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
           <img
             src={item.image}
             alt=""
+            loading="lazy"
+            decoding="async"
+            width={compact ? 68 : 96}
+            height={compact ? 76 : 108}
             style={{
               width: '100%', height: '100%', minHeight: compact ? 76 : 108,
               objectFit: 'cover', display: 'block', filter: dimmed ? 'grayscale(80%)' : 'none',
@@ -103,12 +159,12 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
           fontFamily: 'monospace', fontSize: 10, color: cfg.color, fontWeight: 700, margin: '0 0 4px',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
-          {item.code}
+          {formatRedemptionCode(item.code)}
         </p>
         <div className="inventory-wallet-card__meta-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
           <span className="inventory-wallet-card__time" style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
             <Clock size={10} />
-            {item.used ? 'Tamamlandı' : expired ? 'Süresi doldu' : `${days} gün kaldı`}
+            {item.used ? 'Tamamlandı' : expired ? 'Süresi doldu' : `${timeLeft.label} kaldı`}
           </span>
           {!item.used && !expired && (
             <span className="inventory-wallet-card__show" style={{ fontSize: 9, fontWeight: 900, color: 'var(--primary-blue)' }}>Göster →</span>
@@ -121,7 +177,7 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
           }}>
             <div style={{
               height: '100%', borderRadius: 999, transition: 'width 0.4s ease',
-              width: `${Math.min(100, (days / 30) * 100)}%`,
+              width: `${progressPct}%`,
               background: urgency ? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : `linear-gradient(90deg,${cfg.color},${cfg.color}88)`,
             }} />
           </div>
@@ -133,6 +189,6 @@ const InventoryWalletCard: React.FC<InventoryWalletCardProps> = ({ item, onClick
       </div>
     </button>
   );
-};
+});
 
 export default InventoryWalletCard;

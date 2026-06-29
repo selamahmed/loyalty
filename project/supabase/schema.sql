@@ -253,6 +253,8 @@ create table if not exists public.missions (
   icon        text not null default '🎯',
   points      integer not null,
   category    mission_category not null default 'daily',
+  slug        text,
+  sort_order  integer not null default 0,
   active      boolean not null default true,
   created_at  timestamptz not null default now()
 );
@@ -627,13 +629,13 @@ create policy "Users insert QR scans"
 -- SEED: Default missions (optional — run after schema)
 -- ============================================================
 
-insert into public.missions (title, description, icon, points, category) values
-  ('Günlük Ziyaret', 'Uygulamayı aç ve giriş yap', '📅', 20, 'daily'),
-  ('QR Kod Tara', 'Herhangi bir QR kodu tara', '📱', 75, 'daily'),
-  ('Ödüllere Göz At', 'Ödüller mağazasını ziyaret et', '🛍️', 15, 'daily'),
-  ('Başarımları Gör', 'Başarımlar sayfasına git', '🏆', 10, 'daily'),
-  ('Arkadaşını Davet Et', 'Bir arkadaşını uygulamaya davet et', '👥', 100, 'weekly'),
-  ('Liderlik Tablosuna Gir', 'Haftalık liderlik tablosunda üst 10''a gir', '📊', 200, 'weekly')
+insert into public.missions (title, description, icon, points, category, slug, sort_order) values
+  ('Günlük Ziyaret', 'Uygulamayı aç ve giriş yap', '📅', 20, 'daily', 'daily_visit', 0),
+  ('QR Kod Tara', 'Herhangi bir QR kodu tara', '📱', 75, 'daily', 'qr_scan', 1),
+  ('Ödüllere Göz At', 'Ödüller mağazasını ziyaret et', '🛍️', 15, 'daily', 'shop_visit', 2),
+  ('Başarımları Gör', 'Başarımlar sayfasına git', '🏆', 10, 'daily', 'achievements_visit', 3),
+  ('Arkadaşını Davet Et', 'Bir arkadaşını uygulamaya davet et', '👥', 100, 'weekly', 'refer_friend', 0),
+  ('Liderlik Tablosuna Gir', 'Haftalık liderlik tablosunda üst 10''a gir', '📊', 200, 'weekly', 'leaderboard_top10', 1)
 on conflict do nothing;
 
 -- ============================================================

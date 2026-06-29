@@ -8,6 +8,8 @@ import StickerHero from '../components/StickerHero';
 import { GAME_LOSE_STICKER, GAME_WIN_STICKER } from '../lib/pageStickers';
 import { getGamesConfig, type GameConfig } from '../services/config';
 import { useRealtimeTable } from '../hooks/useRealtime';
+import { useFeatureFlags } from '../context/SystemSettingsContext';
+import ModuleDisabledScreen from '../components/ModuleDisabledScreen';
 
 const GameOutcomeSticker: React.FC<{ won: boolean; size?: number }> = ({ won, size = 88 }) => (
   <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -540,10 +542,17 @@ const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
   useEffect(() => {
     if (phase !== 'playing') return;
 
+    // Fixed-timestep loop driven by requestAnimationFrame. The physics still
+    // advances in discrete 1/60s steps (identical feel to the old setInterval),
+    // but it is now vsync-aligned and immune to timer drift / background-tab
+    // throttling, and we trigger at most one React render per painted frame.
+    const STEP_MS = 1000 / 60;
+    let rafId = 0;
+    let last = performance.now();
+    let acc = 0;
     let spawnTimer = 0;
-    const loop = setInterval(() => {
-      if (!activeRef.current) return;
 
+    const advance = () => {
       const bird = birdRef.current;
       bird.vy = Math.min(bird.vy + 0.38, 8);
       bird.y += bird.vy;
@@ -575,7 +584,7 @@ const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
 
       if (birdBottom >= FLAPPY_H - 8 || birdTop <= 0) {
         endGame();
-        return;
+        return false;
       }
 
       for (const p of pipesRef.current) {
@@ -587,14 +596,31 @@ const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
         const overlapX = birdRight > pipeLeft + 4 && birdLeft < pipeRight - 4;
         if (overlapX && (birdTop < gapTop || birdBottom > gapBottom)) {
           endGame();
-          return;
+          return false;
         }
       }
+      return true;
+    };
+
+    const loop = (now: number) => {
+      if (!activeRef.current) return;
+      // Clamp to avoid a "spiral of death" after a long stall (e.g. tab blur).
+      acc += Math.min(now - last, 250);
+      last = now;
+
+      let stillRunning = true;
+      while (acc >= STEP_MS && stillRunning) {
+        acc -= STEP_MS;
+        stillRunning = advance();
+      }
+      if (!stillRunning) return;
 
       setRenderTick(t => t + 1);
-    }, 1000 / 60);
+      rafId = requestAnimationFrame(loop);
+    };
 
-    return () => clearInterval(loop);
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
   }, [phase, endGame]);
 
   void renderTick;
@@ -968,7 +994,7 @@ const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
   );
 };
 
-const defaultGamesList = [
+const GAME_TYPE_METADATA = [
   { id: 'spin',   label: 'Spin Wheel',  emoji: '🎰', desc: 'Spin to win up to 200 pts',   points: '5-200', color: '#7B6EF6' },
   { id: 'memory', label: 'Memory Game', emoji: '🧩', desc: 'Match pairs to win',          points: '50-200', color: '#22c55e' },
   { id: 'catch',  label: 'Catch Game',  emoji: '🎁', desc: 'Catch gifts, avoid bombs',    points: '0-100', color: '#ef4444' },
@@ -976,9 +1002,11 @@ const defaultGamesList = [
   { id: 'snake',  label: 'Snake',       emoji: '🐍', desc: 'Eat apples and grow longer',  points: '0-150', color: '#22c55e' },
 ];
 
+type PlayableGame = ReturnType<typeof mapConfigToGame>;
+
 function getGameIdFromConfig(game: GameConfig): string {
   const raw = game.config?.game_id;
-  if (typeof raw === 'string' && defaultGamesList.some(g => g.id === raw)) return raw;
+  if (typeof raw === 'string' && GAME_TYPE_METADATA.some(g => g.id === raw)) return raw;
   const name = game.name.toLowerCase();
   if (name.includes('memory') || name.includes('haf')) return 'memory';
   if (name.includes('catch') || name.includes('gift')) return 'catch';
@@ -989,7 +1017,7 @@ function getGameIdFromConfig(game: GameConfig): string {
 
 function mapConfigToGame(game: GameConfig) {
   const id = getGameIdFromConfig(game);
-  const fallback = defaultGamesList.find(g => g.id === id) ?? defaultGamesList[0];
+  const fallback = GAME_TYPE_METADATA.find(g => g.id === id) ?? GAME_TYPE_METADATA[0];
   const fallbackMax = Number.parseInt(String(fallback.points).split('-').pop() || '0', 10);
   const maxPoints = Math.max(0, game.max_points_per_play || fallbackMax);
   return {
@@ -1004,21 +1032,31 @@ function mapConfigToGame(game: GameConfig) {
   };
 }
 
+function dedupeGamesByType(games: ReturnType<typeof mapConfigToGame>[]) {
+  const seen = new Set<string>();
+  return games.filter(game => {
+    if (seen.has(game.id)) return false;
+    seen.add(game.id);
+    return true;
+  });
+}
+
 const MiniGames: React.FC = () => {
   const { earnReward, showRewardPopup } = useApp();
   const { authUser } = useAuth();
+  const { games_enabled: gamesEnabled } = useFeatureFlags();
   const [activeGame, setActiveGame] = useState<string | null>(null);
-  const [gamesList, setGamesList] = useState(defaultGamesList);
+  const [gamesList, setGamesList] = useState<PlayableGame[]>([]);
   const [gamesLoading, setGamesLoading] = useState(true);
 
   const loadGames = useCallback(async () => {
     try {
       const rows = await getGamesConfig();
-      const enabled = rows.filter(g => g.enabled).map(mapConfigToGame);
-      setGamesList(enabled.length ? enabled : defaultGamesList);
+      const enabled = dedupeGamesByType(rows.filter(g => g.enabled).map(mapConfigToGame));
+      setGamesList(enabled);
     } catch (err) {
-      console.warn('[MiniGames] Falling back to local game config:', err);
-      setGamesList(defaultGamesList);
+      console.warn('[MiniGames] Failed to load Supabase game config:', err);
+      setGamesList([]);
     } finally {
       setGamesLoading(false);
     }
@@ -1026,6 +1064,12 @@ const MiniGames: React.FC = () => {
 
   useEffect(() => { void loadGames(); }, [loadGames]);
   useRealtimeTable('games_config', loadGames);
+
+  useEffect(() => {
+    if (activeGame && !gamesList.some(game => game.id === activeGame)) {
+      setActiveGame(null);
+    }
+  }, [activeGame, gamesList]);
 
   const handleWin = (gameId: string) => {
     if (!authUser?.id) return;
@@ -1036,6 +1080,15 @@ const MiniGames: React.FC = () => {
     });
   };
 
+  if (!gamesEnabled) {
+    return (
+      <ModuleDisabledScreen
+        title="Mini oyunlar kapalı"
+        message="Yönetici oyun modülünü devre dışı bıraktı."
+      />
+    );
+  }
+
   const cardStyle = {
     background: 'var(--card-bg)',
     border: '3px solid var(--dark-border)',
@@ -1044,7 +1097,8 @@ const MiniGames: React.FC = () => {
   };
 
   if (activeGame) {
-    const game = gamesList.find(g => g.id === activeGame) ?? defaultGamesList.find(g => g.id === activeGame)!;
+    const game = gamesList.find(g => g.id === activeGame);
+    if (!game) return null;
     return (
       <div className="games-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
@@ -1108,6 +1162,15 @@ const MiniGames: React.FC = () => {
         {gamesLoading && (
           <div style={{ ...cardStyle, padding: 18, color: 'var(--text-muted)', fontWeight: 900 }}>
             Oyun ayarları Supabase'den yükleniyor...
+          </div>
+        )}
+        {!gamesLoading && gamesList.length === 0 && (
+          <div style={{ ...cardStyle, padding: 22, textAlign: 'center' }}>
+            <div style={{ fontSize: 42, marginBottom: 8 }}>🎮</div>
+            <h2 style={{ color: 'var(--text-dark)', fontWeight: 950, fontSize: 20, margin: 0 }}>Aktif oyun yok</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 800, margin: '6px 0 0' }}>
+              Admin panelinden oyun eklenince burada realtime görünecek.
+            </p>
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

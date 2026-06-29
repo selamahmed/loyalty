@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Copy, Check, RefreshCw, QrCode, Package, Search, Tag, Ticket, Gift, ArrowLeft, User, ChevronRight } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { deleteRedemptionAdmin, getAllUsers, updateRedemptionAdmin } from '../../services/admin';
+import { createInventoryItemAdmin, deleteRedemptionAdmin, getAllUsers, updateInventoryItemAdmin } from '../../services/admin';
 import { getUserRedemptions } from '../../services/redemptions';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 import NeoAvatar from '../../components/NeoAvatar';
@@ -29,6 +29,8 @@ export interface InvItem {
 }
 
 type InvItemForm = Omit<InvItem, 'id'>;
+type JoinedReward = { title?: string | null; description?: string | null; category?: string | null; image?: string | null; points?: number | null };
+type RedemptionRow = Record<string, unknown> & { rewards?: JoinedReward | JoinedReward[] | null };
 
 const EMPTY_FORM: InvItemForm = {
   type: 'coupon', title: '', description: '',
@@ -40,16 +42,33 @@ function genCode(type: string) {
   return `${type.slice(0, 4).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
-function seedInventory(userId: string): InvItem[] {
-  const seed = userId.charCodeAt(userId.length - 1);
-  const pool: InvItem[] = [
-    { id: `${userId}-a`, type: 'coupon', title: 'Ücretsiz Kahve', description: 'Bir adet boyutsuz sıcak içecek', code: `KAFE-${userId.slice(-4).toUpperCase()}`, expires: '2026-09-30', quantity: 1, points: 120, image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=80&h=80&fit=crop', barcode: '', used: false },
-    { id: `${userId}-b`, type: 'coupon', title: '%20 İndirim', description: 'Tüm ürünlerde geçerli', code: `IND-${userId.slice(-4).toUpperCase()}`, expires: '2026-08-15', quantity: 2, points: 200, image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=80&h=80&fit=crop', barcode: '', used: false },
-    { id: `${userId}-c`, type: 'ticket', title: 'Konser Bileti', description: 'Özel etkinlik girişi', code: `KONS-${userId.slice(-4).toUpperCase()}`, expires: '2026-07-20', quantity: 1, points: 500, image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=80&h=80&fit=crop', barcode: '', used: seed % 2 === 0 },
-    { id: `${userId}-d`, type: 'reward', title: 'Özel Çanta', description: 'Limited edition hediye çantası', code: `HDYE-${userId.slice(-4).toUpperCase()}`, expires: '2026-12-31', quantity: 1, points: 800, image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=80&h=80&fit=crop', barcode: '', used: false },
-    { id: `${userId}-e`, type: 'coupon', title: 'Ücretsiz Kargo', description: 'Bir sonraki sipariş için', code: `KARG-${userId.slice(-4).toUpperCase()}`, expires: '2026-10-01', quantity: 3, points: 80, image: '', barcode: '', used: false },
-  ];
-  return pool.slice(0, (seed % 3) + 3);
+function normalizeReward(row: RedemptionRow): JoinedReward {
+  const reward = row.rewards;
+  if (Array.isArray(reward)) return reward[0] ?? {};
+  return reward ?? {};
+}
+
+function normalizeType(value: unknown): InvItem['type'] {
+  if (value === 'coupon' || value === 'ticket' || value === 'reward') return value;
+  return 'reward';
+}
+
+function mapRedemptionToItem(row: RedemptionRow): InvItem {
+  const reward = normalizeReward(row);
+  const type = normalizeType(reward.category);
+  return {
+    id: String(row.id),
+    type,
+    title: reward.title ?? 'Ödül',
+    description: reward.description ?? '',
+    code: String(row.code ?? ''),
+    expires: row.expires_at ? String(row.expires_at) : '',
+    quantity: 1,
+    points: Number(row.points_spent ?? reward.points ?? 0),
+    image: reward.image ?? '',
+    barcode: String(row.barcode ?? ''),
+    used: Boolean(row.used),
+  };
 }
 
 const QRPreview: React.FC<{ code: string; size?: number }> = ({ code, size = 120 }) => (
@@ -174,11 +193,15 @@ const InventoryScreen: React.FC<{
   const openAdd = () => { setEditingItem(null); setForm({ ...EMPTY_FORM, code: genCode('coupon') }); setShowModal(true); };
   const openEdit = (item: InvItem) => { setEditingItem(item); setForm({ type: item.type, title: item.title, description: item.description, expires: item.expires.slice(0, 10), code: item.code, used: item.used, quantity: item.quantity, image: item.image, points: item.points, barcode: item.barcode }); setShowModal(true); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.title || !form.code) return;
-    if (editingItem) { onUpdate(editingItem.id, form); } else { onAdd(form); }
-    setSaved(true);
-    setTimeout(() => { setSaved(false); setShowModal(false); }, 700);
+    try {
+      if (editingItem) { await onUpdate(editingItem.id, form); } else { await onAdd(form); }
+      setSaved(true);
+      setTimeout(() => { setSaved(false); setShowModal(false); }, 700);
+    } catch (error) {
+      console.error('[AdminInventory] Could not save inventory item:', error);
+    }
   };
 
   const handleCopy = (code: string) => { navigator.clipboard.writeText(code).catch(() => {}); setCopied(code); setTimeout(() => setCopied(null), 2000); };
@@ -370,19 +393,7 @@ const AdminInventory: React.FC = () => {
     setLoadingItems(true);
     try {
       const redemptions = await getUserRedemptions(userId);
-      setItems(redemptions.map((r: Record<string, unknown>) => ({
-        id: r.id as string,
-        type: 'reward' as const,
-        title: (r.rewards as Record<string, unknown>)?.title as string ?? 'Ödül',
-        description: (r.rewards as Record<string, unknown>)?.description as string ?? '',
-        code: r.code as string ?? '',
-        expires: r.expires_at as string ?? '',
-        quantity: 1,
-        points: r.points_spent as number ?? 0,
-        image: (r.rewards as Record<string, unknown>)?.image as string ?? '',
-        barcode: '',
-        used: r.used as boolean ?? false,
-      })));
+      setItems((redemptions as unknown as RedemptionRow[]).map(mapRedemptionToItem));
     } catch { setItems([]); } finally { setLoadingItems(false); }
   }, []);
 
@@ -396,17 +407,35 @@ const AdminInventory: React.FC = () => {
     await loadUserRedemptions(user.id);
   };
 
-  const handleAdd = (_form: InvItemForm) => {
-    // Adding redemptions directly from admin is not supported in current schema
-    // Redemptions are created via the reward shop
+  const handleAdd = async (form: InvItemForm) => {
+    if (!selectedUser) return;
+    await createInventoryItemAdmin({
+      userId: selectedUser.id,
+      type: form.type,
+      title: form.title,
+      description: form.description,
+      code: form.code,
+      points: form.points,
+      image: form.image,
+      expiresAt: form.expires ? new Date(form.expires).toISOString() : null,
+      barcode: form.barcode,
+    });
+    await loadUserRedemptions(selectedUser.id);
   };
 
   const handleUpdate = async (id: string, form: InvItemForm) => {
     if (!selectedUser) return;
-    await updateRedemptionAdmin(id, {
+    await updateInventoryItemAdmin({
+      redemptionId: id,
+      type: form.type,
+      title: form.title,
+      description: form.description,
       code: form.code,
       used: form.used,
-      expires_at: form.expires ? new Date(form.expires).toISOString() : null,
+      points: form.points,
+      image: form.image,
+      expiresAt: form.expires ? new Date(form.expires).toISOString() : null,
+      barcode: form.barcode,
     });
     await loadUserRedemptions(selectedUser.id);
   };

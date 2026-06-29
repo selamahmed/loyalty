@@ -3,6 +3,7 @@ import { X, Star, Trophy, Zap, Gift } from 'lucide-react';
 import { RewardPopupData } from '../context/AppContext';
 import LevelBadge from './LevelBadge';
 import WinningParticles from './WinningParticles';
+import StickerAccent from './StickerAccent';
 
 interface RewardPopupProps {
   data: RewardPopupData;
@@ -42,19 +43,32 @@ const RewardPopup: React.FC<RewardPopupProps> = ({ data, onDismiss }) => {
           </button>
 
           <div className="level-up-card__beam" />
-          <p className="level-up-card__eyebrow">LEVEL UP</p>
+          <StickerAccent group="superstar.svg" variant="colorful" size={96} rotate={-8} className="level-up-sticker level-up-sticker--left" />
+          <StickerAccent group="awesome.svg" variant="colorful" size={88} rotate={10} className="level-up-sticker level-up-sticker--right" />
+          <p className="level-up-card__eyebrow">LEVEL UP COMPLETE</p>
           <h2 className="level-up-title-mega">SEVİYE ATLADIN!</h2>
 
           <div className="level-up-badge-wrap">
             <div className="level-up-badge-ring" />
+            <div className="level-up-badge-glow" />
             <LevelBadge level={level} width={124} className="level-up-badge" />
           </div>
 
-          <p className="level-up-level-number">Lv.{level}</p>
+          <div className="level-up-level-row">
+            <span>Yeni seviye</span>
+            <p className="level-up-level-number">Lv.{level}</p>
+            <span>Acildi</span>
+          </div>
           <p className="level-up-subtitle">{data.subtitle}</p>
 
           <div className="level-up-progress-flash">
             <span />
+          </div>
+
+          <div className="level-up-perks" aria-label="Level rewards">
+            <span>Yeni rozet</span>
+            <span>XP boost</span>
+            <span>Liderlik +</span>
           </div>
 
           {data.points ? (

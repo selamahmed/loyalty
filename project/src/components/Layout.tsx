@@ -5,6 +5,7 @@ import {
   Sun, Moon, Star, Bell,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useFeatureFlags } from '../context/SystemSettingsContext';
 import RewardPopup from './RewardPopup';
 import { playSound } from '../lib/sounds';
 import { prefetchRoute } from '../lib/routePrefetch';
@@ -25,6 +26,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
   const { theme, toggleTheme, points, rewardPopup, dismissRewardPopup, soundEnabled } = useApp();
+  const flags = useFeatureFlags();
   const location = useLocation();
   const navigate  = useNavigate();
 
@@ -179,7 +181,8 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                 );
               })}
 
-              {/* Center QR button */}
+              {/* Center QR button — hidden when QR module disabled */}
+              {flags.qr_enabled ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, marginTop: -22 }}>
                 <button
                   onClick={() => navigateTo('/qr')}
@@ -206,6 +209,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                 </button>
                 <span style={{ fontSize: 10, fontWeight: 700, marginTop: 4, color: 'var(--text-muted)', lineHeight: 1 }}>Tara</span>
               </div>
+              ) : null}
 
               {/* Right two items */}
               {navItems.slice(2).map(item => {

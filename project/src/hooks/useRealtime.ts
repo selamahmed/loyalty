@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 /**
@@ -11,8 +11,8 @@ export function useRealtimeTable(
   onChange: () => void,
   enabled = true
 ) {
-  // stable ref to avoid unnecessary resubscribes when the callback changes
-  const onChangeRef = useCallback(onChange, [onChange]);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
     if (!enabled) return;
@@ -22,14 +22,14 @@ export function useRealtimeTable(
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table },
-        onChangeRef
+        () => onChangeRef.current()
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [table, onChangeRef, enabled]);
+  }, [table, enabled]);
 }
 
 /**
@@ -41,7 +41,8 @@ export function useRealtimeTables(
   onChange: () => void,
   enabled = true
 ) {
-  const onChangeRef = useCallback(onChange, [onChange]);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
     if (!enabled || tables.length === 0) return;
@@ -51,7 +52,7 @@ export function useRealtimeTables(
         ch.on(
           'postgres_changes',
           { event: '*', schema: 'public', table },
-          onChangeRef
+          () => onChangeRef.current()
         ),
       supabase.channel(`rt-multi-${Math.random().toString(36).slice(2)}`)
     );
@@ -61,5 +62,5 @@ export function useRealtimeTables(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tables.join(','), onChangeRef, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tables.join(','), enabled]); // eslint-disable-line react-hooks/exhaustive-deps
 }

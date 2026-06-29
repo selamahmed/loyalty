@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { LANDING_HERO_CENTER_URL, LANDING_HERO_SATELLITE_URLS } from '../lib/landingHeroAssets';
 import StickerDecorImg from './StickerDecorImg';
 
@@ -22,7 +22,14 @@ const HERO_SATELLITES: {
 }));
 
 /** Hero art — colorful sticker cluster; LCP star uses stable public URL + high priority. */
-const HeroGroupComposition: React.FC = () => (
+const HeroGroupComposition: React.FC = () => {
+  const centerImageRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    centerImageRef.current?.setAttribute('fetchpriority', 'high');
+  }, []);
+
+  return (
   <div className="hero-group-composition" aria-hidden>
     {HERO_SATELLITES.map(s => (
       <div
@@ -45,13 +52,13 @@ const HeroGroupComposition: React.FC = () => (
       </div>
     ))}
     <img
+      ref={centerImageRef}
       src={LANDING_HERO_CENTER_URL}
       alt=""
       aria-hidden
       width={300}
       height={300}
       loading="eager"
-      fetchPriority="high"
       decoding="sync"
       draggable={false}
       className="hero-group-composition__star"
@@ -62,6 +69,7 @@ const HeroGroupComposition: React.FC = () => (
       }}
     />
   </div>
-);
+  );
+};
 
 export default HeroGroupComposition;

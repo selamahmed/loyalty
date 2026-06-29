@@ -10,6 +10,7 @@ import { WinningParticles } from '../components/WinningParticles';
 import StickerAccent from '../components/StickerAccent';
 import StickerHero from '../components/StickerHero';
 import { activityLogService } from '../lib/activityLogger';
+import { markMissionPageVisit } from '../lib/missionVisitTracker';
 
 const card = {
   background: 'var(--card-bg)',
@@ -38,6 +39,7 @@ const Achievements: React.FC = () => {
 
   useEffect(() => {
     if (!authUser?.id) return;
+    markMissionPageVisit('achievements_visit', authUser.id);
     setIsLoading(true);
     getAchievementsWithProgress(authUser.id)
       .then(data => {

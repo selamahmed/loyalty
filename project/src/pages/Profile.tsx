@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, Trophy, Zap, Target, Settings, LogOut, ChevronRight, Package, CreditCard as Edit3, Bell, HelpCircle, History, BarChart2, Gamepad2, Home, QrCode, ShoppingBag, Sun, Moon, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
+import { useFeatureFlags } from '../context/SystemSettingsContext';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { useXpProgress } from '../hooks/useXpProgress';
@@ -123,6 +124,7 @@ const Profile: React.FC = () => {
   const { user, points, theme, toggleTheme } = useApp();
   const { logout } = useAuth();
   const { items: inventoryItems } = useInventory();
+  const flags = useFeatureFlags();
   const [showAllInventory, setShowAllInventory] = useState(false);
   const [selectedInventoryId, setSelectedInventoryId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -132,6 +134,10 @@ const Profile: React.FC = () => {
     playSound('click');
     navigate(path);
   };
+
+  const handleSelectInventory = useCallback((id: string) => {
+    setSelectedInventoryId(id);
+  }, []);
 
   const activeInventory = inventoryItems.filter(i => !i.used && new Date(i.expires) >= new Date());
   const displayedInventory = showAllInventory ? activeInventory : activeInventory.slice(0, 3);
@@ -146,7 +152,21 @@ const Profile: React.FC = () => {
     { icon: QrCode, label: 'QR Tara', path: '/qr', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
     { icon: ShoppingBag, label: 'Mağaza', path: '/shop', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
     { icon: Gamepad2, label: 'Oyunlar', path: '/games', color: '#FF3E9D', bg: 'rgba(255,62,157,0.12)' },
-  ];
+  ].filter(item => {
+    if (item.path === '/qr') return flags.qr_enabled;
+    if (item.path === '/games') return flags.games_enabled;
+    return true;
+  });
+
+  const menuSections = PROFILE_MENU_SECTIONS.map(section => ({
+    ...section,
+    items: section.items.filter(item => {
+      if (item.path === '/qr') return flags.qr_enabled;
+      if (item.path === '/games') return flags.games_enabled;
+      if (item.path === '/missions') return flags.missions_enabled;
+      return true;
+    }),
+  })).filter(section => section.items.length > 0);
 
   return (
     <div className="profile-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
@@ -308,7 +328,7 @@ const Profile: React.FC = () => {
                   key={item.id}
                   item={item}
                   compact
-                  onClick={() => setSelectedInventoryId(item.id)}
+                  onSelect={handleSelectInventory}
                 />
               ))}
             </div>
@@ -386,7 +406,7 @@ const Profile: React.FC = () => {
 
           {menuOpen && (
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {PROFILE_MENU_SECTIONS.map(section => (
+              {menuSections.map(section => (
                 <div key={section.label}>
                   <p className="section-label" style={{ marginBottom: 10 }}>{section.label}</p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>

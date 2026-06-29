@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Star, Check, Clock, Trophy, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Star, Check, Clock, Trophy, ArrowRight, Loader2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { getMissionsWithStatus } from '../services/missions';
+import { claimMissionReward, getMissionsWithStatus } from '../services/missions';
 import type { MissionWithStatus } from '../services/missions';
 import { tr } from '../lib/tr';
 import { playSound } from '../lib/sounds';
@@ -10,6 +11,8 @@ import { WinningParticles } from '../components/WinningParticles';
 import StickerAccent from '../components/StickerAccent';
 import StickerHero from '../components/StickerHero';
 import { activityLogService } from '../lib/activityLogger';
+import { useFeatureFlags } from '../context/SystemSettingsContext';
+import ModuleDisabledScreen from '../components/ModuleDisabledScreen';
 
 const card = {
   background: 'var(--card-bg)',
@@ -19,60 +22,127 @@ const card = {
 };
 
 const Missions: React.FC = () => {
-  const { earnReward, showRewardPopup } = useApp();
-  const { authUser } = useAuth();
+  const navigate = useNavigate();
+  const { showRewardPopup, soundEnabled } = useApp();
+  const { authUser, refreshProfile } = useAuth();
+  const flags = useFeatureFlags();
+  const missionsEnabled = flags.missions_enabled;
   const [missionState, setMissionState] = useState<MissionWithStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [tab, setTab] = useState<'daily' | 'weekly'>('daily');
   const [showParticles, setShowParticles] = useState(false);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+
+  const loadMissions = useCallback(async (): Promise<MissionWithStatus[]> => {
+    if (!authUser?.id) return [];
+    setIsLoading(true);
+    setLoadError(null);
+    if (!missionsEnabled) {
+      setMissionState([]);
+      setIsLoading(false);
+      return [];
+    }
+    try {
+      const rows = await getMissionsWithStatus(authUser.id);
+      setMissionState(rows);
+      return rows;
+    } catch {
+      setLoadError('Görevler yüklenemedi. Lütfen tekrar dene.');
+      setMissionState([]);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authUser?.id, missionsEnabled]);
 
   useEffect(() => {
-    if (!authUser?.id) return;
-    setIsLoading(true);
-    getMissionsWithStatus(authUser.id)
-      .then(setMissionState)
-      .catch(() => setMissionState([]))
-      .finally(() => setIsLoading(false));
-  }, [authUser?.id]);
+    void loadMissions();
+  }, [loadMissions]);
 
   const filtered = missionState.filter(m => m.category === tab);
   const completed = filtered.filter(m => m.completed).length;
   const totalPts = filtered.reduce((s, m) => s + m.points, 0);
   const earnedPts = filtered.filter(m => m.completed).reduce((s, m) => s + m.points, 0);
   const progressPct = filtered.length > 0 ? (completed / filtered.length) * 100 : 0;
+  const allComplete = filtered.length > 0 && completed === filtered.length;
 
-  const handleComplete = (id: string) => {
-    const mission = missionState.find(m => m.id === id);
-    if (!mission || mission.completed || !authUser?.id) return;
-    setMissionState(prev => {
-      const next = prev.map(m => m.id === id ? { ...m, completed: true, completed_at: new Date().toISOString() } : m);
-      const allCompleted = next.filter(ms => ms.category === tab && ms.completed).length === filtered.length;
-      if (allCompleted) { setShowParticles(true); playSound('success'); setTimeout(() => setShowParticles(false), 2000); }
-      return next;
-    });
-    void earnReward('mission_complete', { referenceId: id }).then(result => {
-      if (result && result.points > 0) {
-        showRewardPopup({ type: 'reward', title: 'Mission Complete!', subtitle: mission.title, points: result.points });
-      } else if (result?.capped) {
-        showRewardPopup({ type: 'reward', title: 'Günlük limit', subtitle: 'Bugünkü puan limitine ulaştın.', points: 0 });
+  if (!missionsEnabled) {
+    return (
+      <ModuleDisabledScreen
+        title="Görevler geçici olarak kapalı"
+        message="Yönetici görev modülünü devre dışı bıraktı. Daha sonra tekrar deneyin."
+      />
+    );
+  }
+
+  const handleClaim = async (mission: MissionWithStatus) => {
+    if (!authUser?.id || mission.completed || claimingId) return;
+
+    if (!mission.readyToClaim) {
+      if (mission.actionPath) navigate(mission.actionPath);
+      return;
+    }
+
+    setClaimingId(mission.id);
+    try {
+      const result = await claimMissionReward(mission.id);
+      const rows = await loadMissions();
+      await refreshProfile();
+
+      const tabRows = rows.filter(m => m.category === tab);
+      const tabCompleted = tabRows.filter(m => m.completed).length;
+      if (tabRows.length > 0 && tabCompleted === tabRows.length) {
+        setShowParticles(true);
+        if (soundEnabled) playSound('success');
+        window.setTimeout(() => setShowParticles(false), 2000);
+      } else if (soundEnabled) {
+        playSound('reward');
       }
-    });
-    void activityLogService.logActivity({
-      userId:     authUser.id,
-      username:   authUser.username ?? authUser.name ?? authUser.email,
-      email:      authUser.email,
-      role:       authUser.role,
-      action:     `Görev tamamlandı: ${mission.title}`,
-      actionType: 'mission',
-      amount:     mission.points,
-      riskLevel:  'low',
-      details:    { missionId: id, category: mission.category },
-    });
+
+      if (result.points > 0) {
+        showRewardPopup({
+          type: 'reward',
+          title: tr.missions.rewardClaimed,
+          subtitle: mission.title,
+          points: result.points,
+        });
+      } else if (result.capped) {
+        showRewardPopup({
+          type: 'reward',
+          title: 'Günlük limit',
+          subtitle: 'Bugünkü puan limitine ulaştın.',
+          points: 0,
+        });
+      }
+
+      void activityLogService.logActivity({
+        userId: authUser.id,
+        username: authUser.username ?? authUser.name ?? authUser.email,
+        email: authUser.email,
+        role: authUser.role,
+        action: `Görev tamamlandı: ${mission.title}`,
+        actionType: 'mission',
+        amount: result.points || mission.points,
+        riskLevel: 'low',
+        details: { missionId: mission.id, category: mission.category },
+      });
+    } catch (err) {
+      if (soundEnabled) playSound('error');
+      const message = err instanceof Error ? err.message : 'Görev tamamlanamadı.';
+      showRewardPopup({
+        type: 'reward',
+        title: 'Görev hatası',
+        subtitle: message,
+        points: 0,
+      });
+    } finally {
+      setClaimingId(null);
+    }
   };
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
-      {/* Ghost watermark */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, userSelect: 'none' }}>
         <div style={{
           position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)',
@@ -84,8 +154,6 @@ const Missions: React.FC = () => {
       <WinningParticles trigger={showParticles} emoji="🏆" />
 
       <div className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-2xl mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1 }}>
-
-        {/* ── Page header ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 16, flexShrink: 0,
@@ -99,21 +167,19 @@ const Missions: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Banner (sticker) ── */}
         <StickerHero
           page="missions"
           bg={tab === 'daily' ? 'linear-gradient(135deg,#dc2626 0%,#f87171 100%)' : 'linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%)'}
           badge={tab === 'daily' ? '📅 GÜNLÜK' : '📆 HAFTALIK'}
-          title={`${completed}/${filtered.length} Tamamlandı`}
-          highlight="Görevleri bitir!"
+          title={`${completed}/${filtered.length || 0} Tamamlandı`}
+          highlight={allComplete ? 'Harika iş! 🎉' : 'Görevleri bitir!'}
         />
 
-        {/* ── Tabs ── */}
         <div style={{ display: 'flex', gap: 8 }}>
           {(['daily', 'weekly'] as const).map(t => (
             <button
               key={t}
-              onClick={() => { playSound('click'); setTab(t); }}
+              onClick={() => { if (soundEnabled) playSound('click'); setTab(t); }}
               style={{
                 flex: 1, padding: '12px', borderRadius: 14, fontWeight: 900, fontSize: 13,
                 cursor: 'pointer', transition: 'all 0.15s', position: 'relative',
@@ -129,7 +195,6 @@ const Missions: React.FC = () => {
           ))}
         </div>
 
-        {/* ── Progress summary ── */}
         <div style={{ ...card, padding: '18px 20px', position: 'relative', overflow: 'visible' }}>
           <StickerAccent seed="missions-progress" variant="shape" size={30} rotate={10} style={{ position: 'absolute', top: -8, right: 10, zIndex: 2 }} />
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -153,7 +218,7 @@ const Missions: React.FC = () => {
               background: 'linear-gradient(90deg, var(--gradient-start), var(--gradient-end))',
             }} />
           </div>
-          {completed === filtered.length && filtered.length > 0 && (
+          {allComplete && (
             <div style={{
               marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
               background: 'rgba(34,197,94,0.1)', borderRadius: 12, border: '2px solid #22c55e',
@@ -164,77 +229,119 @@ const Missions: React.FC = () => {
           )}
         </div>
 
-        {/* ── Mission list ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filtered.map((mission, index) => (
-            <div
-              key={mission.id}
-              style={{
-                ...card,
-                padding: '16px 18px',
-                border: mission.completed ? '3px solid #22c55e' : '3px solid var(--dark-border)',
-                boxShadow: mission.completed ? '0 6px 0 #16a34a' : '0 6px 0 var(--dark-border)',
-                background: mission.completed ? 'rgba(34,197,94,0.05)' : 'var(--card-bg)',
-                animation: `missionSlideIn 0.3s ease-out ${index * 0.06}s both`,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 22,
-                  background: mission.completed ? '#22c55e' : 'var(--tab-bg)',
-                  border: '2.5px solid var(--dark-border)',
-                  boxShadow: '0 3px 0 var(--dark-border)',
-                }}>
-                  {mission.completed ? '✓' : mission.icon}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{
-                    fontWeight: 900, fontSize: 14, margin: '0 0 3px',
-                    color: mission.completed ? 'var(--text-muted)' : 'var(--text-dark)',
-                    textDecoration: mission.completed ? 'line-through' : 'none',
-                  }}>{mission.title}</p>
-                  <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 6px' }}>{mission.description}</p>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: 'var(--tab-bg)', border: '1.5px solid var(--dark-border)' }}>
-                    <Star size={10} fill="#f59e0b" color="#f59e0b" />
-                    <span style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b' }}>{mission.points} pts</span>
-                  </div>
-                </div>
-                {!mission.completed ? (
-                  <button
-                    onClick={() => handleComplete(mission.id)}
-                    style={{
-                      padding: '10px 16px', borderRadius: 12, fontWeight: 900, fontSize: 12,
-                      background: 'linear-gradient(180deg, var(--gradient-start), var(--gradient-end))',
-                      color: 'white', border: '2.5px solid var(--dark-border)',
-                      boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', flexShrink: 0,
-                      transition: 'transform 0.1s, box-shadow 0.1s',
-                    }}
-                    onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 0 var(--dark-border)'; }}
-                    onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 0 var(--dark-border)'; }}
-                  >{tr.missions.complete}</button>
-                ) : (
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '50%', background: '#22c55e',
-                    border: '2.5px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}>
-                    <Check size={18} color="white" />
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <div style={{ ...card, padding: '48px 24px', textAlign: 'center' }}>
+            <Loader2 size={28} className="animate-spin mx-auto mb-3" color="var(--primary-blue)" />
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Görevler yükleniyor…</p>
+          </div>
+        ) : loadError ? (
+          <div style={{ ...card, padding: '24px', textAlign: 'center' }}>
+            <p style={{ color: '#ef4444', fontWeight: 800, fontSize: 14, margin: '0 0 12px' }}>{loadError}</p>
+            <button type="button" onClick={() => void loadMissions()} className="lbtn-secondary-sm">Tekrar dene</button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ ...card, padding: '40px 24px', textAlign: 'center' }}>
+            <p style={{ fontSize: 36, margin: '0 0 8px' }}>🎯</p>
+            <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 4px' }}>{tr.missions.noMissions}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Yeni görevler yakında eklenecek.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {filtered.map(mission => {
+              const isClaiming = claimingId === mission.id;
+              const ctaLabel = mission.completed
+                ? null
+                : mission.readyToClaim
+                  ? tr.missions.claimReward
+                  : mission.actionPath
+                    ? 'Git'
+                    : tr.missions.complete;
 
-        {/* ── Reset notice ── */}
+              return (
+                <div
+                  key={mission.id}
+                  style={{
+                    ...card,
+                    padding: '16px 18px',
+                    border: mission.completed ? '3px solid #22c55e' : '3px solid var(--dark-border)',
+                    boxShadow: mission.completed ? '0 6px 0 #16a34a' : '0 6px 0 var(--dark-border)',
+                    background: mission.completed ? 'rgba(34,197,94,0.05)' : 'var(--card-bg)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                      width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 22,
+                      background: mission.completed ? '#22c55e' : mission.readyToClaim ? 'rgba(145,34,255,0.12)' : 'var(--tab-bg)',
+                      border: '2.5px solid var(--dark-border)',
+                      boxShadow: '0 3px 0 var(--dark-border)',
+                    }}>
+                      {mission.completed ? '✓' : mission.icon}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontWeight: 900, fontSize: 14, margin: '0 0 3px',
+                        color: mission.completed ? 'var(--text-muted)' : 'var(--text-dark)',
+                        textDecoration: mission.completed ? 'line-through' : 'none',
+                      }}>{mission.title}</p>
+                      <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 6px' }}>{mission.description}</p>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: 'var(--tab-bg)', border: '1.5px solid var(--dark-border)' }}>
+                        <Star size={10} fill="#f59e0b" color="#f59e0b" />
+                        <span style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b' }}>{mission.points} pts</span>
+                      </div>
+                      {!mission.completed && !mission.readyToClaim && (
+                        <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '6px 0 0', fontWeight: 600 }}>
+                          Görevi tamamlamak için ilgili sayfaya git.
+                        </p>
+                      )}
+                    </div>
+                    {mission.completed ? (
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%', background: '#22c55e',
+                        border: '2.5px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Check size={18} color="white" />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void handleClaim(mission)}
+                        disabled={isClaiming}
+                        style={{
+                          padding: '10px 16px', borderRadius: 12, fontWeight: 900, fontSize: 12,
+                          background: mission.readyToClaim
+                            ? 'linear-gradient(180deg, var(--gradient-start), var(--gradient-end))'
+                            : 'var(--tab-bg)',
+                          color: mission.readyToClaim ? 'white' : 'var(--text-dark)',
+                          border: '2.5px solid var(--dark-border)',
+                          boxShadow: '0 4px 0 var(--dark-border)',
+                          cursor: isClaiming ? 'wait' : 'pointer',
+                          flexShrink: 0,
+                          opacity: isClaiming ? 0.7 : 1,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                        }}
+                      >
+                        {isClaiming ? <Loader2 size={14} className="animate-spin" /> : null}
+                        {ctaLabel}
+                        {!isClaiming && !mission.readyToClaim && mission.actionPath ? <ArrowRight size={13} /> : null}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <div style={{ ...card, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <Clock size={16} color="var(--text-muted)" />
           <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0, fontWeight: 600 }}>
             {tab === 'daily' ? tr.missions.dailyReset : tr.missions.weeklyReset}
           </p>
         </div>
-
       </div>
 
       <style>{`

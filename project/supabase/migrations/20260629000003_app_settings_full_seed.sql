@@ -1,0 +1,30 @@
+-- Ensure all app_settings keys used by AdminSettings exist in Supabase.
+
+insert into public.app_settings (key, value, description, category) values
+  ('points_per_currency',        '10',    'Points earned per 1 TL spent',              'economy'),
+  ('points_to_tl',               '100',   'Points needed per 1 TL value',              'economy'),
+  ('referral_bonus',             '250',   'Referral bonus points',                     'economy'),
+  ('welcome_bonus',              '100',   'Welcome bonus for new users',               'economy'),
+  ('qr_scan_bonus',              '75',    'Default QR scan bonus (display / legacy)',  'economy'),
+  ('game_multiplier',            '1.5',   'Game points multiplier',                    'economy'),
+  ('daily_mission_bonus',        '50',    'Bonus when all daily missions complete',    'economy'),
+  ('daily_login_bonus',          '50',    'Legacy alias for daily mission bonus',      'economy'),
+  ('streak_bonus',               '30',    'Streak bonus per consecutive day',          'economy'),
+  ('max_daily_points',           '1000',  'Maximum points earnable per day',           'limits'),
+  ('max_daily_xp',               '500',   'Maximum XP earnable per day',               'limits'),
+  ('xp_points_ratio',            '1',     'XP = points × ratio when rule XP is 0',     'limits'),
+  ('max_balance',                '50000', 'Maximum points balance per account',        'limits'),
+  ('min_redeem_threshold',       '500',   'Minimum points required to redeem',         'limits'),
+  ('transaction_cooldown_min',   '30',    'Minutes between QR scans',                  'limits'),
+  ('points_limit_enabled',       'true',  'Enforce max claimable points limit',        'loyalty'),
+  ('max_points_limit',           '1200',  'Maximum claimable points balance',          'loyalty'),
+  ('ticket_valid_for',           '24',    'Default ticket validity duration',          'loyalty'),
+  ('ticket_time_unit',           '"hours"','Ticket validity unit',                     'loyalty'),
+  ('qr_enabled',                 'true',  'QR scanning module enabled',                'features'),
+  ('games_enabled',              'true',  'Mini games module enabled',                 'features'),
+  ('missions_enabled',           'true',  'Missions module enabled',                   'features'),
+  ('referral_enabled',           'true',  'Referral system enabled',                   'features'),
+  ('streak_enabled',             'true',  'Streak tracking enabled',                   'features'),
+  ('push_notifications',         'true',  'Push notifications enabled',                'features'),
+  ('double_points_enabled',      'false', 'Global double-points campaign mode',        'features')
+on conflict (key) do nothing;

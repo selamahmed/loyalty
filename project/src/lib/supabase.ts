@@ -161,6 +161,8 @@ export type Database = {
           points: number;
           category: 'daily' | 'weekly' | 'special';
           active: boolean;
+          slug: string | null;
+          sort_order: number;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['missions']['Row'], 'created_at'>;

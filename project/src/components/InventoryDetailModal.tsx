@@ -4,6 +4,7 @@ import { X, Copy, Check, Clock, Tag, Ticket, Gift, Package, AlertCircle, QrCode 
 import type { LucideIcon } from 'lucide-react';
 import { InventoryItem } from '../context/InventoryContext';
 import { InventoryQRCode } from './QRCodeDisplay';
+import { formatRedemptionCode, normalizeRedemptionCode } from '../lib/redemptionCode';
 
 const brutal = {
   border: '3px solid var(--dark-border)',
@@ -21,8 +22,16 @@ const typeConfig: Record<string, { color: string; bg: string; icon: LucideIcon; 
 
 interface Countdown { days: number; hours: number; minutes: number; seconds: number; expired: boolean; }
 
-function getCountdown(expiresStr: string): Countdown {
-  const diff = new Date(expiresStr).getTime() - Date.now();
+function getExpiryTime(expiresStr?: string | null): number | null {
+  if (!expiresStr) return null;
+  const time = new Date(expiresStr).getTime();
+  return Number.isFinite(time) ? time : null;
+}
+
+function getCountdown(expiresStr?: string | null): Countdown {
+  const expiryTime = getExpiryTime(expiresStr);
+  if (!expiryTime) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  const diff = expiryTime - Date.now();
   if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
   return {
     days:    Math.floor(diff / 86400000),
@@ -54,7 +63,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
   }, []);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(item.code).catch(() => {});
+    navigator.clipboard.writeText(normalizeRedemptionCode(item.code)).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -63,7 +72,8 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
   const isUsed    = item.used;
   const isActive  = !isExpired && !isUsed;
   const accent    = isActive ? cfg.color : '#ef4444';
-  const urgent    = countdown.days < 3;
+  const hasValidExpiry = getExpiryTime(item.expires) !== null;
+  const urgent    = hasValidExpiry && countdown.days < 3;
 
   return createPortal(
     <div
@@ -219,12 +229,13 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
                   >
                     <span className="inventory-detail-code-text" style={{
                       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                      fontSize: 16, fontWeight: 800,
+                      fontSize: formatRedemptionCode(item.code).length <= 8 ? 22 : 16,
+                      fontWeight: 800,
                       color: isActive ? 'var(--text-dark)' : 'var(--text-muted)',
-                      letterSpacing: '0.08em', flex: 1, textAlign: 'center',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      letterSpacing: formatRedemptionCode(item.code).length <= 8 ? '0.14em' : '0.06em',
+                      flex: 1, textAlign: 'center',
                     }}>
-                      {item.code}
+                      {formatRedemptionCode(item.code)}
                     </span>
                     {isActive && (
                       <div className="inventory-detail-copy-icon" style={{
@@ -298,7 +309,7 @@ const InventoryDetailModal: React.FC<Props> = ({ item, onClose }) => {
                 ))}
               </div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '10px 0 0', textAlign: 'center', fontWeight: 500 }}>
-                Son kullanım: {new Date(item.expires).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                Son kullanım: {new Date(item.expires).toLocaleString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           ) : (

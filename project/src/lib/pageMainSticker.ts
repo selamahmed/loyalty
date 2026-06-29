@@ -69,9 +69,9 @@ export const PAGE_MAIN_STICKERS: Record<MainStickerPageKey, PageMainStickerConfi
     },
   },
   shop: {
-    group: 'loveit.svg',
-    rotate: 3,
-    accent: '#ec4899',
+    group: 'TICKETS.svg',
+    rotate: -4,
+    accent: '#f59e0b',
     sizes: BRAND_STICKER_SIZES,
   },
   profile: {

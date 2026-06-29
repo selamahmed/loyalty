@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { prefetchRoute } from '../lib/routePrefetch';
 import AppLogo from './AppLogo';
+import { useFeatureFlags } from '../context/SystemSettingsContext';
 
 type FooterLink = {
   path: string;
@@ -60,6 +61,20 @@ type DesktopFooterProps = {
 const DesktopFooter: React.FC<DesktopFooterProps> = ({ onNavigate }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const flags = useFeatureFlags();
+
+  const filterLinks = (links: FooterLink[]) =>
+    links.filter(link => {
+      if (link.path === '/qr') return flags.qr_enabled;
+      if (link.path === '/games') return flags.games_enabled;
+      if (link.path === '/missions') return flags.missions_enabled;
+      return true;
+    });
+
+  const sections = FOOTER_SECTIONS.map(section => ({
+    ...section,
+    links: filterLinks(section.links),
+  })).filter(section => section.links.length > 0);
 
   return (
     <footer className="app-desktop-footer hidden lg:block">
@@ -79,7 +94,7 @@ const DesktopFooter: React.FC<DesktopFooterProps> = ({ onNavigate }) => {
           </button>
         </div>
 
-        {FOOTER_SECTIONS.map(section => (
+        {sections.map(section => (
           <div key={section.title} className="app-desktop-footer__col">
             <p className="app-desktop-footer__col-title">{section.title}</p>
             <ul className="app-desktop-footer__links">
@@ -106,6 +121,7 @@ const DesktopFooter: React.FC<DesktopFooterProps> = ({ onNavigate }) => {
         ))}
 
         <div className="app-desktop-footer__cta">
+          {flags.qr_enabled && (
           <button
             type="button"
             className="app-desktop-footer__qr-btn"
@@ -115,6 +131,7 @@ const DesktopFooter: React.FC<DesktopFooterProps> = ({ onNavigate }) => {
             <QrCode size={20} />
             QR Tara
           </button>
+          )}
           <button
             type="button"
             className="app-desktop-footer__shop-btn"

@@ -10,6 +10,7 @@ import { saveUserAvatar } from '../services/avatar';
 import { playSound } from '../lib/sounds';
 import { tr } from '../lib/tr';
 import { activityLogService } from '../lib/activityLogger';
+import { findBadWordField } from '../lib/contentModeration';
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
@@ -90,6 +91,22 @@ const EditProfile: React.FC = () => {
 
   const handleSave = async () => {
     if (!authUser?.id) return;
+
+    const blockedField = findBadWordField({
+      username: form.username,
+      bio: form.bio,
+    });
+
+    if (blockedField) {
+      playSound('error');
+      setSaved(false);
+      setSaveErr(
+        blockedField === 'username'
+          ? 'Kullanici adinda uygun olmayan kelimeler var. Lutfen daha nazik bir isim sec.'
+          : 'Bio alaninda uygun olmayan kelimeler var. Lutfen duzenleyip tekrar dene.',
+      );
+      return;
+    }
 
     setSaving(true);
     setSaveErr('');

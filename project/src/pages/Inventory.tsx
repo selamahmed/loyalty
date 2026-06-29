@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import InventoryDetailModal from '../components/InventoryDetailModal';
@@ -24,11 +24,25 @@ const Inventory: React.FC = () => {
     );
   }, [items, search]);
 
-  const active = filtered.filter(i => !i.used && new Date(i.expires) >= new Date());
-  const expired = filtered.filter(i => i.used || new Date(i.expires) < new Date());
-  const allActiveCount = items.filter(i => !i.used && new Date(i.expires) >= new Date()).length;
+  const now = useMemo(() => Date.now(), [items]);
+  const active = useMemo(
+    () => filtered.filter(i => !i.used && new Date(i.expires).getTime() >= now),
+    [filtered, now],
+  );
+  const expired = useMemo(
+    () => filtered.filter(i => i.used || new Date(i.expires).getTime() < now),
+    [filtered, now],
+  );
+  const allActiveCount = useMemo(
+    () => items.filter(i => !i.used && new Date(i.expires).getTime() >= now).length,
+    [items, now],
+  );
   const allExpiredCount = items.length - allActiveCount;
   const selectedItem = items.find(i => i.id === selectedId);
+
+  const handleSelectItem = useCallback((id: string) => {
+    setSelectedId(id);
+  }, []);
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '11px 14px 11px 40px', borderRadius: 12,
@@ -125,7 +139,7 @@ const Inventory: React.FC = () => {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {active.map(item => (
-                <InventoryWalletCard key={item.id} item={item} onClick={() => setSelectedId(item.id)} />
+                <InventoryWalletCard key={item.id} item={item} onSelect={handleSelectItem} />
               ))}
             </div>
           </div>
@@ -151,7 +165,7 @@ const Inventory: React.FC = () => {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {expired.map(item => (
-                <InventoryWalletCard key={item.id} item={item} onClick={() => setSelectedId(item.id)} dimmed />
+                <InventoryWalletCard key={item.id} item={item} onSelect={handleSelectItem} dimmed />
               ))}
             </div>
           </div>

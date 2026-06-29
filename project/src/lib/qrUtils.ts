@@ -37,7 +37,6 @@ export interface StoreQRPayload {
 export type ParsedQR = CashierQRPayload | InventoryQRPayload | StoreQRPayload | { type: 'unknown'; raw: string };
 
 const LS_KEY = 'loyalty_cashier_qrs';
-const POINTS_PER_TL = 10; // 10 points per ₺ spent
 const QR_TTL_MS = 7 * 60 * 1000; // 7 minutes
 
 /* ── ID generator ── */
@@ -49,14 +48,14 @@ export function generateQRId(): string {
 }
 
 /* ── Create cashier purchase QR payload ── */
-export function createCashierQRPayload(amount: number): CashierQRPayload {
+export function createCashierQRPayload(amount: number, pointsPerCurrency = 10): CashierQRPayload {
   const now = new Date();
   const exp = new Date(now.getTime() + QR_TTL_MS);
   return {
     type: 'cashier_purchase',
     qr_id: generateQRId(),
     amount,
-    points: Math.round(amount * POINTS_PER_TL),
+    points: Math.round(amount * pointsPerCurrency),
     merchant_id: 'merchant_001',
     issued_at: now.toISOString(),
     expires_at: exp.toISOString(),

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Bell, Box, ChevronRight, QrCode, Star, Trophy } from 'lucide-react';
+import { ArrowRight, Bell, Box, ChevronRight, Info, QrCode, Star, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
@@ -19,6 +19,8 @@ import StickerDecorImg from '../components/StickerDecorImg';
 import { colorfulSticker } from '../lib/stickerCatalog';
 import { getMyAlltimeRank } from '../services/points';
 import { onLeaderboardRefresh } from '../lib/leaderboardRefresh';
+import { useFeatureFlags, useLoyaltySettings } from '../context/SystemSettingsContext';
+import { DEFAULT_SYSTEM_SETTINGS } from '../services/config';
 
 const homePromoSticker = colorfulSticker('Group 62.svg');
 
@@ -81,12 +83,20 @@ const Home: React.FC = () => {
   const activeInventoryCount = inventoryItems.filter(
     i => !i.used && new Date(i.expires) >= new Date(),
   ).length;
+  const flags = useFeatureFlags();
+  const loyaltySettings = useLoyaltySettings();
   const [showParticles, setShowParticles] = useState(false);
-  const { show: showDailyReward, setShow: setShowDailyReward } = useDailyReward();
+  const { show: showDailyRewardRaw, setShow: setShowDailyReward } = useDailyReward();
+  const showDailyReward = flags.streak_enabled && showDailyRewardRaw;
   const xpProgress = useXpProgress(user.xp, user.level, user.xpToNext);
   const [myRank, setMyRank] = useState<number | null>(null);
-
   const [unreadNotifs, setUnreadNotifs] = useState<Notification[]>([]);
+
+  const visibleQuickActions = quickActions.filter(action => {
+    if (action.path === '/qr') return flags.qr_enabled;
+    if (action.path === '/games') return flags.games_enabled;
+    return true;
+  });
 
   const refreshMyRank = useCallback(async () => {
     if (!authUser?.id) {
@@ -118,6 +128,15 @@ const Home: React.FC = () => {
       .then(all => setUnreadNotifs(all.filter(n => !n.read).slice(0, 2)))
       .catch(() => setUnreadNotifs([]));
   }, [authUser?.id]);
+
+  const [showLimitInfo, setShowLimitInfo] = useState(false);
+
+  const maxPointsLimit = Math.max(1, Math.round(loyaltySettings.max_points_limit || DEFAULT_SYSTEM_SETTINGS.loyalty.max_points_limit));
+  const limitEnabled = loyaltySettings.points_limit_enabled;
+  const limitPct = Math.min(100, Math.round((points / maxPointsLimit) * 100));
+  const reachedLimit = limitEnabled && points >= maxPointsLimit;
+  const nearLimit = limitEnabled && !reachedLimit && limitPct >= 85;
+  const showLimitCard = limitEnabled && limitPct >= 75;
 
   return (
     <div className="home-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
@@ -220,6 +239,90 @@ const Home: React.FC = () => {
           </div>
         </div>
 
+        {showLimitCard && (
+          <div
+            className={`home-loyalty-limit-card ${reachedLimit ? 'home-loyalty-limit-card--blocked' : nearLimit ? 'home-loyalty-limit-card--warning' : ''}`}
+            style={{
+              ...card,
+              padding: '16px 18px',
+              background: reachedLimit
+                ? 'linear-gradient(135deg,#fee2e2,#fecaca)'
+                : nearLimit
+                  ? 'linear-gradient(135deg,#fff7ed,#fed7aa)'
+                  : 'linear-gradient(135deg,#ecfeff,#cffafe)',
+              color: '#111827',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: reachedLimit ? '#dc2626' : nearLimit ? '#d97706' : '#0891b2' }}>
+                    Sadakat Limiti
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowLimitInfo(v => !v)}
+                    aria-expanded={showLimitInfo}
+                    aria-label={showLimitInfo ? 'Limit bilgisini gizle' : 'Limit hakkında bilgi göster'}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '3px 8px', borderRadius: 999,
+                      border: '2px solid #111827', background: '#fff',
+                      boxShadow: '2px 2px 0 #111827', cursor: 'pointer',
+                      fontSize: 10, fontWeight: 900, fontFamily: 'inherit',
+                      color: reachedLimit ? '#dc2626' : nearLimit ? '#d97706' : '#0891b2',
+                    }}
+                  >
+                    <Info size={12} aria-hidden />
+                    Bilgi
+                  </button>
+                </div>
+                <h2 style={{ margin: '3px 0 0', fontSize: 'clamp(18px,4vw,24px)', fontWeight: 900, lineHeight: 1.05 }}>
+                  {points.toLocaleString('tr-TR')} / {maxPointsLimit.toLocaleString('tr-TR')} puan
+                </h2>
+              </div>
+              <span style={{ padding: '7px 10px', borderRadius: 999, border: '2px solid #111827', boxShadow: '2px 2px 0 #111827', fontSize: 12, fontWeight: 900, background: '#fff', flexShrink: 0 }}>
+                %{limitPct}
+              </span>
+            </div>
+            <div style={{ height: 12, borderRadius: 999, border: '2px solid #111827', background: 'rgba(255,255,255,0.7)', overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: `${limitPct}%`,
+                  background: reachedLimit ? '#ef4444' : nearLimit ? '#f59e0b' : '#06b6d4',
+                  transition: 'width 0.45s cubic-bezier(0.22,1,0.36,1)',
+                }}
+              />
+            </div>
+            <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 900, color: reachedLimit ? '#991b1b' : nearLimit ? '#92400e' : '#0e7490' }}>
+              {reachedLimit
+                ? `Maksimum sadakat puanı limitine (${maxPointsLimit.toLocaleString('tr-TR')} puan) ulaştın. Şu an yeni puan kazanamazsın; mevcut puanlarınla ödül almaya devam edebilirsin.`
+                : nearLimit
+                  ? 'Sadakat puanı limitine çok yaklaştın. Limit dolduğunda QR, oyun ve görevlerden yeni puan kazanamazsın.'
+                  : 'Sadakat puanı limitinin %75’ine ulaştın. Limite yaklaştıkça bu alan seni bilgilendirecek.'}
+            </p>
+            {showLimitInfo && (
+              <div
+                style={{
+                  marginTop: 12, padding: '12px 14px', borderRadius: 14,
+                  border: '2px solid #111827', background: 'rgba(255,255,255,0.72)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
+                }}
+              >
+                <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 800, color: '#111827' }}>
+                  Sadakat limiti nedir?
+                </p>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, fontWeight: 600, color: '#374151', lineHeight: 1.55 }}>
+                  <li>Hesabında biriktirebileceğin en yüksek puan miktarıdır (şu an {maxPointsLimit.toLocaleString('tr-TR')} puan).</li>
+                  <li>Limit dolduğunda yeni puan kazanamazsın; elindeki puanlarla mağazadan ödül almaya devam edebilirsin.</li>
+                  <li>Limit, yönetici tarafından güncellenebilir. Güncelleme olursa burada yeni değeri görürsün.</li>
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Stats row — rank & active inventory (streak lives in hero) ── */}
         <div className="home-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
           {[
@@ -259,9 +362,15 @@ const Home: React.FC = () => {
             <p className="font-display" style={{ color: '#fff', fontSize: 'clamp(18px,4vw,24px)', fontWeight: 900, margin: 0, lineHeight: 1.2, textTransform: 'uppercase', maxWidth: '55%' }}>
               Alışveriş yap,<br />puan topla!
             </p>
+            {flags.qr_enabled ? (
             <button type="button" className="home-promo-banner__cta" onClick={() => navigate('/qr')}>
               QR Tara <QrCode size={14} />
             </button>
+            ) : (
+            <button type="button" className="home-promo-banner__cta" onClick={() => navigate('/shop')}>
+              Mağazaya Git <ArrowRight size={14} />
+            </button>
+            )}
           </div>
         </div>
 
@@ -269,7 +378,7 @@ const Home: React.FC = () => {
         <div className="home-quick-section">
           <SectionHeader micro="HIZLI ERİŞİM" title={tr.home.quickActions} />
           <div className="home-quick-actions" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-            {quickActions.map(action => {
+            {visibleQuickActions.map(action => {
               const sticker = colorfulSticker(action.sticker);
               return (
                 <button

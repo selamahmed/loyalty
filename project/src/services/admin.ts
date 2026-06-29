@@ -175,16 +175,38 @@ export async function getQRCodes() {
 }
 
 export async function createQRCode(code: {
-  code: string;
+  code?: string;
   points: number;
   label?: string;
   max_uses?: number;
   expires_at?: string;
   store_id?: string;
 }) {
+  const { data: rpcData, error: rpcError } = await supabase.rpc('admin_create_store_qr', {
+    p_label: code.label ?? null,
+    p_points: code.points,
+    p_max_uses: code.max_uses ?? null,
+    p_expires_at: code.expires_at ?? null,
+  });
+
+  if (!rpcError) return rpcData;
+
+  const text = supabaseErrorText(rpcError);
+  const missingRpc = rpcError.code === 'PGRST202'
+    || text.toLowerCase().includes('could not find the function')
+    || text.toLowerCase().includes('admin_create_store_qr');
+  if (!missingRpc) throw rpcError;
+
+  const fallbackCode = code.code?.trim().toUpperCase();
+  if (!fallbackCode) {
+    throw new Error(
+      'Supabase is missing admin_create_store_qr. Run supabase/migrations/20260628000003_connect_admin_qr_manager.sql in the Supabase SQL Editor.',
+    );
+  }
+
   const { data, error } = await supabase
     .from('qr_codes')
-    .insert({ ...code, active: true, uses_count: 0 })
+    .insert({ ...code, code: fallbackCode, active: true, uses_count: 0 })
     .select()
     .single();
   if (error) throw error;
@@ -199,7 +221,7 @@ export async function toggleQRCode(id: string, active: boolean): Promise<void> {
 export async function getRedemptionsAdmin(page = 0, pageSize = 20) {
   const { data, error } = await supabase
     .from('redemptions')
-    .select('*, profiles(username, email), rewards(title, category)')
+    .select('*, profiles(username, email), rewards(title, description, category, image, points)')
     .order('created_at', { ascending: false })
     .range(page * pageSize, (page + 1) * pageSize - 1);
   if (error) throw error;
@@ -214,7 +236,7 @@ export async function updateRedemptionCode(id: string, code: string) {
     .from('redemptions')
     .update({ code: normalizedCode })
     .eq('id', id)
-    .select('*, profiles(username, email), rewards(title, category)')
+    .select('*, profiles(username, email), rewards(title, description, category, image, points)')
     .single();
   if (error) throw error;
   return data;
@@ -242,6 +264,60 @@ export async function updateRedemptionAdmin(id: string, updates: {
     .update(payload)
     .eq('id', id);
   if (error) throw error;
+}
+
+export async function createInventoryItemAdmin(input: {
+  userId: string;
+  type: string;
+  title: string;
+  description?: string;
+  code: string;
+  points: number;
+  image?: string;
+  expiresAt?: string | null;
+  barcode?: string;
+}) {
+  const { data, error } = await supabase.rpc('admin_create_inventory_item', {
+    p_user_id: input.userId,
+    p_type: input.type,
+    p_title: input.title,
+    p_description: input.description ?? null,
+    p_code: input.code,
+    p_points: input.points,
+    p_image: input.image ?? null,
+    p_expires_at: input.expiresAt ?? null,
+    p_barcode: input.barcode ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateInventoryItemAdmin(input: {
+  redemptionId: string;
+  type: string;
+  title: string;
+  description?: string;
+  code: string;
+  used: boolean;
+  points: number;
+  image?: string;
+  expiresAt?: string | null;
+  barcode?: string;
+}) {
+  const { data, error } = await supabase.rpc('admin_update_inventory_item', {
+    p_redemption_id: input.redemptionId,
+    p_type: input.type,
+    p_title: input.title,
+    p_description: input.description ?? null,
+    p_code: input.code,
+    p_used: input.used,
+    p_points: input.points,
+    p_image: input.image ?? null,
+    p_expires_at: input.expiresAt ?? null,
+    p_barcode: input.barcode ?? null,
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function deleteRedemptionAdmin(id: string): Promise<void> {

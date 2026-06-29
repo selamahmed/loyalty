@@ -60,6 +60,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
       'Teknik hata, sistem arızası veya hile şüphesi halinde haksız kazanılan puanlar geri alınabilir.',
     ],
     bullets: [
+      'Users can claim loyalty points up to the maximum points limit set by the website administrator. Once the maximum limit is reached, users will no longer be able to claim additional points unless the administrator changes the limit or resets the user’s eligibility. The current default maximum limit is 1200 points.',
       'Ödül stokları, kampanya süreleri ve puan çarpanları önceden bildirim yapılmaksızın değiştirilebilir.',
       'Kullanılmayan puanlar belirli bir süre sonra sıfırlanabilir; süre Platform içinde duyurulur.',
       'Ödül teslimatı üçüncü taraf tedarikçilere bağlı olabilir; gecikme veya stok tükenmesi halinde eşdeğer ödül veya iade puanı sunulabilir.',

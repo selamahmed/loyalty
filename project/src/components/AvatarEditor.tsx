@@ -135,12 +135,11 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
   const handleRandomize = () => {
     const randomSkin = ALLOWED_SKIN_COLORS[Math.floor(Math.random() * ALLOWED_SKIN_COLORS.length)];
     const randomBg = STRONG_BG_COLORS[Math.floor(Math.random() * STRONG_BG_COLORS.length)];
-    const randomAccessories = ALLOWED_ACCESSORIES[Math.floor(Math.random() * ALLOWED_ACCESSORIES.length)];
 
     setSeed(randomAvatarSeed());
     setSkinColor(randomSkin);
     setBackgroundColor(randomBg);
-    setAccessories(randomAccessories);
+    setAccessories('blank');
     setCustomBgHex('');
     setError(null);
     setSuccess(null);

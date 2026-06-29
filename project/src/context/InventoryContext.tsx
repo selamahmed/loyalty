@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 import { getInventoryRedemptions, markRedemptionUsed } from '../services/redemptions';
+import { normalizeRedemptionCode } from '../lib/redemptionCode';
 
 export type InventoryItemType = 'coupon' | 'ticket' | 'reward';
 
@@ -10,6 +11,7 @@ export interface InventoryItem {
   type: InventoryItemType;
   title: string;
   description: string;
+  createdAt: string;
   expires: string;
   code: string;
   used: boolean;
@@ -26,9 +28,31 @@ interface InventoryContextType {
   markUsed: (id: string) => Promise<void>;
   getByCode: (code: string) => InventoryItem | undefined;
   getByBarcode: (barcode: string) => InventoryItem | undefined;
+  activeCount: number;
 }
 
 const InventoryContext = createContext<InventoryContextType | null>(null);
+
+function inventoryItemsEqual(a: InventoryItem[], b: InventoryItem[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (
+      left.id !== right.id
+      || left.used !== right.used
+      || left.createdAt !== right.createdAt
+      || left.expires !== right.expires
+      || left.code !== right.code
+      || left.title !== right.title
+      || left.image !== right.image
+      || left.points !== right.points
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
 
 export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { authUser, isAuthenticated } = useAuth();
@@ -50,6 +74,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           type: (reward?.category === 'ticket' ? 'ticket' : 'reward') as InventoryItemType,
           title: reward?.title ?? 'Reward',
           description: reward?.description ?? '',
+          createdAt: r.created_at ?? '',
           expires: r.expires_at ?? '',
           code: r.code,
           used: r.used,
@@ -59,7 +84,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           barcode: r.barcode ?? undefined,
         };
       });
-      setItems(mapped);
+      setItems(prev => (inventoryItemsEqual(prev, mapped) ? prev : mapped));
     } catch (err) {
       console.error('Failed to load inventory:', err);
       setItems([]);
@@ -130,7 +155,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [authUser?.id]);
 
   const getByCode = useCallback(
-    (code: string) => items.find(i => i.code.toUpperCase() === code.toUpperCase().trim()),
+    (code: string) => items.find(i => normalizeRedemptionCode(i.code) === normalizeRedemptionCode(code)),
     [items],
   );
 
@@ -139,9 +164,14 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [items],
   );
 
+  const activeCount = useMemo(
+    () => items.filter(i => !i.used && new Date(i.expires) >= new Date()).length,
+    [items],
+  );
+
   const value = useMemo(
-    () => ({ items, isLoading, reload, markUsed, getByCode, getByBarcode }),
-    [items, isLoading, reload, markUsed, getByCode, getByBarcode],
+    () => ({ items, isLoading, reload, markUsed, getByCode, getByBarcode, activeCount }),
+    [items, isLoading, reload, markUsed, getByCode, getByBarcode, activeCount],
   );
 
   return (

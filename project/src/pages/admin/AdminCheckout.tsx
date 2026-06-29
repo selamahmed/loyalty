@@ -67,6 +67,7 @@ const AdminCheckout: React.FC = () => {
           type: 'reward',
           code: redemption.code,
           barcode: '',
+          createdAt: redemption.created_at ?? '',
           expires: redemption.expires_at ?? '',
           used: redemption.used,
           points: redemption.points_spent,

@@ -16,8 +16,11 @@ import {
   type CashierQRPayload,
 } from '../lib/qrUtils';
 import { claimQrScan, previewQrScan } from '../services/earn';
+import { spendAmountToPoints } from '../services/config';
 import { activityLogService } from '../lib/activityLogger';
 import StickerAccent from '../components/StickerAccent';
+import { useFeatureFlags, useSystemSettings } from '../context/SystemSettingsContext';
+import ModuleDisabledScreen from '../components/ModuleDisabledScreen';
 
 const inventoryLinkSticker = colorfulSticker('cardboardbox.svg');
 const qrIdleSticker = colorfulSticker(pageGroup('qr'));
@@ -34,9 +37,11 @@ type QRResult = { code: string; title: string; points: number; location: string;
 /* ── Cashier QR result card ── */
 const CashierQRResult: React.FC<{
   payload: CashierQRPayload;
+  pointsPreview: number;
+  spendRate: number;
   onClaim: () => void;
   onReset: () => void;
-}> = ({ payload, onClaim, onReset }) => {
+}> = ({ payload, pointsPreview, spendRate, onClaim, onReset }) => {
   const [ms, setMs] = useState(msRemaining(payload.expires_at));
   useEffect(() => {
     const t = setInterval(() => setMs(msRemaining(payload.expires_at)), 500);
@@ -85,6 +90,9 @@ const CashierQRResult: React.FC<{
         </div>
         <div style={{ flex: 1 }}>
           <p style={{ fontWeight: 900, fontSize: 14, color: 'var(--text-dark)', margin: '0 0 2px' }}>Satın Alma QR Kodu</p>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 6px' }}>
+            {payload.amount}₺ × {spendRate} puan/₺
+          </p>
           <p style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-muted)', margin: '0 0 6px', letterSpacing: '0.06em' }}>{payload.qr_id}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', border: '1.5px solid #f59e0b' }}>
@@ -93,7 +101,7 @@ const CashierQRResult: React.FC<{
             </div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.15)', border: '1.5px solid #22c55e' }}>
               <Zap size={11} color="#22c55e" />
-              <span style={{ fontWeight: 900, fontSize: 13, color: '#16a34a' }}>+{payload.points} Puan</span>
+              <span style={{ fontWeight: 900, fontSize: 13, color: '#16a34a' }}>+{pointsPreview} Puan</span>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: ms < 60000 ? '#ef4444' : '#22c55e' }}>
@@ -109,7 +117,7 @@ const CashierQRResult: React.FC<{
           <RotateCcw size={14} /> Tekrar Tara
         </button>
         <button onClick={onClaim} style={{ flex: 2, padding: '10px', borderRadius: 12, fontWeight: 900, fontSize: 14, background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-          <Zap size={14} /> +{payload.points} Puan Kazan
+          <Zap size={14} /> +{pointsPreview} Puan Kazan
         </button>
       </div>
     </div>
@@ -124,6 +132,14 @@ const QRScanner: React.FC = () => {
   const { showRewardPopup } = useApp();
   const { getByCode, items } = useInventory();
   const { authUser, profile } = useAuth();
+  const { qr_enabled: qrEnabled } = useFeatureFlags();
+  const { settings } = useSystemSettings();
+  const spendRate = settings.economy.spend_to_points;
+
+  const enrichCashierPayload = useCallback((payload: CashierQRPayload): CashierQRPayload => ({
+    ...payload,
+    points: spendAmountToPoints(payload.amount, spendRate),
+  }), [spendRate]);
 
   const [mode, setMode]         = useState<'idle' | 'camera' | 'manual'>('idle');
   const [cameraReady, setCameraReady] = useState(false);   // true once video is actually playing
@@ -161,7 +177,7 @@ const QRScanner: React.FC = () => {
 
     // ── Full JSON cashier QR (scanned from camera) ──
     if (isCashierQR(parsed)) {
-      setCashierQRResult(parsed);
+      setCashierQRResult(enrichCashierPayload(parsed));
       return;
     }
 
@@ -184,7 +200,7 @@ const QRScanner: React.FC = () => {
         // Cashier-generated QR: single-use (max_uses=1) with expiry
         // Reconstruct the full CashierQRPayload so the user sees amount + countdown
         if (dbQR.isCashier && dbQR.expiresAt) {
-          setCashierQRResult({
+          setCashierQRResult(enrichCashierPayload({
             type: 'cashier_purchase',
             qr_id: dbQR.code,
             amount: dbQR.amount ?? 0,
@@ -193,7 +209,7 @@ const QRScanner: React.FC = () => {
             issued_at: dbQR.issuedAt ?? new Date().toISOString(),
             expires_at: dbQR.expiresAt,
             status: dbQR.status === 'expired' ? 'expired' : dbQR.status !== 'pending' || dbQR.alreadyScanned ? 'used' : 'pending',
-          });
+          }));
           return;
         }
         // Regular multi-use store QR
@@ -212,7 +228,7 @@ const QRScanner: React.FC = () => {
 
     // ── Not found anywhere ──
     setResult({ code: lookupCode, title: 'QR Kodu Tanınmadı', points: 0, location: 'Bilinmeyen' });
-  }, [getByCode]);
+  }, [getByCode, enrichCashierPayload]);
 
   /* 3a. Keep a ref to the latest handleDecodedQR so tickScan is never stale */
   const handleDecodedQRRef = useRef(handleDecodedQR);
@@ -416,6 +432,15 @@ const QRScanner: React.FC = () => {
     i => !i.used && new Date(i.expires) >= new Date(),
   ).length;
 
+  if (!qrEnabled) {
+    return (
+      <ModuleDisabledScreen
+        title="QR tarama kapalı"
+        message="Yönetici QR modülünü devre dışı bıraktı."
+      />
+    );
+  }
+
   return (
     <div className="qr-auth-page" style={{ position: 'relative', minHeight: '100vh' }}>
       {inventoryMatch && <InventoryDetailModal item={inventoryMatch} onClose={() => setInventoryMatch(undefined)} />}
@@ -550,6 +575,8 @@ const QRScanner: React.FC = () => {
           {cashierQRResult && (
             <CashierQRResult
               payload={cashierQRResult}
+              pointsPreview={cashierQRResult.points}
+              spendRate={spendRate}
               onClaim={claimCashierQR}
               onReset={reset}
             />
