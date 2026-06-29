@@ -13,6 +13,29 @@ export const inventoryTypeConfig: Record<string, { color: string; bg: string; la
 export const getDaysLeft = (expires: string) =>
   Math.max(0, Math.ceil((new Date(expires).getTime() - Date.now()) / 86400000));
 
+function getTimeLeft(expires: string) {
+  const expiryTime = new Date(expires).getTime();
+  if (!Number.isFinite(expiryTime)) {
+    return { expired: true, days: 0, hours: 0, minutes: 0, label: 'Süre yok' };
+  }
+
+  const diff = expiryTime - Date.now();
+  if (diff <= 0) {
+    return { expired: true, days: 0, hours: 0, minutes: 0, label: 'Süresi doldu' };
+  }
+
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const label = days > 0
+    ? `${days} gün ${hours} sa`
+    : hours > 0
+      ? `${hours} sa ${minutes} dk`
+      : `${Math.max(1, minutes)} dk`;
+
+  return { expired: false, days, hours, minutes, label };
+}
+
 interface InventoryWalletCardProps {
   item: InventoryItem;
   onSelect: (id: string) => void;
@@ -22,9 +45,18 @@ interface InventoryWalletCardProps {
 
 const InventoryWalletCard = React.memo(function InventoryWalletCard({ item, onSelect, dimmed, compact }: InventoryWalletCardProps) {
   const cfg = inventoryTypeConfig[item.type] || inventoryTypeConfig.reward;
-  const expired = item.used || new Date(item.expires) < new Date();
-  const days = getDaysLeft(item.expires);
-  const urgency = !expired && !item.used && days <= 3;
+  const [nowTick, setNowTick] = React.useState(Date.now());
+  const timeLeft = React.useMemo(() => getTimeLeft(item.expires), [item.expires, nowTick]);
+  const expired = item.used || timeLeft.expired;
+  const days = timeLeft.days;
+  const urgency = !expired && !item.used && (days <= 3 || timeLeft.hours < 24);
+
+  React.useEffect(() => {
+    if (item.used || timeLeft.expired) return undefined;
+    const intervalMs = timeLeft.days > 0 ? 60000 : 10000;
+    const timer = window.setInterval(() => setNowTick(Date.now()), intervalMs);
+    return () => window.clearInterval(timer);
+  }, [item.used, timeLeft.days, timeLeft.expired]);
 
   return (
     <button
@@ -113,7 +145,7 @@ const InventoryWalletCard = React.memo(function InventoryWalletCard({ item, onSe
         <div className="inventory-wallet-card__meta-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
           <span className="inventory-wallet-card__time" style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
             <Clock size={10} />
-            {item.used ? 'Tamamlandı' : expired ? 'Süresi doldu' : `${days} gün kaldı`}
+            {item.used ? 'Tamamlandı' : expired ? 'Süresi doldu' : `${timeLeft.label} kaldı`}
           </span>
           {!item.used && !expired && (
             <span className="inventory-wallet-card__show" style={{ fontSize: 9, fontWeight: 900, color: 'var(--primary-blue)' }}>Göster →</span>
