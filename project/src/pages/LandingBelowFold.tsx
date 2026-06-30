@@ -1,11 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Star, Check, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronRight } from 'lucide-react';
 import { SectionBadge } from '../components/neo/NeoBrutalDecor';
 import StickerAccent from '../components/StickerAccent';
-import { LANDING_TESTIMONIAL_AVATARS } from '../lib/landingDemoAvatars';
 import AppLogo from '../components/AppLogo';
-import { features, banners, testimonials, steps } from './landingShared';
+import { features, banners, steps } from './landingShared';
 
 export type LandingTheme = {
   pageBg: string; heroText: string; navBg: string; cardBg: string; cardBg2: string;
@@ -17,13 +16,12 @@ export type LandingTheme = {
 type Props = {
   t: LandingTheme;
   isDark: boolean;
-  card: React.CSSProperties;
   hovered: number | null;
   setHovered: React.Dispatch<React.SetStateAction<number | null>>;
   scrollTo: (id: string) => void;
 };
 
-const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovered, scrollTo }) => {
+const LandingBelowFold: React.FC<Props> = ({ t, isDark, hovered, setHovered, scrollTo }) => {
   const navigate = useNavigate();
 
   // Reveal section headers as they scroll into view (one-shot, GPU-only).
@@ -57,7 +55,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
           <div data-lp-reveal style={{ textAlign: 'center', marginBottom: 8 }}>
             <SectionBadge label="AVANTAJLAR" bg="#FFE500" />
             <h2 className="font-display" style={{ fontSize: 'clamp(24px,4vw,48px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
-              NEDEN <span style={{ color: '#FF3E9D' }}>NEXREWARD?</span>
+              NEDEN <span style={{ color: '#FF3E9D' }}>NEŞVENEXT?</span>
             </h2>
           </div>
 
@@ -183,47 +181,6 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
           </div>
         </section>
 
-        {/* ══ TESTIMONIALS ══ */}
-        <section id="testimonials" className="landing-section-frame landing-testimonials-section" style={{ padding: '64px clamp(16px,4vw,64px)', maxWidth: 1100, margin: '0 auto' }}>
-          <div data-lp-reveal style={{ textAlign: 'center', marginBottom: 40 }}>
-            <SectionBadge label="YORUMLAR" bg={isDark ? '#9122FF' : '#FFE500'} color={isDark ? '#C8FF00' : '#000'} />
-            <h2 className="font-display" style={{ fontSize: 'clamp(24px,4vw,48px)', fontWeight: 900, letterSpacing: '-0.03em', color: t.textPrimary, margin: 0, textTransform: 'uppercase', lineHeight: 1.1 }}>
-              KULLANICILARIMIZ <span style={{ color: '#9122FF' }}>NE DİYOR?</span>
-            </h2>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
-            {testimonials.slice(0, 3).map((t2, i) => (
-              <div key={i} className="landing-testimonial-card" style={{
-                ...card, position: 'relative', padding: '26px 22px 22px', overflow: 'hidden',
-                transition: 'transform 0.15s, box-shadow 0.15s',
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-5px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 0 #000'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 #000'; }}>
-                <t2.Shape color={t2.color} size={80} opacity={isDark ? 0.1 : 0.12} rotate={i * 12} />
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  {/* Quote mark */}
-                  <div style={{ fontSize: 48, lineHeight: 1, color: t2.color, fontWeight: 900, marginBottom: 4, opacity: 0.35 }}>"</div>
-                  <div style={{ display: 'flex', gap: 2, marginBottom: 12 }}>
-                    {[...Array(t2.stars)].map((_, s) => <Star key={s} size={13} fill="#FBBF24" color="#FBBF24" />)}
-                  </div>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: t.textSecondary, lineHeight: 1.7, marginBottom: 20 }}>{t2.text}</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 14, borderTop: `2.5px solid ${isDark ? 'rgba(255,255,255,0.07)' : '#e5e5e5'}` }}>
-                    <img src={LANDING_TESTIMONIAL_AVATARS[i]} alt={t2.name} width={42} height={42} loading="lazy" decoding="async" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid #000', flexShrink: 0, boxShadow: '0 3px 0 #000' }} />
-                    <div>
-                      <p style={{ fontWeight: 900, fontSize: 13, color: t.textPrimary, margin: 0 }}>{t2.name}</p>
-                      <p style={{ fontSize: 11, fontWeight: 500, color: t.textMuted, margin: '2px 0 0' }}>{t2.role}</p>
-                    </div>
-                    <div style={{ marginLeft: 'auto', width: 28, height: 28, borderRadius: 8, background: t2.color, border: '2px solid #000', boxShadow: '2px 2px 0 #000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Check size={13} color={t2.color === '#FFE500' || t2.color === '#C8FF00' ? '#000' : '#fff'} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* ══ FINAL CTA ══ */}
         <section style={{ padding: '0 clamp(16px,4vw,64px) 72px' }}>
             <div className="landing-final-cta-card" style={{
@@ -263,7 +220,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
               <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap' }}>
                 <div>
                   <p style={{ fontWeight: 900, fontSize: 11, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 12, textTransform: 'uppercase' }}>Platform</p>
-                  {[['features','Özellikler'],['how','Nasıl Çalışır'],['testimonials','Yorumlar']].map(([id,label]) => (
+                  {[['features','Özellikler'],['how','Nasıl Çalışır']].map(([id,label]) => (
                     <button key={id} onClick={() => scrollTo(id)} aria-label={`${label} bölümüne git`}
                       style={{ display: 'block', color: 'rgba(255,255,255,0.65)', fontWeight: 600, fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', marginBottom: 9, textAlign: 'left', transition: 'color 0.15s' }}
                       onMouseEnter={e => (e.currentTarget.style.color = '#C8FF00')}
@@ -289,12 +246,12 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
               </div>
             </div>
             <div style={{ borderTop: '1.5px solid rgba(255,255,255,0.1)', paddingTop: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <p style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.48)', margin: 0 }}>© 2026 NexReward. Tüm hakları saklıdır.</p>
+              <p style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.48)', margin: 0 }}>© 2026 NeşveNext. Tüm hakları saklıdır.</p>
               <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => navigate('/terms')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>Şartlar</button>
                 <button type="button" onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>Gizlilik</button>
               </div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#9122FF', color: '#C8FF00', border: '2px solid rgba(255,255,255,0.2)', borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 900 }}>NEXREWARD</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#9122FF', color: '#C8FF00', border: '2px solid rgba(255,255,255,0.2)', borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 900 }}>NEŞVENEXT</div>
             </div>
           </div>
         </footer>
@@ -345,8 +302,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
             z-index: 1;
           }
 
-          .landing-section-frame--features,
-          .landing-testimonials-section {
+          .landing-section-frame--features {
             margin-top: 18px !important;
             margin-bottom: 34px !important;
           }
@@ -358,7 +314,6 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
 
           .landing-polish-card,
           .landing-step-card,
-          .landing-testimonial-card,
           .landing-final-cta-card {
             border-radius: 20px !important;
             box-shadow: 0 6px 0 #000 !important;

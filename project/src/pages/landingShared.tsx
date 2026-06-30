@@ -211,30 +211,21 @@ export const features: {
 ];
 
 export const tickerHero: TickerItem[] = [
-  { text: '50.000+ Aktif Kullanıcı', emoji: '👥' },
+  { text: 'Yakında Yayında', emoji: '🚀' },
   { text: '4 Mini Oyun', emoji: '🎮' },
-  { text: '2M+ Kazanılan Puan', emoji: '✨' },
+  { text: 'Pilot Test Hazır', emoji: '✨' },
   { text: '8 Ödül Kategorisi', emoji: '🎁' },
-  { text: '10.000+ Ödül Verildi', emoji: '🏆' },
+  { text: 'Ödül Sistemi Hazır', emoji: '🏆' },
   { text: 'Günlük Görevler', emoji: '🎯' },
   { text: 'Ücretsiz Kayıt', emoji: '🎉' },
   { text: 'Liderlik Tablosu', emoji: '👑' },
 ];
 
 export const banners = [
-  { bg: '#FFE500', textColor: '#000', tag: '👥 TOPLULUK', headline: '50K+', sub: 'Mutlu Kullanıcı', body: "Türkiye'nin en hızlı büyüyen sadakat topluluğuna katılın. Her gün yeni üyeler NexReward'la tanışıyor.", sticker: LANDING_BANNER_STICKERS[0], stickerSize: 92, stickerRotate: 12 },
+  { bg: '#FFE500', textColor: '#000', tag: '🚀 YAKINDA', headline: 'PİLOT', sub: 'Açılışa Hazır', body: "NeşveNext yayın öncesi pilot aşamasında. İlk kullanıcılar için sadakat, QR, ödül ve oyun sistemi hazırlanıyor.", sticker: LANDING_BANNER_STICKERS[0], stickerSize: 92, stickerRotate: 12 },
   { bg: '#C8FF00', textColor: '#000', tag: '⚡ HIZ', headline: 'ANINDA', sub: 'Ödül Sistemi', body: 'Alışveriş yaptığınız anda puanlar hesabınıza geçer. Bekleme yok, gecikme yok — sadece anlık kazanç.', sticker: LANDING_BANNER_STICKERS[1], stickerSize: 84, stickerRotate: -10 },
-  { bg: '#FF6B35', textColor: '#fff', tag: '💰 KAZANÇ', headline: '2M+', sub: 'Kazanılan Puan', body: 'Kullanıcılarımız 2 milyondan fazla puan kazandı. Her alışverişiniz bir kazanç fırsatıdır.', sticker: LANDING_BANNER_STICKERS[2], stickerSize: 88, stickerRotate: 8 },
-  { bg: '#FF3E9D', textColor: '#fff', tag: '🏆 BAŞARI', headline: '#1', sub: "Türkiye'nin Platformu", body: 'En iyi sadakat deneyimini yaşayın. Ödüller, mini oyunlar, liderlik tabloları — hepsi ücretsiz.', sticker: LANDING_BANNER_STICKERS[3], stickerSize: 96, stickerRotate: -8 },
-];
-
-export const testimonials = [
-  { name: 'Ayşe K.', role: 'Alışveriş Meraklısı', text: 'NexReward sayesinde her alışverişte ekstra kazanıyorum. Harika bir platform!', stars: 5, color: '#9122FF', Shape: NBolt },
-  { name: 'Mehmet T.', role: 'Sadık Üye', text: 'Günlük görevler çok eğlenceli, ödüller gerçekten değerli. Kesinlikle tavsiye ederim.', stars: 5, color: '#56C8FF', Shape: NStar4 },
-  { name: 'Zeynep A.', role: 'Premium Üye', text: 'Arkadaşlarımla liderlik tablosunda yarışmak çok keyifli! Her gün giriş yapıyorum.', stars: 5, color: '#FF3E9D', Shape: NDiamond },
-  { name: 'Kemal Y.', role: 'Düzenli Kullanıcı', text: 'Puanlarımı harika ödüllere çevirdim. Ücretsiz olmasına rağmen kalitesi inanılmaz yüksek.', stars: 5, color: '#FF6B35', Shape: NHeart },
-  { name: 'Selin M.', role: 'Yeni Üye', text: 'Kayıt olmak sadece 30 saniye sürdü ve hemen puan kazanmaya başladım. Çok pratik!', stars: 5, color: '#FFE500', Shape: NBurst },
-  { name: 'Caner D.', role: 'Liderlik Lideri', text: 'Geçen ay liderlik tablosunda 1. oldum! Ödülüm gerçekten elime geçti. Teşekkürler NexReward!', stars: 5, color: '#C8FF00', Shape: NStar5 },
+  { bg: '#FF6B35', textColor: '#fff', tag: '💰 KAZANÇ', headline: 'QR', sub: 'Puan Kazan', body: 'Kasada QR tara, puanını anında hesabında gör. Yayına hazır güvenli tek kullanımlık kod sistemi.', sticker: LANDING_BANNER_STICKERS[2], stickerSize: 88, stickerRotate: 8 },
+  { bg: '#FF3E9D', textColor: '#fff', tag: '🏆 BAŞARI', headline: 'CANLI', sub: 'Liderlik', body: 'Etkinlikler, ödüller, mini oyunlar ve liderlik tabloları yayına hazır şekilde tek platformda buluşuyor.', sticker: LANDING_BANNER_STICKERS[3], stickerSize: 96, stickerRotate: -8 },
 ];
 
 export const steps = [

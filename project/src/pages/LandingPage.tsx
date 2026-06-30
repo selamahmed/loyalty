@@ -57,8 +57,6 @@ const LandingPage: React.FC = () => {
     } as React.CSSProperties,
   };
 
-  const card = { background: t.cardBg, border: '3px solid #000', boxShadow: '0 6px 0 #000', borderRadius: 20 };
-
   return (
     <div style={{ background: t.pageBg, color: t.textPrimary, minHeight: '100vh', overflowX: 'hidden', transition: 'background 0.3s', position: 'relative', ...t.cssVars }}>
       <div style={{ position: 'relative', zIndex: 1 }}>
@@ -73,7 +71,7 @@ const LandingPage: React.FC = () => {
 
             {/* Desktop nav links */}
             <div className="nav-links">
-              {[['features','Özellikler'],['how','Nasıl Çalışır'],['testimonials','Yorumlar']].map(([id, label]) => (
+              {[['features','Özellikler'],['how','Nasıl Çalışır']].map(([id, label]) => (
                 <button key={id} onClick={() => scrollTo(id)} aria-label={`${label} bölümüne git`}
                   className="nav-link-btn"
                   style={{ color: t.textSecondary }}
@@ -120,7 +118,7 @@ const LandingPage: React.FC = () => {
           {/* Mobile drawer */}
           {menuOpen && (
             <div style={{ background: t.navBg, borderTop: '2.5px solid #000', padding: '8px 20px 20px', boxShadow: '0 8px 0 rgba(0,0,0,0.18)' }}>
-              {[['features','Özellikler'],['how','Nasıl Çalışır'],['testimonials','Yorumlar']].map(([id, label]) => (
+              {[['features','Özellikler'],['how','Nasıl Çalışır']].map(([id, label]) => (
                 <button key={id} onClick={() => scrollTo(id, true)}
                   style={{ display: 'flex', width: '100%', alignItems: 'center', padding: '13px 4px', color: t.textPrimary, fontWeight: 800, fontSize: 15, background: 'none', border: 'none', borderBottom: '1.5px solid rgba(128,128,128,0.12)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
                   {label}
@@ -145,7 +143,7 @@ const LandingPage: React.FC = () => {
           <div className="hero-layout" style={{ padding: '0 clamp(20px,5vw,80px)', position: 'relative', zIndex: 1 }}>
             <div className="hero-copy hero-copy-card lp-hero-stagger">
               <div className="hero-live-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#C8FF00', color: '#000', border: '2.5px solid #000', borderRadius: 999, padding: '6px 16px', fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', boxShadow: '3px 3px 0 #000', marginBottom: 28, transform: 'rotate(-1.5deg)' }}>
-                <span className="hero-live-dot" aria-hidden /> WE ARE LIVE!
+                <span className="hero-live-dot" aria-hidden /> ÇOK YAKINDA!
               </div>
               <h1 className="hero-headline font-display">
                 <span className="hero-headline-line">
@@ -189,14 +187,14 @@ const LandingPage: React.FC = () => {
                 </span>
               </h1>
               <p style={{ marginTop: 20, color: t.textSecondary, fontWeight: 600, fontSize: 'clamp(14px,1.6vw,18px)', maxWidth: 480, lineHeight: 1.65 }}>
-                Binlerce kullanıcıyla birlikte puan kazan, özel ödüller aç ve her gün eğlen.
+                NeşveNext yayına hazırlanıyor. İlk kullanıcılar için QR puan, ödül, oyun ve liderlik deneyimi hazır.
               </p>
               <div className="hero-cta-row" style={{ marginTop: 28, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
                 <button onClick={() => navigate('/register')} className="lbtn-hero-primary">Hemen Başlayın <ArrowRight size={16} /></button>
                 <button onClick={() => navigate('/login')} className="lbtn-hero-secondary">Giriş Yap</button>
               </div>
               <div className="hero-stat-row" style={{ marginTop: 28, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {[['50K+', 'Kullanıcı', '#9122FF'], ['2M+', 'Puan', '#FF3E9D'], ['10K+', 'Ödül', '#FF6B35']].map(([num, label, color]) => (
+                {[['PİLOT', 'Hazır', '#9122FF'], ['QR', 'Puan', '#FF3E9D'], ['ÖDÜL', 'Sistem', '#FF6B35']].map(([num, label, color]) => (
                   <div className="hero-stat-chip" key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, background: t.cardBg, border: '2.5px solid #000', borderRadius: 14, padding: '7px 14px', boxShadow: '3px 3px 0 #000' }}>
                     <span style={{ fontWeight: 900, fontSize: 16, color }}>{num}</span>
                     <span style={{ fontWeight: 600, fontSize: 12, color: t.textMuted }}>{label}</span>
@@ -211,7 +209,6 @@ const LandingPage: React.FC = () => {
           <LandingBelowFold
             t={t}
             isDark={isDark}
-            card={card}
             hovered={hovered}
             setHovered={setHovered}
             scrollTo={scrollTo}
