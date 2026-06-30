@@ -59,7 +59,9 @@ export async function getInventoryRedemptions(userId: string): Promise<Redemptio
     .from('redemptions')
     .select('*, rewards(title, image, category, description, points)')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .order('used', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(100);
   if (error) throw error;
   return data ?? [];
 }

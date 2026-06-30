@@ -5,9 +5,12 @@ import { AuthProvider } from '../context/AuthContext';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: false,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
       staleTime: 60_000,
+      gcTime: 10 * 60_000,
     },
   },
 });

@@ -54,6 +54,30 @@ export type LeaderboardEntry = {
 };
 
 export const LEADERBOARD_TOP_LIMIT = 20;
+const LEADERBOARD_CACHE_MS = 10_000;
+const MY_RANK_CACHE_MS = 10_000;
+
+type CachedValue<T> = { expiresAt: number; value: T };
+
+const leaderboardCache = new Map<string, CachedValue<LeaderboardEntry[]>>();
+const leaderboardInFlight = new Map<string, Promise<LeaderboardEntry[]>>();
+const myRankCache = new Map<string, CachedValue<LeaderboardEntry | null>>();
+const myRankInFlight = new Map<string, Promise<LeaderboardEntry | null>>();
+
+function readCache<T>(cache: Map<string, CachedValue<T>>, key: string): T | undefined {
+  const entry = cache.get(key);
+  if (!entry) return undefined;
+  if (entry.expiresAt <= Date.now()) {
+    cache.delete(key);
+    return undefined;
+  }
+  return entry.value;
+}
+
+function writeCache<T>(cache: Map<string, CachedValue<T>>, key: string, value: T, ttlMs: number): T {
+  cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+  return value;
+}
 
 type AlltimeRow = {
   id: string;
@@ -96,28 +120,61 @@ async function getLeaderboardFallback(limit: number): Promise<LeaderboardEntry[]
 }
 
 export async function getLeaderboard(limit = LEADERBOARD_TOP_LIMIT): Promise<LeaderboardEntry[]> {
-  const { data, error } = await supabase.rpc('get_alltime_leaderboard', { p_limit: limit });
+  const safeLimit = Math.min(Math.max(Math.floor(limit) || LEADERBOARD_TOP_LIMIT, 1), 50);
+  const key = `alltime:${safeLimit}`;
+  const cached = readCache(leaderboardCache, key);
+  if (cached) return cached;
 
-  if (error) {
-    if (error.code === 'PGRST202') {
-      console.warn('[getLeaderboard] RPC missing — run apply_alltime_leaderboard.sql');
-      return getLeaderboardFallback(limit);
+  const existing = leaderboardInFlight.get(key);
+  if (existing) return existing;
+
+  const request = (async () => {
+    const { data, error } = await supabase.rpc('get_alltime_leaderboard', { p_limit: safeLimit });
+
+    if (error) {
+      if (error.code === 'PGRST202') {
+        console.warn('[getLeaderboard] RPC missing — run apply_alltime_leaderboard.sql');
+        return writeCache(leaderboardCache, key, await getLeaderboardFallback(safeLimit), LEADERBOARD_CACHE_MS);
+      }
+      throw error;
     }
-    throw error;
-  }
 
-  const rows = (Array.isArray(data) ? data : []) as AlltimeRow[];
-  return rows.map(mapLeaderboardRow).filter(u => u.total_points > 0);
+    const rows = (Array.isArray(data) ? data : []) as AlltimeRow[];
+    return writeCache(leaderboardCache, key, rows.map(mapLeaderboardRow).filter(u => u.total_points > 0), LEADERBOARD_CACHE_MS);
+  })().finally(() => {
+    leaderboardInFlight.delete(key);
+  });
+
+  leaderboardInFlight.set(key, request);
+  return request;
 }
 
 export async function getMyAlltimeRank(): Promise<LeaderboardEntry | null> {
-  const { data, error } = await supabase.rpc('get_my_alltime_rank');
-  if (error) {
-    if (error.code === 'PGRST202') return null;
-    throw error;
-  }
-  if (!data || typeof data !== 'object') return null;
-  return mapLeaderboardRow(data as AlltimeRow);
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (!userId) return null;
+
+  const key = `my-rank:${userId}`;
+  const cached = readCache(myRankCache, key);
+  if (cached !== undefined) return cached;
+
+  const existing = myRankInFlight.get(key);
+  if (existing) return existing;
+
+  const request = (async () => {
+    const { data, error } = await supabase.rpc('get_my_alltime_rank');
+    if (error) {
+      if (error.code === 'PGRST202') return writeCache(myRankCache, key, null, MY_RANK_CACHE_MS);
+      throw error;
+    }
+    if (!data || typeof data !== 'object') return writeCache(myRankCache, key, null, MY_RANK_CACHE_MS);
+    return writeCache(myRankCache, key, mapLeaderboardRow(data as AlltimeRow), MY_RANK_CACHE_MS);
+  })().finally(() => {
+    myRankInFlight.delete(key);
+  });
+
+  myRankInFlight.set(key, request);
+  return request;
 }
 
 export async function getUserStats(userId: string): Promise<{

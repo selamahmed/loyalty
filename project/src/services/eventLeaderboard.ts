@@ -60,8 +60,9 @@ const RECENT_EVENT_MS = 14 * 24 * 60 * 60 * 1000;
 
 const RPC_MISSING = 'PGRST202';
 const TABLE_MISSING = '42P01';
-const EVENT_LEADERBOARD_CACHE_MS = 2000;
-const EVENT_PARTICIPATION_CACHE_MS = 2000;
+const EVENT_LEADERBOARD_CACHE_MS = 10_000;
+const EVENT_PARTICIPATION_CACHE_MS = 10_000;
+const EVENT_LIST_CACHE_MS = 30_000;
 
 type CachedValue<T> = { expiresAt: number; value: T };
 
@@ -69,6 +70,8 @@ const leaderboardCache = new Map<string, CachedValue<EventLeaderboardEntry[]>>()
 const leaderboardInFlight = new Map<string, Promise<EventLeaderboardEntry[]>>();
 const participationCache = new Map<string, CachedValue<EventParticipation>>();
 const participationInFlight = new Map<string, Promise<EventParticipation>>();
+const eventListCache = new Map<string, CachedValue<AppEvent[]>>();
+const eventListInFlight = new Map<string, Promise<AppEvent[]>>();
 
 function cacheKey(parts: Array<string | number | null | undefined>): string {
   return parts.map(part => String(part ?? '')).join(':');
@@ -164,31 +167,68 @@ export async function checkLeaderboardDb(): Promise<LeaderboardDbStatus> {
  * Includes live, upcoming, and recently ended events with a prize pool.
  */
 export async function getLeaderboardPrizeEvents(): Promise<AppEvent[]> {
-  const recentCutoff = new Date(Date.now() - RECENT_EVENT_MS).toISOString();
+  const key = 'leaderboard-prize-events';
+  const cached = readCache(eventListCache, key);
+  if (cached) return cached;
 
-  let { data, error } = await queryActiveEvents(true, recentCutoff);
-  if (error && isMissingPublishedColumn(error)) {
-    ({ data, error } = await queryActiveEvents(false, recentCutoff));
-  }
-  if (error) throw error;
+  const existing = eventListInFlight.get(key);
+  if (existing) return existing;
 
-  return (data ?? [])
-    .filter(hasPrizePool)
-    .map(row => row as unknown as AppEvent);
+  const request = (async () => {
+    const recentCutoff = new Date(Date.now() - RECENT_EVENT_MS).toISOString();
+    let { data, error } = await queryActiveEvents(true, recentCutoff);
+    if (error && isMissingPublishedColumn(error)) {
+      ({ data, error } = await queryActiveEvents(false, recentCutoff));
+    }
+    if (error) throw error;
+
+    return writeCache(
+      eventListCache,
+      key,
+      (data ?? [])
+        .filter(hasPrizePool)
+        .map(row => row as unknown as AppEvent),
+      EVENT_LIST_CACHE_MS,
+    );
+  })().finally(() => {
+    eventListInFlight.delete(key);
+  });
+
+  eventListInFlight.set(key, request);
+  return request;
 }
 
 /** Published prize-pool events visible to users (events page). */
 export async function getPublishedPrizeEvents(): Promise<AppEvent[]> {
-  let { data, error } = await queryActiveEvents(true);
-  if (error && isMissingPublishedColumn(error)) {
-    ({ data, error } = await queryActiveEvents(false));
-  }
-  if (error) throw error;
+  const key = 'published-prize-events';
+  const cached = readCache(eventListCache, key);
+  if (cached) return cached;
 
-  return (data ?? [])
-    .filter(e => e.published !== false)
-    .filter(hasPrizePool)
-    .map(row => row as unknown as AppEvent);
+  const existing = eventListInFlight.get(key);
+  if (existing) return existing;
+
+  const request = (async () => {
+    let { data, error } = await queryActiveEvents(true);
+    if (error && isMissingPublishedColumn(error)) {
+      ({ data, error } = await queryActiveEvents(false));
+    }
+    if (error) throw error;
+
+    return writeCache(
+      eventListCache,
+      key,
+      (data ?? [])
+        .filter(e => e.published !== false)
+        .filter(hasPrizePool)
+        .map(row => row as unknown as AppEvent),
+      EVENT_LIST_CACHE_MS,
+    );
+  })().finally(() => {
+    eventListInFlight.delete(key);
+  });
+
+  eventListInFlight.set(key, request);
+  return request;
 }
 
 async function getEventLeaderboardFallback(

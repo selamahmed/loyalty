@@ -478,8 +478,6 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
     refreshTimerRef.current = setTimeout(() => { void loadEventBoard(); }, 200);
   }, [loadEventBoard]);
 
-  useRealtimeTable('leaderboard_signals', refreshEventBoard, !ended);
-
   React.useEffect(() => onLeaderboardRefresh(refreshEventBoard), [refreshEventBoard]);
 
   React.useEffect(() => {
@@ -768,17 +766,18 @@ const Leaderboard: React.FC = () => {
     loadLeaderboard();
   }, [tab, authUser, loadLeaderboard]);
 
-  useRealtimeTable('leaderboard_signals', refreshAlltime);
-  useRealtimeTable('profiles', refreshAlltime);
-  useRealtimeTable('points_transactions', refreshAlltime);
+  useRealtimeTable('leaderboard_signals', refreshAlltime, tab !== 'events', { debounceMs: 1500 });
 
   useEffect(() => onLeaderboardRefresh(refreshAlltime), [refreshAlltime]);
 
-  // Polling fallback when Realtime or leaderboard_signals migration is not deployed yet
+  // Slow fallback when Realtime or leaderboard_signals migration is not deployed yet.
   useEffect(() => {
-    const interval = setInterval(refreshAlltime, 5000);
+    if (tab === 'events') return;
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') refreshAlltime();
+    }, 30000);
     return () => clearInterval(interval);
-  }, [refreshAlltime]);
+  }, [tab, refreshAlltime]);
 
   const loadPrizeEvents = React.useCallback(async () => {
     try {
@@ -794,10 +793,7 @@ const Leaderboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (tab !== 'events') return;
-    void loadPrizeEvents();
-    const interval = setInterval(() => { void loadPrizeEvents(); }, 30000);
-    return () => clearInterval(interval);
+    if (tab === 'events') void loadPrizeEvents();
   }, [tab, loadPrizeEvents]);
 
   useEffect(() => {
@@ -809,7 +805,9 @@ const Leaderboard: React.FC = () => {
 
   useEffect(() => {
     void loadPrizeEvents();
-    const interval = setInterval(() => { void loadPrizeEvents(); }, 60000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') void loadPrizeEvents();
+    }, 120000);
     const channel = supabase
       .channel('leaderboard_prize_events')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
