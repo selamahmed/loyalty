@@ -255,7 +255,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, card, hovered, setHovere
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 32, marginBottom: 28 }}>
               <div>
-                <AppLogo size={64} inverted style={{ marginBottom: 10, height: 'clamp(44px,5vw,60px)', width: 'clamp(44px,5vw,60px)' }} />
+                <AppLogo size={64} inverted style={{ marginBottom: 10, height: 'clamp(36px,5vw,52px)', width: 'auto' }} />
                 <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.62)', maxWidth: 240, lineHeight: 1.65, margin: 0 }}>
                   Daha fazla kazan, daha iyi yaşa.
                 </p>

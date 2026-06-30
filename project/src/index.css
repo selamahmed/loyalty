@@ -296,8 +296,9 @@
   }
 
   .auth-brand__logo {
-    width: 88px !important;
-    height: 88px !important;
+    width: clamp(128px, 34vw, 172px) !important;
+    height: auto !important;
+    max-height: 62px;
     filter:
       drop-shadow(0 8px 18px rgba(0, 0, 0, 0.18))
       drop-shadow(0 0 24px color-mix(in srgb, var(--primary-blue) 22%, transparent));
@@ -1144,8 +1145,9 @@
 }
 
 .app-header-logo__mark {
-  width: clamp(48px, 13vw, 56px) !important;
-  height: clamp(48px, 13vw, 56px) !important;
+  width: clamp(92px, 28vw, 132px) !important;
+  height: auto !important;
+  max-height: clamp(30px, 8vw, 42px);
 }
 
 .app-header-logo:focus-visible {

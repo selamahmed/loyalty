@@ -11,10 +11,17 @@ type AppLogoProps = {
 };
 
 const LOGO_FILES: Record<AppLogoSize, string> = {
-  32: 'logo-32',
-  36: 'logo-36',
-  64: 'logo-64',
-  72: 'logo-72',
+  32: 'logo-wordmark-32',
+  36: 'logo-wordmark-36',
+  64: 'logo-wordmark-64',
+  72: 'logo-wordmark-72',
+};
+
+const LOGO_DIMENSIONS: Record<AppLogoSize, { width: number; height: number }> = {
+  32: { width: 99, height: 32 },
+  36: { width: 114, height: 36 },
+  64: { width: 206, height: 64 },
+  72: { width: 228, height: 72 },
 };
 
 /** Responsive logo — serves WebP at the exact display size to avoid oversized downloads. */
@@ -26,22 +33,23 @@ const AppLogo: React.FC<AppLogoProps> = ({
   priority = false,
 }) => {
   const base = LOGO_FILES[size];
+  const dimensions = LOGO_DIMENSIONS[size];
 
   return (
     <picture>
       <source type="image/webp" srcSet={`/assets/icons/${base}.webp`} />
       <img
         src={`/assets/icons/${base}.png`}
-        alt="NexReward"
-        width={size}
-        height={size}
+        alt="Nesve Next"
+        width={dimensions.width}
+        height={dimensions.height}
         className={className}
         decoding={priority ? 'sync' : 'async'}
         loading={priority ? 'eager' : 'lazy'}
         {...({ fetchpriority: priority ? 'high' : 'auto' } as any)}
         style={{
-          width: size,
-          height: size,
+          width: dimensions.width,
+          height: dimensions.height,
           objectFit: 'contain',
           display: 'block',
           filter: inverted ? 'brightness(0) invert(1)' : undefined,
