@@ -12,6 +12,11 @@ export type EarnAction =
 export type EarnResult = {
   points: number;
   qrPoints?: number;
+  requestedPoints?: number;
+  acceptedPoints?: number;
+  rejectedPoints?: number;
+  maxPointsLimit?: number;
+  pointsAfterClaim?: number;
   xp: number;
   leveledUp: boolean;
   level: number;
@@ -47,6 +52,11 @@ function parseEarnResult(raw: unknown): EarnResult {
   return {
     points: Number(r.points ?? 0),
     qrPoints: r.qr_points != null ? Number(r.qr_points) : undefined,
+    requestedPoints: r.requested_points != null ? Number(r.requested_points) : undefined,
+    acceptedPoints: r.accepted_points != null ? Number(r.accepted_points) : undefined,
+    rejectedPoints: r.rejected_points != null ? Number(r.rejected_points) : undefined,
+    maxPointsLimit: r.max_points_limit != null ? Number(r.max_points_limit) : undefined,
+    pointsAfterClaim: r.points_after_claim != null ? Number(r.points_after_claim) : undefined,
     xp: Number(r.xp ?? 0),
     leveledUp: Boolean(r.leveled_up),
     level: Number(r.level ?? 1),

@@ -343,6 +343,20 @@ const QRScanner: React.FC = () => {
   };
 
   /* ── Claim store QR reward ── */
+  const buildQrClaimSubtitle = (
+    earnResult: Awaited<ReturnType<typeof claimQrScan>>,
+    fallback: string,
+  ) => {
+    if (!earnResult.capped) return fallback;
+
+    const requested = earnResult.requestedPoints ?? earnResult.qrPoints ?? earnResult.points;
+    const accepted = earnResult.acceptedPoints ?? earnResult.points;
+    const maxLimit = earnResult.maxPointsLimit;
+    const limitText = maxLimit ? ` Sadakat limitin ${maxLimit.toLocaleString('tr-TR')} puan.` : '';
+
+    return `${requested.toLocaleString('tr-TR')} puanlık QR'den ${accepted.toLocaleString('tr-TR')} puan eklendi.${limitText} Limit nedeniyle kalan puan eklenmedi.`;
+  };
+
   const claimReward = async () => {
     if (!result || !authUser?.id) return;
     try {
@@ -351,7 +365,7 @@ const QRScanner: React.FC = () => {
       showRewardPopup({
         type: 'reward',
         title: result.title,
-        subtitle: `${result.location} adresinde QR kod taradın`,
+        subtitle: buildQrClaimSubtitle(earnResult, `${result.location} adresinde QR kod taradın`),
         points: claimedPoints,
       });
       setScanHistory(prev => [{
@@ -386,7 +400,7 @@ const QRScanner: React.FC = () => {
       showRewardPopup({
         type: 'reward',
         title: 'Alışveriş Puanı!',
-        subtitle: `${cashierQRResult.amount}₺ alışverişten ${claimedPoints} puan kazandın`,
+        subtitle: buildQrClaimSubtitle(earnResult, `${cashierQRResult.amount}₺ alışverişten ${claimedPoints} puan kazandın`),
         points: claimedPoints,
       });
       setScanHistory(prev => [{
