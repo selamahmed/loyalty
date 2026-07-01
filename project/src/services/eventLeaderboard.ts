@@ -56,8 +56,6 @@ export type EventWinner = {
 const EVENT_LIST_COLUMNS =
   'id, title, description, start_date, end_date, active, color, emoji, win_count, rewards_json, published, multiplier, status';
 
-const RECENT_EVENT_MS = 14 * 24 * 60 * 60 * 1000;
-
 const RPC_MISSING = 'PGRST202';
 const TABLE_MISSING = '42P01';
 const EVENT_LEADERBOARD_CACHE_MS = 10_000;
@@ -164,7 +162,8 @@ export async function checkLeaderboardDb(): Promise<LeaderboardDbStatus> {
 
 /**
  * Prize events shown on the user leaderboard.
- * Includes live, upcoming, and recently ended events with a prize pool.
+ * Includes all admin-published prize events, even after the end date.
+ * Admin visibility controls are `published`/`active`; time does not auto-hide events.
  */
 export async function getLeaderboardPrizeEvents(): Promise<AppEvent[]> {
   const key = 'leaderboard-prize-events';
@@ -175,10 +174,9 @@ export async function getLeaderboardPrizeEvents(): Promise<AppEvent[]> {
   if (existing) return existing;
 
   const request = (async () => {
-    const recentCutoff = new Date(Date.now() - RECENT_EVENT_MS).toISOString();
-    let { data, error } = await queryActiveEvents(true, recentCutoff);
+    let { data, error } = await queryActiveEvents(true);
     if (error && isMissingPublishedColumn(error)) {
-      ({ data, error } = await queryActiveEvents(false, recentCutoff));
+      ({ data, error } = await queryActiveEvents(false));
     }
     if (error) throw error;
 
