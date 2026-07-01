@@ -5,6 +5,7 @@ import { prefetchCommonRoutes } from './lib/routePrefetch';
 
 const AuthProviders = React.lazy(() => import('./components/AuthProviders'));
 const AppDataProviders = React.lazy(() => import('./components/AppDataProviders'));
+const AdminDataProviders = React.lazy(() => import('./components/AdminDataProviders'));
 const Layout = React.lazy(() => import('./components/Layout'));
 
 // Route Guards (small — always loaded)
@@ -164,25 +165,27 @@ const CustomerShell: React.FC = () => {
   );
 };
 
-const ProtectedAppData: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <AppDataProviders>{children}</AppDataProviders>
+const AdminRouteShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Suspense fallback={null}>
+    <AdminDataProviders>{children}</AdminDataProviders>
+  </Suspense>
 );
 
 const SA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={null}>
-    <SuperAdminRoute><ProtectedAppData>{children}</ProtectedAppData></SuperAdminRoute>
+    <SuperAdminRoute><AdminRouteShell>{children}</AdminRouteShell></SuperAdminRoute>
   </Suspense>
 );
 
 const STA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={null}>
-    <StoreAdminRoute><ProtectedAppData>{children}</ProtectedAppData></StoreAdminRoute>
+    <StoreAdminRoute><AdminRouteShell>{children}</AdminRouteShell></StoreAdminRoute>
   </Suspense>
 );
 
 const CA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={null}>
-    <CashierRoute><ProtectedAppData>{children}</ProtectedAppData></CashierRoute>
+    <CashierRoute><AdminRouteShell>{children}</AdminRouteShell></CashierRoute>
   </Suspense>
 );
 

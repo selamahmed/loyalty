@@ -5,7 +5,7 @@ import {
   Megaphone, Menu, X, Shield, Bell, Moon, Sun, Settings,
   Activity, Zap, FileText, Trophy, Package, ScanLine, Calendar, LogOut, MessageSquare, Target
 } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
 const adminNavItems = [
@@ -30,7 +30,7 @@ const adminNavItems = [
 ];
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { theme, toggleTheme } = useApp();
+  const { theme, toggleTheme } = useTheme();
   const { authUser, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

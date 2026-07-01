@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Menu, X, Moon, Sun, LogOut, Store, LayoutDashboard, Users, Gift, BarChart2, QrCode, Bell, Tag, ChevronRight, Package } from 'lucide-react';
-import { useApp } from '../../../context/AppContext';
+import { useTheme } from '../../../context/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
 
 const GREEN = '#22c55e';
@@ -40,7 +40,7 @@ const navGroups = [
 ];
 
 const StoreAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { theme, toggleTheme } = useApp();
+  const { theme, toggleTheme } = useTheme();
   const { authUser, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

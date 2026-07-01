@@ -5,6 +5,8 @@ type RealtimeOptions = {
   debounceMs?: number;
 };
 
+type RealtimeCallback = () => void | Promise<void>;
+
 /**
  * Subscribe to Postgres changes on a single table.
  * `onChange` is called on any INSERT / UPDATE / DELETE.
@@ -12,7 +14,7 @@ type RealtimeOptions = {
  */
 export function useRealtimeTable(
   table: string,
-  onChange: () => void,
+  onChange: RealtimeCallback,
   enabled = true,
   options: RealtimeOptions = {},
 ) {
@@ -23,9 +25,29 @@ export function useRealtimeTable(
   useEffect(() => {
     if (!enabled) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let running = false;
+    let pending = false;
+    let disposed = false;
+
+    const flush = () => {
+      if (disposed) return;
+      if (running) {
+        pending = true;
+        return;
+      }
+      running = true;
+      Promise.resolve(onChangeRef.current()).finally(() => {
+        running = false;
+        if (pending && !disposed) {
+          pending = false;
+          notify();
+        }
+      });
+    };
+
     const notify = () => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => onChangeRef.current(), debounceMs);
+      timer = setTimeout(flush, debounceMs);
     };
 
     const channel = supabase
@@ -38,6 +60,7 @@ export function useRealtimeTable(
       .subscribe();
 
     return () => {
+      disposed = true;
       if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
@@ -50,7 +73,7 @@ export function useRealtimeTable(
  */
 export function useRealtimeTables(
   tables: string[],
-  onChange: () => void,
+  onChange: RealtimeCallback,
   enabled = true,
   options: RealtimeOptions = {},
 ) {
@@ -61,9 +84,29 @@ export function useRealtimeTables(
   useEffect(() => {
     if (!enabled || tables.length === 0) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let running = false;
+    let pending = false;
+    let disposed = false;
+
+    const flush = () => {
+      if (disposed) return;
+      if (running) {
+        pending = true;
+        return;
+      }
+      running = true;
+      Promise.resolve(onChangeRef.current()).finally(() => {
+        running = false;
+        if (pending && !disposed) {
+          pending = false;
+          notify();
+        }
+      });
+    };
+
     const notify = () => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => onChangeRef.current(), debounceMs);
+      timer = setTimeout(flush, debounceMs);
     };
 
     const channel = tables.reduce(
@@ -79,6 +122,7 @@ export function useRealtimeTables(
     channel.subscribe();
 
     return () => {
+      disposed = true;
       if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };

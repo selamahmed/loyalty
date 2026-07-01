@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ScanLine, History, LayoutDashboard, Menu, X, Moon, Sun, LogOut, PackageCheck, ChevronRight, Wallet } from 'lucide-react';
-import { useApp } from '../../../context/AppContext';
+import { useTheme } from '../../../context/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
 
 const cashierNavItems = [
@@ -15,7 +15,7 @@ const AMBER = '#f59e0b';
 const AMBER_DARK = '#d97706';
 
 const CashierLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { theme, toggleTheme } = useApp();
+  const { theme, toggleTheme } = useTheme();
   const { authUser, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
