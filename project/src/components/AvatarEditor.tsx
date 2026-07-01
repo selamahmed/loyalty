@@ -1,14 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Save, RotateCcw, Sparkles } from 'lucide-react';
+import { Copy, Download, RefreshCw, RotateCcw, Save, Sparkles } from 'lucide-react';
 import {
   ALLOWED_ACCESSORIES,
+  ALLOWED_EXPRESSION_VARIANTS,
+  ALLOWED_FACIAL_HAIR_VARIANTS,
+  ALLOWED_HEAD_VARIANTS,
   ALLOWED_SKIN_COLORS,
   buildAvatarUrl,
   getDefaultAvatarSeed,
   randomAvatarSeed,
   STRONG_BG_COLORS,
 } from '../lib/avatar';
-import type { AvatarAccessory, AvatarOptions } from '../lib/avatar';
+import type {
+  AvatarAccessory,
+  AvatarExpressionVariant,
+  AvatarFacialHairVariant,
+  AvatarFlip,
+  AvatarHeadVariant,
+  AvatarOptions,
+} from '../lib/avatar';
 import './AvatarEditor.css';
 
 interface AvatarEditorProps {
@@ -26,7 +36,22 @@ interface AvatarEditorProps {
 
 type AvatarUrlSettings = Pick<
   AvatarOptions,
-  'seed' | 'size' | 'skinColor' | 'backgroundColor' | 'accessories' | 'accessoriesProbability'
+  | 'seed'
+  | 'size'
+  | 'skinColor'
+  | 'backgroundColor'
+  | 'clothingColor'
+  | 'accessories'
+  | 'accessoriesProbability'
+  | 'headVariant'
+  | 'expressionVariant'
+  | 'facialHairVariant'
+  | 'facialHairProbability'
+  | 'scale'
+  | 'rotate'
+  | 'translateX'
+  | 'translateY'
+  | 'flip'
 >;
 
 const AVATAR_SIZE = 512;
@@ -42,10 +67,67 @@ const GLASSES_OPTIONS: Array<{ value: AvatarAccessory; label: string }> = [
   { value: 'sunglasses2', label: 'Güneş 2' },
 ];
 
+const HEAD_LABELS: Record<AvatarHeadVariant, string> = {
+  short1: 'Kısa 1',
+  short2: 'Kısa 2',
+  short3: 'Kısa 3',
+  short4: 'Kısa 4',
+  short5: 'Kısa 5',
+  medium1: 'Orta 1',
+  medium2: 'Orta 2',
+  medium3: 'Orta 3',
+  mediumStraight: 'Düz Orta',
+  long: 'Uzun',
+  longCurly: 'Dalgalı',
+  longBangs: 'Kakül',
+  afro: 'Afro',
+  bun: 'Topuz',
+  buns: 'Çift Topuz',
+  flatTop: 'Flat Top',
+  pomp: 'Pompadour',
+  hatBeanie: 'Bere',
+  hatHip: 'Şapka',
+};
+
+const EXPRESSION_LABELS: Record<AvatarExpressionVariant, string> = {
+  calm: 'Sakin',
+  cheeky: 'Neşeli',
+  cute: 'Tatlı',
+  driven: 'Kararlı',
+  eatingHappy: 'Mutlu',
+  explaining: 'Anlatan',
+  lovingGrin1: 'Sevimli 1',
+  lovingGrin2: 'Sevimli 2',
+  smile: 'Gülümseme',
+  smileBig: 'Büyük Gülüş',
+  smileLOL: 'Kahkaha',
+  smileTeethGap: 'Dişlek Gülüş',
+};
+
+const FACIAL_HAIR_LABELS: Record<AvatarFacialHairVariant, string> = {
+  blank: 'Yok',
+  chin: 'Çene',
+  goatee1: 'Keçi Sakal 1',
+  goatee2: 'Keçi Sakal 2',
+  moustache1: 'Bıyık 1',
+  moustache2: 'Bıyık 2',
+  moustache3: 'Bıyık 3',
+};
+
+const CLOTHING_COLORS = ['111827', '2563eb', 'ec4899', '06d6a0', 'ffbe0b', 'ef4444', '7c3aed'];
+
 const cleanHex = (value: string | null): string | undefined => {
   const cleaned = value?.trim().replace(/^#/, '').toLowerCase();
-  return cleaned || undefined;
+  return cleaned && /^[0-9a-f]{6}$/.test(cleaned) ? cleaned : undefined;
 };
+
+const parseNumberParam = (params: URLSearchParams, key: string): number | undefined => {
+  const value = Number(params.get(key));
+  return Number.isFinite(value) ? value : undefined;
+};
+
+const normalizeSelect = <T extends string>(values: readonly T[], value: string | null): T | undefined =>
+  values.find((item) => item === value);
 
 const parseAvatarUrl = (url: string | null | undefined): Partial<AvatarUrlSettings> => {
   if (!url || !url.includes('dicebear.com')) return {};
@@ -55,19 +137,32 @@ const parseAvatarUrl = (url: string | null | undefined): Partial<AvatarUrlSettin
     const parsedSize = Number(params.get('size'));
     const accessories = params.get('accessories')?.trim();
     const accessoriesProbability = Number(params.get('accessoriesProbability'));
+    const facialHairProbability = Number(params.get('facialHairProbability'));
 
     return {
       seed: params.get('seed')?.trim() || undefined,
       size: Number.isFinite(parsedSize) && parsedSize > 0 ? parsedSize : AVATAR_SIZE,
       skinColor: cleanHex(params.get('skinColor')),
       backgroundColor: cleanHex(params.get('backgroundColor')),
-      accessories: ALLOWED_ACCESSORIES.find((value) => value === accessories),
+      clothingColor: cleanHex(params.get('clothingColor')),
+      accessories: normalizeSelect(ALLOWED_ACCESSORIES, accessories ?? 'blank'),
       accessoriesProbability: Number.isFinite(accessoriesProbability) ? accessoriesProbability : undefined,
+      headVariant: normalizeSelect(ALLOWED_HEAD_VARIANTS, params.get('headVariant')),
+      expressionVariant: normalizeSelect(ALLOWED_EXPRESSION_VARIANTS, params.get('expressionVariant')),
+      facialHairVariant: normalizeSelect(ALLOWED_FACIAL_HAIR_VARIANTS, params.get('facialHairVariant') ?? 'blank'),
+      facialHairProbability: Number.isFinite(facialHairProbability) ? facialHairProbability : undefined,
+      scale: parseNumberParam(params, 'scale'),
+      rotate: parseNumberParam(params, 'rotate'),
+      translateX: parseNumberParam(params, 'translateX'),
+      translateY: parseNumberParam(params, 'translateY'),
+      flip: params.get('flip') === 'horizontal' ? 'horizontal' : 'none',
     };
   } catch {
     return {};
   }
 };
+
+const randomItem = <T,>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)];
 
 export const AvatarEditor: React.FC<AvatarEditorProps> = ({
   currentSeed,
@@ -86,9 +181,22 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
   const [backgroundColor, setBackgroundColor] = useState<string>(
     urlSettings.backgroundColor || STRONG_BG_COLORS[0],
   );
+  const [clothingColor, setClothingColor] = useState<string>(urlSettings.clothingColor || CLOTHING_COLORS[0]);
+  const [headVariant, setHeadVariant] = useState<AvatarHeadVariant>(urlSettings.headVariant || 'hatHip');
+  const [expressionVariant, setExpressionVariant] = useState<AvatarExpressionVariant>(
+    urlSettings.expressionVariant || 'smileBig',
+  );
   const [accessories, setAccessories] = useState<AvatarAccessory>(urlSettings.accessories || 'blank');
+  const [facialHairVariant, setFacialHairVariant] = useState<AvatarFacialHairVariant>(
+    urlSettings.facialHairVariant || 'blank',
+  );
+  const [scale, setScale] = useState<number>(urlSettings.scale ?? 1);
+  const [rotate, setRotate] = useState<number>(urlSettings.rotate ?? 0);
+  const [translateX, setTranslateX] = useState<number>(urlSettings.translateX ?? 0);
+  const [translateY, setTranslateY] = useState<number>(urlSettings.translateY ?? 0);
+  const [flip, setFlip] = useState<AvatarFlip>(urlSettings.flip || 'none');
   const [customBgHex, setCustomBgHex] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'appearance' | 'colors'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'colors' | 'position'>('appearance');
   const [saving, setSaving] = useState<boolean>(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +208,16 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
     setSeed(nextSeed);
     setSkinColor(parsed.skinColor || ALLOWED_SKIN_COLORS[0]);
     setBackgroundColor(parsed.backgroundColor || STRONG_BG_COLORS[0]);
+    setClothingColor(parsed.clothingColor || CLOTHING_COLORS[0]);
+    setHeadVariant(parsed.headVariant || 'hatHip');
+    setExpressionVariant(parsed.expressionVariant || 'smileBig');
     setAccessories(parsed.accessories || 'blank');
+    setFacialHairVariant(parsed.facialHairVariant || 'blank');
+    setScale(parsed.scale ?? 1);
+    setRotate(parsed.rotate ?? 0);
+    setTranslateX(parsed.translateX ?? 0);
+    setTranslateY(parsed.translateY ?? 0);
+    setFlip(parsed.flip || 'none');
   }, [currentSeed, currentUrl, fallbackSeed]);
 
   useEffect(() => {
@@ -117,10 +234,34 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
       size: AVATAR_SIZE,
       skinColor,
       backgroundColor,
+      clothingColor,
+      headVariant,
+      expressionVariant,
       accessories,
-      accessoriesProbability: 100,
+      accessoriesProbability: accessories === 'blank' ? 0 : 100,
+      facialHairVariant,
+      facialHairProbability: facialHairVariant === 'blank' ? 0 : 100,
+      scale,
+      rotate,
+      translateX,
+      translateY,
+      flip,
     }),
-    [accessories, backgroundColor, resolvedSeed, skinColor],
+    [
+      accessories,
+      backgroundColor,
+      clothingColor,
+      expressionVariant,
+      facialHairVariant,
+      flip,
+      headVariant,
+      resolvedSeed,
+      rotate,
+      scale,
+      skinColor,
+      translateX,
+      translateY,
+    ],
   );
 
   const fallbackAvatarUrl = useMemo(
@@ -133,13 +274,19 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
   }, [avatarUrl, onChange, resolvedSeed]);
 
   const handleRandomize = () => {
-    const randomSkin = ALLOWED_SKIN_COLORS[Math.floor(Math.random() * ALLOWED_SKIN_COLORS.length)];
-    const randomBg = STRONG_BG_COLORS[Math.floor(Math.random() * STRONG_BG_COLORS.length)];
-
     setSeed(randomAvatarSeed());
-    setSkinColor(randomSkin);
-    setBackgroundColor(randomBg);
-    setAccessories('blank');
+    setSkinColor(randomItem(ALLOWED_SKIN_COLORS));
+    setBackgroundColor(randomItem(STRONG_BG_COLORS));
+    setClothingColor(randomItem(CLOTHING_COLORS));
+    setHeadVariant(randomItem(ALLOWED_HEAD_VARIANTS));
+    setExpressionVariant(randomItem(ALLOWED_EXPRESSION_VARIANTS));
+    setAccessories(randomItem(GLASSES_OPTIONS).value);
+    setFacialHairVariant(Math.random() > 0.75 ? randomItem(ALLOWED_FACIAL_HAIR_VARIANTS) : 'blank');
+    setScale(1);
+    setRotate(0);
+    setTranslateX(0);
+    setTranslateY(0);
+    setFlip('none');
     setCustomBgHex('');
     setError(null);
     setSuccess(null);
@@ -151,10 +298,48 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
     setSeed(currentSeed?.trim() || parsed.seed || fallbackSeed);
     setSkinColor(parsed.skinColor || ALLOWED_SKIN_COLORS[0]);
     setBackgroundColor(parsed.backgroundColor || STRONG_BG_COLORS[0]);
+    setClothingColor(parsed.clothingColor || CLOTHING_COLORS[0]);
+    setHeadVariant(parsed.headVariant || 'hatHip');
+    setExpressionVariant(parsed.expressionVariant || 'smileBig');
     setAccessories(parsed.accessories || 'blank');
+    setFacialHairVariant(parsed.facialHairVariant || 'blank');
+    setScale(parsed.scale ?? 1);
+    setRotate(parsed.rotate ?? 0);
+    setTranslateX(parsed.translateX ?? 0);
+    setTranslateY(parsed.translateY ?? 0);
+    setFlip(parsed.flip || 'none');
     setCustomBgHex('');
     setError(null);
     setSuccess(null);
+  };
+
+  const copyAvatarUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(avatarUrl);
+      setSuccess('Avatar bağlantısı kopyalandı.');
+      setTimeout(() => setSuccess(null), 2000);
+    } catch {
+      setError('Bağlantı kopyalanamadı.');
+    }
+  };
+
+  const downloadAvatar = async () => {
+    try {
+      const response = await fetch(avatarUrl);
+      const svg = await response.text();
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${resolvedSeed.replace(/[^a-z0-9_-]+/gi, '-') || 'avatar'}.svg`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+      setSuccess('Avatar SVG indirildi.');
+      setTimeout(() => setSuccess(null), 2000);
+    } catch {
+      setError('Avatar indirilemedi.');
+    }
   };
 
   const handleSave = async () => {
@@ -183,10 +368,65 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
     }
   };
 
+  const renderSelect = <T extends string>(
+    label: string,
+    value: T,
+    onNext: (next: T) => void,
+    options: readonly T[],
+    labels: Record<T, string>,
+  ) => (
+    <div className="control-group">
+      <label className="control-label">{label}</label>
+      <select className="input-field select-field" value={value} onChange={(event) => onNext(event.target.value as T)}>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {labels[option]}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
+  const renderSlider = (
+    label: string,
+    value: number,
+    setValue: (value: number) => void,
+    min: number,
+    max: number,
+    step = 1,
+  ) => (
+    <div className="control-group">
+      <div className="slider-header">
+        <label className="control-label">{label}</label>
+        <span className="slider-value">{value}</span>
+      </div>
+      <input
+        type="range"
+        className="neo-slider"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => setValue(Number(event.target.value))}
+      />
+    </div>
+  );
+
   return (
     <div className="avatar-editor-container card">
       <div className="avatar-preview-section">
-        <h4 className="avatar-section-title">Canlı Önizleme</h4>
+        <div className="avatar-title-row">
+          <h4 className="avatar-section-title">Canlı Önizleme</h4>
+          <button
+            type="button"
+            className="avatar-mini-reset"
+            onClick={handleRandomize}
+            disabled={saving || loading}
+          >
+            Rastgele
+          </button>
+        </div>
+
         <div className="avatar-frame-wrapper">
           <div className="avatar-frame">
             <img
@@ -198,27 +438,22 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
           </div>
         </div>
 
-        <div className="avatar-preview-actions">
-          <button
-            type="button"
-            className="btn-secondary btn-icon"
-            onClick={handleRandomize}
-            disabled={saving || loading}
-            title="Rastgele avatar oluştur"
-          >
+        <div className="avatar-preview-actions avatar-preview-actions--four">
+          <button type="button" className="btn-secondary btn-icon" onClick={handleRandomize} disabled={saving || loading}>
             <Sparkles size={16} />
             Rastgele
           </button>
-
-          <button
-            type="button"
-            className="btn-secondary btn-icon"
-            onClick={handleReset}
-            disabled={saving || loading}
-            title="Ayarları sıfırla"
-          >
+          <button type="button" className="btn-secondary btn-icon" onClick={handleReset} disabled={saving || loading}>
             <RotateCcw size={16} />
             Sıfırla
+          </button>
+          <button type="button" className="btn-secondary btn-icon" onClick={copyAvatarUrl}>
+            <Copy size={16} />
+            Kopyala
+          </button>
+          <button type="button" className="btn-secondary btn-icon" onClick={downloadAvatar}>
+            <Download size={16} />
+            İndir
           </button>
         </div>
 
@@ -229,7 +464,7 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
       </div>
 
       <div className="avatar-controls-section">
-        <div className="avatar-tabs">
+        <div className="avatar-tabs avatar-tabs--three">
           <button
             type="button"
             className={`avatar-tab-btn ${activeTab === 'appearance' ? 'active' : ''}`}
@@ -243,6 +478,13 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
             onClick={() => setActiveTab('colors')}
           >
             Renk
+          </button>
+          <button
+            type="button"
+            className={`avatar-tab-btn ${activeTab === 'position' ? 'active' : ''}`}
+            onClick={() => setActiveTab('position')}
+          >
+            Poz
           </button>
         </div>
 
@@ -260,20 +502,9 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
                 />
               </div>
 
-              <div className="control-group">
-                <label className="control-label">Ten rengi</label>
-                <div className="color-palette-grid">
-                  {ALLOWED_SKIN_COLORS.map((hex) => (
-                    <button
-                      key={hex}
-                      type="button"
-                      className={`color-bubble ${skinColor === hex ? 'selected' : ''}`}
-                      style={{ backgroundColor: `#${hex}` }}
-                      onClick={() => setSkinColor(hex)}
-                      title={`#${hex}`}
-                    />
-                  ))}
-                </div>
+              <div className="avatar-control-grid">
+                {renderSelect('Saç / Baş', headVariant, setHeadVariant, ALLOWED_HEAD_VARIANTS, HEAD_LABELS)}
+                {renderSelect('Yüz İfadesi', expressionVariant, setExpressionVariant, ALLOWED_EXPRESSION_VARIANTS, EXPRESSION_LABELS)}
               </div>
 
               <div className="control-group">
@@ -291,11 +522,45 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
                   ))}
                 </div>
               </div>
+
+              {renderSelect('Sakal / Bıyık', facialHairVariant, setFacialHairVariant, ALLOWED_FACIAL_HAIR_VARIANTS, FACIAL_HAIR_LABELS)}
             </div>
           )}
 
           {activeTab === 'colors' && (
             <div className="avatar-tab-panel stagger-children">
+              <div className="control-group">
+                <label className="control-label">Ten rengi</label>
+                <div className="color-palette-grid">
+                  {ALLOWED_SKIN_COLORS.map((hex) => (
+                    <button
+                      key={hex}
+                      type="button"
+                      className={`color-bubble ${skinColor === hex ? 'selected' : ''}`}
+                      style={{ backgroundColor: `#${hex}` }}
+                      onClick={() => setSkinColor(hex)}
+                      title={`#${hex}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="control-group">
+                <label className="control-label">Kıyafet rengi</label>
+                <div className="color-palette-grid">
+                  {CLOTHING_COLORS.map((hex) => (
+                    <button
+                      key={hex}
+                      type="button"
+                      className={`color-bubble ${clothingColor === hex ? 'selected' : ''}`}
+                      style={{ backgroundColor: `#${hex}` }}
+                      onClick={() => setClothingColor(hex)}
+                      title={`#${hex}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
               <div className="control-group">
                 <label className="control-label">Arka plan rengi</label>
                 <div className="color-palette-grid">
@@ -326,6 +591,30 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
                     }
                   />
                   <span className="input-info-tag">Özel renk</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'position' && (
+            <div className="avatar-tab-panel stagger-children">
+              {renderSlider('Yakınlaştır', scale, setScale, 0.7, 1.5, 0.05)}
+              {renderSlider('Döndür', rotate, setRotate, -18, 18)}
+              {renderSlider('Sağa / Sola', translateX, setTranslateX, -30, 30)}
+              {renderSlider('Yukarı / Aşağı', translateY, setTranslateY, -30, 30)}
+              <div className="control-group">
+                <label className="control-label">Yön</label>
+                <div className="glasses-choice-grid">
+                  {(['none', 'horizontal'] as const).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`glasses-choice ${flip === option ? 'selected' : ''}`}
+                      onClick={() => setFlip(option)}
+                    >
+                      {option === 'none' ? 'Normal' : 'Ters Çevir'}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

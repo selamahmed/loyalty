@@ -1,6 +1,13 @@
 /** Seed-based avatars using DiceBear API */
 
-import { buildAvatarUrl, normalizeAvatarAccessory } from './avatar';
+import {
+  buildAvatarUrl,
+  normalizeAvatarAccessory,
+  normalizeAvatarExpressionVariant,
+  normalizeAvatarFacialHairVariant,
+  normalizeAvatarFlip,
+  normalizeAvatarHeadVariant,
+} from './avatar';
 
 export const AVATAR_SEED_PREFIX = 'seed:';
 
@@ -23,6 +30,11 @@ function cleanDiceBearUrl(url: string, fallbackSeed: string): string {
     const size = Number.isFinite(sizeParam) && sizeParam > 0 ? sizeParam : 512;
     const backgroundColor = parsed.searchParams.get('backgroundColor')?.trim() || undefined;
     const skinColor = parsed.searchParams.get('skinColor')?.trim() || undefined;
+    const clothingColor = parsed.searchParams.get('clothingColor')?.trim() || undefined;
+    const headVariant = normalizeAvatarHeadVariant(parsed.searchParams.get('headVariant')?.trim() || undefined);
+    const expressionVariant = normalizeAvatarExpressionVariant(parsed.searchParams.get('expressionVariant')?.trim() || undefined);
+    const facialHairVariant = normalizeAvatarFacialHairVariant(parsed.searchParams.get('facialHairVariant')?.trim() || undefined);
+    const flip = normalizeAvatarFlip(parsed.searchParams.get('flip')?.trim() || undefined);
     const accessories = normalizeAvatarAccessory(
       parsed.searchParams.get('accessories')?.trim() || undefined,
     );
@@ -30,14 +42,32 @@ function cleanDiceBearUrl(url: string, fallbackSeed: string): string {
     const accessoriesProbability = Number.isFinite(accessoriesProbabilityParam)
       ? accessoriesProbabilityParam
       : undefined;
+    const facialHairProbabilityParam = Number(parsed.searchParams.get('facialHairProbability'));
+    const facialHairProbability = Number.isFinite(facialHairProbabilityParam)
+      ? facialHairProbabilityParam
+      : undefined;
+    const scale = Number(parsed.searchParams.get('scale'));
+    const rotate = Number(parsed.searchParams.get('rotate'));
+    const translateX = Number(parsed.searchParams.get('translateX'));
+    const translateY = Number(parsed.searchParams.get('translateY'));
 
     return buildAvatarUrl({
       seed,
       size,
       backgroundColor,
       skinColor,
+      clothingColor,
+      headVariant,
+      expressionVariant,
       accessories,
       accessoriesProbability,
+      facialHairVariant,
+      facialHairProbability,
+      scale: Number.isFinite(scale) ? scale : undefined,
+      rotate: Number.isFinite(rotate) ? rotate : undefined,
+      translateX: Number.isFinite(translateX) ? translateX : undefined,
+      translateY: Number.isFinite(translateY) ? translateY : undefined,
+      flip,
     });
   } catch {
     return buildAvatarUrl({ seed: fallbackSeed || 'user', size: 512 });

@@ -10,6 +10,16 @@ export interface AvatarOptions {
   backgroundColor?: string;
   accessories?: AvatarAccessory;
   accessoriesProbability?: number;
+  headVariant?: AvatarHeadVariant;
+  expressionVariant?: AvatarExpressionVariant;
+  facialHairVariant?: AvatarFacialHairVariant;
+  facialHairProbability?: number;
+  clothingColor?: string;
+  scale?: number;
+  rotate?: number;
+  translateX?: number;
+  translateY?: number;
+  flip?: AvatarFlip;
 }
 
 const DICEBEAR_OPEN_PEEPS_URL = 'https://api.dicebear.com/10.x/open-peeps/svg';
@@ -41,9 +51,92 @@ export const normalizeAvatarAccessory = (value: string | undefined): AvatarAcces
   return ALLOWED_ACCESSORIES.find((accessory) => accessory === value);
 };
 
+export const ALLOWED_HEAD_VARIANTS = [
+  'short1',
+  'short2',
+  'short3',
+  'short4',
+  'short5',
+  'medium1',
+  'medium2',
+  'medium3',
+  'mediumStraight',
+  'long',
+  'longCurly',
+  'longBangs',
+  'afro',
+  'bun',
+  'buns',
+  'flatTop',
+  'pomp',
+  'hatBeanie',
+  'hatHip',
+] as const;
+
+export type AvatarHeadVariant = (typeof ALLOWED_HEAD_VARIANTS)[number];
+
+export const normalizeAvatarHeadVariant = (value: string | undefined): AvatarHeadVariant | undefined => {
+  return ALLOWED_HEAD_VARIANTS.find((variant) => variant === value);
+};
+
+export const ALLOWED_EXPRESSION_VARIANTS = [
+  'calm',
+  'cheeky',
+  'cute',
+  'driven',
+  'eatingHappy',
+  'explaining',
+  'lovingGrin1',
+  'lovingGrin2',
+  'smile',
+  'smileBig',
+  'smileLOL',
+  'smileTeethGap',
+] as const;
+
+export type AvatarExpressionVariant = (typeof ALLOWED_EXPRESSION_VARIANTS)[number];
+
+export const normalizeAvatarExpressionVariant = (value: string | undefined): AvatarExpressionVariant | undefined => {
+  return ALLOWED_EXPRESSION_VARIANTS.find((variant) => variant === value);
+};
+
+export const ALLOWED_FACIAL_HAIR_VARIANTS = [
+  'blank',
+  'chin',
+  'goatee1',
+  'goatee2',
+  'moustache1',
+  'moustache2',
+  'moustache3',
+] as const;
+
+export type AvatarFacialHairVariant = (typeof ALLOWED_FACIAL_HAIR_VARIANTS)[number];
+
+export const normalizeAvatarFacialHairVariant = (value: string | undefined): AvatarFacialHairVariant | undefined => {
+  if (!value || value === 'none') return 'blank';
+  return ALLOWED_FACIAL_HAIR_VARIANTS.find((variant) => variant === value);
+};
+
+export const ALLOWED_FLIPS = ['none', 'horizontal'] as const;
+export type AvatarFlip = (typeof ALLOWED_FLIPS)[number];
+
+export const normalizeAvatarFlip = (value: string | undefined): AvatarFlip | undefined => {
+  return ALLOWED_FLIPS.find((variant) => variant === value);
+};
+
 const normalizeProbability = (value: number | undefined): number | undefined => {
   if (value === undefined || !Number.isFinite(value)) return undefined;
   return Math.max(0, Math.min(100, Math.round(value)));
+};
+
+const normalizeNumber = (
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+): number => {
+  if (value === undefined || !Number.isFinite(value)) return fallback;
+  return Math.max(min, Math.min(max, value));
 };
 
 export const ALLOWED_SKIN_COLORS = ['deceeb', 'e0abb4', 'abe0d7', 'faead9', 'bcb1f2'];
@@ -120,6 +213,22 @@ export const buildAvatarUrl = (options: AvatarOptions | string): string => {
   params.set('size', String(DEFAULT_AVATAR_SIZE));
   params.set('backgroundColor', normalizeColorParam(opts.backgroundColor, STRONG_BG_COLORS[0]));
   params.set('skinColor', normalizeColorParam(opts.skinColor, ALLOWED_SKIN_COLORS[0]));
+  params.set('scale', String(normalizeNumber(opts.scale, 1, 0.6, 1.6)));
+  params.set('rotate', String(Math.round(normalizeNumber(opts.rotate, 0, -20, 20))));
+  params.set('translateX', String(Math.round(normalizeNumber(opts.translateX, 0, -40, 40))));
+  params.set('translateY', String(Math.round(normalizeNumber(opts.translateY, 0, -40, 40))));
+
+  const flip = normalizeAvatarFlip(opts.flip);
+  if (flip && flip !== 'none') params.set('flip', flip);
+
+  const headVariant = normalizeAvatarHeadVariant(opts.headVariant);
+  if (headVariant) params.set('headVariant', headVariant);
+
+  const expressionVariant = normalizeAvatarExpressionVariant(opts.expressionVariant);
+  if (expressionVariant) params.set('expressionVariant', expressionVariant);
+
+  const clothingColor = normalizeColorParam(opts.clothingColor, '');
+  if (clothingColor) params.set('clothingColor', clothingColor);
 
   const accessories = normalizeAvatarAccessory(opts.accessories);
   const accessoriesProbability = normalizeProbability(opts.accessoriesProbability);
@@ -127,6 +236,13 @@ export const buildAvatarUrl = (options: AvatarOptions | string): string => {
   if (accessories && accessories !== 'blank') {
     params.set('accessories', accessories);
     params.set('accessoriesProbability', String(accessoriesProbability ?? 100));
+  }
+
+  const facialHair = normalizeAvatarFacialHairVariant(opts.facialHairVariant);
+  const facialHairProbability = normalizeProbability(opts.facialHairProbability);
+  if (facialHair && facialHair !== 'blank') {
+    params.set('facialHairVariant', facialHair);
+    params.set('facialHairProbability', String(facialHairProbability ?? 100));
   }
 
   return `${DICEBEAR_OPEN_PEEPS_URL}?${params.toString()}`;
