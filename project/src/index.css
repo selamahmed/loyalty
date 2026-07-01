@@ -1885,6 +1885,8 @@ body::before {
 .profile-hero-user__avatar-wrap {
   position: relative;
   flex-shrink: 0;
+  width: fit-content;
+  height: fit-content;
 }
 
 .profile-hero-user__info {
@@ -2009,6 +2011,13 @@ body::before {
   display: none;
 }
 
+.profile-hero-user__level-chip {
+  bottom: -5px !important;
+  right: -8px !important;
+  z-index: 4;
+  pointer-events: none;
+}
+
 .profile-hero-edit:hover {
   background: rgba(255, 255, 255, 0.22);
   transform: translateY(-1px);
@@ -2112,7 +2121,9 @@ body::before {
   }
 
   .profile-hero-user__level-chip {
-    transform: scale(0.88);
+    bottom: -3px !important;
+    right: -5px !important;
+    transform: scale(0.78);
     transform-origin: bottom right;
   }
 
@@ -2143,6 +2154,24 @@ body::before {
   .profile-hero-card .page-main-sticker--hero-card {
     --pms-size-d: 72px;
     --pms-size-m: 64px;
+    opacity: 0.82;
+  }
+
+  .profile-hero-user__avatar-wrap {
+    align-self: flex-start;
+  }
+
+  .profile-hero-edit {
+    top: -5px;
+    right: -5px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .profile-hero-user__level-chip {
+    bottom: -2px !important;
+    right: -4px !important;
+    transform: scale(0.72);
   }
 
   .profile-hero-meta__badge {
