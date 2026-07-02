@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Trash2, X, Check, Star, Search, Eye, EyeOff, Image, Tag, Upload, Download, Loader2 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getAdminRewards, createReward, updateReward, deleteReward, bulkCreateRewards } from '../../services/rewards';
+import { getAdminRewardsPage, createReward, updateReward, deleteReward, bulkCreateRewards } from '../../services/rewards';
 import type { Reward as DBReward } from '../../services/rewards';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 import { playSound } from '../../lib/sounds';
 import { downloadRewardsCsvTemplate, parseRewardsCsv, type CsvParseResult } from '../../lib/rewardsCsv';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 type Reward = DBReward & { available?: boolean; imageUrl?: string };
 
@@ -266,33 +267,52 @@ const CsvImportModal: React.FC<{
 const AdminRewards: React.FC = () => {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [modal, setModal]     = useState<{ reward?: Reward; show: boolean }>({ show: false });
   const [search, setSearch]   = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [catFilter, setCatFilter] = useState('all');
+  const [page, setPage] = useState(0);
+  const [totalRewards, setTotalRewards] = useState(0);
+  const [errorMsg, setErrorMsg] = useState('');
   const [csvResult, setCsvResult] = useState<CsvParseResult | null>(null);
   const [csvImporting, setCsvImporting] = useState(false);
   const [csvImportError, setCsvImportError] = useState('');
   const [importToast, setImportToast] = useState<string | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
-  const loadRewards = useCallback(() => {
-    setIsLoading(true);
-    getAdminRewards()
-      .then(data => setRewards(data.map(r => ({ ...r, available: r.active, imageUrl: r.image ?? '' }))))
-      .catch(() => setRewards([]))
-      .finally(() => setIsLoading(false));
-  }, []);
+  const mapReward = (r: DBReward): Reward => ({ ...r, available: r.active, imageUrl: r.image ?? '' });
+
+  const loadRewards = useCallback(async (nextPage = 0, append = false) => {
+    if (append) setIsLoadingMore(true);
+    else setIsLoading(true);
+    setErrorMsg('');
+    try {
+      const data = await getAdminRewardsPage({
+        page: nextPage,
+        pageSize: 50,
+        search: debouncedSearch,
+        category: catFilter,
+      });
+      setRewards(prev => append ? [...prev, ...data.rows.map(mapReward)] : data.rows.map(mapReward));
+      setTotalRewards(data.count);
+      setPage(nextPage);
+    } catch (err) {
+      console.error('[AdminRewards] Failed to load rewards:', err);
+      setErrorMsg('Ürünler yüklenemedi. Yetki/RLS veya bağlantı ayarlarını kontrol et.');
+      if (!append) setRewards([]);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, [catFilter, debouncedSearch]);
 
   useEffect(() => { loadRewards(); }, [loadRewards]);
 
-  useRealtimeTable('rewards', loadRewards);
+  useRealtimeTable('rewards', () => loadRewards(0, false), true, { debounceMs: 1200 });
 
-  const filtered = rewards.filter(r => {
-    const matchSearch = r.title.toLowerCase().includes(search.toLowerCase());
-    const matchCat    = catFilter === 'all' || r.category === catFilter;
-    return matchSearch && matchCat;
-  });
+  const filtered = rewards;
 
   const handleSave = async (data: Partial<Reward>) => {
     try {
@@ -322,6 +342,7 @@ const AdminRewards: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to save reward:', err);
+      setErrorMsg((err as Error).message || 'Ürün kaydedilemedi. Supabase RLS ve admin yetkisini kontrol et.');
     }
   };
 
@@ -330,7 +351,11 @@ const AdminRewards: React.FC = () => {
     setDeleting(id);
     deleteReward(id).then(() => {
       setRewards(prev => prev.filter(r => r.id !== id));
-    }).catch(() => {}).finally(() => setDeleting(null));
+      setTotalRewards(prev => Math.max(0, prev - 1));
+    }).catch((err) => {
+      console.error('[AdminRewards] Failed to delete reward:', err);
+      setErrorMsg('Ürün silinemedi. Yetkin veya RLS politikası engelliyor olabilir.');
+    }).finally(() => setDeleting(null));
   };
 
   const toggleAvailable = async (id: string) => {
@@ -343,6 +368,7 @@ const AdminRewards: React.FC = () => {
       setRewards(prev => prev.map(r => r.id === id ? { ...r, ...updated, available: updated.active, imageUrl: updated.image ?? '' } : r));
     } catch (err) {
       console.error('Failed to toggle reward:', err);
+      setErrorMsg('Ürün durumu değiştirilemedi. Yetkin veya RLS politikası engelliyor olabilir.');
       setRewards(prev => prev.map(r => r.id === id ? { ...r, available: reward.available, active: reward.active } : r));
     }
   };
@@ -445,7 +471,7 @@ const AdminRewards: React.FC = () => {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Toplam Ürün',  value: rewards.length,  color: '#7B6EF6', emoji: '📦' },
+            { label: 'Toplam Ürün',  value: totalRewards || rewards.length,  color: '#7B6EF6', emoji: '📦' },
             { label: 'Satışta',      value: activeCount,      color: '#22c55e', emoji: '✅' },
             { label: 'Ort. Puan',    value: `${avgPoints} pts`, color: '#f59e0b', emoji: '⭐' },
           ].map(s => (
@@ -471,8 +497,21 @@ const AdminRewards: React.FC = () => {
           </select>
         </div>
 
+        {errorMsg && (
+          <div className="rounded-xl border-2 border-red-400 bg-red-50 dark:bg-red-950/30 p-3 text-sm font-bold text-red-700 dark:text-red-300">
+            {errorMsg}
+          </div>
+        )}
+
         {/* Product list */}
         <div className="space-y-2">
+          {isLoading && (
+            <div className={card + ' p-10 text-center'}>
+              <Loader2 size={24} className="mx-auto mb-2 animate-spin text-[#7B6EF6]" />
+              <p className="font-bold text-gray-500">Ürünler yükleniyor...</p>
+            </div>
+          )}
+
           {filtered.map(reward => (
             <div key={reward.id}
               className={`${card} flex overflow-hidden transition-all duration-300 ${deleting === reward.id ? 'opacity-0 scale-95' : ''}`}>
@@ -532,11 +571,21 @@ const AdminRewards: React.FC = () => {
             </div>
           ))}
 
-          {filtered.length === 0 && (
+          {!isLoading && filtered.length === 0 && (
             <div className={card + ' p-12 text-center'}>
               <div className="text-4xl mb-3">🔍</div>
               <p className="font-bold text-gray-500">Ürün bulunamadı</p>
             </div>
+          )}
+          {!isLoading && rewards.length < totalRewards && (
+            <button
+              type="button"
+              onClick={() => void loadRewards(page + 1, true)}
+              disabled={isLoadingMore}
+              className="btn-secondary w-full py-3 text-sm font-black flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {isLoadingMore ? <><Loader2 size={14} className="animate-spin" /> Yükleniyor...</> : `Daha Fazla Yükle (${rewards.length}/${totalRewards})`}
+            </button>
           )}
         </div>
       </div>

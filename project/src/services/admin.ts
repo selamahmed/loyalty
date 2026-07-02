@@ -165,11 +165,12 @@ export async function getDashboardStats(): Promise<{
   };
 }
 
-export async function getQRCodes() {
+export async function getQRCodes(page = 0, pageSize = 100) {
   const { data, error } = await supabase
     .from('qr_codes')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1);
   if (error) throw error;
   return data ?? [];
 }

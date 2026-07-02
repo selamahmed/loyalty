@@ -5,6 +5,7 @@ import { createInventoryItemAdmin, deleteRedemptionAdmin, getAllUsers, updateInv
 import { getUserRedemptions } from '../../services/redemptions';
 import { useRealtimeTable } from '../../hooks/useRealtime';
 import NeoAvatar from '../../components/NeoAvatar';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 type UserType = { id: string; username: string; email: string; level: number; current_points: number; status: string; created_at: string; avatar_url: string | null; role: string };
 
@@ -80,10 +81,15 @@ const QRPreview: React.FC<{ code: string; size?: number }> = ({ code, size = 120
 /* ─── User selection screen ─── */
 const UserPickerScreen: React.FC<{ onSelect: (u: UserType) => void }> = ({ onSelect }) => {
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [allUsers, setAllUsers] = useState<UserType[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   useEffect(() => {
-    getAllUsers(0, 50, search || undefined).then(profiles => {
+    let cancelled = false;
+    setLoadingUsers(true);
+    getAllUsers(0, 50, debouncedSearch || undefined).then(profiles => {
+      if (cancelled) return;
       setAllUsers(profiles.map(p => ({
         id: p.id,
         username: p.username ?? p.email.split('@')[0],
@@ -95,8 +101,13 @@ const UserPickerScreen: React.FC<{ onSelect: (u: UserType) => void }> = ({ onSel
         avatar_url: p.avatar_url,
         role: p.role,
       })));
-    }).catch(() => setAllUsers([]));
-  }, [search]);
+    }).catch(() => {
+      if (!cancelled) setAllUsers([]);
+    }).finally(() => {
+      if (!cancelled) setLoadingUsers(false);
+    });
+    return () => { cancelled = true; };
+  }, [debouncedSearch]);
 
   const filtered = allUsers;
 
@@ -153,7 +164,12 @@ const UserPickerScreen: React.FC<{ onSelect: (u: UserType) => void }> = ({ onSel
             </div>
           </button>
         ))}
-        {filtered.length === 0 && (
+        {loadingUsers && (
+          <div style={{ padding: 28, textAlign: 'center', fontWeight: 900, color: 'var(--text-muted)' }}>
+            Kullanıcılar yükleniyor...
+          </div>
+        )}
+        {!loadingUsers && filtered.length === 0 && (
           <div style={{ padding: 48, textAlign: 'center', borderRadius: 16, border: '2px dashed var(--dark-border)' }}>
             <User size={36} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
             <p style={{ fontWeight: 900, color: 'var(--text-muted)', margin: 0 }}>Kullanıcı bulunamadı</p>
@@ -392,9 +408,12 @@ const AdminInventory: React.FC = () => {
   const loadUserRedemptions = useCallback(async (userId: string) => {
     setLoadingItems(true);
     try {
-      const redemptions = await getUserRedemptions(userId);
+      const redemptions = await getUserRedemptions(userId, 0, 100);
       setItems((redemptions as unknown as RedemptionRow[]).map(mapRedemptionToItem));
-    } catch { setItems([]); } finally { setLoadingItems(false); }
+    } catch (err) {
+      console.error('[AdminInventory] Failed to load user inventory:', err);
+      setItems([]);
+    } finally { setLoadingItems(false); }
   }, []);
 
   /* realtime: refresh when redemptions change for selected user */

@@ -65,6 +65,29 @@ export async function getAdminRewards(): Promise<Reward[]> {
   return data ?? [];
 }
 
+export async function getAdminRewardsPage(options: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  category?: string;
+} = {}): Promise<{ rows: Reward[]; count: number }> {
+  const page = Math.max(0, options.page ?? 0);
+  const pageSize = Math.min(100, Math.max(10, options.pageSize ?? 50));
+  let query = supabase
+    .from('rewards')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1);
+
+  const search = options.search?.trim();
+  if (search) query = query.ilike('title', `%${search.replaceAll('%', '\\%')}%`);
+  if (options.category && options.category !== 'all') query = query.eq('category', options.category);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return { rows: data ?? [], count: count ?? 0 };
+}
+
 export async function getFeaturedRewards(): Promise<Reward[]> {
   const { data, error } = await supabase
     .from('rewards')

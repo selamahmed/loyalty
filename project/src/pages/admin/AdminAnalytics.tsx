@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -26,20 +26,29 @@ type AnalyticsData = Awaited<ReturnType<typeof getAdvancedAnalytics>>;
 const AdminAnalytics: React.FC = () => {
   const [data, setData]       = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [lastUpdated, setLastUpdated] = useState('');
+  const hasDataRef = useRef(false);
 
   const load = useCallback(async () => {
     try {
-      setLoading(true);
+      if (hasDataRef.current) setRefreshing(true);
+      else setLoading(true);
+      setErrorMsg('');
       const d = await getAdvancedAnalytics();
       setData(d);
+      hasDataRef.current = true;
       setLastUpdated(new Date().toLocaleString('tr-TR'));
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error('[AdminAnalytics] Failed to load analytics:', err);
+      setErrorMsg('Analitik verileri yüklenemedi. Lütfen bağlantı veya RLS ayarlarını kontrol et.');
+    }
+    finally { setLoading(false); setRefreshing(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  useRealtimeTables(['profiles','points_transactions','activity_logs','redemptions','qr_scans'], load);
+  useRealtimeTables(['profiles','points_transactions','activity_logs','redemptions','qr_scans'], load, true, { debounceMs: 3000 });
 
   if (loading || !data) {
     return (
@@ -81,6 +90,7 @@ const AdminAnalytics: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           {lastUpdated && <span className="text-xs text-gray-400">Son güncelleme: {lastUpdated}</span>}
+          {refreshing && <span className="text-xs font-bold text-[#7B6EF6]">Arka planda yenileniyor...</span>}
           <button onClick={load} className="p-2 rounded-xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:shadow-md transition-all">
             <RefreshCw size={16} className="text-gray-600 dark:text-gray-400" />
           </button>
@@ -88,6 +98,12 @@ const AdminAnalytics: React.FC = () => {
       </div>
 
       {/* ── KPI Cards ── */}
+      {errorMsg && (
+        <div className="rounded-xl border-2 border-red-400 bg-red-50 dark:bg-red-950/30 p-3 text-sm font-bold text-red-700 dark:text-red-300">
+          {errorMsg}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpiCards.map(kpi => (
           <div key={kpi.label} className="card p-4 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">

@@ -147,6 +147,8 @@ const AdminQR: React.FC = () => {
   const [qrHistory, setQrHistory] = useState<CashierQRPayload[]>([]);
   const [generating, setGenerating] = useState(false);
   const [qrError, setQrError] = useState('');
+  const [storeError, setStoreError] = useState('');
+  const [inventoryError, setInventoryError] = useState('');
   const [showPreviewModal, setShowPreviewModal] = useState<CashierQRPayload | null>(null);
   const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -188,22 +190,28 @@ const AdminQR: React.FC = () => {
   /* ── Load store QR codes from Supabase ── */
   const loadCodes = useCallback(async () => {
     setCodesLoading(true);
+    setStoreError('');
     try {
-      const data = await getQRCodes();
+      const data = await getQRCodes(0, 100);
       setCodes((data as DBQRCode[]).filter(qr => !isCashierQRRow(qr)));
-    } catch { setCodes([]); } finally { setCodesLoading(false); }
+    } catch (err) {
+      console.error('[AdminQR] Failed to load store QR codes:', err);
+      setStoreError('QR kodları yüklenemedi. RLS/yetki ayarlarını kontrol et.');
+      setCodes([]);
+    } finally { setCodesLoading(false); }
   }, []);
 
   useEffect(() => { if (tab === 'store') loadCodes(); }, [tab, loadCodes]);
 
   /* ── Realtime: refresh store codes on DB change ── */
-  useRealtimeTable('qr_codes', loadCodes, tab === 'store');
+  useRealtimeTable('qr_codes', loadCodes, tab === 'store', { debounceMs: 1200 });
 
   /* ── Load inventory codes (redemptions) from Supabase ── */
   const loadInventory = useCallback(async () => {
     setInvLoading(true);
+    setInventoryError('');
     try {
-      const data = await getRedemptionsAdmin(0, 100);
+      const data = await getRedemptionsAdmin(0, 50);
       setInvItems((data as RedemptionAdminRow[]).map((r) => {
         const reward = normalizeJoinedReward(r);
         return {
@@ -219,13 +227,17 @@ const AdminQR: React.FC = () => {
           type: reward.category ?? 'reward',
         };
       }));
-    } catch { setInvItems([]); } finally { setInvLoading(false); }
+    } catch (err) {
+      console.error('[AdminQR] Failed to load inventory codes:', err);
+      setInventoryError('Envanter kodları yüklenemedi. RLS/yetki ayarlarını kontrol et.');
+      setInvItems([]);
+    } finally { setInvLoading(false); }
   }, []);
 
   useEffect(() => { if (tab === 'inventory') loadInventory(); }, [tab, loadInventory]);
 
   /* ── Realtime: refresh inventory on redemption change ── */
-  useRealtimeTable('redemptions', loadInventory, tab === 'inventory');
+  useRealtimeTable('redemptions', loadInventory, tab === 'inventory', { debounceMs: 1200 });
 
   const parsedAmount = parseFloat(amount) || 0;
   const estimatedPoints = spendAmountToPoints(parsedAmount, pointsPerTl);
@@ -264,6 +276,7 @@ const AdminQR: React.FC = () => {
   const genCode = () => `${(form.label || 'QR').slice(0, 6).replace(/\s/g, '').toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
   const handleCreate = async () => {
     setSaved(true);
+    let created = false;
     try {
       await createQRCode({
         code: genCode(),
@@ -272,21 +285,37 @@ const AdminQR: React.FC = () => {
         max_uses: form.max_uses ? parseInt(form.max_uses) : undefined,
       });
       await loadCodes();
-    } catch (e) { console.error(e); }
-    setTimeout(() => { setSaved(false); setShowModal(false); setForm({ label: '', points: 50, active: true, max_uses: '' }); }, 600);
+      created = true;
+    } catch (e) {
+      console.error('[AdminQR] Could not create store QR:', e);
+      setStoreError((e as Error).message || 'QR oluşturulamadı.');
+    }
+    setTimeout(() => {
+      setSaved(false);
+      if (created) {
+        setShowModal(false);
+        setForm({ label: '', points: 50, active: true, max_uses: '' });
+      }
+    }, 600);
   };
   const handleCopy = (code: string) => { navigator.clipboard.writeText(code).catch(() => {}); setCopied(code); setTimeout(() => setCopied(null), 2000); };
   const toggleActive = async (id: string, currentActive: boolean) => {
     try {
       await toggleQRCode(id, !currentActive);
       setCodes(prev => prev.map(c => c.id === id ? { ...c, active: !currentActive } : c));
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error('[AdminQR] Could not toggle QR:', e);
+      setStoreError('QR durumu değiştirilemedi.');
+    }
   };
   const handleDelete = async (id: string) => {
     try {
       await deleteQRCode(id);
       setCodes(prev => prev.filter(c => c.id !== id));
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error('[AdminQR] Could not delete QR:', e);
+      setStoreError('QR silinemedi.');
+    }
   };
 
   /* ── Inventory code handlers ── */
@@ -303,6 +332,7 @@ const AdminQR: React.FC = () => {
       await loadInventory();
     } catch (e) {
       console.error('[AdminQR] Could not update redemption code:', e);
+      setInventoryError('Envanter kodu gÃ¼ncellenemedi.');
     } finally {
       setInvSavingId(null);
     }
@@ -316,6 +346,7 @@ const AdminQR: React.FC = () => {
       await loadInventory();
     } catch (e) {
       console.error('[AdminQR] Could not regenerate redemption code:', e);
+      setInventoryError('Yeni envanter kodu oluÅŸturulamadÄ±.');
     } finally {
       setInvSavingId(null);
     }
@@ -612,6 +643,11 @@ const AdminQR: React.FC = () => {
         {/* ══ INVENTORY CODES TAB ══ */}
         {tab === 'inventory' && (
           <div className="space-y-4">
+            {inventoryError && (
+              <div className="rounded-xl border-2 border-red-400 bg-red-50 dark:bg-red-950/30 p-3 text-sm font-bold text-red-700 dark:text-red-300">
+                {inventoryError}
+              </div>
+            )}
             {invLoading && <div className="text-center py-6 text-gray-400 font-bold">Yükleniyor...</div>}
             <div className="grid grid-cols-3 gap-3">
               {[
@@ -695,6 +731,11 @@ const AdminQR: React.FC = () => {
         {/* ══ STORE QR TAB ══ */}
         {tab === 'store' && (
           <div className="space-y-4">
+            {storeError && (
+              <div className="rounded-xl border-2 border-red-400 bg-red-50 dark:bg-red-950/30 p-3 text-sm font-bold text-red-700 dark:text-red-300">
+                {storeError}
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Toplam Kod',  val: codes.length.toString() },
