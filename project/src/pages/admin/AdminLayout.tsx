@@ -44,7 +44,9 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const handleNavigate = (path: string) => {
     prefetchRoute(path);
     setSidebarOpen(false);
-    startTransition(() => navigate(path));
+    startTransition(() => {
+      void navigate(path);
+    });
   };
 
   const isActivePath = (path: string) => {

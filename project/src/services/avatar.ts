@@ -61,7 +61,7 @@ function cleanAvatarUrlForSave(seed: string, avatarUrl?: string): string {
     const facialHairVariant = normalizeAvatarFacialHairVariant(parsed.searchParams.get('facialHairVariant')?.trim() || undefined);
     const flip = normalizeAvatarFlip(parsed.searchParams.get('flip')?.trim() || undefined);
     const accessories = normalizeAvatarAccessory(
-      parsed.searchParams.get('accessories')?.trim() || undefined,
+      (parsed.searchParams.get('accessories') || parsed.searchParams.get('accessoriesType'))?.trim() || undefined,
     );
     const incomingProbability = Number(parsed.searchParams.get('accessoriesProbability'));
     const accessoriesProbability = Number.isFinite(incomingProbability) ? incomingProbability : undefined;
