@@ -182,9 +182,9 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
     urlSettings.backgroundColor || STRONG_BG_COLORS[0],
   );
   const [clothingColor, setClothingColor] = useState<string>(urlSettings.clothingColor || CLOTHING_COLORS[0]);
-  const [headVariant, setHeadVariant] = useState<AvatarHeadVariant | ''>(urlSettings.headVariant || '');
-  const [expressionVariant, setExpressionVariant] = useState<AvatarExpressionVariant | ''>(
-    urlSettings.expressionVariant || '',
+  const [headVariant, setHeadVariant] = useState<AvatarHeadVariant>(urlSettings.headVariant || 'hatHip');
+  const [expressionVariant, setExpressionVariant] = useState<AvatarExpressionVariant>(
+    urlSettings.expressionVariant || 'smileBig',
   );
   const [accessories, setAccessories] = useState<AvatarAccessory>(urlSettings.accessories || 'blank');
   const [facialHairVariant, setFacialHairVariant] = useState<AvatarFacialHairVariant>(
@@ -209,8 +209,8 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
     setSkinColor(parsed.skinColor || ALLOWED_SKIN_COLORS[0]);
     setBackgroundColor(parsed.backgroundColor || STRONG_BG_COLORS[0]);
     setClothingColor(parsed.clothingColor || CLOTHING_COLORS[0]);
-    setHeadVariant(parsed.headVariant || '');
-    setExpressionVariant(parsed.expressionVariant || '');
+    setHeadVariant(parsed.headVariant || 'hatHip');
+    setExpressionVariant(parsed.expressionVariant || 'smileBig');
     setAccessories(parsed.accessories || 'blank');
     setFacialHairVariant(parsed.facialHairVariant || 'blank');
     setScale(parsed.scale ?? 1);
@@ -235,8 +235,8 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
       skinColor,
       backgroundColor,
       clothingColor,
-      headVariant: headVariant || undefined,
-      expressionVariant: expressionVariant || undefined,
+      headVariant,
+      expressionVariant,
       accessories,
       accessoriesProbability: accessories === 'blank' ? 0 : 100,
       facialHairVariant,
@@ -299,8 +299,8 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
     setSkinColor(parsed.skinColor || ALLOWED_SKIN_COLORS[0]);
     setBackgroundColor(parsed.backgroundColor || STRONG_BG_COLORS[0]);
     setClothingColor(parsed.clothingColor || CLOTHING_COLORS[0]);
-    setHeadVariant(parsed.headVariant || '');
-    setExpressionVariant(parsed.expressionVariant || '');
+    setHeadVariant(parsed.headVariant || 'hatHip');
+    setExpressionVariant(parsed.expressionVariant || 'smileBig');
     setAccessories(parsed.accessories || 'blank');
     setFacialHairVariant(parsed.facialHairVariant || 'blank');
     setScale(parsed.scale ?? 1);
@@ -370,16 +370,14 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
 
   const renderSelect = <T extends string>(
     label: string,
-    value: T | '',
-    onNext: (next: T | '') => void,
+    value: T,
+    onNext: (next: T) => void,
     options: readonly T[],
     labels: Record<T, string>,
-    autoLabel?: string,
   ) => (
     <div className="control-group">
       <label className="control-label">{label}</label>
-      <select className="input-field select-field" value={value} onChange={(event) => onNext(event.target.value as T | '')}>
-        {autoLabel && <option value="">{autoLabel}</option>}
+      <select className="input-field select-field" value={value} onChange={(event) => onNext(event.target.value as T)}>
         {options.map((option) => (
           <option key={option} value={option}>
             {labels[option]}
@@ -505,8 +503,8 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
               </div>
 
               <div className="avatar-control-grid">
-                {renderSelect('Saç / Baş', headVariant, setHeadVariant, ALLOWED_HEAD_VARIANTS, HEAD_LABELS, 'Mevcut')}
-                {renderSelect('Yüz İfadesi', expressionVariant, setExpressionVariant, ALLOWED_EXPRESSION_VARIANTS, EXPRESSION_LABELS, 'Mevcut')}
+                {renderSelect('Saç / Baş', headVariant, setHeadVariant, ALLOWED_HEAD_VARIANTS, HEAD_LABELS)}
+                {renderSelect('Yüz İfadesi', expressionVariant, setExpressionVariant, ALLOWED_EXPRESSION_VARIANTS, EXPRESSION_LABELS)}
               </div>
 
               <div className="control-group">
@@ -525,13 +523,7 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
                 </div>
               </div>
 
-              {renderSelect(
-                'Sakal / Bıyık',
-                facialHairVariant,
-                (next) => setFacialHairVariant(next || 'blank'),
-                ALLOWED_FACIAL_HAIR_VARIANTS,
-                FACIAL_HAIR_LABELS,
-              )}
+              {renderSelect('Sakal / Bıyık', facialHairVariant, setFacialHairVariant, ALLOWED_FACIAL_HAIR_VARIANTS, FACIAL_HAIR_LABELS)}
             </div>
           )}
 
