@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
-import { prefetchCommonRoutes } from './lib/routePrefetch';
+import { prefetchAdminRoutes, prefetchCommonRoutes } from './lib/routePrefetch';
 
 const AuthProviders = React.lazy(() => import('./components/AuthProviders'));
 const AppDataProviders = React.lazy(() => import('./components/AppDataProviders'));
@@ -165,11 +165,30 @@ const CustomerShell: React.FC = () => {
   );
 };
 
-const AdminRouteShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Suspense fallback={null}>
-    <AdminDataProviders>{children}</AdminDataProviders>
-  </Suspense>
-);
+const AdminRouteShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useEffect(() => {
+    const run = () => prefetchAdminRoutes();
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(run, { timeout: 2500 });
+    } else {
+      timeoutId = setTimeout(run, 400);
+    }
+    return () => {
+      if (idleId !== undefined && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
+  }, []);
+
+  return (
+    <Suspense fallback={null}>
+      <AdminDataProviders>{children}</AdminDataProviders>
+    </Suspense>
+  );
+};
 
 const SA: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={null}>

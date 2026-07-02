@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { startTransition, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Gift, QrCode, Gamepad2, BarChart2,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { prefetchRoute } from '../../lib/routePrefetch';
 
 const adminNavItems = [
   { path: '/admin',               icon: LayoutDashboard, label: 'Kontrol Paneli'       },
@@ -38,6 +39,12 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const handleLogout = () => {
     logout().finally(() => navigate('/login', { replace: true }));
+  };
+
+  const handleNavigate = (path: string) => {
+    prefetchRoute(path);
+    setSidebarOpen(false);
+    startTransition(() => navigate(path));
   };
 
   const isActivePath = (path: string) => {
@@ -86,7 +93,11 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {adminNavItems.map(item => (
             <button
               key={item.path}
-              onClick={() => { navigate(item.path); setSidebarOpen(false); }}
+              onPointerEnter={() => prefetchRoute(item.path)}
+              onPointerDown={() => prefetchRoute(item.path)}
+              onFocus={() => prefetchRoute(item.path)}
+              onTouchStart={() => prefetchRoute(item.path)}
+              onClick={() => handleNavigate(item.path)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left text-sm font-medium ${
                 isActivePath(item.path)
                   ? 'bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white border-2 border-black dark:border-gray-600'
