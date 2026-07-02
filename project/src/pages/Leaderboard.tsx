@@ -315,6 +315,20 @@ const ChipSticker: React.FC<{ kind: keyof typeof LB_CHIP_STICKERS }> = ({ kind }
   );
 };
 
+const eventJoinErrorMessage = (error: unknown): string => {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('not authenticated')) return 'Etkinliğe katılmak için önce giriş yapmalısın.';
+  if (normalized.includes('not active')) return 'Bu etkinlik şu anda katılıma açık değil.';
+  if (normalized.includes('ended')) return 'Bu etkinlik sona erdi, artık katılım alınmıyor.';
+  if (normalized.includes('database') || normalized.includes('event_participants') || normalized.includes('join_event')) {
+    return 'Etkinlik sistemi henüz hazır değil. Lütfen biraz sonra tekrar dene.';
+  }
+
+  return message || 'Etkinliğe katılırken bir sorun oluştu. Lütfen tekrar dene.';
+};
+
 /* ── Countdown hook ── */
 const useCountdown = (endDate: string) => {
   const calc = () => {
@@ -386,7 +400,8 @@ const EventUserPositionCard: React.FC<{
   onJoin: () => void;
   joining: boolean;
   isLoggedIn: boolean;
-}> = ({ participation, ended, upcoming, onJoin, joining, isLoggedIn }) => {
+  error?: string | null;
+}> = ({ participation, ended, upcoming, onJoin, joining, isLoggedIn, error }) => {
   if (ended || upcoming || participation?.joined) return null;
 
   if (!isLoggedIn) {
@@ -404,6 +419,7 @@ const EventUserPositionCard: React.FC<{
       <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: '0 0 12px' }}>
         Katıl — kazandığın puanlar bu sıralamaya yansır.
       </p>
+      {error && <p className="event-lb__join-error">{error}</p>}
       <button type="button" onClick={onJoin} disabled={joining} className="btn-primary" style={{ width: '100%' }}>
         {joining ? 'Katılınıyor…' : 'Etkinliğe Katıl'}
       </button>
@@ -428,6 +444,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
   const [finalWinners, setFinalWinners] = React.useState<EventWinner[]>([]);
   const [participation, setParticipation] = React.useState<EventParticipation | null>(null);
   const [joining, setJoining] = React.useState(false);
+  const [joinError, setJoinError] = React.useState<string | null>(null);
   const loadingRef = React.useRef(false);
   const queuedRef = React.useRef(false);
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -462,11 +479,14 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
 
   const handleJoin = async () => {
     if (!authUser?.id || joining) return;
+    setJoinError(null);
     setJoining(true);
     try {
       setParticipation(await joinEvent(event.id));
       await loadEventBoard();
-    } catch { /* ignore */ } finally {
+    } catch (error) {
+      setJoinError(eventJoinErrorMessage(error));
+    } finally {
       setJoining(false);
     }
   };
@@ -589,6 +609,20 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
         </div>
       </div>
 
+      {showUserCard && !ended && !upcoming && !participation?.joined && (
+        <div className="event-lb__join-slot">
+          <EventUserPositionCard
+            participation={participation}
+            ended={ended}
+            upcoming={upcoming}
+            onJoin={() => { void handleJoin(); }}
+            joining={joining}
+            isLoggedIn={Boolean(authUser?.id)}
+            error={joinError}
+          />
+        </div>
+      )}
+
       {prizes.length > 0 && (
         <div className="event-lb__prizes">
           <div className="event-lb__prizes-head">
@@ -609,17 +643,6 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
       )}
 
       <div className="event-lb__body">
-        {showUserCard && (
-          <EventUserPositionCard
-            participation={participation}
-            ended={ended}
-            upcoming={upcoming}
-            onJoin={() => { void handleJoin(); }}
-            joining={joining}
-            isLoggedIn={Boolean(authUser?.id)}
-          />
-        )}
-
         {showEventMyRank && (
           <MyRankingCard
             rank={participation!.rank!}

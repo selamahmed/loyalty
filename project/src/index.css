@@ -5309,16 +5309,32 @@ body::before {
 }
 
 .event-lb__you {
-  margin: 12px 16px 0;
+  margin: 0;
   padding: 14px 16px;
   border-radius: 16px;
   border: 2px solid var(--gradient-start);
   background: linear-gradient(135deg, rgba(145, 34, 255, 0.06) 0%, rgba(255, 62, 157, 0.04) 100%);
 }
 
+.event-lb__join-slot {
+  padding: 14px 16px 0;
+}
+
 .event-lb__you--join {
   border-color: #22c55e;
   background: rgba(34, 197, 94, 0.06);
+}
+
+.event-lb__join-error {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 2px solid #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.35;
 }
 
 .event-lb__you-grid {
@@ -5618,15 +5634,42 @@ body::before {
 @media (max-width: 480px) {
   .event-lb__banner-top {
     flex-direction: column;
+    gap: 14px !important;
   }
 
   .event-lb__countdown {
-    align-self: flex-start;
+    align-self: stretch;
+    border-radius: 18px;
+    padding: 10px;
+  }
+
+  .event-lb__countdown-label {
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .event-lb__countdown-units {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .event-lb__countdown-unit {
-    min-width: 27px;
-    padding-inline: 4px;
+    min-width: 0;
+    padding: 6px 4px;
+    border-radius: 10px;
+  }
+
+  .event-lb__countdown-unit strong {
+    font-size: 15px;
+  }
+
+  .event-lb__join-slot {
+    padding: 12px 12px 0;
+  }
+
+  .event-lb__you {
+    padding: 12px;
+    border-radius: 18px;
   }
 
   .event-lb__you-grid {
