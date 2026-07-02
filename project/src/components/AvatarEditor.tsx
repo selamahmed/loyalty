@@ -135,7 +135,11 @@ const parseAvatarUrl = (url: string | null | undefined): Partial<AvatarUrlSettin
   try {
     const params = new URL(url).searchParams;
     const parsedSize = Number(params.get('size'));
-    const accessories = (params.get('accessories') || params.get('accessoriesType'))?.trim();
+    const accessories = (
+      params.get('accessoriesVariant')
+      || params.get('accessories')
+      || params.get('accessoriesType')
+    )?.trim();
     const accessoriesProbability = Number(params.get('accessoriesProbability'));
     const facialHairProbability = Number(params.get('facialHairProbability'));
 

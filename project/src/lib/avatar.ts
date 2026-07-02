@@ -234,7 +234,7 @@ export const buildAvatarUrl = (options: AvatarOptions | string): string => {
   const accessoriesProbability = normalizeProbability(opts.accessoriesProbability);
 
   if (accessories && accessories !== 'blank') {
-    params.set('accessories', accessories);
+    params.set('accessoriesVariant', accessories);
     params.set('accessoriesProbability', String(accessoriesProbability ?? 100));
   }
 

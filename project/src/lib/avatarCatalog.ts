@@ -36,7 +36,11 @@ function cleanDiceBearUrl(url: string, fallbackSeed: string): string {
     const facialHairVariant = normalizeAvatarFacialHairVariant(parsed.searchParams.get('facialHairVariant')?.trim() || undefined);
     const flip = normalizeAvatarFlip(parsed.searchParams.get('flip')?.trim() || undefined);
     const accessories = normalizeAvatarAccessory(
-      (parsed.searchParams.get('accessories') || parsed.searchParams.get('accessoriesType'))?.trim() || undefined,
+      (
+        parsed.searchParams.get('accessoriesVariant')
+        || parsed.searchParams.get('accessories')
+        || parsed.searchParams.get('accessoriesType')
+      )?.trim() || undefined,
     );
     const accessoriesProbabilityParam = Number(parsed.searchParams.get('accessoriesProbability'));
     const accessoriesProbability = Number.isFinite(accessoriesProbabilityParam)
