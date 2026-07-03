@@ -3,8 +3,11 @@ import { activityLogService, ActivityLog } from '../../lib/activityLogger';
 import { Search, Download, Filter, Eye, MapPin, Smartphone, Monitor, Globe, Shield, AlertTriangle, Clock, User, Wifi, Trash2, Ban, Unlock, Mail, Send } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { useRealtimeTable } from '../../hooks/useRealtime';
+import { suspendUser, broadcastNotification } from '../../services/admin';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminAuditLogs: React.FC = () => {
+  const { authUser } = useAuth();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<ActivityLog[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -13,6 +16,8 @@ const AdminAuditLogs: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [feedback, setFeedback] = useState('');
 
   const actionTypes = [
     'login', 'logout', 'points_earned', 'points_spent', 'purchase',
@@ -149,6 +154,84 @@ const AdminAuditLogs: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const toast = (message: string) => {
+    setFeedback(message);
+    window.setTimeout(() => setFeedback(''), 3500);
+  };
+
+  const closeDetail = () => {
+    setShowDetail(false);
+    setSelectedLog(null);
+  };
+
+  const contactSelectedUser = () => {
+    if (!selectedLog?.email) {
+      toast('No email is available for this log.');
+      return;
+    }
+
+    const subject = encodeURIComponent('NesveNext account security');
+    const body = encodeURIComponent(
+      `Hello ${selectedLog.username || 'there'},\n\nWe are contacting you about recent account activity on NesveNext.\n\nActivity: ${selectedLog.action}\nTime: ${new Date(selectedLog.created_at).toLocaleString()}\n\nThank you,\nNesveNext Team`,
+    );
+    window.location.href = `mailto:${selectedLog.email}?subject=${subject}&body=${body}`;
+  };
+
+  const suspendSelectedUser = async () => {
+    if (!selectedLog?.user_id) {
+      toast('No user is linked to this activity log.');
+      return;
+    }
+    if (authUser?.id === selectedLog.user_id) {
+      toast('You cannot suspend your own account from audit logs.');
+      return;
+    }
+    const confirmed = window.confirm(`Suspend ${selectedLog.username || selectedLog.email || 'this user'}?`);
+    if (!confirmed) return;
+
+    setActionBusy(true);
+    try {
+      await suspendUser(selectedLog.user_id);
+      await broadcastNotification({
+        type: 'system',
+        title: 'Hesap Askıya Alındı',
+        message: 'Hesabınız güvenlik incelemesi nedeniyle geçici olarak askıya alındı. Destek ekibiyle iletişime geçebilirsiniz.',
+        icon: '⏸️',
+        userIds: [selectedLog.user_id],
+      }).catch(() => {});
+
+      if (authUser) {
+        void activityLogService.logActivity({
+          userId: authUser.id,
+          username: authUser.username ?? authUser.name ?? authUser.email,
+          email: authUser.email,
+          role: authUser.role,
+          action: `Audit log üzerinden kullanıcı askıya alındı: ${selectedLog.username || selectedLog.email}`,
+          actionType: 'account_suspended',
+          riskLevel: 'high',
+          details: {
+            targetUserId: selectedLog.user_id,
+            targetEmail: selectedLog.email,
+            sourceLogId: selectedLog.id,
+            sourceAction: selectedLog.action,
+          },
+        });
+      }
+
+      setLogs(prev => prev.map(log => (
+        log.user_id === selectedLog.user_id
+          ? { ...log, details: { ...(log.details ?? {}), accountStatusAction: 'suspended' } }
+          : log
+      )));
+      toast('User suspended successfully.');
+      closeDetail();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'User could not be suspended.');
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   const stats = {
     total: logs.length,
     today: logs.filter(l => new Date(l.created_at) > new Date(Date.now() - 86400000)).length,
@@ -172,6 +255,12 @@ const AdminAuditLogs: React.FC = () => {
   return (
     <AdminLayout>
     <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+      {feedback && (
+        <div className="fixed top-4 right-4 z-[9999] max-w-sm rounded-2xl border-2 border-black bg-[#7B6EF6] px-4 py-3 text-sm font-black text-white shadow-xl">
+          {feedback}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
@@ -395,7 +484,7 @@ const AdminAuditLogs: React.FC = () => {
                 )}
                 Activity Details
               </h2>
-              <button onClick={() => setShowDetail(false)} className="text-2xl text-gray-400 hover:text-gray-600 flex-shrink-0">&times;</button>
+              <button onClick={closeDetail} className="text-2xl text-gray-400 hover:text-gray-600 flex-shrink-0">&times;</button>
             </div>
 
             {/* Risk Alert */}
@@ -546,19 +635,27 @@ const AdminAuditLogs: React.FC = () => {
             {/* Admin Actions */}
             <div className="flex gap-3">
               <button
-                onClick={() => setShowDetail(false)}
+                onClick={closeDetail}
                 className="flex-1 py-3 rounded-2xl border-2 border-black dark:border-gray-600 font-bold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 Close
               </button>
-              <button className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-colors">
+              <button
+                onClick={contactSelectedUser}
+                disabled={actionBusy || !selectedLog.email}
+                className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              >
                 <Mail size={18} />
                 Contact User
               </button>
               {selectedLog.user_id && (
-                <button className="flex items-center gap-2 px-4 py-3 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-colors">
+                <button
+                  onClick={suspendSelectedUser}
+                  disabled={actionBusy || authUser?.id === selectedLog.user_id}
+                  className="flex items-center gap-2 px-4 py-3 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                >
                   <Ban size={18} />
-                  Suspend
+                  {actionBusy ? 'Suspending...' : 'Suspend'}
                 </button>
               )}
             </div>

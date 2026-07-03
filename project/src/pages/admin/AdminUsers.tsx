@@ -82,6 +82,12 @@ function riskBadge(score: number) {
 }
 
 /* ══════════════════════════════════════════════════════════════ */
+function copyText(value: string, done: (message: string) => void) {
+  navigator.clipboard?.writeText(value)
+    .then(() => done('Kopyalandı'))
+    .catch(() => done('Kopyalanamadı'));
+}
+
 const AdminUsers: React.FC = () => {
   const { authUser: adminUser } = useAuth();
   const [users,        setUsers]       = useState<EnrichedUser[]>([]);
@@ -603,6 +609,45 @@ const AdminUsers: React.FC = () => {
                         <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{i.val}</p>
                       </div>
                     ))}
+                  </div>
+                  <div className="rounded-2xl border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/40">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-sm font-black text-gray-900 dark:text-white">Detaylı Kullanıcı Bilgisi</p>
+                      <button
+                        onClick={() => copyText(selected.id, toast)}
+                        className="rounded-xl border-2 border-black bg-white px-3 py-1.5 text-xs font-black text-gray-700 transition hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                      >
+                        ID Kopyala
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {[
+                        { label:'Tam Kullanıcı ID', val:selected.id },
+                        { label:'Rol', val:ROLE_LABEL[selected.role as RoleType] ?? selected.role },
+                        { label:'Durum', val:selected.status === 'active' ? 'Aktif' : selected.status === 'suspended' ? 'Askıda' : 'Yasaklı' },
+                        { label:'Mevcut / Toplam Puan', val:`${fmtNum(selected.current_points)} / ${fmtNum(selected.total_points)}` },
+                        { label:'Seviye & XP', val:`Lv.${selected.level} · ${selected.xp} / ${selected.xp_to_next} XP` },
+                        { label:'Günlük Seri', val:`${selected.streak} gün` },
+                        { label:'Kayıt Tarihi', val:new Date(selected.created_at).toLocaleString('tr-TR') },
+                        { label:'Son Güncelleme', val:new Date(selected.updated_at).toLocaleString('tr-TR') },
+                        { label:'Risk Olayları', val:`${selected.riskScore}` },
+                      ].map(item => (
+                        <div key={item.label} className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/80">
+                          <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-gray-400">{item.label}</p>
+                          <p className="break-words text-sm font-bold text-gray-900 dark:text-white">{item.val}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/80">
+                        <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-gray-400">Avatar URL</p>
+                        <p className="break-all text-xs font-bold text-gray-700 dark:text-gray-300">{selected.avatar_url || 'Yok'}</p>
+                      </div>
+                      <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/80">
+                        <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-gray-400">Bio / Admin Notu</p>
+                        <p className="text-xs font-bold text-gray-700 dark:text-gray-300">{selected.bio || 'Not yok'}</p>
+                      </div>
+                    </div>
                   </div>
                   {/* Points stats */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
