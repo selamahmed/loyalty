@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Download, RefreshCw, RotateCcw, Save, Sparkles } from 'lucide-react';
 import {
   ALLOWED_ACCESSORIES,
@@ -178,7 +178,7 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
 }) => {
   const fallbackSeed = getDefaultAvatarSeed(userContext || {});
   const urlSettings = parseAvatarUrl(currentUrl);
-  const initialSeed = currentSeed?.trim() || urlSettings.seed || fallbackSeed;
+  const initialSeed = urlSettings.seed || currentSeed?.trim() || fallbackSeed;
 
   const [seed, setSeed] = useState<string>(initialSeed);
   const [skinColor, setSkinColor] = useState<string>(urlSettings.skinColor || ALLOWED_SKIN_COLORS[0]);
@@ -199,6 +199,7 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
   const [translateX, setTranslateX] = useState<number>(urlSettings.translateX ?? 0);
   const [translateY, setTranslateY] = useState<number>(urlSettings.translateY ?? 0);
   const [flip, setFlip] = useState<AvatarFlip>(urlSettings.flip || 'none');
+  const hasEmittedInitialDraftRef = useRef(false);
   const [customBgHex, setCustomBgHex] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'appearance' | 'colors' | 'position'>('appearance');
   const [saving, setSaving] = useState<boolean>(false);
@@ -207,7 +208,7 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
 
   useEffect(() => {
     const parsed = parseAvatarUrl(currentUrl);
-    const nextSeed = currentSeed?.trim() || parsed.seed || fallbackSeed;
+    const nextSeed = parsed.seed || currentSeed?.trim() || fallbackSeed;
 
     setSeed(nextSeed);
     setSkinColor(parsed.skinColor || ALLOWED_SKIN_COLORS[0]);
@@ -274,6 +275,10 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
   );
 
   useEffect(() => {
+    if (!hasEmittedInitialDraftRef.current) {
+      hasEmittedInitialDraftRef.current = true;
+      return;
+    }
     onChange?.(resolvedSeed, avatarUrl);
   }, [avatarUrl, onChange, resolvedSeed]);
 
@@ -299,7 +304,7 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
   const handleReset = () => {
     const parsed = parseAvatarUrl(currentUrl);
 
-    setSeed(currentSeed?.trim() || parsed.seed || fallbackSeed);
+    setSeed(parsed.seed || currentSeed?.trim() || fallbackSeed);
     setSkinColor(parsed.skinColor || ALLOWED_SKIN_COLORS[0]);
     setBackgroundColor(parsed.backgroundColor || STRONG_BG_COLORS[0]);
     setClothingColor(parsed.clothingColor || CLOTHING_COLORS[0]);

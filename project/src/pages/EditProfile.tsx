@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import AccountPageShell, { Section, SaveButton, inputStyle } from '../components/AccountPageShell';
 import AvatarEditor from '../components/AvatarEditor';
@@ -24,8 +24,11 @@ const labelStyle: React.CSSProperties = {
 
 const EditProfile: React.FC = () => {
   const { user, updateUser } = useApp();
-  const { authUser } = useAuth();
+  const { authUser, profile } = useAuth();
   const invalidateProfile = useInvalidateProfile();
+  const currentProfileAvatar = profile?.avatar_url ?? authUser?.avatar ?? user.avatar ?? null;
+  const currentProfileAvatarSeed = profile?.avatar_seed ?? authUser?.avatar_seed ?? user.avatarSeed ?? undefined;
+  const avatarDraftTouchedRef = useRef(false);
 
   const [form, setForm] = useState({
     username: user.username,
@@ -34,13 +37,20 @@ const EditProfile: React.FC = () => {
     bio: user.bio ?? '',
   });
 
-  const [selectedAvatar, setSelectedAvatar] = useState(() => user.avatar ?? null);
-  const [selectedAvatarSeed, setSelectedAvatarSeed] = useState<string | undefined>(() => user.avatarSeed || undefined);
+  const [selectedAvatar, setSelectedAvatar] = useState(() => currentProfileAvatar);
+  const [selectedAvatarSeed, setSelectedAvatarSeed] = useState<string | undefined>(() => currentProfileAvatarSeed);
   const [saveErr, setSaveErr] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    if (avatarDraftTouchedRef.current) return;
+    setSelectedAvatar(currentProfileAvatar);
+    setSelectedAvatarSeed(currentProfileAvatarSeed);
+  }, [currentProfileAvatar, currentProfileAvatarSeed]);
+
   const handleAvatarDraftChange = useCallback((seed: string, url: string) => {
+    avatarDraftTouchedRef.current = true;
     setSelectedAvatar(url);
     setSelectedAvatarSeed(seed);
   }, []);
@@ -56,6 +66,7 @@ const EditProfile: React.FC = () => {
 
       setSelectedAvatar(savedAvatar.avatar_url);
       setSelectedAvatarSeed(savedAvatar.avatar_seed);
+      avatarDraftTouchedRef.current = false;
 
       await updateUser({
         avatar: savedAvatar.avatar_url,
