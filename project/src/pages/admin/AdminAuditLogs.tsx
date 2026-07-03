@@ -6,6 +6,38 @@ import { useRealtimeTable } from '../../hooks/useRealtime';
 import { suspendUser, broadcastNotification } from '../../services/admin';
 import { useAuth } from '../../context/AuthContext';
 
+const DETAIL_LABELS: Record<string, string> = {
+  rewardId: 'Reward ID',
+  rewardTitle: 'Reward',
+  rewardCategory: 'Category',
+  redemptionCode: 'Ticket Code',
+  pointsSpent: 'Points Spent',
+  targetUserId: 'Target User ID',
+  targetEmail: 'Target Email',
+  sourceLogId: 'Source Log ID',
+  sourceAction: 'Source Action',
+  newRole: 'New Role',
+  oldRole: 'Old Role',
+  amount: 'Amount',
+  reason: 'Reason',
+};
+
+function humanizeDetailKey(key: string) {
+  if (DETAIL_LABELS[key]) return DETAIL_LABELS[key];
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function formatDetailValue(value: unknown) {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'number') return value.toLocaleString('tr-TR');
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'string') return value;
+  return JSON.stringify(value, null, 2);
+}
+
 const AdminAuditLogs: React.FC = () => {
   const { authUser } = useAuth();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -623,11 +655,51 @@ const AdminAuditLogs: React.FC = () => {
               )}
 
               {selectedLog.details && Object.keys(selectedLog.details).length > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-bold">Additional Data</p>
-                  <pre className="bg-gray-900 dark:bg-gray-950 text-green-400 p-4 rounded-xl text-xs overflow-auto max-h-40">
-                    {JSON.stringify(selectedLog.details, null, 2)}
-                  </pre>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-bold">Readable Details</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(JSON.stringify(selectedLog.details, null, 2))
+                          .then(() => toast('Details copied.'))
+                          .catch(() => toast('Details could not be copied.'));
+                      }}
+                      className="rounded-xl border-2 border-black/10 bg-white px-3 py-1.5 text-xs font-black text-gray-700 hover:bg-gray-100 dark:border-white/10 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                    >
+                      Copy JSON
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {Object.entries(selectedLog.details).map(([key, value]) => {
+                      const formatted = formatDetailValue(value);
+                      const isLong = formatted.length > 48;
+                      const isCodeLike = /id|code|uuid/i.test(key);
+                      return (
+                        <div
+                          key={key}
+                          className="rounded-2xl border-2 border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800/80"
+                        >
+                          <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-gray-400">
+                            {humanizeDetailKey(key)}
+                          </p>
+                          <p className={`${isCodeLike ? 'font-mono' : 'font-bold'} ${isLong ? 'break-all text-xs' : 'text-sm'} text-gray-900 dark:text-white`}>
+                            {formatted}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <details className="rounded-2xl border-2 border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/60">
+                    <summary className="cursor-pointer px-4 py-3 text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                      Raw JSON for debugging
+                    </summary>
+                    <pre className="m-3 max-h-40 overflow-auto rounded-xl bg-gray-950 p-4 text-xs text-green-300">
+                      {JSON.stringify(selectedLog.details, null, 2)}
+                    </pre>
+                  </details>
                 </div>
               )}
             </div>
