@@ -171,21 +171,19 @@ const EditProfile: React.FC = () => {
       subtitle="Kişisel bilgilerini güncelle"
       maxWidth="4xl"
     >
-      <Section title="Avatar Özelleştir" emoji="🎨">
-        <div style={{ padding: '8px 10px' }}>
-          <AvatarEditor
-            currentSeed={selectedAvatarSeed ?? null}
-            currentUrl={selectedAvatar}
-            onChange={handleAvatarDraftChange}
-            onSave={handleSaveAvatar}
-            loading={saving}
-            userContext={{
-              name: form.username,
-              email: authUser?.email,
-              id: authUser?.id,
-            }}
-          />
-        </div>
+      <Section title="Avatar Özelleştir" emoji="🎨" framed={false}>
+        <AvatarEditor
+          currentSeed={selectedAvatarSeed ?? null}
+          currentUrl={selectedAvatar}
+          onChange={handleAvatarDraftChange}
+          onSave={handleSaveAvatar}
+          loading={saving}
+          userContext={{
+            name: form.username,
+            email: authUser?.email,
+            id: authUser?.id,
+          }}
+        />
       </Section>
 
       <Section title="Kişisel Bilgiler" emoji="📝">

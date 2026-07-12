@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Check, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Check, ChevronDown, ChevronRight, FileText, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { activityLogService } from '../lib/activityLogger';
-import { SIGNUP_KEY_POINTS } from '../lib/legalContent';
 import AuthPageShell from '../components/AuthPageShell';
 import AppLogo from '../components/AppLogo';
 import StickerAccent from '../components/StickerAccent';
@@ -24,6 +23,7 @@ const Register: React.FC = () => {
   const [showPass, setShowPass]   = useState(false);
   const [loading, setLoading]     = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [consentExpanded, setConsentExpanded] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -139,74 +139,6 @@ const Register: React.FC = () => {
             </button>
           </div>
 
-          {/* Important points summary */}
-          <div
-            className="auth-legal-card"
-            style={{
-              padding: '14px 14px',
-              borderRadius: 16,
-              border: '2.5px solid var(--dark-border)',
-              background: 'var(--tab-bg)',
-              boxShadow: '0 3px 0 var(--dark-border)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <AlertTriangle size={16} color="#f59e0b" />
-              <p style={{ margin: 0, fontWeight: 900, fontSize: 12, color: 'var(--text-dark)' }}>
-                Kayıt olmadan önce önemli bilgiler
-              </p>
-            </div>
-            <ul className="auth-legal-card__points" style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {SIGNUP_KEY_POINTS.map(point => (
-                <li key={point} style={{ fontSize: 11, lineHeight: 1.55, color: 'var(--text-muted)' }}>{point}</li>
-              ))}
-            </ul>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-              <button
-                type="button"
-                onClick={() => openLegal('/terms')}
-                style={{ color: 'var(--primary-blue)', fontWeight: 900, fontSize: 11, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
-              >
-                Kullanım Şartları & Kurallar
-              </button>
-              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>·</span>
-              <button
-                type="button"
-                onClick={() => openLegal('/privacy')}
-                style={{ color: 'var(--primary-blue)', fontWeight: 900, fontSize: 11, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
-              >
-                Gizlilik Politikası (KVKK)
-              </button>
-            </div>
-          </div>
-
-          <label className="auth-terms-row flex items-start gap-3 cursor-pointer">
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, terms: !form.terms })}
-              aria-label={form.terms ? 'Şartları kabul etmeyi kaldır' : 'Kullanım şartlarını ve gizlilik politikasını kabul et'}
-              className="auth-checkbox w-5 h-5 mt-0.5 rounded-button border-2.5 flex items-center justify-center flex-shrink-0 transition-all"
-              style={{
-                borderColor: 'var(--dark-border)',
-                background: form.terms ? 'linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)' : 'var(--input-bg)',
-                boxShadow: '0px 2px 0px var(--dark-border)',
-              }}
-            >
-              {form.terms && <Check size={12} className="text-white" strokeWidth={3} />}
-            </button>
-            <span style={{ color: 'var(--text-dark)' }} className="text-sm">
-              <button type="button" onClick={() => openLegal('/terms')} style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">
-                Kullanım Şartları
-              </button>
-              {' '}ve{' '}
-              <button type="button" onClick={() => openLegal('/privacy')} style={{ color: 'var(--primary-blue)' }} className="font-black hover:underline">
-                Gizlilik Politikası
-              </button>
-              {' '}nı okudum ve kabul ediyorum
-            </span>
-          </label>
-          {errors.terms && <p className="text-red-500 text-xs">{errors.terms}</p>}
-
           {/* Google */}
           <button
             type="button"
@@ -296,6 +228,65 @@ const Register: React.FC = () => {
               />
               {errors.confirm && <p className="text-red-500 text-xs mt-1">{errors.confirm}</p>}
             </div>
+
+            <section className={`auth-consent-card${consentExpanded ? ' auth-consent-card--expanded' : ''}${errors.terms ? ' auth-consent-card--error' : ''}`} aria-labelledby="consent-title">
+              <button
+                type="button"
+                className="auth-consent-card__header"
+                onClick={() => setConsentExpanded(current => !current)}
+                aria-expanded={consentExpanded}
+                aria-controls="consent-documents"
+              >
+                <span className="auth-consent-card__icon" aria-hidden><ShieldCheck size={19} /></span>
+                <span className="auth-consent-card__heading">
+                  <strong id="consent-title">Gizlilik ve sözleşmeler</strong>
+                  <small>{consentExpanded ? 'Belgeleri aşağıdan inceleyebilirsiniz.' : 'Belgeleri görüntülemek için dokunun.'}</small>
+                </span>
+                <span className="auth-consent-card__header-end">
+                  <span className="auth-consent-card__required">Zorunlu</span>
+                  <ChevronDown className="auth-consent-card__chevron" size={17} aria-hidden />
+                </span>
+              </button>
+
+              <div id="consent-documents" className="auth-consent-documents" hidden={!consentExpanded}>
+                <button type="button" onClick={() => openLegal('/privacy')} className="auth-consent-document">
+                  <span className="auth-consent-document__icon" aria-hidden><ShieldCheck size={17} /></span>
+                  <span className="auth-consent-document__copy">
+                    <strong>Gizlilik Politikası ve KVKK</strong>
+                    <small>Verilerinizin nasıl işlendiğini öğrenin</small>
+                  </span>
+                  <ChevronRight size={17} aria-hidden />
+                </button>
+                <button type="button" onClick={() => openLegal('/terms')} className="auth-consent-document">
+                  <span className="auth-consent-document__icon" aria-hidden><FileText size={17} /></span>
+                  <span className="auth-consent-document__copy">
+                    <strong>Kullanım Şartları</strong>
+                    <small>Hizmet ve platform kurallarını inceleyin</small>
+                  </span>
+                  <ChevronRight size={17} aria-hidden />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={form.terms}
+                onClick={() => {
+                  setForm({ ...form, terms: !form.terms });
+                  if (errors.terms) setErrors(current => ({ ...current, terms: '' }));
+                }}
+                className="auth-consent-check"
+              >
+                <span className={`auth-checkbox${form.terms ? ' auth-checkbox--checked' : ''}`} aria-hidden>
+                  {form.terms && <Check size={14} strokeWidth={3.5} />}
+                </span>
+                <span>
+                  <strong>Kabul ediyorum</strong>
+                  <small>Kullanım Şartları’nı kabul ediyor; Gizlilik Politikası ve KVKK Aydınlatma Metni’ni okuduğumu onaylıyorum.</small>
+                </span>
+              </button>
+              {errors.terms && <p className="auth-consent-error" role="alert">{errors.terms}</p>}
+            </section>
 
             {errors.submit && <p className="auth-error text-red-500 text-xs p-2 rounded" style={{ background: '#ef444422', border: '1px solid #ef4444' }}>{errors.submit}</p>}
 

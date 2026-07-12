@@ -43,15 +43,18 @@ export const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void }
   </button>
 );
 
-export const Section: React.FC<{ title: string; emoji: string; children: React.ReactNode }> = ({ title, emoji, children }) => (
+export const Section: React.FC<{
+  title: string;
+  emoji: string;
+  children: React.ReactNode;
+  framed?: boolean;
+}> = ({ title, emoji, children, framed = true }) => (
   <div>
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, paddingLeft: 4 }}>
       <span style={{ fontSize: 14 }}>{emoji}</span>
       <p style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em', margin: 0 }}>{title}</p>
     </div>
-    <div style={{ ...card, overflow: 'hidden' }}>
-      {children}
-    </div>
+    {framed ? <div style={{ ...card, overflow: 'hidden' }}>{children}</div> : children}
   </div>
 );
 

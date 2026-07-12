@@ -2,7 +2,8 @@
 
 export const LEGAL_META = {
   appName: 'NexReward',
-  lastUpdated: '13 Haziran 2026',
+  providerName: 'NeşveNext',
+  lastUpdated: '12 Temmuz 2026',
   contactEmail: 'destek@nexreward.com',
   jurisdiction: 'Türkiye Cumhuriyeti',
 } as const;
@@ -122,7 +123,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     id: 'controller',
     title: '1. Veri Sorumlusu',
     paragraphs: [
-      `6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında veri sorumlusu ${LEGAL_META.appName} platformudur.`,
+      `${LEGAL_META.appName}, ${LEGAL_META.providerName} tarafından sunulan bir sadakat ve ödül platformudur. 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında veri sorumlusu ${LEGAL_META.providerName}'tir.`,
       `İletişim: ${LEGAL_META.contactEmail}`,
     ],
   },
@@ -139,8 +140,23 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     ],
   },
   {
+    id: 'google-sign-in',
+    title: '3. Google ile Giriş Verileri',
+    paragraphs: [
+      'Google ile giriş yapmayı seçtiğinizde yalnızca kimlik doğrulama ve hesap oluşturma/bağlama için gerekli temel profil bilgileri alınır. Google hesabınızın şifresine erişmeyiz.',
+      'Google kullanıcı verileri reklam hedefleme amacıyla kullanılmaz, satılmaz ve hizmetin sunulması için gerekli teknik altyapı sağlayıcıları dışında üçüncü taraflarla paylaşılmaz.',
+      'Google kullanıcı verilerini kullanımımız, Google API Hizmetleri Kullanıcı Verileri Politikası ve Sınırlı Kullanım gereksinimleriyle uyumludur.',
+    ],
+    bullets: [
+      'Google hesabına ait benzersiz kullanıcı kimliği',
+      'E-posta adresi',
+      'Görünen ad ve varsa profil fotoğrafı',
+      'Oturum açma ve hesap güvenliği için gerekli kimlik doğrulama kayıtları',
+    ],
+  },
+  {
     id: 'purposes',
-    title: '3. İşleme Amaçları',
+    title: '4. İşleme Amaçları',
     paragraphs: ['Kişisel verileriniz aşağıdaki amaçlarla işlenir:'],
     bullets: [
       'Üyelik oluşturma, kimlik doğrulama ve hesap yönetimi',
@@ -154,7 +170,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
   {
     id: 'legal-basis',
-    title: '4. Hukuki Sebepler',
+    title: '5. Hukuki Sebepler',
     paragraphs: ['KVKK m. 5 ve m. 6 kapsamında verileriniz şu hukuki sebeplere dayanılarak işlenir:'],
     bullets: [
       'Bir sözleşmenin kurulması veya ifası (üyelik ve hizmet sunumu)',
@@ -165,24 +181,25 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
   {
     id: 'transfer',
-    title: '5. Aktarım ve Yurt Dışı',
+    title: '6. Aktarım ve Yurt Dışı',
     paragraphs: [
-      'Verileriniz; barındırma, kimlik doğrulama, analitik ve bildirim hizmeti sağlayıcıları gibi teknik altyapı ortaklarıyla, hizmetin sunulması için gerekli ölçüde paylaşılabilir.',
+      'Verileriniz; barındırma ve kimlik doğrulama altyapısı sağlayan Supabase ile analitik ve bildirim hizmeti sağlayıcıları gibi teknik altyapı ortaklarıyla, hizmetin sunulması için gerekli ölçüde paylaşılabilir.',
       'Yurt dışına aktarım söz konusuysa KVKK m. 9 hükümlerine uygun güvenceler (açık rıza, yeterlilik kararı veya taahhütname) sağlanır.',
       'Kişisel verileriniz reklam amaçlı üçüncü taraflara satılmaz.',
     ],
   },
   {
     id: 'retention',
-    title: '6. Saklama Süreleri',
+    title: '7. Saklama Süreleri ve Silme',
     paragraphs: [
       'Verileriniz, işleme amacının gerektirdiği süre boyunca ve ilgili mevzuattaki zamanaşımı süreleri kadar saklanır.',
       'Hesap kapatıldığında, yasal saklama zorunluluğu bulunmayan veriler makul süre içinde silinir veya anonimleştirilir.',
+      `Google ile giriş verileriniz hesabınız aktif olduğu sürece saklanır. Hesabınızın ve ilişkili Google profil verilerinin silinmesini ${LEGAL_META.contactEmail} adresinden talep edebilirsiniz.`,
     ],
   },
   {
     id: 'rights',
-    title: '7. KVKK Kapsamındaki Haklarınız',
+    title: '8. KVKK Kapsamındaki Haklarınız',
     paragraphs: ['KVKK m. 11 uyarınca aşağıdaki haklara sahipsiniz:'],
     bullets: [
       'Kişisel verilerinizin işlenip işlenmediğini öğrenme',
@@ -198,7 +215,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
   {
     id: 'cookies',
-    title: '8. Çerezler ve Yerel Depolama',
+    title: '9. Çerezler ve Yerel Depolama',
     paragraphs: [
       'Oturum yönetimi, tercihlerinizin hatırlanması ve güvenlik için çerezler ve tarayıcı yerel depolaması kullanılır.',
       'Zorunlu çerezler hizmetin çalışması için gereklidir. Analitik veya pazarlama çerezleri varsa açık rızanız alınır.',
@@ -207,7 +224,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
   {
     id: 'security',
-    title: '9. Güvenlik',
+    title: '10. Güvenlik',
     paragraphs: [
       'Verilerinizin korunması için şifreleme, erişim kontrolü ve güvenli sunucu altyapısı gibi teknik ve idari tedbirler uygulanır.',
       'Hiçbir sistem %100 güvenli değildir; şüpheli bir durum fark ederseniz derhal bizimle iletişime geçin.',
@@ -215,7 +232,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
   {
     id: 'children',
-    title: '10. Çocukların Gizliliği',
+    title: '11. Çocukların Gizliliği',
     paragraphs: [
       'Platform 18 yaş altındaki kişilere yönelik değildir. Bilerek 18 yaş altından kişisel veri toplanmaz.',
       'Ebeveyn veya veli iseniz ve çocuğunuzun veri paylaştığını düşünüyorsanız bizimle iletişime geçin.',
@@ -223,7 +240,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
   {
     id: 'updates',
-    title: '11. Politika Güncellemeleri',
+    title: '12. Politika Güncellemeleri',
     paragraphs: [
       'Bu politika güncellenebilir. Güncel metin her zaman Platform üzerinde yayımlanır.',
       `Son güncelleme: ${LEGAL_META.lastUpdated}. Başvurularınızı ${LEGAL_META.contactEmail} adresine iletebilirsiniz.`,

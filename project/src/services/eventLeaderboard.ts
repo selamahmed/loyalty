@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { AppEvent } from './events';
+import { deriveEventStatus, type AppEvent } from './events';
 
 /** Event-specific leaderboard entry — points are NOT global profile points. */
 export type EventLeaderboardEntry = {
@@ -162,8 +162,8 @@ export async function checkLeaderboardDb(): Promise<LeaderboardDbStatus> {
 
 /**
  * Prize events shown on the user leaderboard.
- * Includes all admin-published prize events, even after the end date.
- * Admin visibility controls are `published`/`active`; time does not auto-hide events.
+ * Only current/upcoming admin-published prize events belong in the primary selector.
+ * Completed events remain available to admins and event-history surfaces.
  */
 export async function getLeaderboardPrizeEvents(): Promise<AppEvent[]> {
   const key = 'leaderboard-prize-events';
@@ -184,8 +184,10 @@ export async function getLeaderboardPrizeEvents(): Promise<AppEvent[]> {
       eventListCache,
       key,
       (data ?? [])
+        .map(row => row as unknown as AppEvent)
+        .filter(event => !['ended', 'distributed'].includes(deriveEventStatus(event)))
         .filter(hasPrizePool)
-        .map(row => row as unknown as AppEvent),
+        .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()),
       EVENT_LIST_CACHE_MS,
     );
   })().finally(() => {

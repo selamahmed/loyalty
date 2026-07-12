@@ -181,6 +181,28 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, hovered, setHovered, scr
           </div>
         </section>
 
+        {/* ══ GOOGLE SIGN-IN TRANSPARENCY ══ */}
+        <section aria-labelledby="google-signin-heading" style={{ padding: '0 clamp(16px,4vw,64px) 56px' }}>
+          <div style={{
+            maxWidth: 960, margin: '0 auto', padding: 'clamp(24px,4vw,36px)',
+            borderRadius: 22, border: '2.5px solid #000', boxShadow: '0 7px 0 #000',
+            background: t.cardBg,
+          }}>
+            <p style={{ margin: '0 0 8px', color: '#9122FF', fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              GOOGLE İLE GİRİŞ
+            </p>
+            <h2 id="google-signin-heading" className="font-display" style={{ margin: '0 0 12px', color: t.textPrimary, fontSize: 'clamp(22px,4vw,34px)' }}>
+              Verinizi neden kullanıyoruz?
+            </h2>
+            <p style={{ margin: '0 0 18px', color: t.textSecondary, fontSize: 14, fontWeight: 600, lineHeight: 1.7 }}>
+              Google ile giriş seçildiğinde yalnızca hesabınızı oluşturmak veya oturum açmak için Google hesap kimliğiniz, adınız, e-posta adresiniz ve profil fotoğrafınız alınır. Google şifrenizi görmeyiz; bu verileri reklam amacıyla satmayız.
+            </p>
+            <button type="button" onClick={() => navigate('/privacy')} className="lbtn-secondary-sm">
+              Gizlilik Politikasını İncele <ArrowRight size={13} />
+            </button>
+          </div>
+        </section>
+
         {/* ══ FINAL CTA ══ */}
         <section style={{ padding: '0 clamp(16px,4vw,64px) 72px' }}>
             <div className="landing-final-cta-card" style={{
@@ -214,7 +236,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, hovered, setHovered, scr
               <div>
                 <AppLogo size={64} inverted style={{ marginBottom: 10, height: 'clamp(36px,5vw,52px)', width: 'auto' }} />
                 <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.62)', maxWidth: 240, lineHeight: 1.65, margin: 0 }}>
-                  Daha fazla kazan, daha iyi yaşa.
+                  NeşveNext tarafından sunulan NexReward sadakat ve ödül platformu.
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap' }}>
@@ -246,7 +268,7 @@ const LandingBelowFold: React.FC<Props> = ({ t, isDark, hovered, setHovered, scr
               </div>
             </div>
             <div style={{ borderTop: '1.5px solid rgba(255,255,255,0.1)', paddingTop: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <p style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.48)', margin: 0 }}>© 2026 NeşveNext. Tüm hakları saklıdır.</p>
+              <p style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.48)', margin: 0 }}>© 2026 NeşveNext · NexReward. Tüm hakları saklıdır.</p>
               <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => navigate('/terms')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>Şartlar</button>
                 <button type="button" onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>Gizlilik</button>

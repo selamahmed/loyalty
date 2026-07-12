@@ -187,7 +187,7 @@ const LandingPage: React.FC = () => {
                 </span>
               </h1>
               <p style={{ marginTop: 20, color: t.textSecondary, fontWeight: 600, fontSize: 'clamp(14px,1.6vw,18px)', maxWidth: 480, lineHeight: 1.65 }}>
-                NeşveNext yayına hazırlanıyor. İlk kullanıcılar için QR puan, ödül, oyun ve liderlik deneyimi hazır.
+                NexReward, NeşveNext tarafından sunulan sadakat ve ödül platformudur. QR işlemleri, görevler ve mini oyunlarla puan kazanıp uygun ödüllere erişebilirsiniz.
               </p>
               <div className="hero-cta-row" style={{ marginTop: 28, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
                 <button onClick={() => navigate('/register')} className="lbtn-hero-primary">Hemen Başlayın <ArrowRight size={16} /></button>

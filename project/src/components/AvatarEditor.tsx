@@ -122,7 +122,9 @@ const cleanHex = (value: string | null): string | undefined => {
 };
 
 const parseNumberParam = (params: URLSearchParams, key: string): number | undefined => {
-  const value = Number(params.get(key));
+  const rawValue = params.get(key);
+  if (rawValue === null || rawValue.trim() === '') return undefined;
+  const value = Number(rawValue);
   return Number.isFinite(value) ? value : undefined;
 };
 
@@ -140,8 +142,8 @@ const parseAvatarUrl = (url: string | null | undefined): Partial<AvatarUrlSettin
       || params.get('accessories')
       || params.get('accessoriesType')
     )?.trim();
-    const accessoriesProbability = Number(params.get('accessoriesProbability'));
-    const facialHairProbability = Number(params.get('facialHairProbability'));
+    const accessoriesProbability = parseNumberParam(params, 'accessoriesProbability');
+    const facialHairProbability = parseNumberParam(params, 'facialHairProbability');
 
     return {
       seed: params.get('seed')?.trim() || undefined,
@@ -149,12 +151,14 @@ const parseAvatarUrl = (url: string | null | undefined): Partial<AvatarUrlSettin
       skinColor: cleanHex(params.get('skinColor')),
       backgroundColor: cleanHex(params.get('backgroundColor')),
       clothingColor: cleanHex(params.get('clothingColor')),
-      accessories: normalizeSelect(ALLOWED_ACCESSORIES, accessories ?? 'blank'),
-      accessoriesProbability: Number.isFinite(accessoriesProbability) ? accessoriesProbability : undefined,
+      accessories: accessories ? normalizeSelect(ALLOWED_ACCESSORIES, accessories) : undefined,
+      accessoriesProbability,
       headVariant: normalizeSelect(ALLOWED_HEAD_VARIANTS, params.get('headVariant')),
       expressionVariant: normalizeSelect(ALLOWED_EXPRESSION_VARIANTS, params.get('expressionVariant')),
-      facialHairVariant: normalizeSelect(ALLOWED_FACIAL_HAIR_VARIANTS, params.get('facialHairVariant') ?? 'blank'),
-      facialHairProbability: Number.isFinite(facialHairProbability) ? facialHairProbability : undefined,
+      facialHairVariant: params.get('facialHairVariant')
+        ? normalizeSelect(ALLOWED_FACIAL_HAIR_VARIANTS, params.get('facialHairVariant'))
+        : undefined,
+      facialHairProbability,
       scale: parseNumberParam(params, 'scale'),
       rotate: parseNumberParam(params, 'rotate'),
       translateX: parseNumberParam(params, 'translateX'),
@@ -185,14 +189,16 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
   const [backgroundColor, setBackgroundColor] = useState<string>(
     urlSettings.backgroundColor || STRONG_BG_COLORS[0],
   );
-  const [clothingColor, setClothingColor] = useState<string>(urlSettings.clothingColor || CLOTHING_COLORS[0]);
-  const [headVariant, setHeadVariant] = useState<AvatarHeadVariant>(urlSettings.headVariant || 'hatHip');
-  const [expressionVariant, setExpressionVariant] = useState<AvatarExpressionVariant>(
-    urlSettings.expressionVariant || 'smileBig',
+  // Undefined means the saved avatar lets DiceBear derive this trait from its seed.
+  // Do not replace those automatic traits until the user explicitly chooses one.
+  const [clothingColor, setClothingColor] = useState<string | undefined>(urlSettings.clothingColor);
+  const [headVariant, setHeadVariant] = useState<AvatarHeadVariant | undefined>(urlSettings.headVariant);
+  const [expressionVariant, setExpressionVariant] = useState<AvatarExpressionVariant | undefined>(
+    urlSettings.expressionVariant,
   );
-  const [accessories, setAccessories] = useState<AvatarAccessory>(urlSettings.accessories || 'blank');
-  const [facialHairVariant, setFacialHairVariant] = useState<AvatarFacialHairVariant>(
-    urlSettings.facialHairVariant || 'blank',
+  const [accessories, setAccessories] = useState<AvatarAccessory | undefined>(urlSettings.accessories);
+  const [facialHairVariant, setFacialHairVariant] = useState<AvatarFacialHairVariant | undefined>(
+    urlSettings.facialHairVariant,
   );
   const [scale, setScale] = useState<number>(urlSettings.scale ?? 1);
   const [rotate, setRotate] = useState<number>(urlSettings.rotate ?? 0);
@@ -213,11 +219,11 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
     setSeed(nextSeed);
     setSkinColor(parsed.skinColor || ALLOWED_SKIN_COLORS[0]);
     setBackgroundColor(parsed.backgroundColor || STRONG_BG_COLORS[0]);
-    setClothingColor(parsed.clothingColor || CLOTHING_COLORS[0]);
-    setHeadVariant(parsed.headVariant || 'hatHip');
-    setExpressionVariant(parsed.expressionVariant || 'smileBig');
-    setAccessories(parsed.accessories || 'blank');
-    setFacialHairVariant(parsed.facialHairVariant || 'blank');
+    setClothingColor(parsed.clothingColor);
+    setHeadVariant(parsed.headVariant);
+    setExpressionVariant(parsed.expressionVariant);
+    setAccessories(parsed.accessories);
+    setFacialHairVariant(parsed.facialHairVariant);
     setScale(parsed.scale ?? 1);
     setRotate(parsed.rotate ?? 0);
     setTranslateX(parsed.translateX ?? 0);
@@ -307,17 +313,30 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
     setSeed(parsed.seed || currentSeed?.trim() || fallbackSeed);
     setSkinColor(parsed.skinColor || ALLOWED_SKIN_COLORS[0]);
     setBackgroundColor(parsed.backgroundColor || STRONG_BG_COLORS[0]);
-    setClothingColor(parsed.clothingColor || CLOTHING_COLORS[0]);
-    setHeadVariant(parsed.headVariant || 'hatHip');
-    setExpressionVariant(parsed.expressionVariant || 'smileBig');
-    setAccessories(parsed.accessories || 'blank');
-    setFacialHairVariant(parsed.facialHairVariant || 'blank');
+    setClothingColor(parsed.clothingColor);
+    setHeadVariant(parsed.headVariant);
+    setExpressionVariant(parsed.expressionVariant);
+    setAccessories(parsed.accessories);
+    setFacialHairVariant(parsed.facialHairVariant);
     setScale(parsed.scale ?? 1);
     setRotate(parsed.rotate ?? 0);
     setTranslateX(parsed.translateX ?? 0);
     setTranslateY(parsed.translateY ?? 0);
     setFlip(parsed.flip || 'none');
     setCustomBgHex('');
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleSeedChange = (nextSeed: string) => {
+    setSeed(nextSeed);
+    // A seed generates the character. Clear explicit trait overrides so changing
+    // it produces a visibly different, deterministic DiceBear avatar.
+    setHeadVariant(undefined);
+    setExpressionVariant(undefined);
+    setClothingColor(undefined);
+    setAccessories(undefined);
+    setFacialHairVariant(undefined);
     setError(null);
     setSuccess(null);
   };
@@ -379,14 +398,20 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
 
   const renderSelect = <T extends string>(
     label: string,
-    value: T,
-    onNext: (next: T) => void,
+    value: T | undefined,
+    onNext: (next: T | undefined) => void,
     options: readonly T[],
     labels: Record<T, string>,
+    allowAutomatic = false,
   ) => (
     <div className="control-group">
       <label className="control-label">{label}</label>
-      <select className="input-field select-field" value={value} onChange={(event) => onNext(event.target.value as T)}>
+      <select
+        className="input-field select-field"
+        value={value ?? ''}
+        onChange={(event) => onNext(event.target.value ? event.target.value as T : undefined)}
+      >
+        {allowAutomatic && <option value="">Mevcut (otomatik)</option>}
         {options.map((option) => (
           <option key={option} value={option}>
             {labels[option]}
@@ -506,19 +531,26 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
                   type="text"
                   className="input-field"
                   value={seed}
-                  onChange={(event) => setSeed(event.target.value)}
+                  onChange={(event) => handleSeedChange(event.target.value)}
                   placeholder="İsim veya seed girin..."
                 />
               </div>
 
               <div className="avatar-control-grid">
-                {renderSelect('Saç / Baş', headVariant, setHeadVariant, ALLOWED_HEAD_VARIANTS, HEAD_LABELS)}
-                {renderSelect('Yüz İfadesi', expressionVariant, setExpressionVariant, ALLOWED_EXPRESSION_VARIANTS, EXPRESSION_LABELS)}
+                {renderSelect('Saç / Baş', headVariant, setHeadVariant, ALLOWED_HEAD_VARIANTS, HEAD_LABELS, true)}
+                {renderSelect('Yüz İfadesi', expressionVariant, setExpressionVariant, ALLOWED_EXPRESSION_VARIANTS, EXPRESSION_LABELS, true)}
               </div>
 
               <div className="control-group">
                 <label className="control-label">Gözlük</label>
                 <div className="glasses-choice-grid">
+                  <button
+                    type="button"
+                    className={`glasses-choice ${accessories === undefined ? 'selected' : ''}`}
+                    onClick={() => setAccessories(undefined)}
+                  >
+                    Otomatik
+                  </button>
                   {GLASSES_OPTIONS.map((option) => (
                     <button
                       key={option.value}
@@ -532,7 +564,14 @@ export const AvatarEditor: React.FC<AvatarEditorProps> = ({
                 </div>
               </div>
 
-              {renderSelect('Sakal / Bıyık', facialHairVariant, setFacialHairVariant, ALLOWED_FACIAL_HAIR_VARIANTS, FACIAL_HAIR_LABELS)}
+              {renderSelect(
+                'Sakal / Bıyık',
+                facialHairVariant,
+                setFacialHairVariant,
+                ALLOWED_FACIAL_HAIR_VARIANTS,
+                FACIAL_HAIR_LABELS,
+                true,
+              )}
             </div>
           )}
 

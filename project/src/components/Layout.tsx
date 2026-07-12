@@ -39,20 +39,6 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
     navigate(path);
   }, [navigate, playClick]);
 
-  const isAuthPage = ['/login', '/register'].includes(location.pathname);
-
-  if (isAuthPage) {
-    return (
-      <div className="page-container">
-        {rewardPopup && <RewardPopup data={rewardPopup} onDismiss={dismissRewardPopup} />}
-        {children}
-        <button onClick={toggleTheme} aria-label={theme === 'light' ? 'Koyu temaya geç' : 'Açık temaya geç'} className="btn-primary fixed top-4 right-4 p-3 z-50 rounded-button">
-          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="page-container customer-shell flex overflow-x-hidden" style={{ position: 'relative' }}>
       {rewardPopup && <RewardPopup data={rewardPopup} onDismiss={dismissRewardPopup} />}

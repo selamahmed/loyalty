@@ -38,10 +38,19 @@ type RankDisplayPlayer = {
   points: number;
 };
 
+const publicLeaderboardName = (value: string | null | undefined, id: string): string => {
+  const name = value?.trim() ?? '';
+  const exposesEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(name);
+  if (!name || name.length < 2 || exposesEmail) {
+    return `Oyuncu ${id.replace(/-/g, '').slice(0, 4).toUpperCase() || '0000'}`;
+  }
+  return name.slice(0, 40);
+};
+
 const toRankPlayer = (entry: LeaderboardEntry): RankDisplayPlayer => ({
   id: entry.id,
   rank: entry.rank,
-  username: entry.username,
+  username: publicLeaderboardName(entry.username, entry.id),
   avatar_url: entry.avatar_url,
   level: entry.level,
   points: entry.total_points,
@@ -50,7 +59,7 @@ const toRankPlayer = (entry: LeaderboardEntry): RankDisplayPlayer => ({
 const toEventRankPlayer = (entry: EventLeaderboardEntry): RankDisplayPlayer => ({
   id: entry.id,
   rank: entry.rank,
-  username: entry.username,
+  username: publicLeaderboardName(entry.username, entry.id),
   avatar_url: entry.avatar_url,
   level: entry.level,
   points: entry.points,
@@ -121,7 +130,7 @@ const ChampionPodiumCard: React.FC<{ topThree: RankDisplayPlayer[]; loading?: bo
       }}>
         <Crown size={20} color="#f59e0b" /> Top 3 Şampiyonlar
       </h2>
-      <div className="lb-podium__stage" aria-label="Top 3 champions podium">
+      <div className="lb-podium__stage" aria-label="İlk üç şampiyon sıralaması">
         {layout.map(slotRank => {
           const player = sorted.find(p => p.rank === slotRank);
           if (!player) return null;
@@ -315,6 +324,25 @@ const ChipSticker: React.FC<{ kind: keyof typeof LB_CHIP_STICKERS }> = ({ kind }
   );
 };
 
+const visibleLeaderboardEvents = (events: AppEvent[]): AppEvent[] => events
+  .filter(event => event.active !== false && event.published !== false)
+  .filter(event => !['ended', 'distributed'].includes(deriveEventStatus(event)))
+  .filter(event => Array.isArray(event.rewards_json) && event.rewards_json.length > 0)
+  .sort((a, b) => eventStartTime(a.start_date) - eventStartTime(b.start_date));
+
+const readableTextForBackground = (color: string): { text: string; muted: string } => {
+  const normalized = color.trim().replace(/^#/, '');
+  const hex = normalized.length === 3
+    ? normalized.split('').map(char => char + char).join('')
+    : normalized;
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return { text: '#000', muted: 'rgba(0,0,0,0.65)' };
+  const [r, g, b] = [0, 2, 4].map(offset => Number.parseInt(hex.slice(offset, offset + 2), 16));
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance < 0.52
+    ? { text: '#fff', muted: 'rgba(255,255,255,0.74)' }
+    : { text: '#000', muted: 'rgba(0,0,0,0.65)' };
+};
+
 const eventJoinErrorMessage = (error: unknown): string => {
   const message = error instanceof Error ? error.message : String(error ?? '');
   const normalized = message.toLowerCase();
@@ -436,10 +464,8 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
   const upcoming = !ended && eventStartTime(event.start_date) > Date.now();
   const cd = useCountdown(event.end_date);
   const prizes = (event.rewards_json as RewardPrize[] | null) ?? [];
-  const bannerColor = event.color ?? '#FFE500';
-  const isDarkBanner = bannerColor === '#7B6EF6' || bannerColor === '#FF3CAC';
-  const textOnBanner = isDarkBanner ? '#fff' : '#000';
-  const subOnBanner  = isDarkBanner ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.65)';
+  const bannerColor = ended ? '#BFFF00' : event.color ?? '#FFE500';
+  const { text: textOnBanner, muted: subOnBanner } = readableTextForBackground(bannerColor);
   const [topPlayers, setTopPlayers] = React.useState<EventLeaderboardEntry[]>([]);
   const [finalWinners, setFinalWinners] = React.useState<EventWinner[]>([]);
   const [participation, setParticipation] = React.useState<EventParticipation | null>(null);
@@ -526,7 +552,9 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
 
   const prizeSubtitle = (rank: number) => {
     const prize = prizes.find(pr => pr.rank === rank);
-    return prize ? `${prize.rewardImage} ${prize.rewardName}` : undefined;
+    if (!prize) return undefined;
+    const icon = /^https?:\/\//i.test(prize.rewardImage ?? '') ? '' : prize.rewardImage;
+    return [icon, prize.rewardName].filter(Boolean).join(' ') || undefined;
   };
 
   const leaderForPrizeRank = (rank: number): PrizeLeader | undefined => {
@@ -534,13 +562,13 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
       const winner = sortedWinners.find(w => w.final_rank === rank);
       if (!winner) return undefined;
       return {
-        username: winner.profiles?.username ?? '—',
+        username: publicLeaderboardName(winner.profiles?.username, winner.user_id),
         avatar_url: winner.profiles?.avatar_url ?? null,
       };
     }
     const player = topPlayers.find(p => p.rank === rank);
     if (!player) return undefined;
-    return { username: player.username, avatar_url: player.avatar_url };
+    return { username: publicLeaderboardName(player.username, player.id), avatar_url: player.avatar_url };
   };
 
   const sortedPrizes = [...prizes].sort((a, b) => a.rank - b.rank);
@@ -564,7 +592,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
   return (
     <div className="event-lb">
 
-      <div className="event-lb__banner" style={{ background: ended ? '#BFFF00' : bannerColor, color: textOnBanner }}>
+      <div className="event-lb__banner" style={{ background: bannerColor, color: textOnBanner }}>
         <div className="event-lb__banner-deco" aria-hidden>{event.emoji ?? '🏆'}</div>
 
         <span className={`event-lb__status ${statusClass}`}>
@@ -692,7 +720,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
               <ChampionPodiumCard topThree={winnerTop3.map(w => ({
                 id: w.user_id,
                 rank: w.final_rank,
-                username: w.profiles?.username ?? '—',
+                username: publicLeaderboardName(w.profiles?.username, w.user_id),
                 avatar_url: w.profiles?.avatar_url ?? null,
                 level: 0,
                 points: w.final_points,
@@ -707,7 +735,7 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
                         player={{
                           id: w.user_id,
                           rank: w.final_rank,
-                          username: w.profiles?.username ?? '—',
+                          username: publicLeaderboardName(w.profiles?.username, w.user_id),
                           avatar_url: w.profiles?.avatar_url ?? null,
                           level: 0,
                           points: w.final_points,
@@ -733,6 +761,16 @@ const ActiveEventBanner: React.FC<{ event: AppEvent; showUserCard?: boolean }> =
             </p>
           </div>
         )}
+
+        {ended && sortedWinners.length === 0 && (
+          <div style={{ ...card, padding: '32px 20px', textAlign: 'center' }}>
+            <div style={{ fontSize: 42, marginBottom: 10 }}>🏁</div>
+            <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-dark)', margin: '0 0 6px' }}>Final sonuçları hazırlanıyor</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
+              Kazananlar kesinleştiğinde burada yayınlanacak.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -749,6 +787,8 @@ const Leaderboard: React.FC = () => {
   const [eventsDbReady, setEventsDbReady] = useState(true);
   const [eventsDbMissing, setEventsDbMissing] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+  const [eventsError, setEventsError] = useState<string | null>(null);
   const tabRef = React.useRef(tab);
   const authUserRef = React.useRef(authUser);
   tabRef.current = tab;
@@ -766,6 +806,7 @@ const Leaderboard: React.FC = () => {
     if (!silent) setIsLoading(true);
     try {
       const data = await getLeaderboard(LEADERBOARD_TOP_LIMIT);
+      setLeaderboardError(null);
       setLeaderboard(data);
       const uid = authUserRef.current?.id;
       if (uid && !data.find(p => p.id === uid)) {
@@ -775,6 +816,7 @@ const Leaderboard: React.FC = () => {
       }
     } catch (err) {
       console.warn('[Leaderboard] load failed:', err);
+      setLeaderboardError('Sıralama şu anda yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.');
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -804,13 +846,16 @@ const Leaderboard: React.FC = () => {
 
   const loadPrizeEvents = React.useCallback(async () => {
     try {
-      setActiveEvents(await getLeaderboardPrizeEvents());
+      setActiveEvents(visibleLeaderboardEvents(await getLeaderboardPrizeEvents()));
+      setEventsError(null);
     } catch {
       try {
         const evs = await getActiveEvents();
-        setActiveEvents(evs.filter(e => Array.isArray(e.rewards_json) && (e.rewards_json as RewardPrize[]).length > 0));
+        setActiveEvents(visibleLeaderboardEvents(evs));
+        setEventsError(null);
       } catch {
         setActiveEvents([]);
+        setEventsError('Etkinlik sıralamaları şu anda yüklenemedi.');
       }
     }
   }, []);
@@ -878,6 +923,20 @@ const Leaderboard: React.FC = () => {
           highlightColor="#C8FF00"
           height={168}
         />
+
+        {leaderboardError && tab === 'alltime' && (
+          <div role="alert" style={{ ...card, padding: '14px 16px', borderColor: '#ef4444', boxShadow: '0 4px 0 #991b1b' }}>
+            <p style={{ margin: '0 0 10px', color: 'var(--text-dark)', fontSize: 12, fontWeight: 800 }}>{leaderboardError}</p>
+            <button type="button" className="btn-secondary" onClick={() => { void loadLeaderboard(); }}>Tekrar dene</button>
+          </div>
+        )}
+
+        {eventsError && (
+          <div role="status" style={{ ...card, padding: '12px 14px', borderColor: '#f59e0b', boxShadow: '0 4px 0 #b45309' }}>
+            <p style={{ margin: '0 0 8px', color: 'var(--text-dark)', fontSize: 11, fontWeight: 800 }}>{eventsError}</p>
+            <button type="button" className="btn-secondary" onClick={() => { void loadPrizeEvents(); }}>Etkinlikleri yenile</button>
+          </div>
+        )}
 
         {!eventsDbReady && (tab === 'events' || activeEvents.length > 0) && (
           <div style={{

@@ -18,7 +18,6 @@ import {
 import { claimQrScan, previewQrScan } from '../services/earn';
 import { spendAmountToPoints } from '../services/config';
 import { activityLogService } from '../lib/activityLogger';
-import StickerAccent from '../components/StickerAccent';
 import { useFeatureFlags, useSystemSettings } from '../context/SystemSettingsContext';
 import ModuleDisabledScreen from '../components/ModuleDisabledScreen';
 
@@ -464,11 +463,11 @@ const QRScanner: React.FC = () => {
         <div style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%) rotate(-4deg)', fontSize: 'clamp(60px,15vw,200px)', fontWeight: 900, color: 'var(--dark-border)', opacity: 0.04, whiteSpace: 'nowrap', lineHeight: 1, letterSpacing: '-0.04em' }}>QR TARA</div>
       </div>
 
-      <div className="p-3 sm:p-4 lg:p-6 max-w-lg mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="qr-page-content p-3 sm:p-4 lg:p-6 max-w-lg mx-auto overflow-x-hidden" style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, background: 'linear-gradient(180deg,#a78bfa,#6d28d9)', border: '3px solid var(--dark-border)', boxShadow: '0 4px 0 var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📱</div>
+        <div className="qr-page-title" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="qr-page-title__icon">📱</div>
           <div>
             <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 'clamp(22px,5vw,30px)', margin: 0, lineHeight: 1 }}>QR Tarayıcı</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>Kod tara, anında puan kazan</p>
@@ -476,9 +475,9 @@ const QRScanner: React.FC = () => {
         </div>
 
         {/* ── Camera viewport ── */}
-        <div style={{ ...card, padding: 16 }}>
+        <div className="qr-scanner-panel">
           {/* Video / placeholder area */}
-          <div style={{ aspectRatio: '4/3', width: '100%', maxWidth: 360, margin: '0 auto 14px', background: '#0f172a', borderRadius: 18, overflow: 'hidden', position: 'relative', border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)' }}>
+          <div className={`qr-camera-viewport${mode === 'idle' && !hasResult ? ' qr-camera-viewport--idle' : ''}`}>
 
             {/* autoPlay is required on many mobile browsers; display is ALWAYS controlled here */}
             <video ref={videoRef} playsInline autoPlay muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: mode === 'camera' ? 'block' : 'none' }} />
@@ -499,17 +498,17 @@ const QRScanner: React.FC = () => {
                 ))}
                 <div style={{ position: 'absolute', left: '10%', right: '10%', height: 3, background: 'linear-gradient(90deg,transparent,#a78bfa,transparent)', boxShadow: '0 0 14px #a78bfa', animation: 'scanLine 2s ease-in-out infinite' }} />
                 <p style={{ position: 'absolute', bottom: 14, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 800 }}>QR kodu kareye hizala</p>
-                <button onClick={flipCamera} style={{ position: 'absolute', top: 12, right: 12, width: 36, height: 36, borderRadius: 10, background: 'rgba(0,0,0,0.5)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                <button type="button" aria-label="Kamerayı çevir" onClick={flipCamera} style={{ position: 'absolute', top: 12, right: 12, width: 36, height: 36, borderRadius: 10, background: 'rgba(0,0,0,0.5)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
                   <FlipHorizontal size={18} color="white" />
                 </button>
-                <button onClick={stopCamera} style={{ position: 'absolute', top: 12, left: 12, width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.7)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                <button type="button" aria-label="Kamerayı kapat" onClick={stopCamera} style={{ position: 'absolute', top: 12, left: 12, width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.7)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
                   <X size={18} color="white" />
                 </button>
               </>
             )}
             {/* Cancel button shown even while loading */}
             {mode === 'camera' && !cameraReady && (
-              <button onClick={stopCamera} style={{ position: 'absolute', top: 12, left: 12, width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.7)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+              <button type="button" aria-label="Kamera başlatmayı iptal et" onClick={stopCamera} style={{ position: 'absolute', top: 12, left: 12, width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.7)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
                 <X size={18} color="white" />
               </button>
             )}
@@ -632,18 +631,9 @@ const QRScanner: React.FC = () => {
 
           {/* Action buttons */}
           {mode === 'idle' && !hasResult && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button onClick={startCamera} style={{
-                width: '100%', padding: 14, borderRadius: 14, fontWeight: 900, fontSize: 15,
-                background: 'linear-gradient(180deg,var(--gradient-start),var(--gradient-end))', color: 'white',
-                border: '3px solid var(--dark-border)', boxShadow: '0 6px 0 var(--dark-border)',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                transition: 'transform 0.1s, box-shadow 0.1s', position: 'relative',
-              }}
-                onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 0 var(--dark-border)'; }}
-                onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 0 var(--dark-border)'; }}>
+            <div className="qr-scanner-actions">
+              <button type="button" onClick={startCamera} className="qr-camera-primary">
                 <Camera size={20} /> Kamerayı Aç & Tara
-                <StickerAccent seed="qr-scan-btn" size={22} rotate={-8} style={{ position: 'absolute', top: -8, right: 10 }} />
               </button>
             </div>
           )}
