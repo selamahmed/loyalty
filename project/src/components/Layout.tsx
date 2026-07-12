@@ -79,7 +79,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
           </button>
 
           {/* Points badge */}
-          <div style={{
+          <div className="customer-header-points" role="status" aria-label={`Mevcut bakiye: ${points.toLocaleString()} puan`} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
             background: 'linear-gradient(135deg,rgba(245,158,11,0.12),rgba(251,191,36,0.06))',
             border: '2.5px solid #f59e0b', boxShadow: '0px 3px 0px var(--dark-border)',
@@ -93,6 +93,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
           <button
             onClick={toggleTheme}
             aria-label={theme === 'light' ? 'Koyu temaya geç' : 'Açık temaya geç'}
+            className="customer-header-icon-button"
             style={{
               width: 40, height: 40, borderRadius: 12, flexShrink: 0,
               background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)',
@@ -107,7 +108,9 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
 
           {/* Notifications */}
           <button
-            onClick={() => navigate('/notifications')}
+            onClick={() => navigateTo('/notifications')}
+            aria-label="Bildirimleri aç"
+            className="customer-header-icon-button"
             style={{
               width: 40, height: 40, borderRadius: 12, flexShrink: 0,
               background: 'var(--tab-bg)', border: '2.5px solid var(--dark-border)',
@@ -117,12 +120,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
               position: 'relative', transition: 'color 0.12s, background-color 0.12s',
             }}
           >
-            <Bell size={16} />
-            <span style={{
-              position: 'absolute', top: 6, right: 6,
-              width: 8, height: 8, borderRadius: '50%',
-              background: '#ef4444', border: '1.5px solid var(--card-bg)',
-            }} />
+            <Bell size={17} aria-hidden="true" />
           </button>
         </header>
 
@@ -136,6 +134,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
         {!hideNav && (
           <nav
             className="customer-bottom-nav fixed bottom-0 left-0 right-0 lg:hidden z-30 safe-bottom"
+            aria-label="Ana navigasyon"
             style={{
               background: 'var(--card-bg)',
               borderTop: '3px solid var(--dark-border)',
@@ -149,6 +148,9 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                 return (
                   <button
                     key={item.path}
+                    className="customer-bottom-nav__item"
+                    aria-label={item.label}
+                    aria-current={active ? 'page' : undefined}
                     onClick={() => navigateTo(item.path)}
                     onMouseEnter={() => prefetchRoute(item.path)}
                     onFocus={() => prefetchRoute(item.path)}
@@ -172,7 +174,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                         color={active ? 'var(--primary-blue)' : 'var(--text-muted)'}
                       />
                     </div>
-                    <span style={{
+                    <span className="customer-bottom-nav__label" style={{
                       fontSize: 10, fontWeight: active ? 900 : 600,
                       color: active ? 'var(--primary-blue)' : 'var(--text-muted)',
                       lineHeight: 1, transition: 'color 0.15s, font-weight 0.15s',
@@ -185,6 +187,8 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
               {flags.qr_enabled ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, marginTop: -22 }}>
                 <button
+                  className="customer-bottom-nav__scan"
+                  aria-label="QR kod tara"
                   onClick={() => navigateTo('/qr')}
                   onMouseEnter={() => prefetchRoute('/qr')}
                   onFocus={() => prefetchRoute('/qr')}
@@ -205,9 +209,9 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                     (e.currentTarget as HTMLElement).style.boxShadow = '0px 5px 0px var(--dark-border)';
                   }}
                 >
-                  <QrCode size={24} />
+                  <QrCode size={24} aria-hidden="true" />
                 </button>
-                <span style={{ fontSize: 10, fontWeight: 700, marginTop: 4, color: 'var(--text-muted)', lineHeight: 1 }}>Tara</span>
+                <span className="customer-bottom-nav__label" style={{ fontSize: 10, fontWeight: 700, marginTop: 4, color: 'var(--text-muted)', lineHeight: 1 }}>Tara</span>
               </div>
               ) : null}
 
@@ -217,6 +221,9 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                 return (
                   <button
                     key={item.path}
+                    className="customer-bottom-nav__item"
+                    aria-label={item.label}
+                    aria-current={active ? 'page' : undefined}
                     onClick={() => navigateTo(item.path)}
                     onMouseEnter={() => prefetchRoute(item.path)}
                     onFocus={() => prefetchRoute(item.path)}
@@ -240,7 +247,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                         color={active ? 'var(--primary-blue)' : 'var(--text-muted)'}
                       />
                     </div>
-                    <span style={{
+                    <span className="customer-bottom-nav__label" style={{
                       fontSize: 10, fontWeight: active ? 900 : 600,
                       color: active ? 'var(--primary-blue)' : 'var(--text-muted)',
                       lineHeight: 1, transition: 'color 0.15s, font-weight 0.15s',
