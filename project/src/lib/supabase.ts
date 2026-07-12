@@ -355,6 +355,10 @@ export type Database = {
         Args: Record<string, never>;
         Returns: 'active' | 'suspended' | 'deleted';
       };
+      get_user_auth_methods: {
+        Args: Record<string, never>;
+        Returns: Array<{ user_id: string; auth_methods: string[] }>;
+      };
     };
   };
 };

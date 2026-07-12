@@ -23,7 +23,9 @@ const GameOutcomeSticker: React.FC<{ won: boolean; size?: number }> = ({ won, si
 );
 
 // --- Spin Wheel Game ---
-const wheelSegments = [
+type WheelSegment = { label: string; value: number; color: string };
+
+const DEFAULT_WHEEL_SEGMENTS: WheelSegment[] = [
   { label: '10 pts', value: 10, color: '#7B6EF6' },
   { label: '50 pts', value: 50, color: '#4F8EF7' },
   { label: '5 pts', value: 5, color: '#22c55e' },
@@ -34,7 +36,30 @@ const wheelSegments = [
   { label: '200 pts', value: 200, color: '#ec4899' },
 ];
 
-const SpinWheel: React.FC<{ onWin: () => void }> = ({ onWin }) => {
+function getWheelSegments(config: Record<string, unknown>): WheelSegment[] {
+  if (!Array.isArray(config.prizes)) return DEFAULT_WHEEL_SEGMENTS;
+
+  const segments = config.prizes.flatMap((item): WheelSegment[] => {
+    if (typeof item === 'number' && Number.isFinite(item)) {
+      const value = Math.max(0, Math.round(item));
+      return [{ label: `${value} pts`, value, color: '#7B6EF6' }];
+    }
+    if (!item || typeof item !== 'object') return [];
+    const prize = item as Record<string, unknown>;
+    const rawValue = Number(prize.value);
+    if (!Number.isFinite(rawValue)) return [];
+    const value = Math.max(0, Math.round(rawValue));
+    return [{
+      label: `${value} pts`,
+      value,
+      color: typeof prize.color === 'string' ? prize.color : '#7B6EF6',
+    }];
+  });
+
+  return segments.length >= 2 ? segments : DEFAULT_WHEEL_SEGMENTS;
+}
+
+const SpinWheel: React.FC<{ segments: WheelSegment[]; onResult: (points: number) => void }> = ({ segments, onResult }) => {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<number | null>(null);
@@ -44,19 +69,19 @@ const SpinWheel: React.FC<{ onWin: () => void }> = ({ onWin }) => {
     if (spinning || !canSpin) return;
     setSpinning(true);
     setResult(null);
-    const segIdx = Math.floor(Math.random() * wheelSegments.length);
-    const segAngle = 360 / wheelSegments.length;
+    const segIdx = Math.floor(Math.random() * segments.length);
+    const segAngle = 360 / segments.length;
     const newRotation = rotation + 1440 + (360 - segIdx * segAngle - segAngle / 2);
     setRotation(newRotation);
     setTimeout(() => {
       setSpinning(false);
-      setResult(wheelSegments[segIdx].value);
-      if (wheelSegments[segIdx].value > 0) onWin();
+      setResult(segments[segIdx].value);
+      onResult(segments[segIdx].value);
       setCanSpin(false);
     }, 3000);
   };
 
-  const segAngle = 360 / wheelSegments.length;
+  const segAngle = 360 / segments.length;
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -70,7 +95,7 @@ const SpinWheel: React.FC<{ onWin: () => void }> = ({ onWin }) => {
           style={{ transform: `rotate(${rotation}deg)`, transition: spinning ? 'transform 3s cubic-bezier(0.2, 0, 0.1, 1)' : 'none' }}
         >
           <svg viewBox="0 0 200 200" className="w-full h-full">
-            {wheelSegments.map((seg, i) => {
+            {segments.map((seg, i) => {
               const startAngle = (i * segAngle - 90) * (Math.PI / 180);
               const endAngle = ((i + 1) * segAngle - 90) * (Math.PI / 180);
               const x1 = 100 + 100 * Math.cos(startAngle);
@@ -118,7 +143,7 @@ const SpinWheel: React.FC<{ onWin: () => void }> = ({ onWin }) => {
 
 // --- Memory Game ---
 const memoryCards = ['🎮', '⭐', '🏆', '🎁', '🔥', '💎', '🎯', '🚀'];
-const MemoryGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
+const MemoryGame: React.FC<{ rewardPoints: number; onWin: () => void }> = ({ rewardPoints, onWin }) => {
   const [cards, setCards] = useState<{ id: number; emoji: string; flipped: boolean; matched: boolean }[]>([]);
   const [flipped, setFlipped] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
@@ -157,7 +182,6 @@ const MemoryGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
           setChecking(false);
           if (matched.every(c => c.matched)) {
             setWon(true);
-            const pts = Math.max(50, 200 - moves * 5);
             onWin();
           }
         } else {
@@ -181,6 +205,7 @@ const MemoryGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
         <div className="p-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-center w-full max-w-xs flex flex-col items-center gap-2">
           <GameOutcomeSticker won size={72} />
           <p className="font-black text-green-600 dark:text-green-400">You Won! ({moves} moves)</p>
+          <p className="font-black text-amber-500">+{rewardPoints} puan</p>
         </div>
       )}
       <div className="grid grid-cols-4 gap-2 max-w-xs w-full">
@@ -209,7 +234,7 @@ const CATCH_FALL_SPEED = 58; // % of arena height per second
 const CATCH_CUP_SPEED = 96;  // % per second when holding left/right
 const CATCH_SPAWN_MS = 720;
 
-const CatchGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
+const CatchGame: React.FC<{ rewardPoints: number; onWin: () => void }> = ({ rewardPoints, onWin }) => {
   const gridPatternId = React.useId().replace(/:/g, '');
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'done'>('idle');
   const [displayItems, setDisplayItems] = useState<FallingItem[]>([]);
@@ -358,7 +383,7 @@ const CatchGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
         <div className="text-center space-y-3 flex flex-col items-center">
           <GameOutcomeSticker won={displayScore > 0} size={88} />
           <p className="font-black text-2xl text-gray-900 dark:text-white">Skor: {displayScore}</p>
-          <p className="text-gray-500 dark:text-gray-400">Kazandın: <span className="font-black text-amber-500">{Math.max(0, displayScore) * 5} puan</span></p>
+          <p className="text-gray-500 dark:text-gray-400">Oyun ödülü: <span className="font-black text-amber-500">{rewardPoints} puan</span></p>
           <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>
         </div>
       )}
@@ -500,7 +525,7 @@ const FLAPPY_BIRD_X = 64;
 const FLAPPY_PIPE_W = 52;
 const FLAPPY_GAP = 92;
 
-const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
+const FlappyGame: React.FC<{ rewardPoints: number; onWin: () => void }> = ({ rewardPoints, onWin }) => {
   const [phase, setPhase] = useState<'idle' | 'playing' | 'over'>('idle');
   const [renderTick, setRenderTick] = useState(0);
   const [displayScore, setDisplayScore] = useState(0);
@@ -641,7 +666,7 @@ const FlappyGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
         <div className="text-center space-y-3 flex flex-col items-center">
           <GameOutcomeSticker won={false} size={88} />
           <p style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)' }}>Skor: {displayScore}</p>
-          <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Kazanıldı: <span style={{ fontWeight: 900, color: '#f59e0b' }}>{displayScore * 10} puan</span></p>
+          <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Oyun ödülü: <span style={{ fontWeight: 900, color: '#f59e0b' }}>{rewardPoints} puan</span></p>
           <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>
         </div>
       )}
@@ -838,7 +863,7 @@ function stepSnake(g: SnakeGameState): 'ok' | 'over' {
   return 'ok';
 }
 
-const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
+const SnakeGame: React.FC<{ rewardPoints: number; onWin: () => void }> = ({ rewardPoints, onWin }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreLabelRef = useRef<HTMLSpanElement>(null);
   const [phase, setPhase] = useState<'idle' | 'playing' | 'over'>('idle');
@@ -957,7 +982,7 @@ const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
         <div className="text-center space-y-3 flex flex-col items-center">
           <GameOutcomeSticker won={false} size={88} />
           <p style={{ fontWeight: 900, fontSize: 22, color: 'var(--text-dark)' }}>Skor: {score}</p>
-          <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Kazanıldı: <span style={{ fontWeight: 900, color: '#f59e0b' }}>{score * 15} puan</span></p>
+          <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Oyun ödülü: <span style={{ fontWeight: 900, color: '#f59e0b' }}>{rewardPoints} puan</span></p>
           <button onClick={start} className="btn-primary px-8">Tekrar Oyna</button>
         </div>
       )}
@@ -995,11 +1020,11 @@ const SnakeGame: React.FC<{ onWin: () => void }> = ({ onWin }) => {
 };
 
 const GAME_TYPE_METADATA = [
-  { id: 'spin',   label: 'Spin Wheel',  emoji: '🎰', desc: 'Spin to win up to 200 pts',   points: '5-200', color: '#7B6EF6' },
-  { id: 'memory', label: 'Memory Game', emoji: '🧩', desc: 'Match pairs to win',          points: '50-200', color: '#22c55e' },
-  { id: 'catch',  label: 'Catch Game',  emoji: '🎁', desc: 'Catch gifts, avoid bombs',    points: '0-100', color: '#ef4444' },
-  { id: 'flappy', label: 'Flappy Bird', emoji: '🐦', desc: 'Tap to fly through pipes',    points: '0-100', color: '#06b6d4' },
-  { id: 'snake',  label: 'Snake',       emoji: '🐍', desc: 'Eat apples and grow longer',  points: '0-150', color: '#22c55e' },
+  { id: 'spin',   label: 'Spin Wheel',  emoji: '🎰', desc: 'Spin to win bonus points',    color: '#7B6EF6' },
+  { id: 'memory', label: 'Memory Game', emoji: '🧩', desc: 'Match pairs to win',           color: '#22c55e' },
+  { id: 'catch',  label: 'Catch Game',  emoji: '🎁', desc: 'Catch gifts, avoid bombs',     color: '#ef4444' },
+  { id: 'flappy', label: 'Flappy Bird', emoji: '🐦', desc: 'Tap to fly through pipes',     color: '#06b6d4' },
+  { id: 'snake',  label: 'Snake',       emoji: '🐍', desc: 'Eat apples and grow longer',   color: '#22c55e' },
 ];
 
 type PlayableGame = ReturnType<typeof mapConfigToGame>;
@@ -1018,17 +1043,20 @@ function getGameIdFromConfig(game: GameConfig): string {
 function mapConfigToGame(game: GameConfig) {
   const id = getGameIdFromConfig(game);
   const fallback = GAME_TYPE_METADATA.find(g => g.id === id) ?? GAME_TYPE_METADATA[0];
-  const fallbackMax = Number.parseInt(String(fallback.points).split('-').pop() || '0', 10);
-  const maxPoints = Math.max(0, game.max_points_per_play || fallbackMax);
+  const wheelSegments = id === 'spin' ? getWheelSegments(game.config ?? {}) : [];
+  const maxPoints = id === 'spin'
+    ? Math.max(...wheelSegments.map(segment => segment.value), 0)
+    : Math.max(0, Number(game.max_points_per_play) || 0);
   return {
     id,
     label: game.name || fallback.label,
     emoji: game.icon || fallback.emoji,
     desc: game.description || fallback.desc,
-    points: `0-${maxPoints}`,
+    points: id === 'spin' ? `0-${maxPoints}` : String(maxPoints),
     color: game.color || fallback.color,
     maxPoints,
     maxPlays: Math.max(0, game.max_plays_per_day || 0),
+    wheelSegments,
   };
 }
 
@@ -1071,9 +1099,12 @@ const MiniGames: React.FC = () => {
     }
   }, [activeGame, gamesList]);
 
-  const handleWin = (gameId: string) => {
+  const handleWin = (gameId: string, prize?: number) => {
     if (!authUser?.id) return;
-    void earnReward('game_win', { referenceId: gameId }).then(result => {
+    void earnReward('game_win', {
+      referenceId: gameId,
+      metadata: prize == null ? undefined : { prize },
+    }).then(result => {
       if (result && result.points > 0) {
         showRewardPopup({ type: 'reward', title: 'Points Earned!', subtitle: 'Great job playing the game!', points: result.points });
       }
@@ -1114,15 +1145,17 @@ const MiniGames: React.FC = () => {
             </button>
             <div>
               <h1 style={{ color: 'var(--text-dark)', fontWeight: 900, fontSize: 22, margin: 0, lineHeight: 1 }}>{game.emoji} {game.label}</h1>
-              <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>En fazla {game.points} puan kazan</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, margin: '3px 0 0' }}>
+                {game.id === 'spin' ? `En fazla ${game.maxPoints} puan kazan` : `Oyun ödülü: ${game.maxPoints} puan`}
+              </p>
             </div>
           </div>
           <div style={{ ...cardStyle, padding: 24 }}>
-            {activeGame === 'spin' && <SpinWheel onWin={() => handleWin('spin')} />}
-            {activeGame === 'memory' && <MemoryGame onWin={() => handleWin('memory')} />}
-            {activeGame === 'catch' && <CatchGame onWin={() => handleWin('catch')} />}
-            {activeGame === 'flappy' && <FlappyGame onWin={() => handleWin('flappy')} />}
-            {activeGame === 'snake' && <SnakeGame onWin={() => handleWin('snake')} />}
+            {activeGame === 'spin' && <SpinWheel segments={game.wheelSegments} onResult={prize => handleWin('spin', prize)} />}
+            {activeGame === 'memory' && <MemoryGame rewardPoints={game.maxPoints} onWin={() => handleWin('memory')} />}
+            {activeGame === 'catch' && <CatchGame rewardPoints={game.maxPoints} onWin={() => handleWin('catch')} />}
+            {activeGame === 'flappy' && <FlappyGame rewardPoints={game.maxPoints} onWin={() => handleWin('flappy')} />}
+            {activeGame === 'snake' && <SnakeGame rewardPoints={game.maxPoints} onWin={() => handleWin('snake')} />}
           </div>
         </div>
       </div>

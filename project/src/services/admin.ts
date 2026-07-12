@@ -2,7 +2,28 @@ import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/supabase';
 import { ilikeOrFilter } from '../lib/postgrestSearch';
 
-export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type Profile = Database['public']['Tables']['profiles']['Row'] & {
+  auth_methods?: string[];
+};
+type UserAuthMethodsRow = { user_id: string; auth_methods: string[] };
+
+async function attachAuthMethods(profiles: Profile[]): Promise<Profile[]> {
+  if (profiles.length === 0) return profiles;
+
+  const { data, error } = await supabase.rpc('get_user_auth_methods');
+  if (error) {
+    console.warn('[AdminUsers] Auth methods could not be loaded:', error.message);
+    return profiles;
+  }
+
+  const methodsByUser = new Map(
+    ((data ?? []) as UserAuthMethodsRow[]).map(row => [row.user_id, row.auth_methods ?? []] as const),
+  );
+  return profiles.map(profile => ({
+    ...profile,
+    auth_methods: methodsByUser.get(profile.id) ?? [],
+  }));
+}
 
 export async function getAllUsers(page = 0, pageSize = 20, search?: string): Promise<Profile[]> {
   let query = supabase
@@ -18,7 +39,7 @@ export async function getAllUsers(page = 0, pageSize = 20, search?: string): Pro
 
   const { data, error } = await query;
   if (error) throw error;
-  return data ?? [];
+  return attachAuthMethods(data ?? []);
 }
 
 export async function suspendUser(userId: string): Promise<void> {
@@ -113,7 +134,7 @@ export async function getAllUsersUnpaged(search?: string): Promise<Profile[]> {
   }
   const { data, error } = await query;
   if (error) throw error;
-  return data ?? [];
+  return attachAuthMethods(data ?? []);
 }
 
 export async function getUserDetailStats(userId: string): Promise<{

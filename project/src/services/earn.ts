@@ -45,6 +45,7 @@ export type QRClaimPreview = {
 
 export type PerformOptions = {
   referenceId?: string;
+  metadata?: Record<string, unknown>;
 };
 
 function parseEarnResult(raw: unknown): EarnResult {
@@ -85,7 +86,7 @@ export async function performAction(
   const { data, error } = await supabase.rpc('perform_action', {
     p_action: action,
     p_reference_id: options.referenceId ?? null,
-    p_metadata: {},
+    p_metadata: options.metadata ?? {},
   });
 
   if (error) throw normalizeClaimError(error);

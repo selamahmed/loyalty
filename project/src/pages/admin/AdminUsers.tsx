@@ -50,6 +50,57 @@ function relTime(iso: string): string {
   return `${Math.floor(h/24)}g önce`;
 }
 function fmtNum(n: number) { return n >= 1000 ? (n/1000).toFixed(1)+'K' : n.toLocaleString(); }
+function authMethodsLabel(methods?: string[]): string {
+  if (!methods?.length) return 'Bilinmiyor';
+  const labels: Record<string, string> = {
+    email_password: 'E-posta & Şifre',
+    email: 'E-posta Bağlantısı / OTP',
+    google: 'Google Auth',
+    phone: 'Telefon / OTP',
+    apple: 'Apple Auth',
+    facebook: 'Facebook Auth',
+    github: 'GitHub Auth',
+  };
+  return methods.map(method => labels[method] ?? method).join(' + ');
+}
+
+const GoogleAuthIcon: React.FC = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
+    <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.91h5.38a4.6 4.6 0 0 1-2 3.02v2.54h3.24c1.9-1.75 2.98-4.33 2.98-7.4Z" />
+    <path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.62-2.37l-3.24-2.54c-.9.6-2.05.96-3.38.96-2.61 0-4.82-1.76-5.61-4.13H3.04v2.62A10 10 0 0 0 12 22Z" />
+    <path fill="#FBBC05" d="M6.39 13.92A6.02 6.02 0 0 1 6.08 12c0-.67.11-1.32.31-1.92V7.46H3.04A10 10 0 0 0 2 12c0 1.61.39 3.14 1.04 4.54l3.35-2.62Z" />
+    <path fill="#EA4335" d="M12 5.95c1.47 0 2.78.5 3.82 1.49l2.87-2.87A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.96 5.46l3.35 2.62C7.18 7.71 9.39 5.95 12 5.95Z" />
+  </svg>
+);
+
+const AuthMethodBadges: React.FC<{ methods?: string[] }> = ({ methods }) => {
+  if (!methods?.length) {
+    return <span className="text-sm font-bold text-gray-500">Bilinmiyor</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {methods.map(method => {
+        const label = authMethodsLabel([method]);
+        const icon = method === 'google' ? <GoogleAuthIcon />
+          : method === 'email_password' ? <Key size={15} aria-hidden="true" />
+          : method === 'email' ? <Mail size={15} aria-hidden="true" />
+          : method === 'phone' ? <Smartphone size={15} aria-hidden="true" />
+          : <Shield size={15} aria-hidden="true" />;
+        const tone = method === 'google'
+          ? 'border-blue-200 bg-white text-gray-800 dark:border-blue-800 dark:bg-gray-900 dark:text-gray-100'
+          : method === 'email_password'
+            ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300'
+            : 'border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200';
+        return (
+          <span key={method} className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-black ${tone}`}>
+            {icon}{label}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
 
 /* ── Config maps ── */
 const ROLE_LABEL: Record<RoleType, string> = { customer:'Müşteri', store_admin:'Mağaza Yön.', cashier:'Kasiyer', super_admin:'Süper Admin' };
@@ -62,7 +113,6 @@ const ROLE_COLOR: Record<RoleType, string> = {
 const ROLE_OPTIONS: { value: RoleType; label: string; description: string; tone: string }[] = [
   { value: 'customer', label: 'Customer', description: 'Normal app user. No admin or cashier access.', tone: 'border-gray-300 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-300' },
   { value: 'cashier', label: 'Cashier', description: 'Can create checkout QR codes and redeem tickets.', tone: 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300' },
-  { value: 'store_admin', label: 'Admin', description: 'Can access admin/store tools, but cannot change roles.', tone: 'border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300' },
   { value: 'super_admin', label: 'Super admin', description: 'Full access, including promoting and revoking roles.', tone: 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-300' },
 ];
 const STATUS_COLOR: Record<string, string> = {
@@ -285,8 +335,8 @@ const AdminUsers: React.FC = () => {
 
   const exportCSV = () => {
     const rows = [
-      ['ID','Kullanıcı','E-posta','Telefon','Seviye','Mevcut Puan','Toplam Puan','Durum','Rol','Streak','Kayıt','Son Aktif'],
-      ...filtered.map(u => [u.id, u.username??'', u.email, u.phone??'', u.level, u.current_points, u.total_points, u.status, u.role, u.streak, u.created_at, u.updated_at]),
+      ['ID','Kullanıcı','E-posta','Giriş Yöntemi','Telefon','Seviye','Mevcut Puan','Toplam Puan','Durum','Rol','Streak','Kayıt','Son Aktif'],
+      ...filtered.map(u => [u.id, u.username??'', u.email, authMethodsLabel(u.auth_methods), u.phone??'', u.level, u.current_points, u.total_points, u.status, u.role, u.streak, u.created_at, u.updated_at]),
     ].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([rows], { type:'text/csv' }));
@@ -621,6 +671,10 @@ const AdminUsers: React.FC = () => {
                       </button>
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800/80">
+                        <p className="mb-1.5 text-[10px] font-black uppercase tracking-wider text-gray-400">Giriş Yöntemi</p>
+                        <AuthMethodBadges methods={selected.auth_methods} />
+                      </div>
                       {[
                         { label:'Tam Kullanıcı ID', val:selected.id },
                         { label:'Rol', val:ROLE_LABEL[selected.role as RoleType] ?? selected.role },
