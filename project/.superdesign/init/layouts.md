@@ -1,3 +1,11 @@
+# Shared layouts
+
+## Layout
+
+- File: `src/components/Layout.tsx`
+- Authenticated customer application shell with sticky header, responsive content area, desktop footer, and mobile bottom navigation.
+
+```tsx
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -13,10 +21,10 @@ import AppLogo from './AppLogo';
 import DesktopFooter from './DesktopFooter';
 
 const navItems = [
-  { path: '/home',         icon: Home,        glyph: undefined, label: 'Sayfa'     },
-  { path: '/shop',         icon: ShoppingBag, glyph: undefined, label: 'Mağaza'    },
-  { path: '/leaderboard',  icon: Trophy,      glyph: '♕',       label: 'Liderlik'  },
-  { path: '/profile',      icon: User,        glyph: undefined, label: 'Profil'    },
+  { path: '/home',         icon: Home,        label: 'Sayfa'     },
+  { path: '/shop',         icon: ShoppingBag, label: 'MaÄŸaza'    },
+  { path: '/leaderboard',  icon: Trophy,      label: 'Liderlik'  },
+  { path: '/profile',      icon: User,        label: 'Profil'    },
 ];
 
 interface LayoutProps {
@@ -43,7 +51,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
     <div className="page-container customer-shell flex overflow-x-hidden" style={{ position: 'relative' }}>
       {rewardPopup && <RewardPopup data={rewardPopup} onDismiss={dismissRewardPopup} />}
 
-      {/* ── Main content ── */}
+      {/* â”€â”€ Main content â”€â”€ */}
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Header */}
@@ -78,7 +86,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
           {/* Theme */}
           <button
             onClick={toggleTheme}
-            aria-label={theme === 'light' ? 'Koyu temaya geç' : 'Açık temaya geç'}
+            aria-label={theme === 'light' ? 'Koyu temaya geÃ§' : 'AÃ§Ä±k temaya geÃ§'}
             className="customer-header-icon-button"
             style={{
               width: 40, height: 40, borderRadius: 12, flexShrink: 0,
@@ -95,7 +103,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
           {/* Notifications */}
           <button
             onClick={() => navigateTo('/notifications')}
-            aria-label="Bildirimleri aç"
+            aria-label="Bildirimleri aÃ§"
             className="customer-header-icon-button"
             style={{
               width: 40, height: 40, borderRadius: 12, flexShrink: 0,
@@ -116,7 +124,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
 
         {!hideNav && <DesktopFooter onNavigate={navigateTo} />}
 
-        {/* ── Bottom nav (mobile) ── */}
+        {/* â”€â”€ Bottom nav (mobile) â”€â”€ */}
         {!hideNav && (
           <nav
             className="customer-bottom-nav fixed bottom-0 left-0 right-0 lg:hidden z-30 safe-bottom"
@@ -154,20 +162,11 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                       border: active ? '3px solid var(--dark-border)' : '3px solid transparent',
                       transition: 'background-color 0.15s, border-color 0.15s',
                     }}>
-                      {item.glyph ? (
-                        <span aria-hidden style={{
-                          color: active ? 'var(--primary-blue)' : 'var(--text-muted)',
-                          fontSize: 25,
-                          fontWeight: 900,
-                          lineHeight: 0.8,
-                        }}>{item.glyph}</span>
-                      ) : (
-                        <item.icon
-                          size={22}
-                          strokeWidth={active ? 2.5 : 1.8}
-                          color={active ? 'var(--primary-blue)' : 'var(--text-muted)'}
-                        />
-                      )}
+                      <item.icon
+                        size={22}
+                        strokeWidth={active ? 2.5 : 1.8}
+                        color={active ? 'var(--primary-blue)' : 'var(--text-muted)'}
+                      />
                     </div>
                     <span className="customer-bottom-nav__label" style={{
                       fontSize: 10, fontWeight: active ? 900 : 600,
@@ -178,7 +177,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                 );
               })}
 
-              {/* Center QR button — hidden when QR module disabled */}
+              {/* Center QR button â€” hidden when QR module disabled */}
               {flags.qr_enabled ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, marginTop: -22 }}>
                 <button
@@ -236,20 +235,11 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
                       border: active ? '3px solid var(--dark-border)' : '3px solid transparent',
                       transition: 'background-color 0.15s, border-color 0.15s',
                     }}>
-                      {item.glyph ? (
-                        <span aria-hidden style={{
-                          color: active ? 'var(--primary-blue)' : 'var(--text-muted)',
-                          fontSize: 25,
-                          fontWeight: 900,
-                          lineHeight: 0.8,
-                        }}>{item.glyph}</span>
-                      ) : (
-                        <item.icon
-                          size={22}
-                          strokeWidth={active ? 2.5 : 1.8}
-                          color={active ? 'var(--primary-blue)' : 'var(--text-muted)'}
-                        />
-                      )}
+                      <item.icon
+                        size={22}
+                        strokeWidth={active ? 2.5 : 1.8}
+                        color={active ? 'var(--primary-blue)' : 'var(--text-muted)'}
+                      />
                     </div>
                     <span className="customer-bottom-nav__label" style={{
                       fontSize: 10, fontWeight: active ? 900 : 600,
@@ -269,3 +259,246 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav }) => {
 };
 
 export default Layout;
+
+```
+
+## DesktopFooter
+
+- File: `src/components/DesktopFooter.tsx`
+- Desktop-only footer/navigation used by Layout.
+
+```tsx
+import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Home, QrCode, ShoppingBag, Trophy, User, Gamepad2, Target, Zap,
+  Package, BarChart2, History, Bell, Settings, HelpCircle, TrendingUp,
+} from 'lucide-react';
+import { prefetchRoute } from '../lib/routePrefetch';
+import AppLogo from './AppLogo';
+import { useFeatureFlags } from '../context/SystemSettingsContext';
+
+type FooterLink = {
+  path: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+const FOOTER_SECTIONS: { title: string; links: FooterLink[] }[] = [
+  {
+    title: 'Ana',
+    links: [
+      { path: '/home', label: 'Ana Sayfa', icon: Home },
+      { path: '/qr', label: 'QR Tara', icon: QrCode },
+      { path: '/shop', label: 'MaÄŸaza', icon: ShoppingBag },
+      { path: '/leaderboard', label: 'Liderlik', icon: Trophy },
+      { path: '/profile', label: 'Profil', icon: User },
+    ],
+  },
+  {
+    title: 'KeÅŸfet',
+    links: [
+      { path: '/games', label: 'Oyunlar', icon: Gamepad2 },
+      { path: '/missions', label: 'GÃ¶revler', icon: Target },
+      { path: '/events', label: 'Etkinlikler', icon: Zap },
+      { path: '/inventory', label: 'Envanter', icon: Package },
+      { path: '/progress', label: 'Ä°lerleme', icon: TrendingUp },
+    ],
+  },
+  {
+    title: 'Hesap',
+    links: [
+      { path: '/achievements', label: 'BaÅŸarÄ±lar', icon: Trophy },
+      { path: '/stats', label: 'Ä°statistikler', icon: BarChart2 },
+      { path: '/history', label: 'GeÃ§miÅŸ', icon: History },
+      { path: '/notifications', label: 'Bildirimler', icon: Bell },
+      { path: '/settings', label: 'Ayarlar', icon: Settings },
+      { path: '/support', label: 'Destek', icon: HelpCircle },
+    ],
+  },
+];
+
+function isActivePath(pathname: string, path: string): boolean {
+  if (path === '/home') return pathname === '/home' || pathname === '/app';
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
+type DesktopFooterProps = {
+  onNavigate: (path: string) => void;
+};
+
+const DesktopFooter: React.FC<DesktopFooterProps> = ({ onNavigate }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const flags = useFeatureFlags();
+
+  const filterLinks = (links: FooterLink[]) =>
+    links.filter(link => {
+      if (link.path === '/qr') return flags.qr_enabled;
+      if (link.path === '/games') return flags.games_enabled;
+      if (link.path === '/missions') return flags.missions_enabled;
+      return true;
+    });
+
+  const sections = FOOTER_SECTIONS.map(section => ({
+    ...section,
+    links: filterLinks(section.links),
+  })).filter(section => section.links.length > 0);
+
+  return (
+    <footer className="app-desktop-footer hidden lg:block">
+      <div className="app-desktop-footer__inner">
+        <div className="app-desktop-footer__brand">
+          <button
+            type="button"
+            className="app-desktop-footer__logo"
+            onClick={() => onNavigate('/home')}
+            aria-label="NexReward ana sayfa"
+          >
+            <AppLogo size={36} className="app-desktop-footer__logo-mark" />
+            <div>
+              <p className="app-desktop-footer__logo-title">NexReward</p>
+              <p className="app-desktop-footer__logo-sub">Puan kazan, Ã¶dÃ¼l topla</p>
+            </div>
+          </button>
+        </div>
+
+        {sections.map(section => (
+          <div key={section.title} className="app-desktop-footer__col">
+            <p className="app-desktop-footer__col-title">{section.title}</p>
+            <ul className="app-desktop-footer__links">
+              {section.links.map(link => {
+                const active = isActivePath(location.pathname, link.path);
+                const Icon = link.icon;
+                return (
+                  <li key={link.path}>
+                    <button
+                      type="button"
+                      className={`app-desktop-footer__link${active ? ' app-desktop-footer__link--active' : ''}`}
+                      onClick={() => onNavigate(link.path)}
+                      onMouseEnter={() => prefetchRoute(link.path)}
+                      onFocus={() => prefetchRoute(link.path)}
+                    >
+                      <Icon size={14} strokeWidth={active ? 2.5 : 2} />
+                      <span>{link.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+
+        <div className="app-desktop-footer__cta">
+          {flags.qr_enabled && (
+          <button
+            type="button"
+            className="app-desktop-footer__qr-btn"
+            onClick={() => onNavigate('/qr')}
+            onMouseEnter={() => prefetchRoute('/qr')}
+          >
+            <QrCode size={20} />
+            QR Tara
+          </button>
+          )}
+          <button
+            type="button"
+            className="app-desktop-footer__shop-btn"
+            onClick={() => onNavigate('/shop')}
+            onMouseEnter={() => prefetchRoute('/shop')}
+          >
+            <ShoppingBag size={18} />
+            MaÄŸazaya Git
+          </button>
+        </div>
+      </div>
+
+      <div className="app-desktop-footer__bar">
+        <span>Â© {new Date().getFullYear()} NexReward</span>
+        <div className="app-desktop-footer__legal">
+          <button type="button" onClick={() => navigate('/terms')}>KullanÄ±m</button>
+          <button type="button" onClick={() => navigate('/privacy')}>Gizlilik</button>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+export default DesktopFooter;
+
+```
+
+## AppLogo
+
+- File: `src/components/AppLogo.tsx`
+- Shared brand mark used in the shell header.
+
+```tsx
+import React from 'react';
+
+export type AppLogoSize = 32 | 36 | 64 | 72;
+
+type AppLogoProps = {
+  size?: AppLogoSize;
+  className?: string;
+  style?: React.CSSProperties;
+  inverted?: boolean;
+  priority?: boolean;
+};
+
+const LOGO_FILES: Record<AppLogoSize, string> = {
+  32: 'logo-wordmark-32',
+  36: 'logo-wordmark-36',
+  64: 'logo-wordmark-64',
+  72: 'logo-wordmark-72',
+};
+
+const LOGO_DIMENSIONS: Record<AppLogoSize, { width: number; height: number }> = {
+  32: { width: 99, height: 32 },
+  36: { width: 114, height: 36 },
+  64: { width: 206, height: 64 },
+  72: { width: 228, height: 72 },
+};
+
+/** Responsive logo â€” serves WebP at the exact display size to avoid oversized downloads. */
+const AppLogo: React.FC<AppLogoProps> = ({
+  size = 36,
+  className = '',
+  style,
+  inverted = false,
+  priority = false,
+}) => {
+  const base = LOGO_FILES[size];
+  const dimensions = LOGO_DIMENSIONS[size];
+
+  return (
+    <picture>
+      <source type="image/webp" srcSet={`/assets/icons/${base}.webp`} />
+      <img
+        src={`/assets/icons/${base}.png`}
+        alt="Nesve Next"
+        width={dimensions.width}
+        height={dimensions.height}
+        className={className}
+        decoding={priority ? 'sync' : 'async'}
+        loading={priority ? 'eager' : 'lazy'}
+        {...({ fetchpriority: priority ? 'high' : 'auto' } as any)}
+        style={{
+          width: dimensions.width,
+          height: dimensions.height,
+          objectFit: 'contain',
+          display: 'block',
+          filter: inverted ? 'brightness(0) invert(1)' : undefined,
+          ...style,
+        }}
+      />
+    </picture>
+  );
+};
+
+export default AppLogo;
+
+```
+
+

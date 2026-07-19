@@ -7,11 +7,12 @@ import {
 import {
   Users, Zap, ShoppingBag, Activity, Download,
   Globe, Shield, AlertTriangle, TrendingUp, TrendingDown,
-  Clock, Monitor, Smartphone, Server, Database, Cpu,
-  HardDrive, Wifi, Lock, RefreshCw, Loader,
+  Clock, Monitor, Smartphone, Server,
+  Wifi, Lock, RefreshCw, Loader,
 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { getAnalyticsData } from '../../services/admin';
+import { getSystemHealth, type SystemHealthCheck } from '../../services/systemHealth';
 import { useRealtimeTables } from '../../hooks/useRealtime';
 
 const COLORS = ['#7B6EF6', '#4F8EF7', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -80,28 +81,66 @@ const MiniStat: React.FC<{ title: string; value: number; icon: React.ElementType
   );
 };
 
-const HealthItem: React.FC<{ name: string; icon: React.ElementType; load: number }> = ({ name, icon: Icon, load }) => (
-  <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700 space-y-2">
-    <div className="flex items-center gap-2">
-      <Icon size={16} className="text-gray-600 dark:text-gray-400" />
-      <p className="font-bold text-sm text-gray-900 dark:text-white">{name}</p>
+const HEALTH_ICONS: Record<SystemHealthCheck['id'], React.ElementType> = {
+  'data-api': Server,
+  auth: Shield,
+  analytics: Activity,
+  'static-content': Globe,
+};
+
+const HEALTH_STYLES = {
+  healthy: {
+    dot: 'bg-green-500',
+    badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    label: 'Çalışıyor',
+  },
+  degraded: {
+    dot: 'bg-amber-500',
+    badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    label: 'Kontrol gerekli',
+  },
+  offline: {
+    dot: 'bg-red-500',
+    badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    label: 'Ulaşılamıyor',
+  },
+} as const;
+
+const HealthItem: React.FC<{ check: SystemHealthCheck }> = ({ check }) => {
+  const Icon = HEALTH_ICONS[check.id];
+  const style = HEALTH_STYLES[check.status];
+
+  return (
+    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon size={17} className="text-gray-600 dark:text-gray-300 flex-shrink-0" />
+          <p className="font-bold text-sm text-gray-900 dark:text-white">{check.name}</p>
+        </div>
+        <div className={`w-2.5 h-2.5 mt-1 rounded-full flex-shrink-0 ${style.dot}`} />
+      </div>
+      <div>
+        <p className="text-sm font-black text-gray-900 dark:text-white">{style.label}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{check.detail}</p>
+      </div>
+      <div className="pt-2 border-t border-gray-200 dark:border-gray-600 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">Yanıt süresi</span>
+        <span className="text-xs font-black text-gray-700 dark:text-gray-200">
+          {check.latencyMs === null ? 'Ölçülemedi' : `${check.latencyMs} ms`}
+        </span>
+      </div>
     </div>
-    <div className="flex items-center gap-2">
-      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-      <span className="text-xs text-gray-600 dark:text-gray-400">Çevrimiçi</span>
-    </div>
-    <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-      <div className={`h-full rounded-full ${load > 80 ? 'bg-red-500' : load > 60 ? 'bg-amber-500' : 'bg-green-500'}`} style={{ width: `${load}%` }} />
-    </div>
-    <p className="text-xs text-gray-500">{load}% yük</p>
-  </div>
-);
+  );
+};
 
 /* ════════════════════════════════════ */
 const AdminDashboard2: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
   const [loading, setLoading]     = useState(true);
   const [lastRefresh, setLastRefresh] = useState('');
+  const [healthChecks, setHealthChecks] = useState<SystemHealthCheck[]>([]);
+  const [healthLoading, setHealthLoading] = useState(true);
+  const [healthCheckedAt, setHealthCheckedAt] = useState('');
 
   type Stats = Awaited<ReturnType<typeof getAnalyticsData>>['stats'];
   const [stats, setStats]             = useState<Stats | null>(null);
@@ -122,7 +161,23 @@ const AdminDashboard2: React.FC = () => {
     finally { setLoading(false); }
   }, [timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const loadHealth = useCallback(async () => {
+    setHealthLoading(true);
+    try {
+      const checks = await getSystemHealth();
+      setHealthChecks(checks);
+      setHealthCheckedAt(new Date().toLocaleTimeString('tr-TR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }));
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
+
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadHealth(); }, [loadHealth]);
   useRealtimeTables(['profiles', 'redemptions', 'points_transactions', 'qr_scans', 'activity_logs'], load);
 
   const exportReport = () => {
@@ -171,8 +226,13 @@ const AdminDashboard2: React.FC = () => {
               </button>
             ))}
           </div>
-          <button onClick={load} className="p-2 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:shadow-md transition-all">
-            <RefreshCw size={18} className="text-gray-600 dark:text-gray-400" />
+          <button
+            onClick={() => { load(); loadHealth(); }}
+            disabled={loading || healthLoading}
+            aria-label="Tüm verileri yenile"
+            className="p-2 rounded-2xl border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:shadow-md transition-all disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={`text-gray-600 dark:text-gray-400 ${loading || healthLoading ? 'animate-spin' : ''}`} />
           </button>
           <button onClick={exportReport} className="flex items-center gap-2 px-4 py-2 bg-[#7B6EF6] dark:bg-[#4F8EF7] text-white rounded-2xl border-2 border-black font-bold hover:shadow-lg transition-all">
             <Download size={18} /> Export
@@ -431,25 +491,52 @@ const AdminDashboard2: React.FC = () => {
         </div>
       </div>
 
-      {/* ── System Health (static — we can't query actual server metrics) ── */}
+      {/* ── System Health — real browser-to-service availability checks ── */}
       <div className="card p-6 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700">
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6">
           <h3 className="font-black text-lg text-gray-900 dark:text-white flex items-center gap-2">
             <Server size={20} className="text-blue-500" /> Sistem Durumu
           </h3>
-          <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            Tüm Sistemler Çalışıyor
-          </span>
+          <div className="flex flex-col sm:items-end gap-1">
+            {(() => {
+              const hasOffline = healthChecks.some(check => check.status === 'offline');
+              const hasDegraded = healthChecks.some(check => check.status === 'degraded');
+              const status = hasOffline ? 'offline' : hasDegraded ? 'degraded' : 'healthy';
+              const style = HEALTH_STYLES[status];
+              const label = healthLoading
+                ? 'Kontroller yapılıyor'
+                : hasOffline
+                  ? 'Bazı sistemlere ulaşılamıyor'
+                  : hasDegraded
+                    ? 'Bazı kontroller dikkat gerektiriyor'
+                    : `${healthChecks.length}/${healthChecks.length} sistem çalışıyor`;
+
+              return (
+                <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${healthLoading ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' : style.badge}`}>
+                  {healthLoading ? <Loader size={12} className="animate-spin" /> : <div className={`w-2 h-2 rounded-full ${style.dot}`} />}
+                  {label}
+                </span>
+              );
+            })()}
+            {healthCheckedAt && !healthLoading && (
+              <span className="text-[11px] text-gray-400">Son kontrol: {healthCheckedAt}</span>
+            )}
+          </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <HealthItem name="Veritabanı" icon={Database} load={23} />
-          <HealthItem name="API"        icon={Server}   load={45} />
-          <HealthItem name="Cache"      icon={Cpu}      load={38} />
-          <HealthItem name="Depolama"   icon={HardDrive} load={34} />
-          <HealthItem name="CDN"        icon={Globe}    load={12} />
-          <HealthItem name="Auth"       icon={Shield}   load={28} />
-        </div>
+        {healthLoading && healthChecks.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" aria-label="Sistem kontrolleri yapılıyor">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-36 rounded-2xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 ${healthLoading ? 'opacity-60' : ''}`}>
+            {healthChecks.map(check => <HealthItem key={check.id} check={check} />)}
+          </div>
+        )}
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+          Durumlar, bu tarayıcıdan servislere yapılan canlı erişim kontrollerine dayanır. Sunucu yükü yalnızca güvenilir bir izleme kaynağı olduğunda gösterilir.
+        </p>
       </div>
 
       {/* ── Security Alerts (only if real high-risk events exist) ── */}
